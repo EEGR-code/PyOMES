@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PyOMES"
+version = "0.12.5"
+requires-python = ">=3.10"
+dependencies = ["numpy", "scipy"]
+
+[project.optional-dependencies]
+phreeqc = ["phreeqpython>=1.6"]
+export = ["pandas", "pyarrow"]
+test = ["pytest", "pandas", "pyarrow", "phreeqpython>=1.6"]
+all = ["phreeqpython>=1.6", "pandas", "pyarrow"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/standalone"]

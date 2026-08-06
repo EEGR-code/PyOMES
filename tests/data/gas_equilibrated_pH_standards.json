@@ -1,0 +1,285 @@
+{
+  "meta": {
+    "notes": [
+      "Cases mirror the 'CASES' style used by run_test_NIST_buffer_standards_with_recipe.py: name, recipe_mol_L, acid_pKas, pH_ref, tol, etc.",
+      "This file adds 'gas_equilibration' and 'references'.",
+      "If pH_ref is omitted, the runner will compute and report pH but will not PASS/FAIL.",
+      "Pressure-based CO2-saturated-water/brine benchmarks use literature values measured under pure-CO2 headspace at the stated total pressure (i.e., pCO2 ~= P_total).",
+      "Some hydrate names use the Unicode middle dot '·' to match CHEM_DB keys (e.g., MgSO4·7H2O). If your CHEM_DB uses ASCII '.', adjust accordingly."
+    ]
+  },
+  "CASES": [
+    {
+      "category": "gas_equilibrated",
+      "name": "High-purity water equilibrated with ambient air (CO2 ~ 400 ppm) at 25C",
+      "T_C": 25.0,
+      "pH_ref": 5.60,
+      "tol": 0.15,
+      "recipe_mol_L": {},
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "gas_y": { "CO2": 0.0004, "O2": 0.2095, "N2": 0.7901 },
+        "kH_CO2_mol_L_atm": 0.033
+      },
+      "references": [
+        {
+          "id": "thornton_high_purity_water_pH",
+          "type": "application_note",
+          "citation": "Thornton / SnowPure application note on high-purity water pH (air-equilibrated water ~ pH 5.6 at 25C).",
+          "url": "https://www.snowpure.com/docs/thornton-high-purity-ph.pdf",
+          "notes": "Common reference for the widely-cited pH of air-equilibrated pure water."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "THERMO: CO2-saturated pure water at 20C under pure CO2, P = 0.23 MPa (~2.27 atm)",
+      "T_C": 20.0,
+      "pH_ref": 3.78,
+      "tol": 0.15,
+      "recipe_mol_L": {},
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 2.27,
+        "pCO2_atm": 2.27,
+        "kH_CO2_mol_L_atm": 0.033
+      },
+      "references": [
+        {
+          "id": "haghi_tohidi_CO2_sat_water_brines",
+          "type": "peer_reviewed_or_preprint_pdf",
+          "citation": "Haghi et al. (Tohidi group) – 'pH of CO2 saturated water and CO2 saturated brines' reports pH for CO2–H2O at multiple pressures/temperatures; Table 3 includes 293.15 K, 0.23 MPa: pH ~ 3.78.",
+          "url": "https://pure.hw.ac.uk/ws/portalfiles/portal/16060209/pH_of_CO2_saturated_water_and_CO2_saturated_brines.pdf",
+          "notes": "Strong thermodynamic benchmark (measured pH under pure CO2 headspace)."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "THERMO: CO2-saturated pure water at 50C under pure CO2, P = 0.23 MPa (~2.27 atm)",
+      "T_C": 50.0,
+      "pH_ref": 4.00,
+      "tol": 0.15,
+      "recipe_mol_L": {},
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 2.27,
+        "pCO2_atm": 2.27,
+        "kH_CO2_mol_L_atm": 0.030
+      },
+      "references": [
+        {
+          "id": "haghi_tohidi_CO2_sat_water_brines_T353",
+          "type": "peer_reviewed_or_preprint_pdf",
+          "citation": "Haghi et al. – CO2–H2O electrometric measurements; Table 3 includes 353.15 K, 0.23 MPa: pH ~ 4.00.",
+          "url": "https://pure.hw.ac.uk/ws/portalfiles/portal/16060209/pH_of_CO2_saturated_water_and_CO2_saturated_brines.pdf",
+          "notes": "Thermodynamic benchmark demonstrating temperature dependence under fixed CO2 pressure."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "THERMO/APPLIED: CO2-saturated brine at 25C, NaCl ~1.03 m, pure CO2 at ~1 atm -> pH ~3.76",
+      "T_C": 25.0,
+      "pH_ref": 3.76,
+      "tol": 0.20,
+      "recipe_mol_L": {
+        "NaCl": 1.03
+      },
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "pCO2_atm": 1.0,
+        "kH_CO2_mol_L_atm": 0.033
+      },
+      "references": [
+        {
+          "id": "crolet_bonis_1983_via_haghi",
+          "type": "peer_reviewed_secondary_citation",
+          "citation": "Crolet & Bonis (1983) as summarized/cited in Haghi et al. – at 298.15 K and ~0.1 MPa, reported pH decreases with ionic strength; around ionic strength ~1.03 m: pH ~ 3.76.",
+          "url": "https://pure.hw.ac.uk/ws/portalfiles/portal/16060209/pH_of_CO2_saturated_water_and_CO2_saturated_brines.pdf",
+          "notes": "Useful brine benchmark; note your model may not include full Pitzer activity corrections (expect larger deviation)."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "THERMO/APPLIED: CO2-saturated brine at 25C, NaCl ~3.87 m, pure CO2 at ~1 atm -> pH ~3.57",
+      "T_C": 25.0,
+      "pH_ref": 3.57,
+      "tol": 0.20,
+      "recipe_mol_L": {
+        "NaCl": 3.87
+      },
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "pCO2_atm": 1.0,
+        "kH_CO2_mol_L_atm": 0.033
+      },
+      "references": [
+        {
+          "id": "crolet_bonis_1983_high_salt_via_haghi",
+          "type": "peer_reviewed_secondary_citation",
+          "citation": "Crolet & Bonis (1983) as summarized/cited in Haghi et al. – at 298.15 K and ~0.1 MPa, pH decreases from ~3.76 to ~3.57 as ionic strength increases from ~1.03 m to ~3.87 m.",
+          "url": "https://pure.hw.ac.uk/ws/portalfiles/portal/16060209/pH_of_CO2_saturated_water_and_CO2_saturated_brines.pdf",
+          "notes": "High-salinity stress-test; deviations may reflect missing activity corrections rather than carbonate chemistry errors."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "Cell-culture bicarbonate equilibrium: ~22 mM NaHCO3 + 5% CO2 at 37C -> pH ~7.4",
+      "T_C": 37.0,
+      "pH_ref": 7.40,
+      "tol": 0.15,
+      "recipe_mol_L": { "NaHCO3": 0.022 },
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "pCO2_atm": 0.05,
+        "kH_CO2_mol_L_atm": 0.030
+      },
+      "references": [
+        {
+          "id": "michl_2019_guidelines",
+          "type": "peer_reviewed",
+          "citation": "Michl et al., 2019 (Communications Biology) – discusses preparing media with 22 mM NaHCO3 and equilibrating in 5% CO2 to reach target pH ~7.4.",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6486606/",
+          "notes": "Used here as a practical 'cell-culture analogue' equilibrium check."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "DMEM-style guidance case: 5% CO2 at 37C commonly yields pH ~7.5–7.6 (convention/guidance)",
+      "T_C": 37.0,
+      "pH_ref": 7.55,
+      "tol": 0.20,
+      "recipe_mol_L": {
+        "NaHCO3": 0.044
+      },
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "pCO2_atm": 0.05,
+        "kH_CO2_mol_L_atm": 0.030
+      },
+      "references": [
+        {
+          "id": "culturecollections_CO2_pH_control",
+          "type": "guidance",
+          "citation": "CultureCollections guidance note – states that using 5% CO2 with DMEM commonly results in pH ~7.5–7.6.",
+          "url": "https://www.culturecollections.org.uk/culture-collection-news/co2-concentration-and-ph-control-in-the-cell-culture-laboratory/",
+          "notes": "This is a 'guidance benchmark' rather than a strict thermodynamic standard; good for sanity checking."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "Industrial/biorelevant bicarbonate benchmark: mHanks buffer maintained at pH 6.8 ±0.05 by continuous CO2 sparging (37C)",
+      "T_C": 37.0,
+      "pH_ref": 6.80,
+      "tol": 0.10,
+      "recipe_mol_L": {
+        "NaCl": 0.1369,
+        "KCl": 0.00537,
+        "MgSO4.7H2O": 0.000812,
+        "CaCl2": 0.00126,
+        "Na2HPO4": 0.000337,
+        "KH2PO4": 0.000441,
+        "NaHCO3": 0.00417
+      },
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "pCO2_atm": 0.05,
+        "kH_CO2_mol_L_atm": 0.030
+      },
+      "references": [
+        {
+          "id": "liu_2011_mHanks",
+          "type": "peer_reviewed",
+          "citation": "Liu et al., 2011 – describes mHanks bicarbonate buffer and that pH was maintained at 6.8 ±0.05 by continuously sparging CO2 at 37°C; composition given in Methods.",
+          "url": "https://eprints.hud.ac.uk/29047/1/6.8%20bicarbonate%20paper.pdf",
+          "notes": "A strong benchmark because the pH target and maintenance method are explicit and the ionic recipe is published."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "Phosphate buffer + 5% CO2 'biotrap' case (REPORT-ONLY): 50 mM phosphate at pH 7.4, exposed to 5% CO2 (37C)",
+      "T_C": 37.0,
+      "recipe_mol_L": {
+        "Na2HPO4": 0.040,
+        "NaH2PO4": 0.010,
+        "NaCl": 0.150
+      },
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "pCO2_atm": 0.05,
+        "kH_CO2_mol_L_atm": 0.030
+      },
+      "references": [
+        {
+          "id": "phosphate_buffer_CO2_biotrap_context",
+          "type": "explanation_context",
+          "citation": "Michl et al., 2019 – discusses how non-volatile buffers acidify upon exposure to 5% CO2 (general mechanism); phosphate is a non-volatile buffer system.",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6486606/",
+          "notes": "No single canonical equilibrium pH is universally cited for this exact phosphate/CO2 system; use this case as a qualitative check unless you supply your own measured pH_ref."
+        }
+      ]
+    },
+
+    {
+      "category": "gas_equilibrated",
+      "name": "NH3 + CO2 (applied): 0.5 M aqueous NH3 exposed to CO2; pH levels off to ~8.5 near CO2 saturation (20C)",
+      "T_C": 20.0,
+      "pH_ref": 8.50,
+      "tol": 0.40,
+      "recipe_mol_L": {
+        "NH3": 0.5
+      },
+      "acid_pKas": {},
+      "gas_equilibration": {
+        "mode": "open_fixed_pCO2",
+        "P_total_atm": 1.0,
+        "pCO2_atm": 1.0,
+        "kH_CO2_mol_L_atm": 0.033
+      },
+      "notes": [
+        "This is an applied benchmark: Atzori et al. report a dynamic absorption experiment where pH stabilizes near ~8.5 at CO2 saturation for ~0.5 M NH3 at ~20C.",
+        "To make this fully quantitative in your framework, add/enable an explicit NH3/NH4 total system in your chemistry core (if not already present) and represent initial NH3 via an appropriate CHEM_DB entry (e.g., 'NH3(aq)' or equivalent) rather than NH4Cl."
+      ],
+      "references": [
+        {
+          "id": "atzori_2023_ceJ_abstract",
+          "type": "peer_reviewed_abstract_statement",
+          "citation": "Atzori et al., 2023 (Chemical Engineering Journal) – reports that during CO2 absorption into 0.5 M NH3 at ~20°C, pH drops and then levels off to about 8.5 as CO2 saturation is approached.",
+          "url": "https://www.sciencedirect.com/science/article/pii/S1385894722044783",
+          "notes": "Included as an applied NH3–CO2 benchmark; not a strict equilibrium standard, but useful for sanity checking NH3–carbonate coupling when your NHx chemistry is enabled."
+        }
+      ]
+    }
+  ]
+}
+

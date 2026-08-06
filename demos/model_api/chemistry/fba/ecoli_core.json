@@ -1,0 +1,220 @@
+{
+  "_comment": [
+    "Original hand-crafted pedagogical construction.",
+    "This file is NOT a copy of any published metabolic reconstruction.",
+    "It is an 18-reaction teaching model covering the main energy-",
+    "metabolism routes of E. coli at a lumped level:",
+    "  GLYC     — lumped glycolysis (glucose -> 2 pyruvate)",
+    "  PDH      — pyruvate dehydrogenase (aerobic decarboxylation)",
+    "  TCA      — lumped TCA cycle (acetyl-CoA -> CO2 + NADH + ATP)",
+    "  ETC      — electron-transport chain / ox. phosphorylation",
+    "  LDH      — lactate dehydrogenase (fermentation, NADH sink)",
+    "  PFL      — pyruvate-formate lyase (NADH-free anaerobic route)",
+    "  ADH      — alcohol dehydrogenase (accoa -> ethanol, NADH sink)",
+    "  ACK      — acetate kinase (accoa -> acetate + ATP)",
+    "  BIOMASS_SYN — simplified lumped biomass synthesis",
+    "  ATP_MAINT   — non-growth ATP demand",
+    "  8 exchange reactions (glucose, O2, CO2, acetate, lactate,",
+    "                        formate, ethanol, biomass)",
+    "",
+    "Known limitations — by design, for pedagogical clarity:",
+    "  - Glycolysis and TCA are each a single lumped reaction.",
+    "    Intermediate metabolites (PEP, OAA, isocitrate, etc.) and",
+    "    the pentose-phosphate / anaplerotic / glyoxylate pathways",
+    "    are absent.",
+    "  - Biomass uses simplified stoichiometry (1 pyr + 0.5 accoa +",
+    "    5 ATP per unit), not the multi-precursor",
+    "    BIOMASS_Ecoli_core_w_GAM equation from a real reconstruction.",
+    "  - ATP and NADH are cofactors only; no explicit proton, water,",
+    "    or phosphate tracking.",
+    "  - 18 reactions vs. 95 in the canonical BiGG e_coli_core model.",
+    "",
+    "Use this file to learn the loader pattern (how to drive",
+    "BlackBoxReactionModel from a structured data file), not as a",
+    "source of verified E. coli stoichiometry. For a canonical",
+    "95-reaction model see BiGG e_coli_core (Orth, Fleming &",
+    "Palsson 2011, EcoSal Plus 4(1)).",
+    "",
+    "COBRA exchange convention: exchanges have {met: -1} stoichiometry;",
+    "positive flux = secretion, negative flux = uptake. Lower bounds",
+    "on uptake exchanges are overwritten at each timestep with",
+    "Michaelis-Menten values (see JSONFBASolver.solve)."
+  ],
+  "metabolites": {
+    "glc_e":     {"name": "Glucose (extracellular)",   "atoms": {"C": 6, "H": 12, "O": 6}},
+    "o2_e":      {"name": "Oxygen (extracellular)",    "atoms": {"O": 2}},
+    "co2_e":     {"name": "CO2 (extracellular)",       "atoms": {"C": 1, "O": 2}},
+    "ac_e":      {"name": "Acetate (extracellular)",   "atoms": {"C": 2, "H": 4, "O": 2}},
+    "lac_e":     {"name": "Lactate (extracellular)",   "atoms": {"C": 3, "H": 6, "O": 3}},
+    "for_e":     {"name": "Formate (extracellular)",   "atoms": {"C": 1, "H": 2, "O": 2}},
+    "etoh_e":    {"name": "Ethanol (extracellular)",   "atoms": {"C": 2, "H": 6, "O": 1}},
+    "biomass_e": {"name": "Biomass (extracellular)",   "atoms": {"C": 4, "H": 7.2, "O": 2.0}},
+    "pyr_c":     {"name": "Pyruvate (cytosol)",        "atoms": {"C": 3, "H": 4, "O": 3}},
+    "accoa_c":   {"name": "Acetyl-CoA (cytosol)",      "atoms": {"C": 2, "H": 3, "O": 1}},
+    "atp_c":     {"name": "ATP (cytosol)",             "atoms": {}},
+    "nadh_c":    {"name": "NADH (cytosol)",            "atoms": {}}
+  },
+  "reactions": {
+    "EX_glc_e": {
+      "name": "Glucose exchange",
+      "stoichiometry": {"glc_e": -1.0},
+      "lower_bound": -10.0,
+      "upper_bound":   0.0
+    },
+    "EX_o2_e": {
+      "name": "Oxygen exchange",
+      "stoichiometry": {"o2_e": -1.0},
+      "lower_bound": -15.0,
+      "upper_bound":   0.0
+    },
+    "EX_co2_e": {
+      "name": "CO2 exchange (secretion only)",
+      "stoichiometry": {"co2_e": -1.0},
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "EX_ac_e": {
+      "name": "Acetate exchange (secretion only)",
+      "stoichiometry": {"ac_e": -1.0},
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "EX_lac_e": {
+      "name": "Lactate exchange (secretion only)",
+      "stoichiometry": {"lac_e": -1.0},
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "EX_for_e": {
+      "name": "Formate exchange (secretion only)",
+      "stoichiometry": {"for_e": -1.0},
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "EX_etoh_e": {
+      "name": "Ethanol exchange (secretion only)",
+      "stoichiometry": {"etoh_e": -1.0},
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "EX_biomass_e": {
+      "name": "Biomass exchange (secretion only) — objective",
+      "stoichiometry": {"biomass_e": -1.0},
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "GLYC": {
+      "name": "Glycolysis (lumped)",
+      "stoichiometry": {
+        "glc_e":  -1.0,
+        "pyr_c":   2.0,
+        "atp_c":   2.0,
+        "nadh_c":  2.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "PDH": {
+      "name": "Pyruvate dehydrogenase",
+      "stoichiometry": {
+        "pyr_c":    -1.0,
+        "accoa_c":   1.0,
+        "co2_e":     1.0,
+        "nadh_c":    1.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "TCA": {
+      "name": "TCA cycle (lumped)",
+      "stoichiometry": {
+        "accoa_c": -1.0,
+        "co2_e":    2.0,
+        "nadh_c":   3.0,
+        "atp_c":    1.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "ETC": {
+      "name": "Electron transport / oxidative phosphorylation",
+      "stoichiometry": {
+        "nadh_c": -1.0,
+        "o2_e":   -0.5,
+        "atp_c":   3.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "LDH": {
+      "name": "Lactate dehydrogenase (fermentation, NADH sink)",
+      "stoichiometry": {
+        "pyr_c":  -1.0,
+        "nadh_c": -1.0,
+        "lac_e":   1.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "PFL": {
+      "name": "Pyruvate-formate lyase (NADH-free anaerobic route)",
+      "stoichiometry": {
+        "pyr_c":   -1.0,
+        "accoa_c":  1.0,
+        "for_e":    1.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "ADH": {
+      "name": "Alcohol dehydrogenase, net accoa -> ethanol (NADH sink)",
+      "stoichiometry": {
+        "accoa_c": -1.0,
+        "nadh_c":  -2.0,
+        "etoh_e":   1.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "ACK": {
+      "name": "Acetate kinase (fermentation, ATP gain)",
+      "stoichiometry": {
+        "accoa_c": -1.0,
+        "ac_e":     1.0,
+        "atp_c":    1.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "BIOMASS_SYN": {
+      "name": "Biomass synthesis (lumped, simplified stoichiometry)",
+      "stoichiometry": {
+        "pyr_c":     -1.0,
+        "accoa_c":   -0.5,
+        "atp_c":     -5.0,
+        "biomass_e":  1.0
+      },
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    },
+    "ATP_MAINT": {
+      "name": "Non-growth ATP demand (maintenance)",
+      "stoichiometry": {"atp_c": -1.0},
+      "lower_bound":   0.0,
+      "upper_bound": 1000.0
+    }
+  },
+  "objective": {"EX_biomass_e": 1.0},
+  "cv_species_mapping": {
+    "EX_glc_e":     {"cv_species": "Glucose", "phase": "liquid",
+                     "Vmax": 10.0, "Ks": 0.5},
+    "EX_o2_e":      {"cv_species": "O2",      "phase": "liquid",
+                     "Vmax": 15.0, "Ks": 0.01},
+    "EX_co2_e":     {"cv_species": "CO2",     "phase": "liquid"},
+    "EX_ac_e":      {"cv_species": "Acetate", "phase": "liquid"},
+    "EX_lac_e":     {"cv_species": "Lactate", "phase": "liquid"},
+    "EX_for_e":     {"cv_species": "Formate", "phase": "liquid"},
+    "EX_etoh_e":    {"cv_species": "Ethanol", "phase": "liquid"},
+    "EX_biomass_e": {"cv_species": "Biomass", "phase": "liquid"}
+  }
+}
