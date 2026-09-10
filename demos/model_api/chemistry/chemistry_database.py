@@ -22,9 +22,9 @@ import sys
 import os
 
 # ── path setup (dev install fallback) ─────────────────────────────────────────
-_SRC = os.path.join(os.path.dirname(__file__), "..", "..", "..", "src")
-if _SRC not in sys.path:
-    sys.path.insert(0, _SRC)
+_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "..")
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
 # ── 1. Import a stock database ─────────────────────────────────────────────────
 from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC

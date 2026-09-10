@@ -2,9 +2,9 @@
 
 Import this module at the top of any demo script to make the
 ``vlmodels`` package importable. ``PyOMES`` itself is exposed via the
-editable install (``pip install -e .``) which maps ``src/`` →
-``PyOMES/`` through setup.py's ``package_dir``; we leave that path
-alone here so the install's resolution wins.
+editable install (``pip install -e .``), which resolves directly to
+the ``PyOMES/`` package at the repo root; we leave that path alone
+here so the install's resolution wins.
 
     import _bootstrap  # noqa: F401
     from PyOMES.config import FermenterBuilder

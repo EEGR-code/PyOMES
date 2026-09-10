@@ -20,7 +20,7 @@ transport links.
 
 ## Key Abstractions
 
-### ControlVolume (`src/core/control_volume.py`)
+### ControlVolume (`PyOMES/core/control_volume.py`)
 
 A CV holds:
 
@@ -89,7 +89,7 @@ in favour of the unified `Simulation` orchestrator), and
 whether the fermenter pattern and `HPLCColumn` should be
 unbundled into orthogonal topology / unit / integration axes.
 
-### Phases (`src/core/phases.py`)
+### Phases (`PyOMES/core/phases.py`)
 
 `GasPhase` and `LiquidPhase` hold mole inventories in a single
 canonical `n_mol` dict and volume/temperature. State-unification
@@ -113,7 +113,7 @@ Species without a Henry constant in the equilibrium interface
 not touched by the equilibrium solver. They participate in
 inter-zone transport via advective links.
 
-### Property Calculators (`src/core/property_calculator.py`)
+### Property Calculators (`PyOMES/core/property_calculator.py`)
 
 A `PropertyCalculator` is a narrow protocol with a `key: str` and
 `compute(phase, T_K, P_atm) -> float`. Each calculator computes
@@ -147,13 +147,13 @@ Two parallel equilibrium pathways exist in the codebase:
    reaction system's `cross_phase_equilibria` bucket.
 
 2. **`ProcessCoupledEquilibrator` + `HenryEquilibriumInterface`**
-   (`src/equilibria/`, `src/core/gl_equilibrium.py`) — a parallel
+   (`PyOMES/equilibria/`, `PyOMES/core/gl_equilibrium.py`) — a parallel
    single-shot CO₂/O₂/N₂ partition solver used **only** by the
    legacy `CUFermentationSpeciation` class in
    `models/vlmodels/fermenter/unit.py`. Slated for removal in the
    `CUFERMENTER_SUNSET` phase. Do not use for new work.
 
-## Reaction Framework (`src/reactions/`)
+## Reaction Framework (`PyOMES/reactions/`)
 
 ### Three independent declaration classes
 
@@ -211,7 +211,7 @@ all implement `compute_rates(env) -> {phase: {species: mol/h}}`.
 `EquilibriumReaction` deliberately does not — it's algebraic, not
 a rate producer.
 
-## Orchestration (`src/core/simulation.py`)
+## Orchestration (`PyOMES/core/simulation.py`)
 
 ### Simulation
 
@@ -319,7 +319,7 @@ result = sim.run(tau_h=24.0, n_steps=2400)
 # result.liquid_mol["sparger"]["O2"] etc.
 ```
 
-## Control System (`src/control/`)
+## Control System (`PyOMES/control/`)
 
 Controllers in the new framework consume a typed `CVSnapshot`
 (single-CV) or `SimulationSnapshot` (multi-CV) and return a
@@ -340,23 +340,23 @@ instance.
    `cv.apply_external_flux`; `params_changed` via the C9
    semantic-path resolver to the Pattern B unchecked setters.
 
-CV-native concrete controllers ship in `src/control/cv_loops.py`:
+CV-native concrete controllers ship in `PyOMES/control/cv_loops.py`:
 `PHController`, `DOAgitationController` (+`DOController` alias),
 `DOCascadeController`, `InstantPressureReliefController`,
 `SmoothPressureReliefController`, `PressureReliefController`.
 Profiles (open-loop time-varying mutators) ship in
-`src/control/cv_profiles.py`: `TemperatureRamp`, `VVMSchedule`,
+`PyOMES/control/cv_profiles.py`: `TemperatureRamp`, `VVMSchedule`,
 `SetpointTrajectory`.
 
-The legacy `src/control/system.py:ControlSystem` and
-`src/control/loops.py` (FermenterState-based controllers) remain
+The legacy `PyOMES/control/system.py:ControlSystem` and
+`PyOMES/control/loops.py` (FermenterState-based controllers) remain
 alive for the still-out-of-scope `CUFermentationSpeciation`
 BioSTEAM wrapper; their deletion is a follow-up phase.
 
 ## Directory layout
 
 ```
-src/
+PyOMES/
   __init__.py
   units.py                       # Shared constants and unit conversions
   config.py                      # PyOMES.config — WarningConfig, env-var presets

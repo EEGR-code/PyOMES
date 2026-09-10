@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """LiquidPhaseModel protocol and liquid-phase non-ideality implementations.
 
-Liquid-side EOS, symmetric with GasEOS in src/equilibria/vle.py.
+Liquid-side EOS, symmetric with GasEOS in PyOMES/equilibria/vle.py.
 
 Unit convention
 ---------------
@@ -19,7 +19,7 @@ Dual-protocol implementations
 ------------------------------
 ``DaviesLiquidModel`` satisfies both:
 - ``LiquidPhaseModel`` — ``gamma_all(x_mol, T_K, *, charge)``
-- ``ActivityModel`` (src/speciation/) — ``gamma(z, I_molL, *, T_K)``
+- ``ActivityModel`` (PyOMES/speciation/) — ``gamma(z, I_molL, *, T_K)``
 
 This allows ThermoFramework to hold a single ``liquid_activity`` object that
 works for both the phase-level LiquidPhaseModel and the per-ion ActivityModel

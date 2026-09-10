@@ -11,9 +11,9 @@ They compose orthogonally: `Simulation(solver=..., system_solver=...)`.
 
 | Solver | Semantics | Lives in | Where it earns its keep |
 |---|---|---|---|
-| `SequentialAdvanceSolver` (`solver=None` default) | Sequential operator split: speciation → feed → react → transfer; each sub-step sees post-previous state | [src/core/solvers.py](../src/core/solvers.py) | Default path; small `dt_h`; simple models without strong feed/reaction coupling |
-| `SimultaneousEulerSolver` | Simultaneous explicit Euler: all sub-systems read the same frozen snapshot, deltas summed and applied together, with swappable clamping | [src/core/solvers.py](../src/core/solvers.py) | Larger `dt_h` where operator-splitting bias matters; matches the pre-refactor semantics that ADM1 was validated against |
-| `SimultaneousAdaptiveSolver` | `solve_ivp` adaptive; explicit (DOP853) or implicit (Radau, BDF) methods; optional speciation freeze (DAE-style, BSM2/PyADM1 convention) | [src/core/solvers.py](../src/core/solvers.py) | Stiff models like BSM2 anaerobic digestion (fast H₂ kinetics); long macro timesteps that explicit Euler cannot survive |
+| `SequentialAdvanceSolver` (`solver=None` default) | Sequential operator split: speciation → feed → react → transfer; each sub-step sees post-previous state | [PyOMES/core/solvers.py](../PyOMES/core/solvers.py) | Default path; small `dt_h`; simple models without strong feed/reaction coupling |
+| `SimultaneousEulerSolver` | Simultaneous explicit Euler: all sub-systems read the same frozen snapshot, deltas summed and applied together, with swappable clamping | [PyOMES/core/solvers.py](../PyOMES/core/solvers.py) | Larger `dt_h` where operator-splitting bias matters; matches the pre-refactor semantics that ADM1 was validated against |
+| `SimultaneousAdaptiveSolver` | `solve_ivp` adaptive; explicit (DOP853) or implicit (Radau, BDF) methods; optional speciation freeze (DAE-style, BSM2/PyADM1 convention) | [PyOMES/core/solvers.py](../PyOMES/core/solvers.py) | Stiff models like BSM2 anaerobic digestion (fast H₂ kinetics); long macro timesteps that explicit Euler cannot survive |
 
 All three implement the same `StepSolver` protocol (one method,
 `solve_step(cv, dt_h, t_h, external_source_terms) -> AdvanceResult`)
@@ -83,7 +83,7 @@ delta dict is clamped independently as it's computed — this solver is
 sequential, not simultaneous, so there's no single combined dict to
 clamp once the way `SimultaneousEulerSolver` does). Pass
 `clamp_fn=floor_clamp`, a bespoke composite (see
-[src/core/clamping.py](../src/core/clamping.py)'s module docstring for
+[PyOMES/core/clamping.py](../PyOMES/core/clamping.py)'s module docstring for
 the pattern), or `clamp_fn=None` to disable clamping entirely — the
 last genuinely allows a species to go negative, which
 `AccuracyMonitor.check_negative_mole` then flags. See
@@ -161,7 +161,7 @@ the combined multi-source delta dict (step 4 above). Same
 Wraps `scipy.integrate.solve_ivp` to integrate the full system as a
 single ODE over `[0, dt_h]`. Phase-generic, like `SimultaneousEulerSolver`
 — only `"liquid"` is required. State is packed via
-`StateVector` ([src/core/state_vector.py](../src/core/state_vector.py))
+`StateVector` ([PyOMES/core/state_vector.py](../PyOMES/core/state_vector.py))
 into a flat array covering every phase the CV has, alphabetically by
 phase key then species key, with `H⁺` excluded as algebraic. One
 derivative `f(t, y)` evaluates:
@@ -218,7 +218,7 @@ derivative `f(t, y)` evaluates:
 
 All three `StepSolver`s restore a physical invariant (non-negative
 inventory) that the raw numerics don't guarantee on their own —
-[src/core/clamping.py](../src/core/clamping.py) holds the shared,
+[PyOMES/core/clamping.py](../PyOMES/core/clamping.py) holds the shared,
 swappable implementations:
 
 | Function | Used by | Behaviour |
@@ -442,7 +442,7 @@ ownership guard, `MonolithicODESolver` rejecting a per-CV `solver=` it
 can never consult, generalizing both `Simultaneous*` solvers off the
 gas/liquid assumption, the shared swappable `clamp_fn` module, the
 `negative_mole`/`clamp_invoked` diagnostics, and unified state-vector
-packing (`src/core/state_vector.py`). Items still deferred — the
+packing (`PyOMES/core/state_vector.py`). Items still deferred — the
 multi-CV-aware solver tier (SIA, see
 [SOLVER_ARCHITECTURE.md](design/SOLVER_ARCHITECTURE.md) "Identified
 extensions"), orchestrator-level adaptive macro `dt_h`, decoupling

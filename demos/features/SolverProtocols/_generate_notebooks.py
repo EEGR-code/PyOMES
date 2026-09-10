@@ -133,7 +133,7 @@ for context.
 | `SimultaneousAdaptiveSolver` | `SimultaneousAdaptiveSolver()` | `SimultaneousAdaptiveSolver(method="Radau", rtol=1e-6, atol=1e-9)` | `method` (default `"DOP853"`) — `scipy.integrate.solve_ivp` method, `"Radau"`/`"BDF"` for stiff systems; `rtol`/`atol` (default `1e-6`/`1e-9`) — solver tolerances; `max_step` (default `1.0` h) — caps the internal adaptive step; `freeze_speciation` (default `False`) — solve speciation once per macro step instead of at every derivative evaluation (BSM2/PyADM1 DAE convention); `use_engine_jacobian` (default `False`) — use the speciation engine's analytical `jacobian_dz_dy()` instead of finite differences (only with a `GrayBoxEngineProtocol` engine and an implicit `method`) |
 
 `clamp_fn`/`floor_clamp`/`proportional_clamp` live in
-[`src/core/clamping.py`](../../../src/core/clamping.py) — see the
+[`PyOMES/core/clamping.py`](../../../PyOMES/core/clamping.py) — see the
 Clamping section below.\
 """),
 

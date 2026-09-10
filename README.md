@@ -90,7 +90,7 @@ python -m pip install -e ".[test]"
 ## Repository Layout
 
 ```
-src/                    # Main package (installed as `PyOMES`)
+PyOMES/                 # Main package
   core/                 # Foundational abstractions: ControlVolume, GasPhase, LiquidPhase, PhaseInterface
   chemistry/            # Chemical database, compound registry, solution recipe builders
   speciation/           # Acid-base equilibrium engine (3 levels of detail)

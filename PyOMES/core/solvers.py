@@ -147,7 +147,7 @@ class SequentialAdvanceSolver:
         #     visible if a calculator needs them. Results land on
         #     phase.properties[calc.key] for kinetic rate laws to
         #     read via env.prop(key). See
-        #     src/core/property_calculator.py for the protocol.
+        #     PyOMES/core/property_calculator.py for the protocol.
         if cv.property_calculators:
             cv._run_property_calculators()
 
@@ -309,7 +309,7 @@ class SimultaneousEulerSolver:
         Default :func:`~PyOMES.core.clamping.proportional_clamp`
         (preserves relative stoichiometry). Pass
         :func:`~PyOMES.core.clamping.floor_clamp` for a per-species
-        floor, a bespoke composite (see ``src/core/clamping.py``'s
+        floor, a bespoke composite (see ``PyOMES/core/clamping.py``'s
         module docstring), or ``None`` to disable clamping entirely —
         useful for diagnosing whether a given ``dt_h``/kinetics
         combination is aggressive enough to need it (see

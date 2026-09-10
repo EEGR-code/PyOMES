@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for src/core/state_vector.py (STEP_SOLVER_INTERFACE_REFINEMENT.md
+"""Tests for PyOMES/core/state_vector.py (STEP_SOLVER_INTERFACE_REFINEMENT.md
 item 4 -- unified state-vector packing). Checkpoint 7 of
 STEP_SOLVER_REFINEMENT_CHECKLIST.md.
 

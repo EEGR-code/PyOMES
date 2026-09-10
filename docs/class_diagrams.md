@@ -312,17 +312,17 @@ engine has already populated both for the current step.
 > phase collapsed the speciation-shaped type machinery left over
 > from earlier rounds. `PropertySolver` / `PropertyResult` /
 > `SpeciationPropertySolver` are deleted; their slot is taken by
-> the narrow [`PropertyCalculator`](../src/core/property_calculator.py)
+> the narrow [`PropertyCalculator`](../PyOMES/core/property_calculator.py)
 > protocol (one `key: str`, one `compute(phase, T_K, P_atm) -> float`,
 > no `chem_env`, no result struct). The unified `Reaction` class
 > with `kind=` branching is replaced by three independent
 > declaration classes:
-> [`KineticReaction`](../src/reactions/kinetic.py),
-> [`EquilibriumReaction`](../src/reactions/equilibrium.py), and
-> [`BlackBoxReactionModel`](../src/reactions/blackbox.py) — no
+> [`KineticReaction`](../PyOMES/reactions/kinetic.py),
+> [`EquilibriumReaction`](../PyOMES/reactions/equilibrium.py), and
+> [`BlackBoxReactionModel`](../PyOMES/reactions/blackbox.py) — no
 > shared base, shared validation lives as free functions in
 > `_shared.py`. `ReactionSet` is replaced by
-> [`ReactionSystem`](../src/reactions/reaction_system.py), which
+> [`ReactionSystem`](../PyOMES/reactions/reaction_system.py), which
 > pre-buckets reactions into `_kinetic_reactions`,
 > `_single_phase_equilibria`, `_cross_phase_equilibria`, and
 > `_blackbox_models` at `__init__`. `cv.reaction_system` is the
@@ -337,9 +337,9 @@ engine has already populated both for the current step.
 > `cv.advance(dt_h, t_h)` is the new entry signature.
 >
 > Monitoring is attached on the same surface: an
-> [`AccuracyMonitor`](../src/monitoring/accuracy.py) hooks engine
+> [`AccuracyMonitor`](../PyOMES/monitoring/accuracy.py) hooks engine
 > internals via `cv.reaction_system.attach_monitor(monitor)`, and a
-> [`ConservationMonitor`](../src/monitoring/conservation.py) (new
+> [`ConservationMonitor`](../PyOMES/monitoring/conservation.py) (new
 > in C6) checks element + charge balance per step via
 > `cv.reaction_system.attach_conservation_monitor(monitor)`. The CV
 > auto-attaches a default `ConservationMonitor` in `__init__` and
@@ -598,13 +598,13 @@ plumbing (`once` / `first_N` / `always` / `silent`) configured via
 `PyOMES.config.warnings`, and both expose a module-level summary
 counter for end-of-run reporting.
 
-- [`AccuracyMonitor`](../src/monitoring/accuracy.py) — emitted from
+- [`AccuracyMonitor`](../PyOMES/monitoring/accuracy.py) — emitted from
   inside the `BisectionChemicalEquilibriumEngine` solve loop when the Newton residual,
   charge balance, or iteration count exceeds the configured
   thresholds. Attached via
   `cv.reaction_system.attach_monitor(monitor)`; the system
   propagates the monitor to the engine on first build.
-- [`ConservationMonitor`](../src/monitoring/conservation.py)
+- [`ConservationMonitor`](../PyOMES/monitoring/conservation.py)
   (state-unification C6) — invoked once per
   `ControlVolume.advance` step. Tracks element totals and net
   charge across all phases; emits a `ConservationWarning` when
@@ -687,14 +687,14 @@ is cheap.
 
 Out of scope for these diagrams (intentionally):
 
-- The `src/chemistry/` package (compounds, registry, `EquilibriumSet`,
+- The `PyOMES/chemistry/` package (compounds, registry, `EquilibriumSet`,
   `ThermodynamicConfig`).
-- The `src/chemical_equilibrium/` engine internals (`Level1`, `Level2`,
+- The `PyOMES/chemical_equilibrium/` engine internals (`Level1`, `Level2`,
   `Level2_5`, `StrongIonsSolver`).
-- The `src/control/` package (`ControlSystem`, `PIController`,
+- The `PyOMES/control/` package (`ControlSystem`, `PIController`,
   actuators).
 - The `models/vlmodels/` packages (fermenter unit, ADM1, HPLC).
-- The `src/numerics/` package (advection / dispersion schemes).
+- The `PyOMES/numerics/` package (advection / dispersion schemes).
 
 If a future phase pulls any of those into the architectural picture,
 add a new layer rather than expanding an existing one — the

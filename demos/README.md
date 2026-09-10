@@ -14,7 +14,7 @@ pip install -e .
 
 The local [_bootstrap.py](_bootstrap.py) adds `models/` to `sys.path`
 so the demos can import `vlmodels.fermenter.config`. The
-`pip install -e .` exposes the `PyOMES` namespace from `src/`.
+`pip install -e .` exposes the `PyOMES` package directly.
 
 ## Layout
 

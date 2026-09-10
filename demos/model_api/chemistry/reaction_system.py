@@ -32,7 +32,7 @@ Run from the repo root after ``pip install -e .``::
     python demos/model_api/chemistry/reaction_system.py
 """
 
-# Bootstrap so the demo runs when src/ isn't on sys.path yet.
+# Bootstrap so the demo runs when PyOMES isn't installed yet.
 import sys
 from pathlib import Path
 

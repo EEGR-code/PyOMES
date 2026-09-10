@@ -2,8 +2,8 @@
 """Water property correlations for temperature-dependent Debye–Hückel constants.
 
 Lightweight polynomial correlations valid over 0–100 °C (bioprocess range).
-Kept in src/thermo/ so activity models in this package can use them without
-importing from src/speciation/ (which would create a circular dependency).
+Kept in PyOMES/thermo/ so activity models in this package can use them without
+importing from PyOMES/speciation/ (which would create a circular dependency).
 """
 from __future__ import annotations
 

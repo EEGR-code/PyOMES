@@ -6,13 +6,13 @@ run_tests.py — Run the standalone test suite.
 Usage (from project root):
 
     # With pytest (preferred, if installed):
-    PYTHONPATH=src pytest tests/standalone/ -v
+    pytest tests/standalone/ -v
 
     # Without pytest (uses this script + unittest):
-    PYTHONPATH=src python tests/run_tests.py
+    python tests/run_tests.py
 
     # Run a single test file:
-    PYTHONPATH=src python tests/run_tests.py tests/standalone/test_compounds.py
+    python tests/run_tests.py tests/standalone/test_compounds.py
 
 The test suite has NO bioSTEAM dependency.  It validates:
   - Chemical registry and compound data
@@ -34,8 +34,7 @@ import time
 # ── Path setup ──────────────────────────────────────────────────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
-_SRC = os.path.join(_ROOT, "src")
-for p in (_ROOT, _SRC, _HERE):
+for p in (_ROOT, _HERE):
     if p not in sys.path:
         sys.path.insert(0, p)
 

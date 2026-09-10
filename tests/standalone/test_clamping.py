@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for src/core/clamping.py (STEP_SOLVER_INTERFACE_REFINEMENT.md
+"""Tests for PyOMES/core/clamping.py (STEP_SOLVER_INTERFACE_REFINEMENT.md
 item 7 -- shared, swappable clamp_fn module). Checkpoint 5 of
 STEP_SOLVER_REFINEMENT_CHECKLIST.md.
 

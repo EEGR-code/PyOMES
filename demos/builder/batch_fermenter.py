@@ -19,7 +19,7 @@ Set ``USE_PH_CONTROL = False`` near the top to see what happens
 without intervention.
 """
 
-# Bootstrap so the demo runs when src/ isn't on sys.path yet.
+# Bootstrap so the demo runs when PyOMES isn't installed yet.
 import sys
 from pathlib import Path
 

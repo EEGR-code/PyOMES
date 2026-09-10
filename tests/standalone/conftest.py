@@ -8,12 +8,11 @@ import os
 import sys
 import pytest
 
-# Ensure the src and models directories are on the path
+# Ensure the repo root (for PyOMES) and models directory are on the path
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, "..", ".."))
-_SRC = os.path.join(_ROOT, "src")
 _MODELS = os.path.join(_ROOT, "models")
-for p in (_SRC, _MODELS):
+for p in (_ROOT, _MODELS):
     if p not in sys.path:
         sys.path.insert(0, p)
 

@@ -227,7 +227,7 @@ class ControlVolume:
         # (viscosity, density, ...) — runs once before kinetic
         # reactions in advance(); writes results to
         # phase.properties[calc.key]. See PropertyCalculator
-        # protocol in src/core/property_calculator.py.
+        # protocol in PyOMES/core/property_calculator.py.
         self.property_calculators = _LockableList(
             property_calculators or [],
             label=f"ControlVolume({self.label!r}).property_calculators",
@@ -651,7 +651,7 @@ class ControlVolume:
         """
         # solver=None is sugar for SequentialAdvanceSolver() — the
         # sequential body used to live here inline; it is now a real
-        # StepSolver (src/core/solvers.py) so it can be passed
+        # StepSolver (PyOMES/core/solvers.py) so it can be passed
         # explicitly, wrapped, or placed in a config-driven dispatch
         # dict like any other StepSolver.
         solver = solver if solver is not None else SequentialAdvanceSolver()

@@ -16,7 +16,7 @@ Note: this module is **not** ``src/sim/control.py`` — that module
 is part of the legacy ``CUFermentationSpeciation`` island
 (``src/sim/`` is out of scope for this phase). The new framework's
 :class:`ControlAction` lives here so it stays close to the
-controller port in ``src/control/``.
+controller port in ``PyOMES/control/``.
 """
 
 from __future__ import annotations

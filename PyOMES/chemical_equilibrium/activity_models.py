@@ -7,13 +7,13 @@ Design:
 - IdealActivityModel / IdealLiquidModel: gamma = 1 for all species.
 - DaviesActivityModel / DaviesLiquidModel: Davies equation vs ionic strength.
 
-The canonical implementations now live in src/thermo/ (LiquidPhaseModel
+The canonical implementations now live in PyOMES/thermo/ (LiquidPhaseModel
 protocol); the names here are re-exported aliases for backward compatibility.
 
     DaviesActivityModel  ≡  DaviesLiquidModel   (satisfies both protocols)
     IdealActivityModel   ≡  IdealLiquidModel     (satisfies both protocols)
 
-Callers within src/speciation/ should continue to import from here;
+Callers within PyOMES/speciation/ should continue to import from here;
 external callers are encouraged to use PyOMES.thermo directly.
 """
 
@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Protocol
 
-# Water property helpers — moved to src/thermo/; re-exported for backward compat.
+# Water property helpers — moved to PyOMES/thermo/; re-exported for backward compat.
 from PyOMES.thermo.water_properties import (  # noqa: F401
     water_dielectric_constant,
     water_density_kg_per_m3,
@@ -47,7 +47,7 @@ class ActivityModel(Protocol):
 
 
 # Backward-compatible aliases — these names existed before the LiquidPhaseModel
-# refactor and are still used throughout src/speciation/.
+# refactor and are still used throughout PyOMES/speciation/.
 IdealActivityModel = IdealLiquidModel
 DaviesActivityModel = DaviesLiquidModel
 
