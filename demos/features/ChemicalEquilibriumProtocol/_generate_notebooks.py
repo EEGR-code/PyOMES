@@ -194,14 +194,14 @@ if you need `jacobian_dz_dy()` and the engine doesn't have it natively.\
     md("cross-references", """\
 ## Cross-references
 
-- [`docs/design/CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md`](../../../docs/design/CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md) —
+- [`docs/dev/ideas/CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md`](../../../docs/dev/ideas/CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md) —
   full protocol-hierarchy design record; engine/solver split; §18 naming
   history (`SpeciationEngine` → `ChemicalEquilibriumEngine` →
   `BisectionChemicalEquilibriumEngine`).
-- [`docs/phases-shipped/EQUILIBRIUM_CONSTRAINT_UNIFICATION.md`](../../../docs/phases-shipped/EQUILIBRIUM_CONSTRAINT_UNIFICATION.md) —
+- [`docs/dev/implementation/shipped/EQUILIBRIUM_CONSTRAINT_UNIFICATION.md`](../../../docs/dev/implementation/shipped/EQUILIBRIUM_CONSTRAINT_UNIFICATION.md) —
   the declaration-side unification (`EquilibriumConstraint`,
   `classify_equilibrium_constraint()`).
-- [`docs/phases-shipped/LAYER1_GAP_CLOSURE.md`](../../../docs/phases-shipped/LAYER1_GAP_CLOSURE.md) —
+- [`docs/dev/implementation/shipped/LAYER1_GAP_CLOSURE.md`](../../../docs/dev/implementation/shipped/LAYER1_GAP_CLOSURE.md) —
   gas-liquid/precipitation folding into the NR tableau; the CP6 engine
   rename.
 - [`../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb`](../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb) —

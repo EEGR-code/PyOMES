@@ -7,7 +7,7 @@ large ``dt_h`` combined with an otherwise well-posed rate law can
 overdraw a species below zero over one step. This is a distinct
 concern from *composition* (how sub-systems combine) and *integration
 method* (how the combined system is advanced); see
-docs/phases-upcoming/STEP_SOLVER_INTERFACE_REFINEMENT.md item 5 for
+docs/dev/implementation/shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md item 5 for
 the three-dimension terminology this module is one leg of.
 
 Every function here has the signature

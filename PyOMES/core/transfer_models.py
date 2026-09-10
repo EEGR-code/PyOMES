@@ -45,7 +45,7 @@ The ``transfer_basis`` parameter on :class:`KineticTransferModel`:
     matching BSM2 CO₂ kinetics.  Use for any volatile acid/base:
     CO₂, NH₃, H₂S, AceticAcid, Propionate, Butyrate, Valerate, …
 
-See ``docs/design/TRANSFER_MODEL.md`` for the full design rationale.
+See ``docs/dev/implementation/shipped/TRANSFER_MODEL.md`` for the full design rationale.
 """
 
 from __future__ import annotations

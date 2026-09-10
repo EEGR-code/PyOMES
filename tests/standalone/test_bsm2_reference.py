@@ -7,7 +7,7 @@ declaration surface. Any drift caught here should be intentional —
 update the sentinel values explicitly in the same commit that
 introduces the numerical change, with a one-line note on why.
 
-See ``docs/phases-upcoming/BSM2_REFERENCE_TEST.md`` for the rationale
+See ``docs/dev/implementation/shipped/BSM2_REFERENCE_TEST.md`` for the rationale
 and shipping plan.
 
 Approach
@@ -162,7 +162,7 @@ def bsm2_trajectory():
 # self-consistency snapshot of PyOMES's own BSM2 numerics, captured
 # when the test was added (commit 00df677, 2026-05-12) and re-baselined
 # only when chemistry refactors intentionally change the math. See
-# docs/phases-shipped/BSM2_REFERENCE_TEST.md for the original framing
+# docs/dev/implementation/shipped/BSM2_REFERENCE_TEST.md for the original framing
 # ("Out of scope: Literature validation. This test detects drift from
 # *current numerics*, not correctness against Rosén & Jeppsson 2006").
 # Cross-validation against pyadm1 or other reference implementations

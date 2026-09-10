@@ -15,7 +15,7 @@ Phase C (SYSTEM_SOLVER_PROTOCOL) delivers:
 * :class:`MultirateSystemSolver` — adaptive subcycling of link flux at
   CFL-safe sub-steps while advancing CVs once per macro step.
 
-See ``docs/phases-upcoming/SYSTEM_SOLVER_PROTOCOL.md`` for the design.
+See ``docs/dev/implementation/shipped/SYSTEM_SOLVER_PROTOCOL.md`` for the design.
 """
 
 from __future__ import annotations

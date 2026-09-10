@@ -55,7 +55,7 @@ the previous one:
 ```
 
 This is a Lie-Trotter operator splitting with O(`dt`) error. The
-ordering follows [ORDERING.md](phases-shipped/ORDERING.md): property
+ordering follows [ORDERING.md](dev/implementation/shipped/ORDERING.md): property
 calculators and speciation run first so derived properties and
 molecular fractions in `n_mol` are current for the reaction and
 transfer sub-steps; feed runs before reactions because in a
@@ -65,7 +65,7 @@ canonical signature post-state-unification — the legacy `chem_env`
 dict is gone.
 
 It is **not** equivalent to a single explicit-Euler step — see
-[ORDERING_CRITIQUE.md](phases-shipped/ORDERING_CRITIQUE.md) Review 2. Reactions
+[ORDERING_CRITIQUE.md](dev/implementation/shipped/ORDERING_CRITIQUE.md) Review 2. Reactions
 see post-feed moles, transfer sees post-feed-post-reaction moles. For
 substrate-limited Monod kinetics this is a feature; for cases where
 the snapshot semantics are needed, use `SimultaneousEulerSolver`.
@@ -288,7 +288,7 @@ Per-CV Axis-1 choice (`solver=`) and Axis-2 choice (`system_solver=`)
 are otherwise fully orthogonal — pick any `StepSolver` per CV under
 any `SystemSolver`. Full design rationale, the DAE/SUNDIALS Phase F/G
 placeholders, and the "Identified extensions" (SIA, reactive D_eff) are
-in [`docs/design/SOLVER_ARCHITECTURE.md`](design/SOLVER_ARCHITECTURE.md).
+in [`docs/dev/ideas/SOLVER_ARCHITECTURE.md`](dev/ideas/SOLVER_ARCHITECTURE.md).
 
 **Known duplication (documented, not fixed):** two independent
 controller-event-firing mechanisms exist —
@@ -411,20 +411,20 @@ covers most use cases.
 
 All three `StepSolver`s live at the same layer.  `SimultaneousEulerSolver`
 and `SimultaneousAdaptiveSolver` were promoted in
-[Phase 6 of the CV refactor](phases-shipped/SOLVER_PROMOTION.md) so any
+[Phase 6 of the CV refactor](dev/implementation/shipped/SOLVER_PROMOTION.md) so any
 `ControlVolume` can opt into any strategy via `cv.advance(solver=...)`
 — originally restricted to CVs with `"gas"` and `"liquid"` phases;
 generalized to any CV with at least `"liquid"` in the
 `step-solver-interface-refinement` phase (see
-[STEP_SOLVER_INTERFACE_REFINEMENT.md](phases-shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)).
-The [`simulation-class` phase](phases-shipped/SIMULATION_CLASS.md)
+[STEP_SOLVER_INTERFACE_REFINEMENT.md](dev/implementation/shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)).
+The [`simulation-class` phase](dev/implementation/shipped/SIMULATION_CLASS.md)
 (shipped 2026-05-27) exposes per-CV solver choice through
 `Simulation(cvs=..., solver={cv_key: StepSolver})` — a single
 `StepSolver` applies to every CV, a dict dispatches per CV, and a
 future `MultiCVStepSolver` placeholder is reserved for a
 system-level integrator (raises `NotImplementedError` until
 implemented). Phase 7 had already deleted `GasLiquidVolume` (see
-[phases-shipped/PHASE7_CHECKLIST.md](phases-shipped/PHASE7_CHECKLIST.md));
+[dev/implementation/shipped/PHASE7_CHECKLIST.md](dev/implementation/shipped/PHASE7_CHECKLIST.md));
 callers now hold a plain `ControlVolume` and either pass the
 solver directly to `cv.advance(...)` or hand it to
 `Simulation`.
@@ -444,11 +444,11 @@ gas/liquid assumption, the shared swappable `clamp_fn` module, the
 `negative_mole`/`clamp_invoked` diagnostics, and unified state-vector
 packing (`PyOMES/core/state_vector.py`). Items still deferred — the
 multi-CV-aware solver tier (SIA, see
-[SOLVER_ARCHITECTURE.md](design/SOLVER_ARCHITECTURE.md) "Identified
+[SOLVER_ARCHITECTURE.md](dev/ideas/SOLVER_ARCHITECTURE.md) "Identified
 extensions"), orchestrator-level adaptive macro `dt_h`, decoupling
 `StepSolver` from the concrete `ControlVolume` class, and the
 composition/integrator/clamp_fn three-dimension factoring (item 5) —
 are catalogued in
-[STEP_SOLVER_INTERFACE_REFINEMENT.md](phases-shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)
-and [SOLVER_PROMOTION.md](phases-shipped/SOLVER_PROMOTION.md) "Future
+[STEP_SOLVER_INTERFACE_REFINEMENT.md](dev/implementation/shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)
+and [SOLVER_PROMOTION.md](dev/implementation/shipped/SOLVER_PROMOTION.md) "Future
 considerations".

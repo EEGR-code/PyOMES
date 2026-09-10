@@ -6,7 +6,7 @@ whole-system orchestration across CVs, links, and controllers). Both
 protocols are deliberately thin — one method each — so a bespoke
 solver is a small, self-contained class. See docs/solvers.md for the
 full solver landscape these notebooks are drawn from, and
-docs/phases-shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md for the design
+docs/dev/implementation/shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md for the design
 review that shipped item 8 (the walkthrough notebook).
 
 Run once from the repo root:
@@ -203,15 +203,15 @@ exist that the defaults cannot integrate accurately or stably.\
 - [`../../../docs/solvers.md`](../../../docs/solvers.md) — full
   solver landscape (strengths/weaknesses, configuration, accuracy +
   conservation monitoring) this notebook is a condensed map of.
-- [`../../../docs/design/SOLVER_ARCHITECTURE.md`](../../../docs/design/SOLVER_ARCHITECTURE.md) —
+- [`../../../docs/dev/ideas/SOLVER_ARCHITECTURE.md`](../../../docs/dev/ideas/SOLVER_ARCHITECTURE.md) —
   full two-axis design rationale, the DAE/SUNDIALS Phase F/G
   placeholders, and identified-but-unbuilt extensions (SIA, reactive
   D_eff).
-- [`../../../docs/phases-shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md`](../../../docs/phases-shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md) —
+- [`../../../docs/dev/implementation/shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md`](../../../docs/dev/implementation/shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md) —
   the design review that shipped the ownership guard, the
   gas/liquid generalization, the shared `clamp_fn` module, and this
   folder's walkthrough notebook.
-- [`../../../docs/phases-shipped/ORDERING.md`](../../../docs/phases-shipped/ORDERING.md) —
+- [`../../../docs/dev/implementation/shipped/ORDERING.md`](../../../docs/dev/implementation/shipped/ORDERING.md) —
   `SequentialAdvanceSolver`'s operator-splitting ordering rationale,
   inverted by [01_writing_a_custom_solver.ipynb](01_writing_a_custom_solver.ipynb)'s
   Axis 1 example.\
@@ -258,7 +258,7 @@ arbitrary difference:
 
 - **Axis 1:** `SpeciationAfterFeedStepSolver` reverses
   `SequentialAdvanceSolver`'s documented ordering (see
-  [`docs/phases-shipped/ORDERING.md`](../../../docs/phases-shipped/ORDERING.md)) —
+  [`docs/dev/implementation/shipped/ORDERING.md`](../../../docs/dev/implementation/shipped/ORDERING.md)) —
   the shipped default pins speciation to the *pre-feed* state within
   one step, so a large feed's pH-shifting effect only becomes visible
   on the *next* step. This solver feeds first, so the same-step pH

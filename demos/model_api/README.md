@@ -87,5 +87,5 @@ The same reactions could be reused across different topologies
 (batch, CSTR, microplate, multi-CV networks) without redeclaring
 stoichiometry, balance closure, or rate laws. Adding a future
 `chemistry_database.py` demo (per
-[CHEMISTRY_UNIFICATION_PLAN.md](../../docs/phases-upcoming/CHEMISTRY_UNIFICATION_PLAN.md))
+[CHEMISTRY_UNIFICATION_PLAN.md](../../docs/dev/implementation/shipped/CHEMISTRY_UNIFICATION_PLAN.md))
 extends the same pattern to library-loaded chemistry.

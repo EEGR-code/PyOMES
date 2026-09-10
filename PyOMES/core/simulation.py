@@ -8,9 +8,9 @@ are first-class members of the :class:`Simulation`; lifecycle gating
 is implemented through a shared :class:`RunContext` that every
 lockable owned object holds a reference to.
 
-See [`docs/phases-upcoming/SIMULATION_CLASS.md`](../../docs/phases-upcoming/SIMULATION_CLASS.md)
+See [`docs/dev/implementation/shipped/SIMULATION_CLASS.md`](../../docs/dev/implementation/shipped/SIMULATION_CLASS.md)
 for the design rationale and
-[`docs/phases-upcoming/SIMULATION_CLASS_CHECKLIST.md`](../../docs/phases-upcoming/SIMULATION_CLASS_CHECKLIST.md)
+[`docs/dev/implementation/shipped/SIMULATION_CLASS_CHECKLIST.md`](../../docs/dev/implementation/shipped/SIMULATION_CLASS_CHECKLIST.md)
 for the implementation checkpoint plan.
 
 This module currently lands C1 of the phase: skeleton + RunContext

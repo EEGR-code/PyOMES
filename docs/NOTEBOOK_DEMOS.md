@@ -42,7 +42,7 @@ notebooks.
 Two custom solvers, each inverting a real documented ordering decision rather
 than an arbitrary toy reordering:
 - `SpeciationAfterFeedStepSolver` — reverses `SequentialAdvanceSolver`'s
-  pre-feed-speciation contract (see `docs/phases-shipped/ORDERING.md`).
+  pre-feed-speciation contract (see `docs/dev/implementation/shipped/ORDERING.md`).
 - `AsymmetricThreeStageSystemSolver` — asymmetric 3-stage link/CV-advance
   interleaving, composing the same `sim._apply_links`/`cv._advance_unchecked`/
   `sim._invoke_controllers` primitives `StrangSplittingSystemSolver` uses.

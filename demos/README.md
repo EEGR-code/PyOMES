@@ -1,7 +1,7 @@
 # PyOMES demos
 
 Runnable tutorials for the `Simulation` orchestrator shipped in
-[`simulation-class`](../docs/phases-shipped/SIMULATION_CLASS.md)
+[`simulation-class`](../docs/dev/implementation/shipped/SIMULATION_CLASS.md)
 (2026-05-27).
 
 ## Prerequisite
@@ -170,5 +170,5 @@ reference" comparison artifact.
 This three-subtree layout shipped 2026-05-29 alongside the Q1 / Q2
 demos under `model_api/`. The previous flat layout (four fermenter
 demos at the top level, FBA under `demos/api/fba/`) is described
-in [docs/phases-upcoming/DEMO_RESTRUCTURE.md](../docs/phases-upcoming/DEMO_RESTRUCTURE.md)
+in [docs/dev/implementation/shipped/DEMO_RESTRUCTURE.md](../docs/dev/implementation/shipped/DEMO_RESTRUCTURE.md)
 for context.

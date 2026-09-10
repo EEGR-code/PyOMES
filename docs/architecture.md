@@ -63,7 +63,7 @@ canonical `n_mol` directly.
 
 ### Gas-liquid CV pattern
 
-After Phase 7 (`phases-shipped/PHASE7_CHECKLIST.md`),
+After Phase 7 (`docs/dev/implementation/shipped/PHASE7_CHECKLIST.md`),
 `GasLiquidVolume` is deleted.  A fermenter is now a plain
 `ControlVolume` whose `phases` dict is
 `{"gas": GasPhase, "liquid": LiquidPhase}` and whose

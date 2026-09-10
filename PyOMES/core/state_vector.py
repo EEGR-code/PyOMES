@@ -20,7 +20,7 @@ species lists were read as raw attributes (``sv.gas_species``,
 ``sv.n_gas``, …) throughout that solver's ODE hot loop and Jacobian
 machinery, not through clean function calls, so unifying it could not
 be separated from that generalization. See
-docs/phases-upcoming/STEP_SOLVER_REFINEMENT_CHECKLIST.md.
+docs/dev/implementation/upcoming/STEP_SOLVER_REFINEMENT_CHECKLIST.md.
 
 Species-ordering convention throughout: CV (``cvs`` dict insertion
 order) → phase (alphabetical) → species (alphabetical).

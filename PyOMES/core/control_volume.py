@@ -540,7 +540,7 @@ class ControlVolume:
 
         Default sequential body, implemented by
         :class:`~PyOMES.core.solvers.SequentialAdvanceSolver` (see
-        docs/phases-shipped/ORDERING.md for the design rationale):
+        docs/dev/implementation/shipped/ORDERING.md for the design rationale):
 
           1. Speciation solve on the pre-step state. The
              ``cv.reaction_system.engine`` writes derived species

@@ -7,7 +7,7 @@ readable; classes that span layers (e.g. `KineticGasLiquidLink`,
 and are referenced by name in the others.
 
 The four layers reflect the architectural framing in
-[CONTAINER_LAYERING.md](phases-upcoming/CONTAINER_LAYERING.md):
+[CONTAINER_LAYERING.md](dev/implementation/upcoming/CONTAINER_LAYERING.md):
 
 1. **Topology and containers** — how state is decomposed in space.
 2. **Integration / time-stepping** — how time advances.
@@ -349,7 +349,7 @@ engine has already populated both for the current step.
 > (currently legacy default `level=2`, hidden behind
 > `configure_engine`) — folds into the future
 > `ChemistryDatabase` track. See
-> [phases-upcoming/SPECIATION_LEVEL_RETIREMENT.md](phases-upcoming/SPECIATION_LEVEL_RETIREMENT.md).
+> [dev/implementation/shipped/SPECIATION_LEVEL_RETIREMENT.md](dev/implementation/shipped/SPECIATION_LEVEL_RETIREMENT.md).
 
 ```mermaid
 classDiagram
@@ -698,5 +698,5 @@ Out of scope for these diagrams (intentionally):
 
 If a future phase pulls any of those into the architectural picture,
 add a new layer rather than expanding an existing one — the
-[CONTAINER_LAYERING.md](phases-upcoming/CONTAINER_LAYERING.md) framing argues for
+[CONTAINER_LAYERING.md](dev/implementation/upcoming/CONTAINER_LAYERING.md) framing argues for
 keeping concerns separable.

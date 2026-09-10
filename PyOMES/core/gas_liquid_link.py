@@ -7,7 +7,7 @@ and computes mass transfer fluxes for each dissolved gas species.
 .. note::
     Direct construction is deprecated — use the ``transfer_models=`` kwarg
     on :class:`~PyOMES.core.control_volume.ControlVolume` instead (see
-    ``docs/design/TRANSFER_MODEL.md``); it builds this link internally.
+    ``docs/dev/implementation/shipped/TRANSFER_MODEL.md``); it builds this link internally.
     This module's mechanics and ``partition_models=`` contract are
     unchanged and remain the thing ``transfer_models=`` drives underneath.
 
@@ -207,7 +207,7 @@ class KineticGasLiquidLink:
             "KineticGasLiquidLink is deprecated and will be removed in a future release. "
             "Use the transfer_models kwarg on ControlVolume instead: "
             "ControlVolume(phases=..., transfer_models={'CO2': KineticTransferModel(...), ...}). "
-            "See docs/design/TRANSFER_MODEL.md.",
+            "See docs/dev/implementation/shipped/TRANSFER_MODEL.md.",
             DeprecationWarning,
             stacklevel=2,
         )

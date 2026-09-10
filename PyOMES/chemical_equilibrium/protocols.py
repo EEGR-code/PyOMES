@@ -12,7 +12,7 @@ ChemicalEquilibriumEngineProtocol   — black box: solve() only
 GrayBoxEngineProtocol      — adds jacobian_dz_dy() (total sensitivity)
 WhiteBoxEngineProtocol     — adds residual(), jacobian_dg_dz(), jacobian_dg_dy()
 
-See docs/design/CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md for the full design.
+See docs/dev/ideas/CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md for the full design.
 """
 from __future__ import annotations
 

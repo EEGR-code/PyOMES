@@ -3916,7 +3916,7 @@ class TestSnapshotCoverage:
     """Coverage audit for Simulation.snapshot() and ControlVolume.snapshot().
 
     Each test pins one row of the table from
-    docs/phases-upcoming/HPC_CHECKPOINTING.md: whether a piece of
+    docs/dev/implementation/shipped/HPC_CHECKPOINTING.md: whether a piece of
     mid-run state is deep-copied, shared, or fresh on the snapshot.
     No source changes are made; this is an audit-and-document pass.
     """

@@ -4,7 +4,7 @@ Quick-start tutorials that use the fluent
 [`FermenterBuilder`](../../models/vlmodels/fermenter/config/builder.py)
 API. Each demo configures a fermenter in a handful of chained calls
 and runs a `Simulation` shipped in
-[`simulation-class`](../../docs/phases-shipped/SIMULATION_CLASS.md).
+[`simulation-class`](../../docs/dev/implementation/shipped/SIMULATION_CLASS.md).
 
 Read these if you want to **run** a fermenter — you don't care how
 the `Phase` / `Link` / `ControlVolume` plumbing fits together, just
