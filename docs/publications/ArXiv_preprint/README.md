@@ -8,9 +8,10 @@ outputs that the current code is guaranteed to reproduce.
 
 ## Why these are kept as static files, not just regenerated from the demos
 
-The demo notebooks under `demos/usecases/` are committed with their
-output cells cleared, and `demos/**/figures/` (where re-running a
-notebook saves its plots) is git-ignored. That means re-running a
+The demo notebooks under `demos/usecases/` and `docs/tutorials/` are
+committed with their output cells cleared, and `demos/**/figures/` /
+`docs/tutorials/figures/` (where re-running a notebook saves its plots)
+are git-ignored. That means re-running a
 notebook today reflects the *current* behaviour of PyOMES, which has
 already changed since these figures were made — confirmed directly by
 `aqueous_ph_parity_plot.png`'s own title, which still reads "VLsim vs.
@@ -25,9 +26,9 @@ record of the latter.
 
 | File | Traces to | Confidence |
 |---|---|---|
-| `aqueous_ph_prediction_contour.png` | `demos/usecases/01_predict_ph_simple_liquid.ipynb`, §5 (KH₂PO₄/NH₄Cl design-space contour) | High — identical M9-like recipe point (22, 18.7 mmol/L) marked on both |
-| `aqueous_ph_parity_plot.png` | `demos/usecases/01_predict_ph_simple_liquid.ipynb`, §6d (PHREEQC parity figure) | High — matching legend semantics and recipe values |
-| `gas_liquid_equilibration_contour.png` | likely `demos/usecases/02_equilibrate_with_atmospheric_gas.ipynb` | Medium — topic matches (phosphate dose vs. headspace CO₂); not verified line-by-line against the current notebook |
+| `aqueous_ph_prediction_contour.png` | `docs/tutorials/01_predict_ph_simple_liquid.ipynb`, §5 (KH₂PO₄/NH₄Cl design-space contour) | High — identical M9-like recipe point (22, 18.7 mmol/L) marked on both |
+| `aqueous_ph_parity_plot.png` | `docs/tutorials/01_predict_ph_simple_liquid.ipynb`, §6d (PHREEQC parity figure) | High — matching legend semantics and recipe values |
+| `gas_liquid_equilibration_contour.png` | likely `02_equilibrate_with_atmospheric_gas.ipynb` (topic: phosphate dose vs. headspace CO₂), removed from `docs/tutorials/` during the 2026-09 tutorial renumbering | Medium — no longer verifiable against a live notebook |
 | `batch_fermentation_results.png` | likely `demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb` | High — its own pH panel explicitly labels a reference line "usecase 01 baseline" |
 | `uml_class_diagram_v1.png` | no notebook — hand-authored software architecture diagram | N/A |
 

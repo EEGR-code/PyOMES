@@ -49,8 +49,13 @@ demos/
       01_writing_a_custom_solver.ipynb   writing your own StepSolver/SystemSolver
   usecases/                      scenario-first, five-minute worked examples
     0_README.ipynb           notebook index (start here)
-    01_predict_ph_simple_liquid.ipynb
+    03_grow_ecoli_on_acetic_acid.ipynb
 ```
+
+A curated subset of `usecases/` (the notebooks closest to the ArXiv
+preprint's worked examples) lives in
+[`../docs/tutorials/`](../docs/tutorials/) instead — see that folder's
+README for which ones and why.
 
 The principle: top-level subtrees name **which framework layer**
 the demo teaches. `features/` is the one exception — it's organized by
@@ -63,7 +68,7 @@ layer taxonomy (e.g. "how do I construct and call this one engine class").
 | [`model_api/chemistry/`](model_api/chemistry/) | You want to know how to declare reactions — kinetic with a rate law, single-phase equilibria with `log_K`, cross-phase partitions, or opaque black-box solvers (FBA). |
 | [`model_api/D2Cworkshop/`](model_api/D2Cworkshop/) | You want to know how to build a `Simulation` end-to-end without the builder — explicit phases, links, boundaries, controllers. |
 | [`features/`](features/) | You already know which class you're using and want its instantiation/call conventions and gotchas — e.g. [`features/ChemicalEquilibriumProtocol/0_README.ipynb`](features/ChemicalEquilibriumProtocol/0_README.ipynb) for the architecture overview, then the three notebooks covering `BisectionChemicalEquilibriumEngine`, `NRChemicalEquilibriumEngine`, and `PHREEQCChemicalEquilibriumEngine`'s distinct `solve()` conventions and capabilities; or [`features/SolverProtocols/0_README.ipynb`](features/SolverProtocols/0_README.ipynb) for the `StepSolver`/`SystemSolver` protocol overview, then [`01_writing_a_custom_solver.ipynb`](features/SolverProtocols/01_writing_a_custom_solver.ipynb) for writing your own. |
-| [`usecases/`](usecases/) | You have a concrete scenario in mind ("I have a sample, I want to know X") and want a short, worked answer rather than a full API tour — e.g. [`usecases/01_predict_ph_simple_liquid.ipynb`](usecases/01_predict_ph_simple_liquid.ipynb) for predicting the pH of a liquid-only sample with no gas or solid phase. |
+| [`usecases/`](usecases/) | You have a concrete scenario in mind ("I have a sample, I want to know X") and want a short, worked answer rather than a full API tour — e.g. [`usecases/03_grow_ecoli_on_acetic_acid.ipynb`](usecases/03_grow_ecoli_on_acetic_acid.ipynb) for growing *E. coli* on acetic acid in a batch bioreactor. A curated subset also lives in [`../docs/tutorials/`](../docs/tutorials/), e.g. [`docs/tutorials/01_predict_ph_simple_liquid.ipynb`](../docs/tutorials/01_predict_ph_simple_liquid.ipynb) for predicting the pH of a liquid-only sample with no gas or solid phase. |
 
 The chemistry and construction demos compose: `raw_construction.py`
 imports its reactions from `chemistry/reaction_system.py` rather
