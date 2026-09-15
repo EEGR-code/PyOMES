@@ -19,15 +19,9 @@ Run from the repo root::
     python demos/builder/cstr_fermenter.py
 """
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import _bootstrap  # noqa: F401, E402
-
 import numpy as np
 
-from vlmodels.fermenter.config import FermenterBuilder
+from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import PressureReliefVent, LiquidFeed, LiquidDrain
 from PyOMES.control.cv_loops import PHController, DOAgitationController
@@ -85,7 +79,7 @@ n_steps = 20000
 # ─────────────────────────────────────────────────────────────────────
 
 cv = (
-    FermenterBuilder()
+    StirredTankBuilder()
     .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
     .transfer_kinetic(kLa_O2=90.0, kLa_CO2_ratio=1.0)

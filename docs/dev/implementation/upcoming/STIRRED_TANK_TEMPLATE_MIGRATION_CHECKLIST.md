@@ -151,10 +151,30 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       `pytest tests/standalone/test_builder.py tests/standalone/test_configs.py tests/standalone/test_simulation.py -q`
       → **397 passed**, including `TestC13ADM1Simulation` (confirms the
       checkpoint 5 `adm1/base.py` fix holds here too).
-- [ ] 8. **Fix demo imports** — the four `demos/builder/*.py` files
-      plus `export_results.py`; update import line, drop
-      `import _bootstrap` from all five. Sanity check: run each script
-      directly, confirm it still prints its report.
+- [x] 8. **Fix demo imports** — verified first (per design doc's claim)
+      that none of the five files touch `vlmodels` for anything besides
+      the fermenter import; confirmed via grep. `batch_fermenter.py`,
+      `cstr_fermenter.py`, `fed_batch_fermenter.py`,
+      `microplate_fermenter.py`: dropped the whole bootstrap block
+      (`sys.path.insert(...)` + `import _bootstrap`, now unneeded since
+      `PyOMES.templates.stirred_tank` resolves via the editable install
+      with no `models/` path needed) and the now-dead
+      `import sys`/`from pathlib import Path`; import line and every
+      `FermenterBuilder()` call site → `StirredTankBuilder`.
+      `export_results.py`: same bootstrap removal (a slightly different
+      two-step form — `sys.path.insert(0, .../"demos")` then
+      `import _bootstrap`, since this file lives one level deeper); its
+      unrelated `import pathlib`/`tempfile` (used later for the
+      CSV/Parquet round-trip) kept, only the now-dead `import sys`/
+      `from pathlib import Path` removed;
+      `FermenterFactory`→`StirredTankFactory`. Final sweep confirmed
+      zero remaining `FermenterBuilder`/`FermenterFactory`/`vlmodels`/
+      `_bootstrap` references across all five files. Sanity check: ran
+      each of the five scripts directly →  all five completed and
+      printed their reports (`batch_fermenter.py`, `cstr_fermenter.py`,
+      `fed_batch_fermenter.py`, `microplate_fermenter.py`,
+      `export_results.py`, the last one's CSV/Parquet round-trip checks
+      included — "All export checks passed").
 - [ ] 9. **Fix remaining doc cross-references** —
       `PyOMES/core/recorder.py`'s stale docstring mention, `README.md`,
       `demos/README.md`, `demos/builder/README.md`.

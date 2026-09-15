@@ -10,17 +10,10 @@ Run from the repo root after ``pip install -e . pandas pyarrow``::
     python demos/model_api/export_results.py
 """
 
-import sys
 import tempfile
 import pathlib
-from pathlib import Path
 
 import numpy as np
-
-# Bootstrap: put models/ on sys.path so vlmodels is importable.
-_repo_root = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_repo_root / "demos"))
-import _bootstrap  # noqa: F401, E402
 
 # ── 1. Build a small single-CV simulation ────────────────────────────
 #
@@ -28,15 +21,15 @@ import _bootstrap  # noqa: F401, E402
 # topology as demos/builder/batch_fermenter.py but constructed here
 # from the factory helpers for brevity.
 
-from vlmodels.fermenter.config import (
-    FermenterFactory,
+from PyOMES.templates.stirred_tank import (
+    StirredTankFactory,
     VesselConfig,
     TransferConfig,
     GasFeedConfig,
 )
 from PyOMES.core import Simulation, SimultaneousEulerSolver
 
-cv = FermenterFactory.create_volume(
+cv = StirredTankFactory.create_volume(
     vessel=VesselConfig(V_total_L=10.0, T_K=305.15),
     transfer=TransferConfig.default_kinetic(kLa_O2=120.0),
     gas_feed=GasFeedConfig(vvm_min=0.5, composition={"O2": 0.21, "N2": 0.79}),
