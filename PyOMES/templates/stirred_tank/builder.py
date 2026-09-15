@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-"""Fluent builder for fermenter construction.
+"""Fluent builder for stirred-tank construction.
 
-:class:`FermenterBuilder` provides a chainable API that collects
+:class:`StirredTankBuilder` provides a chainable API that collects
 configuration incrementally and produces a
 :class:`~PyOMES.core.ControlVolume` (via ``build()``) or a
 :class:`~PyOMES.core.simulation.Simulation` (via ``build_simulation()``).
 
 Example
 -------
->>> from PyOMES.config.builder import FermenterBuilder
+>>> from PyOMES.templates.stirred_tank import StirredTankBuilder
 >>> result = (
-...     FermenterBuilder()
+...     StirredTankBuilder()
 ...     .vessel(V_total_L=2000, T_K=305.15)
 ...     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
 ...     .transfer_kinetic(kLa_O2=150.0)
@@ -38,12 +38,13 @@ from .configs import (
     SubstrateConfig,
     SimulationConfig,
 )
-from .factory import FermenterFactory
+from .factory import StirredTankFactory
 from PyOMES.core.control_volume import ControlVolume
+from PyOMES.core.simulation import Simulation
 
 
-class FermenterBuilder:
-    """Fluent builder for constructing a fermenter from incremental calls.
+class StirredTankBuilder:
+    """Fluent builder for constructing a stirred tank from incremental calls.
 
     Each method stores parameters and returns ``self`` for chaining.
     ``build()`` creates the :class:`ControlVolume`.
@@ -51,6 +52,13 @@ class FermenterBuilder:
 
     Any method can be called in any order; ``build()`` validates
     completeness.
+
+    Currently supports gas+liquid vessels only — ``build()`` always
+    produces a CV with ``phases={"gas": ..., "liquid": ...}``. The
+    unqualified name doesn't imply a third phase (e.g.
+    :class:`~PyOMES.core.phases.SolidPhase`) is wired through today;
+    it's chosen so this class doesn't need a second rename if one is
+    added later.
     """
 
     def __init__(self):
@@ -76,7 +84,7 @@ class FermenterBuilder:
         self,
         solver_type: str = "euler",
         **kwargs,
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Set the time-stepping solver.
 
         Parameters
@@ -92,7 +100,7 @@ class FermenterBuilder:
 
         Returns
         -------
-        FermenterBuilder
+        StirredTankBuilder
         """
         from PyOMES.core.solvers import SimultaneousEulerSolver
         if solver_type == "euler":
@@ -119,7 +127,7 @@ class FermenterBuilder:
         yO2_init: float = 0.2095,
         yCO2_init: float = 0.0004,
         yN2_init: Optional[float] = None,
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Set vessel geometry, temperature, and initial gas composition."""
         self._vessel_kw = {
             "V_total_L": V_total_L,
@@ -139,7 +147,7 @@ class FermenterBuilder:
         vvm_min: float = 1.0,
         composition: Optional[Dict[str, float]] = None,
         P_inlet_atm: float = 1.0,
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Set continuous gas feed (sparging) parameters.
 
         Use ``vvm_min=0`` for no sparging (e.g. well plate).
@@ -152,7 +160,7 @@ class FermenterBuilder:
             self._gas_feed_kw["composition"] = dict(composition)
         return self
 
-    def no_gas_feed(self) -> "FermenterBuilder":
+    def no_gas_feed(self) -> "StirredTankBuilder":
         """Explicitly disable gas feed (well plate, sealed vessel)."""
         self._gas_feed_kw = None
         return self
@@ -163,19 +171,19 @@ class FermenterBuilder:
         self,
         kLa_O2: float = 150.0,
         kLa_CO2_ratio: float = 0.9,
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Set kinetic O₂/CO₂ transfer with equilibrium N₂."""
         self._transfer_cfg = TransferConfig.default_kinetic(
             kLa_O2=kLa_O2, kLa_CO2_ratio=kLa_CO2_ratio,
         )
         return self
 
-    def transfer_equilibrium(self) -> "FermenterBuilder":
+    def transfer_equilibrium(self) -> "StirredTankBuilder":
         """Set all species to instantaneous Henry equilibrium."""
         self._transfer_cfg = TransferConfig.default_equilibrium()
         return self
 
-    def transfer(self, config: TransferConfig) -> "FermenterBuilder":
+    def transfer(self, config: TransferConfig) -> "StirredTankBuilder":
         """Set a custom TransferConfig directly."""
         self._transfer_cfg = config
         return self
@@ -186,7 +194,7 @@ class FermenterBuilder:
         mode: str = "equilibrium",
         kLa_per_h: float = 0.0,
         henry_mol_L_atm: Optional[float] = None,
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Add or update a species in the gas-liquid transfer configuration.
 
         Call after ``.transfer_equilibrium()`` or ``.transfer_kinetic()``
@@ -212,7 +220,7 @@ class FermenterBuilder:
 
         Returns
         -------
-        FermenterBuilder
+        StirredTankBuilder
             self (for chaining).
         """
         if self._transfer_cfg is None:
@@ -238,7 +246,7 @@ class FermenterBuilder:
         self,
         species_id: str,
         molecular_key: str,
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Deprecated — no-op stub kept for call-site migration.
 
         chemistry-unification-3b C7: speciation_keys are now auto-derived
@@ -255,7 +263,7 @@ class FermenterBuilder:
         self,
         use_activity: bool = False,
         activity_model: str = "davies",
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Set speciation and aqueous chemistry settings.
 
         pKa values are no longer threaded through ``chemistry()`` —
@@ -278,7 +286,7 @@ class FermenterBuilder:
         MW: Optional[float] = None,
         balance_basis: str = "CHO",
         n_source_id: str = "NH3",
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Set the organism for reaction building."""
         self._organism_kw = {
             "organism_id": organism_id,
@@ -302,7 +310,7 @@ class FermenterBuilder:
         Ks: float = 5e-3,
         yield_gX_gS: float = 0.36,
         kinetics: Optional[Any] = None,
-    ) -> "FermenterBuilder":
+    ) -> "StirredTankBuilder":
         """Add a substrate with kinetic parameters.
 
         Can be called multiple times for multiple substrates.
@@ -330,14 +338,14 @@ class FermenterBuilder:
 
             Available models::
 
-                from PyOMES.config.kinetics import (
+                from PyOMES.templates.stirred_tank import (
                     Monod, Contois, Andrews, ContoisAndrews,
                     Tessier, Moser, Blackman, DualSubstrateMonod,
                 )
 
         Returns
         -------
-        FermenterBuilder
+        StirredTankBuilder
             self (for chaining).
         """
         kw: Dict[str, Any] = {
@@ -357,7 +365,7 @@ class FermenterBuilder:
 
     # ── Controllers ───────────────────────────────────────────────────
 
-    def controller(self, ctrl: Any) -> "FermenterBuilder":
+    def controller(self, ctrl: Any) -> "StirredTankBuilder":
         """Add a controller (pressure relief, pH, DO, etc.).
 
         Can be called multiple times.
@@ -367,7 +375,7 @@ class FermenterBuilder:
 
     # ── Profiles (simulation-class C11) ───────────────────────────────
 
-    def profile(self, prof: Any) -> "FermenterBuilder":
+    def profile(self, prof: Any) -> "StirredTankBuilder":
         """Add an open-loop profile (e.g. TemperatureRamp, VVMSchedule).
 
         Consumed by :meth:`build_simulation`. The legacy :meth:`build`
@@ -379,7 +387,7 @@ class FermenterBuilder:
 
     # ── Recorder (simulation-class C11) ───────────────────────────────
 
-    def recorder(self, rec: Any) -> "FermenterBuilder":
+    def recorder(self, rec: Any) -> "StirredTankBuilder":
         """Set a custom recorder (default: ``BatchRecorder`` constructed
         per :meth:`Simulation.run` call).
 
@@ -391,14 +399,14 @@ class FermenterBuilder:
 
     # ── Custom reaction system ────────────────────────────────────────
 
-    def reaction_system(self, system: Any) -> "FermenterBuilder":
+    def reaction_system(self, system: Any) -> "StirredTankBuilder":
         """Set a pre-built reaction system (overrides organism/substrates)."""
         self._reaction_system = system
         return self
 
     # ── Label ─────────────────────────────────────────────────────────
 
-    def label(self, name: str) -> "FermenterBuilder":
+    def label(self, name: str) -> "StirredTankBuilder":
         """Set a human-readable label for the fermenter."""
         self._label = str(name)
         return self
@@ -455,19 +463,10 @@ class FermenterBuilder:
         Returns
         -------
         ControlVolume
-
-        Notes
-        -----
-        The class and method name (``FermenterBuilder.build``) are
-        Phase 7 holdovers — they predate the deletion of
-        ``GasLiquidVolume``.  A cosmetic rename is deferred; bundle
-        it with the parallel rename of
-        ``FermenterFactory.create_volume`` rather than churning the
-        caller surface twice.
         """
         vessel, gas_feed, transfer, chem, org, subs = self._build_configs()
 
-        return FermenterFactory.create_volume(
+        return StirredTankFactory.create_volume(
             vessel=vessel,
             transfer=transfer,
             chemistry=chem,
@@ -488,7 +487,7 @@ class FermenterBuilder:
         ----------
         label : str, optional
             Override the simulation label (defaults to the
-            ``FermenterBuilder.label`` value).
+            ``StirredTankBuilder.label`` value).
 
         Returns
         -------
@@ -505,11 +504,6 @@ class FermenterBuilder:
         -----
         Use :meth:`build_simulation_and_run` to build and immediately run.
         """
-        # Lazy import — PyOMES.core.simulation imports from
-        # PyOMES.core.lifecycle, which transitively touches this module
-        # via the package init at import time. Lazy resolves the cycle.
-        from PyOMES.core.simulation import Simulation
-
         cv = self.build()
         return Simulation(
             cvs={"main": cv},
@@ -544,7 +538,7 @@ class FermenterBuilder:
         """Return the config dataclasses without building.
 
         Useful for inspection, serialisation, or modification before
-        passing to ``FermenterFactory.create_volume()`` directly.
+        passing to ``StirredTankFactory.create_volume()`` directly.
 
         Returns
         -------
@@ -578,4 +572,4 @@ class FermenterBuilder:
         if self._controllers:
             parts.append(f"controllers({len(self._controllers)})")
         desc = ", ".join(parts) if parts else "empty"
-        return f"FermenterBuilder({desc})"
+        return f"StirredTankBuilder({desc})"

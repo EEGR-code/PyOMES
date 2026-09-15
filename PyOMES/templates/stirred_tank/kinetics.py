@@ -12,9 +12,9 @@ The factory handles the conversion to substrate consumption rate
 
 Usage with the builder
 ----------------------
->>> from PyOMES.config.kinetics import Monod, Contois, Andrews
+>>> from PyOMES.templates.stirred_tank import Monod, Contois, Andrews
 >>>
->>> FermenterBuilder()
+>>> StirredTankBuilder()
 ...     .substrate("Glucose", mu_max=0.8, Ks=0.02, yield_gX_gS=0.5,
 ...                kinetics=Monod())                          # default
 ...     .substrate("Glucose", yield_gX_gS=0.5,

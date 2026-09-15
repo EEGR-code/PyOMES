@@ -146,7 +146,15 @@ Every file referencing `vlmodels.fermenter`, `FermenterBuilder`, or
    the file bodily into `PyOMES` turns it into an intra-package import,
    which changes the shape of the problem — it likely still needs to stay
    lazy, but this needs to be checked in the new location, not assumed to
-   carry over unchanged.
+   carry over unchanged. **Resolved at checkpoint 4 (2026-09-15): the
+   cycle is gone, import promoted to top-level.** `PyOMES/core/__init__.py`
+   imports `.simulation` unconditionally as part of its own
+   initialization, before any `PyOMES.core` submodule is externally
+   reachable; nothing under `PyOMES.core` imports `PyOMES.templates` or
+   `vlmodels`. Confirmed both structurally (grep) and empirically
+   (`StirredTankBuilder().build()` and `.build_simulation()` both run
+   end-to-end with the import at module level). The cycle only existed
+   for the old cross-package layout.
 
 ## Checkpoints
 
@@ -165,7 +173,8 @@ per checkpoint, sanity check attached to each, owner commits per the
    into `PyOMES/templates/stirred_tank/`, preserving history. Delete the
    two old `__init__.py` files outright (content is being rewritten, not
    moved). *Sanity check:* `models/vlmodels/fermenter/` no longer exists.
-4. **Fix intra-package references inside the moved files**, file by file:
+4. **Fix intra-package references inside the moved files** — **done
+   2026-09-15**, file by file:
    - `builder.py`: `class FermenterBuilder` → `class StirredTankBuilder`;
      `from .factory import FermenterFactory` → `... import StirredTankFactory`;
      the internal call `FermenterFactory.create_volume(...)` (line 470);

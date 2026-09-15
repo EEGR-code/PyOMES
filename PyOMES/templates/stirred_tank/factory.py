@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Factory for constructing fermenters from config dataclasses.
+"""Factory for constructing stirred tanks from config dataclasses.
 
-:class:`FermenterFactory` consumes the config hierarchy
-(:class:`~fermenter.config.VesselConfig`,
-:class:`~fermenter.config.TransferConfig`, etc.) and produces a
-ready-to-use :class:`~PyOMES.core.ControlVolume` whose ``phases`` dict
-is ``{"gas": GasPhase, "liquid": LiquidPhase}`` with gas-liquid
-transfer configured via the ``transfer_models`` kwarg.
+:class:`StirredTankFactory` consumes the config hierarchy
+(:class:`~PyOMES.templates.stirred_tank.VesselConfig`,
+:class:`~PyOMES.templates.stirred_tank.TransferConfig`, etc.) and
+produces a ready-to-use :class:`~PyOMES.core.ControlVolume` whose
+``phases`` dict is ``{"gas": GasPhase, "liquid": LiquidPhase}`` with
+gas-liquid transfer configured via the ``transfer_models`` kwarg.
 
 Example
 -------
->>> from PyOMES.config import *
+>>> from PyOMES.templates.stirred_tank import *
 >>> from PyOMES.core import Simulation
 >>>
->>> cv = FermenterFactory.create_volume(
+>>> cv = StirredTankFactory.create_volume(
 ...     vessel=VesselConfig(V_total_L=2000, T_K=305.15),
 ...     gas_feed=GasFeedConfig(vvm_min=1.0),
 ...     transfer=TransferConfig.default_kinetic(kLa_O2=150.0),
@@ -49,11 +49,19 @@ from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
 
 
 # ════════════════════════════════════════════════════════════════════════
-#  FermenterFactory
+#  StirredTankFactory
 # ════════════════════════════════════════════════════════════════════════
 
-class FermenterFactory:
-    """Factory for constructing a fermenter ControlVolume from config dataclasses."""
+class StirredTankFactory:
+    """Factory for constructing a stirred-tank ControlVolume from config dataclasses.
+
+    Currently supports gas+liquid vessels only — always produces a CV
+    with ``phases={"gas": ..., "liquid": ...}``. The unqualified name
+    doesn't imply a third phase (e.g.
+    :class:`~PyOMES.core.phases.SolidPhase`) is wired through today;
+    it's chosen so this class doesn't need a second rename if one is
+    added later.
+    """
 
     @staticmethod
     def create_volume(
@@ -106,16 +114,6 @@ class FermenterFactory:
         ControlVolume
             A CV whose ``phases`` dict is ``{"gas": ..., "liquid": ...}``
             with a :class:`KineticGasLiquidLink` as an internal interface.
-
-        Notes
-        -----
-        The ``create_volume`` name is a Phase 7 holdover — it returned a
-        ``GasLiquidVolume`` before that class was deleted, and now
-        returns a ``ControlVolume``.  A cosmetic rename (e.g.
-        ``create_cv`` / ``create_fermenter``) is deferred because the
-        caller surface is broad (every system script, every test).
-        Bundle it with a future builder/factory naming sweep rather
-        than touching it standalone.
         """
         chemistry = chemistry or ChemistryConfig()
         chemistry_db = chemistry_db or AD_BASIC
@@ -197,7 +195,7 @@ class FermenterFactory:
         # construction.
         rxn_system = reaction_system
         if rxn_system is None and organism is not None and substrates:
-            rxn_system = FermenterFactory._build_reaction_system(
+            rxn_system = StirredTankFactory._build_reaction_system(
                 organism, substrates, T_K,
             )
 

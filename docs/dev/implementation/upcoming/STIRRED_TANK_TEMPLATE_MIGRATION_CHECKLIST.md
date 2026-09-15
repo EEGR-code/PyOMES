@@ -60,13 +60,36 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       staging:** these are plain moves, not `git mv` — `git add -A` (or
       equivalent) should still let git detect them as renames via
       content-similarity, since content is untouched in this checkpoint.
-- [ ] 4. **Fix intra-package references** inside the moved files
-      (`builder.py`, `factory.py`, `configs.py`, `kinetics.py`,
-      `profiles.py`) — renames, deferred-rename docstring cleanup, lazy
-      `PyOMES.core.simulation` import re-examined, real
-      `stirred_tank/__init__.py` content written. Sanity check:
+- [x] 4. **Fix intra-package references** inside the moved files —
+      `FermenterBuilder`→`StirredTankBuilder`,
+      `FermenterFactory`→`StirredTankFactory` (class defs, all return
+      annotations/docstrings/`__repr__`/internal calls); both classes'
+      docstrings gained the explicit gas+liquid-only statement per the
+      naming decision. Removed the two stale "Phase 7 holdover, rename
+      deferred" Notes blocks (`builder.py`'s `build()`,
+      `factory.py`'s `create_volume()`). Fixed stale docstring import
+      examples in `builder.py`, `kinetics.py`, `profiles.py`
+      (`PyOMES.config.kinetics`/`PyOMES.profiles` → `PyOMES.templates.
+      stirred_tank`) and `factory.py`'s `PyOMES.config import *` example;
+      stripped the "Stage 17a" dev-stage label from `profiles.py`; swept
+      `configs.py` for stray `Fermenter`/`fermenter.*`-path docstring
+      text (dataclass names themselves unchanged, per the naming
+      decision — none renamed). **Lazy `PyOMES.core.simulation` import
+      in `build_simulation()` re-examined per risk #2 and promoted to a
+      top-level import** — traced the import chain (`PyOMES/core/__init__.py`
+      already imports `.simulation` unconditionally before any submodule
+      is reachable; nothing under `PyOMES.core` imports `PyOMES.templates`
+      or `vlmodels`) and confirmed empirically (`build()` and
+      `build_simulation()` both run end-to-end). The historical cycle was
+      real only for the old cross-package (`vlmodels` importing `PyOMES`)
+      layout; moving the file intra-package removed it. Wrote
+      `stirred_tank/__init__.py`'s real content: re-exports mirroring the
+      old `config/__init__.py`'s `__all__` list (renamed classes, local
+      `.profiles` import instead of `vlmodels.fermenter.profiles`, "Stage
+      17"/"17c" comments dropped). Sanity check:
       `python -c "from PyOMES.templates.stirred_tank import StirredTankBuilder"`
-      succeeds on its own.
+      → passed. Additional functional smoke test (`build()` and
+      `build_simulation()` both construct successfully) → passed.
 - [ ] 5. **Fix the two functionally-dependent call sites**:
       `adm1/base.py:976` and `adm1/bsm2.py:804-805` (plus its
       `TransferConfig` import). Sanity check:

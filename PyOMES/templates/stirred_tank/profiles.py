@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Time-profile infrastructure for dynamic operating conditions.
 
-Stage 17a: Composable time profiles that modify simulation parameters
+Composable time profiles that modify simulation parameters
 (feed rates, temperature, pressure setpoints, etc.) as functions of time.
 
 Profile types
@@ -20,7 +20,7 @@ Dispatcher
 
 Usage
 -----
->>> from PyOMES.profiles import ProfileSet, RampProfile, StepProfile
+>>> from PyOMES.templates.stirred_tank import ProfileSet, RampProfile, StepProfile
 >>> ps = ProfileSet()
 >>> ps.add("liquid_feed.Q_L_per_h", RampProfile([(0, 0), (48, 100)]))
 >>> ps.add("T_K", StepProfile([(0, 308.15), (720, 328.15)]))

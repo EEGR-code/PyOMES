@@ -4,8 +4,7 @@
 Each dataclass owns one concern (vessel geometry, gas feed, chemistry,
 gas-liquid transfer, organism, substrate, simulation parameters) and
 can be validated independently.  Together they fully describe a
-fermenter simulation and can be consumed by
-``Fermenter.from_config()`` (Stage E).
+fermenter simulation.
 
 All configs are plain dataclasses with ``__post_init__`` validation.
 They support round-trip serialisation via ``to_dict()`` and
@@ -306,7 +305,7 @@ class OrganismConfig:
     """Organism identity and composition.
 
     If ``atoms`` and ``MW`` are ``None``, the factory will look them up
-    from the :class:`~fermenter.chemistry.compounds.ChemicalRegistry`.
+    from the :class:`~PyOMES.chemistry.compounds.ChemicalRegistry`.
 
     Parameters
     ----------
@@ -395,7 +394,7 @@ class SubstrateConfig:
     """Substrate identity, kinetic parameters, and yield.
 
     If ``atoms`` and ``MW`` are ``None``, the factory will look them up
-    from the :class:`~fermenter.chemistry.compounds.ChemicalRegistry`.
+    from the :class:`~PyOMES.chemistry.compounds.ChemicalRegistry`.
 
     Parameters
     ----------
