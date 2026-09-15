@@ -1,15 +1,12 @@
 # Stirred-tank template migration — design discussion
 
-> Status: pre-phase design discussion, 2026-09-15. No branch, no checklist,
-> no code yet. Written up from a planning conversation (chat, not a design
-> session against code) that audited `models/vlmodels/fermenter/` and its
-> naming. When this is picked up: follow `README.md`'s "How to start one" —
-> write a checklist file from `PHASE_KICKOFF_TEMPLATE.md`, branch, implement,
-> ship.
->
-> **Checkpoint 1 resolved 2026-09-15** (before branching): `kinetics.py`
-> stays under `stirred_tank/`. See "Open questions" item 1 below for the
-> reasoning and the new deferred follow-up it spawned.
+> **Status: Shipped 2026-09-15.** All 10 checkpoints landed on branch
+> `stirred-tank-template`, tag `stirred-tank-template-shipped`. Final
+> suite: 2011 passed, 28 skipped, 0 failed. See
+> [`STIRRED_TANK_TEMPLATE_MIGRATION_CHECKLIST.md`](STIRRED_TANK_TEMPLATE_MIGRATION_CHECKLIST.md)
+> for the full implementation log. `kinetics.py` destination (open
+> question 1) resolved 2026-09-15, before branching: stays under
+> `stirred_tank/`.
 
 ## Commit discipline for this phase
 
@@ -238,7 +235,7 @@ per checkpoint, sanity check attached to each, owner commits per the
 10. **Full suite**: root `pytest`. Then ship per the branching/tagging
     convention (`--no-ff` merge, tag `stirred-tank-template-shipped`),
     moving this doc + its checklist to `../shipped/` with a "Shipped"
-    banner.
+    banner. **Done 2026-09-15** — 2011 passed, 28 skipped, 0 failed.
 
 ## Open questions for whoever picks this up
 

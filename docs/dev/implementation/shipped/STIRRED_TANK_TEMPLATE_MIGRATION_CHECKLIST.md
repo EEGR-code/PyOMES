@@ -1,7 +1,9 @@
 # Stirred-Tank Template Migration — Checklist
 
-> Working checklist for the `stirred-tank-template` branch. Modelled on
-> [`PHASE_KICKOFF_TEMPLATE.md`](PHASE_KICKOFF_TEMPLATE.md). Design doc:
+> **Status: Shipped 2026-09-15.** All 10 checkpoints landed on branch
+> `stirred-tank-template`, tag `stirred-tank-template-shipped`. Final
+> suite: 2011 passed, 28 skipped, 0 failed. Modelled on
+> [`PHASE_KICKOFF_TEMPLATE.md`](../upcoming/PHASE_KICKOFF_TEMPLATE.md). Design doc:
 > [`STIRRED_TANK_TEMPLATE_MIGRATION.md`](STIRRED_TANK_TEMPLATE_MIGRATION.md) —
 > read that first for the "why," the naming decisions, and the full
 > blast-radius audit. This file is the implementation log only.
@@ -20,17 +22,16 @@ told otherwise.
 
 - [x] `git status -sb` clean — confirmed 2026-09-15.
 - [x] `git log origin/main..main --oneline` empty — confirmed 2026-09-15.
-- [ ] Branch created off current `main`: `git checkout -b stirred-tank-template`
-- [ ] This checklist file committed on that branch as the first commit
+- [x] Branch created off current `main`: `git checkout -b stirred-tank-template`
+- [x] This checklist file committed on that branch as the first commit
 
 ## During
 
 - [x] Plan/design doc exists:
       [`STIRRED_TANK_TEMPLATE_MIGRATION.md`](STIRRED_TANK_TEMPLATE_MIGRATION.md)
-- [ ] Checkpoints tracked below as they land, one commit per checkpoint
-- [ ] **If work stalls or is paused before shipping:** add a status
-      banner to the top of the design doc immediately — what's built,
-      what's tested, why it stopped, which branch/commit it's on.
+- [x] Checkpoints tracked below as they land, one commit per checkpoint
+- [x] **If work stalls or is paused before shipping:** N/A — shipped
+      without stalling.
 
 ### Checkpoints
 
@@ -214,21 +215,21 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       `pytest tests/standalone` suite as an extra check since
       `recorder.py`/`simulation.py` were touched beyond the checkpoint's
       named file list → **2011 passed, 28 skipped, 0 failed.**
-- [ ] 10. **Full suite**: root `pytest`. Then ship per the
-       branching/tagging convention (`--no-ff` merge, tag
-       `stirred-tank-template-shipped`), moving the design doc + this
-       checklist to `../shipped/` with a "Shipped" banner.
+- [x] 10. **Full suite**: root `pytest` → **2011 passed, 28 skipped, 0
+       failed.** Design doc + this checklist moved to `../shipped/`
+       with "Shipped" banners (this edit). Merge/tag/push/branch-delete
+       below, run by the repo owner per this phase's commit discipline.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
+- [x] Full test suite green on the branch
 - [ ] `git checkout main`
 - [ ] `git merge --no-ff stirred-tank-template -m "Merge stirred-tank-template: <summary>"`
 - [ ] `git tag stirred-tank-template-shipped <commit-hash>`
 - [ ] `git push && git push --tags`
 - [ ] `git branch -d stirred-tank-template` and
       `git push origin --delete stirred-tank-template`
-- [ ] Move `STIRRED_TANK_TEMPLATE_MIGRATION.md` + this checklist to
+- [x] Move `STIRRED_TANK_TEMPLATE_MIGRATION.md` + this checklist to
       `docs/dev/implementation/shipped/`, add a "Shipped" banner to both
-- [ ] Update `docs/dev/implementation/upcoming/README.md`'s "Currently
+- [x] Update `docs/dev/implementation/upcoming/README.md`'s "Currently
       in flight" / "Recently shipped" lists

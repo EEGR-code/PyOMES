@@ -26,17 +26,6 @@ final of the three sequenced phases.)*
   a known, accepted cost of this choice. Adds a CI check for
   code-cell-has-source-but-no-output drift. No Sphinx/mkdocs/jupyter-book
   — explicitly out of scope. No branch, no checklist, no code yet.
-- **[STIRRED_TANK_TEMPLATE_MIGRATION.md](STIRRED_TANK_TEMPLATE_MIGRATION.md)** —
-  2026-09-15. Moves `models/vlmodels/fermenter/` into `PyOMES` core as
-  `PyOMES/templates/stirred_tank/`, renaming `FermenterBuilder`/
-  `FermenterFactory` to `StirredTankBuilder`/`StirredTankFactory` (no
-  phase qualifier — considered `GasLiquidStirredTank...` but rejected
-  since `PyOMES.core.phases.SolidPhase` already exists and a third phase
-  could plausibly be added to this same class later). Full blast radius
-  confirmed by repo-wide grep (~20 files); two call sites
-  (`adm1/base.py`, `adm1/bsm2.py`) functionally depend on this code, not
-  just cosmetically reference it. 10 checkpoints defined. No branch, no
-  checklist, no code yet.
 - **[RESERVOIR_TYPE.md](RESERVOIR_TYPE.md)** — 2026-07-10, revised
   2026-07-10. Now concludes with `FlowBoundary`, a real unifying protocol
   for `PhaseInterface`/`CVLink`/`ExternalBoundary`, enabled by a
@@ -77,6 +66,30 @@ final of the three sequenced phases.)*
   no checklist, no code yet.
 
 ## Recently shipped
+
+- `stirred-tank-template` (2026-09-15) — moved
+  `models/vlmodels/fermenter/` into `PyOMES` core as
+  `PyOMES/templates/stirred_tank/`, renaming `FermenterBuilder`/
+  `FermenterFactory` to `StirredTankBuilder`/`StirredTankFactory` (no
+  phase qualifier — kept unqualified since `PyOMES.core.phases.SolidPhase`
+  already exists and a third phase could plausibly be added to this same
+  class later; the gas+liquid-only constraint is now stated explicitly
+  in both class docstrings instead). `kinetics.py` stays under
+  `stirred_tank/` rather than merging into `PyOMES/kinetics/` — the two
+  "kinetics" concepts share a name, not an interface (`GrowthKinetics`
+  scalar rate laws vs. `KineticModel`'s self-integrating RHS); real
+  unification logged as a deferred open question. Both `adm1/base.py`
+  and `adm1/bsm2.py` (functionally dependent, not just cosmetic
+  references) updated with no numerical drift (BSM2 sentinel tests
+  confirmed). Surfaced and logged (not fixed — separately scoped)
+  broader pre-existing documentation staleness in `README.md` and
+  `docs/architecture.md` predating this phase by several shipped
+  phases — see the new [../OPEN_WORK.md](../OPEN_WORK.md). Final suite:
+  2011 passed, 28 skipped, 0 failed. Tag
+  `stirred-tank-template-shipped`. See
+  [../shipped/STIRRED_TANK_TEMPLATE_MIGRATION.md](../shipped/STIRRED_TANK_TEMPLATE_MIGRATION.md)
+  and
+  [../shipped/STIRRED_TANK_TEMPLATE_MIGRATION_CHECKLIST.md](../shipped/STIRRED_TANK_TEMPLATE_MIGRATION_CHECKLIST.md).
 
 - `step-solver-interface-refinement` (2026-07-08) — Stage 1 of the
   solver-interface-refinement plan (see below). Ownership-guard
