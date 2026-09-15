@@ -144,18 +144,23 @@ notebooks.
    which re-executes and diffs — stronger but slower)? Not decided.
 4. **`aerobic_fermentation_stoichiometry.ipynb` needs re-running** so
    its committed outputs actually include the Section 6 dynamic-simulation
-   plots. Once outputs are embedded, the standalone
+   plots. ~~Once outputs are embedded, the standalone
    `plt.savefig("aerobic_fermentation/simulation_timeseries.png")` call
    becomes redundant — drop it, or keep it if a linked PNG is still
-   wanted for reference elsewhere (not decided).
+   wanted for reference elsewhere (not decided).~~ Resolved ahead of this
+   phase (2026-09-15): the `savefig` call was dropped from the Section 6
+   plotting cell, so this is no longer open. The notebook still needs
+   re-running to embed Section 6's outputs — that part of this item
+   stands.
 
 ## Related, separate item from the same conversation
 
-`demos/aerobic_fermentation/` contains 3 stale, unreferenced PNGs
+`demos/aerobic_fermentation/` contained 3 stale, unreferenced PNGs
 (`mass_balance.png`, `overview.png`, `yield_sensitivity.png`) left over
 from an earlier version of the notebook — orphaned, not linked from
-anywhere in the repo. Deleting them is independent of this phase and not
-blocked by it; still outstanding as of 2026-09-15.
+anywhere in the repo. Deleted ahead of this phase (2026-09-15), along
+with the `plt.savefig` call in `aerobic_fermentation_stoichiometry.ipynb`
+that used to target the same folder (see Open question 4).
 
 ## Checkpoints
 
