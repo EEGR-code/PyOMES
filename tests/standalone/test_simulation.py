@@ -1899,10 +1899,10 @@ class TestKineticGasLiquidLinkGating:
     def _make_cv_with_link(self):
         """Fermenter-shaped CV with a kinetic gas-liquid link, for
         gating tests."""
-        from vlmodels.fermenter.config import (
-            FermenterFactory, VesselConfig, TransferConfig,
+        from PyOMES.templates.stirred_tank import (
+            StirredTankFactory, VesselConfig, TransferConfig,
         )
-        return FermenterFactory.create_volume(
+        return StirredTankFactory.create_volume(
             vessel=VesselConfig(V_total_L=100, T_K=305.15),
             transfer=TransferConfig.default_kinetic(kLa_O2=100.0),
         )
@@ -3311,10 +3311,10 @@ class TestC9ParamPathDispatch:
     elsewhere remain gated."""
 
     def _make_fermenter_cv(self):
-        from vlmodels.fermenter.config import (
-            FermenterFactory, VesselConfig, TransferConfig,
+        from PyOMES.templates.stirred_tank import (
+            StirredTankFactory, VesselConfig, TransferConfig,
         )
-        return FermenterFactory.create_volume(
+        return StirredTankFactory.create_volume(
             vessel=VesselConfig(V_total_L=100, T_K=305.15),
             transfer=TransferConfig.default_kinetic(kLa_O2=100.0),
         )
@@ -3517,10 +3517,10 @@ class TestC10TemperatureRamp:
 class TestC10VVMSchedule:
 
     def _make_fermenter_with_gas_feed(self):
-        from vlmodels.fermenter.config import (
-            FermenterFactory, VesselConfig, TransferConfig, GasFeedConfig,
+        from PyOMES.templates.stirred_tank import (
+            StirredTankFactory, VesselConfig, TransferConfig, GasFeedConfig,
         )
-        return FermenterFactory.create_volume(
+        return StirredTankFactory.create_volume(
             vessel=VesselConfig(V_total_L=100, T_K=305.15),
             transfer=TransferConfig.default_kinetic(kLa_O2=100.0),
             gas_feed=GasFeedConfig(
@@ -3627,39 +3627,39 @@ class TestC10ProfileOrderingBeforeAdvance:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  FermenterBuilder.build_simulation() (C11)
+#  StirredTankBuilder.build_simulation() (C11)
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestC11FermenterBuilderSimulation:
+class TestC11StirredTankBuilderSimulation:
 
     def test_new_fluent_methods_exist(self):
-        from vlmodels.fermenter.config import FermenterBuilder
-        b = FermenterBuilder()
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
+        b = StirredTankBuilder()
         assert hasattr(b, "profile")
         assert hasattr(b, "recorder")
         assert hasattr(b, "build_simulation")
         assert hasattr(b, "build_simulation_and_run")
 
     def test_profile_fluent_appends(self):
-        from vlmodels.fermenter.config import FermenterBuilder
-        b = FermenterBuilder()
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
+        b = StirredTankBuilder()
         result = b.profile(object()).profile(object())
         assert result is b  # chainable
         assert len(b._profiles) == 2
 
     def test_recorder_fluent_sets(self):
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         rec = object()
-        b = FermenterBuilder().recorder(rec)
+        b = StirredTankBuilder().recorder(rec)
         assert b._recorder is rec
 
     def test_build_simulation_returns_simulation(self):
-        from vlmodels.fermenter.config import (
-            FermenterBuilder, VesselConfig,
+        from PyOMES.templates.stirred_tank import (
+            StirredTankBuilder, VesselConfig,
         )
         from PyOMES.core import Simulation
         sim = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .build_simulation()
         )
@@ -3667,10 +3667,10 @@ class TestC11FermenterBuilderSimulation:
         assert "main" in sim.cvs
 
     def test_build_simulation_attaches_controllers(self):
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         ctrl = object()
         sim = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .controller(ctrl)
             .build_simulation()
@@ -3678,10 +3678,10 @@ class TestC11FermenterBuilderSimulation:
         assert ctrl in sim.controllers
 
     def test_build_simulation_attaches_profiles(self):
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         prof = object()
         sim = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .profile(prof)
             .build_simulation()
@@ -3689,12 +3689,12 @@ class TestC11FermenterBuilderSimulation:
         assert prof in sim.profiles
 
     def test_build_simulation_attaches_solver_and_recorder(self):
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         from PyOMES.core import BatchRecorder, SimultaneousEulerSolver
         solver = SimultaneousEulerSolver()
         recorder = BatchRecorder()
         sim = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .solver()  # default euler — produces an SimultaneousEulerSolver
             .recorder(recorder)
@@ -3706,9 +3706,9 @@ class TestC11FermenterBuilderSimulation:
         assert sim.recorder is recorder
 
     def test_label_propagates(self):
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         sim = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .label("exp_42")
             .build_simulation()
@@ -3717,9 +3717,9 @@ class TestC11FermenterBuilderSimulation:
         assert sim._context.label == "exp_42"
 
     def test_label_override(self):
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         sim = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .label("default")
             .build_simulation(label="override")
@@ -3727,10 +3727,10 @@ class TestC11FermenterBuilderSimulation:
         assert sim.label == "override"
 
     def test_build_simulation_and_run_returns_batch_result(self):
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         from PyOMES.core import BatchResult
         result = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .transfer_kinetic(kLa_O2=100.0)
             .build_simulation_and_run(tau_h=0.1, n_steps=5)
@@ -3742,10 +3742,10 @@ class TestC11FermenterBuilderSimulation:
     def test_legacy_build_still_returns_cv(self):
         """Backward-compat: the legacy build() path keeps returning
         a ControlVolume so existing demos and tests don't break."""
-        from vlmodels.fermenter.config import FermenterBuilder
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
         from PyOMES.core import ControlVolume
         cv = (
-            FermenterBuilder()
+            StirredTankBuilder()
             .vessel(V_total_L=100, T_K=305.15)
             .build()
         )

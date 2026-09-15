@@ -1,11 +1,12 @@
 # Stirred-tank template migration — design discussion
 
-> Status: pre-phase design discussion, 2026-09-15. No branch, no checklist,
-> no code yet. Written up from a planning conversation (chat, not a design
-> session against code) that audited `models/vlmodels/fermenter/` and its
-> naming. When this is picked up: follow `README.md`'s "How to start one" —
-> write a checklist file from `PHASE_KICKOFF_TEMPLATE.md`, branch, implement,
-> ship.
+> **Status: Shipped 2026-09-15.** All 10 checkpoints landed on branch
+> `stirred-tank-template`, tag `stirred-tank-template-shipped`. Final
+> suite: 2011 passed, 28 skipped, 0 failed. See
+> [`STIRRED_TANK_TEMPLATE_MIGRATION_CHECKLIST.md`](STIRRED_TANK_TEMPLATE_MIGRATION_CHECKLIST.md)
+> for the full implementation log. `kinetics.py` destination (open
+> question 1) resolved 2026-09-15, before branching: stays under
+> `stirred_tank/`.
 
 ## Commit discipline for this phase
 
@@ -95,13 +96,8 @@ anywhere, flagged in the demos/models pruning discussion) is untouched by
 this move and should be resolved independently.
 
 `kinetics.py` (Monod, Contois, Andrews, Tessier, Moser, Blackman,
-DualSubstrateMonod) is a genuine open question, not a settled part of this
-move — see "Open questions" below. Default placement above is inside
-`stirred_tank/` (least disruptive); the alternative is merging it into the
-already-existing `PyOMES/kinetics/` subpackage (which has its own
-`KineticModel` protocol and a concrete model, `YeastAcetateV1`, tested by
-`test_kinetics.py`) so there's one kinetics home in core instead of two
-disconnected ones.
+DualSubstrateMonod) placement was resolved 2026-09-15, before branching —
+**stays under `stirred_tank/`**. See "Open questions" item 1 for why.
 
 ## Full blast radius (confirmed by repo-wide grep, not estimated)
 
@@ -147,7 +143,15 @@ Every file referencing `vlmodels.fermenter`, `FermenterBuilder`, or
    the file bodily into `PyOMES` turns it into an intra-package import,
    which changes the shape of the problem — it likely still needs to stay
    lazy, but this needs to be checked in the new location, not assumed to
-   carry over unchanged.
+   carry over unchanged. **Resolved at checkpoint 4 (2026-09-15): the
+   cycle is gone, import promoted to top-level.** `PyOMES/core/__init__.py`
+   imports `.simulation` unconditionally as part of its own
+   initialization, before any `PyOMES.core` submodule is externally
+   reachable; nothing under `PyOMES.core` imports `PyOMES.templates` or
+   `vlmodels`. Confirmed both structurally (grep) and empirically
+   (`StirredTankBuilder().build()` and `.build_simulation()` both run
+   end-to-end with the import at module level). The cycle only existed
+   for the old cross-package layout.
 
 ## Checkpoints
 
@@ -155,8 +159,9 @@ Matches this repo's `PHASE_KICKOFF_TEMPLATE.md` convention — one commit
 per checkpoint, sanity check attached to each, owner commits per the
 "Commit discipline" section above.
 
-1. **Decide the `kinetics.py` destination** (open question below) —
-   resolve before anything touches its importers.
+1. **Decide the `kinetics.py` destination** — **resolved 2026-09-15,
+   before branching: stays under `stirred_tank/`.** See "Open questions"
+   item 1.
 2. **Create skeletons**: `PyOMES/templates/__init__.py` and
    `PyOMES/templates/stirred_tank/__init__.py`, both empty for now — real
    content drafted in checkpoint 4, once the re-export list is final.
@@ -165,7 +170,8 @@ per checkpoint, sanity check attached to each, owner commits per the
    into `PyOMES/templates/stirred_tank/`, preserving history. Delete the
    two old `__init__.py` files outright (content is being rewritten, not
    moved). *Sanity check:* `models/vlmodels/fermenter/` no longer exists.
-4. **Fix intra-package references inside the moved files**, file by file:
+4. **Fix intra-package references inside the moved files** — **done
+   2026-09-15**, file by file:
    - `builder.py`: `class FermenterBuilder` → `class StirredTankBuilder`;
      `from .factory import FermenterFactory` → `... import StirredTankFactory`;
      the internal call `FermenterFactory.create_volume(...)` (line 470);
@@ -197,8 +203,16 @@ per checkpoint, sanity check attached to each, owner commits per the
    *Sanity check:* run `pytest tests/standalone/test_bsm2_reference.py -v`
    **in isolation, right here** — not deferred to a final full-suite run —
    since this is the one check that would catch numerical drift from the
-   move.
+   move. **Done 2026-09-15 — found a checkpoint-ordering gap this note
+   didn't call out:** the sanity check can't actually pass without
+   checkpoint 6's fix landing first, since `vlmodels/__init__.py`'s dead
+   `vlmodels.fermenter` re-export blocks importing *any* `vlmodels.*`
+   module at package-init time (including `vlmodels.adm1.bsm2`).
+   Checkpoint 6 was done alongside this one as a prerequisite rather than
+   leaving the sanity check blocked. Result: 6/6 passed, including the
+   numeric sentinel tests — no drift.
 6. **Fix `vlmodels/__init__.py`**. *Sanity check:* `python -c "import vlmodels"`.
+   **Done 2026-09-15, alongside checkpoint 5 (see above).**
 7. **Fix test imports**: `test_builder.py`, `test_configs.py` (import
    lines only, no move), and the seven named classes in `test_simulation.py`.
    *Sanity check:* `pytest tests/standalone/test_builder.py tests/standalone/test_configs.py tests/standalone/test_simulation.py -v`.
@@ -208,19 +222,51 @@ per checkpoint, sanity check attached to each, owner commits per the
    still prints its report.
 9. **Fix remaining doc cross-references**: `PyOMES/core/recorder.py`'s
    stale docstring mention, `README.md`, `demos/README.md`,
-   `demos/builder/README.md`.
+   `demos/builder/README.md`. **Done 2026-09-15** — expanded slightly
+   beyond this list in practice (`PyOMES/core/simulation.py`'s two
+   dangling `run_batch` citations, `demos/_bootstrap.py`'s own
+   docstring). Surfaced much broader pre-existing staleness in
+   `README.md` and `docs/architecture.md` (retired package/class names,
+   an unrelated already-sunset fermenter API, stale "CUFermenter
+   island" tags) — narrow-fixed only what's directly about this move,
+   logged the rest to the new
+   [`../OPEN_WORK.md`](../OPEN_WORK.md). See the checklist for the full
+   breakdown.
 10. **Full suite**: root `pytest`. Then ship per the branching/tagging
     convention (`--no-ff` merge, tag `stirred-tank-template-shipped`),
     moving this doc + its checklist to `../shipped/` with a "Shipped"
-    banner.
+    banner. **Done 2026-09-15** — 2011 passed, 28 skipped, 0 failed.
 
 ## Open questions for whoever picks this up
 
-1. **`kinetics.py` destination** — stay under the new `stirred_tank/`
-   package, or merge into the existing `PyOMES/kinetics/` subpackage
-   (which already has a `KineticModel` protocol and `YeastAcetateV1`)? The
-   latter avoids two disconnected "kinetics" homes in core but is a larger
-   change than a pure move.
+1. **`kinetics.py` destination — resolved 2026-09-15 (before branching):
+   stays under `stirred_tank/`.** Considered merging into the existing
+   `PyOMES/kinetics/` subpackage (which has its own `KineticModel`
+   protocol and `YeastAcetateV1`), but reading both confirmed the two
+   "kinetics" concepts share a name, not an interface:
+   `fermenter/config/kinetics.py`'s `GrowthKinetics` classes (`Monod`,
+   `Contois`, etc.) compute a scalar μ(S, X) and rely on
+   `_KineticsBase.make_rate_fn` (shared, not reimplemented per class) to
+   convert that into a `rate_fn(env) -> float` that
+   `ReactionBuilder.aerobic_growth` attaches as one reaction among many on
+   the CV — the CV's own reaction/speciation system does the actual state
+   integration. `PyOMES/kinetics/`'s `KineticModel` protocol is the
+   opposite shape: each model (`YeastAcetateV1`) owns its *entire* state
+   vector and a `rhs(t_h, y, env, params) -> (dydt, outputs)` that
+   something calls directly each ODE step — no CV-level reaction
+   composition involved. Confirmed concretely: `YeastAcetateV1.rhs` hand-
+   derives a Monod term inline (`monod_S = Ac / (Ks + Ac)`) rather than
+   reusing `Monod.mu()`, because the two protocols can't compose.
+   Folding `GrowthKinetics` classes into `KineticModel` would mean
+   duplicating `make_rate_fn`'s shared conversion logic per class, or
+   dual-implementing both protocols per class, or replacing the CV's
+   reaction-composition path for growth reactions specifically — a real
+   integration-model redesign, not a rename, and out of scope for this
+   phase. Moving `kinetics.py` into `PyOMES/kinetics/` as an unrelated
+   sibling module (no protocol change) was also considered and rejected —
+   it would only consolidate an import path with zero code sharing, not
+   worth the churn. See open question 6 below for the deferred real
+   unification.
 2. **`hplc/column.py`'s fate** — flagged in the wider demos/models
    discussion as worth the same core-vs-example test this move just
    applied to the fermenter builder (it's generic textbook physics, not
@@ -243,3 +289,14 @@ per checkpoint, sanity check attached to each, owner commits per the
    later pruning pass's core-vs-example sort cleaner) but are tracked
    separately; the wider pruning plan has not yet been written up as its
    own doc.
+6. **Real `GrowthKinetics`/`KineticModel` unification** — surfaced while
+   resolving question 1 above (2026-09-15), explicitly deferred, not
+   scoped for this phase. Two genuinely different real options exist,
+   neither trivial: (a) make `GrowthKinetics` rate laws composable from
+   inside `KineticModel`-style models (e.g. `YeastAcetateV1` calling
+   `Monod.mu()` instead of hand-deriving it), removing the duplicated
+   Monod-shaped math confirmed to exist today; or (b) extend the CV's
+   reaction-composition path so a `KineticModel` can itself be wrapped as
+   a `ReactionBuilder`-attachable rate source. Either is a protocol/
+   integration-model redesign with real behavioral surface, not a rename —
+   worth its own design discussion and phase if picked up.

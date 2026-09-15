@@ -973,7 +973,7 @@ def build_adm1_cv(
     -------
     ControlVolume
     """
-    from vlmodels.fermenter.config.builder import FermenterBuilder
+    from PyOMES.templates.stirred_tank import StirredTankBuilder
     from PyOMES.core.boundaries import PressureReliefVent
     from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
 
@@ -1001,7 +1001,7 @@ def build_adm1_cv(
     # Cross-phase partition reactions declared in build_adm1_reactions()
     # drive derive_speciation_keys() at CV construction; no manual
     # speciation_keys wiring needed.
-    b = (FermenterBuilder()
+    b = (StirredTankBuilder()
          .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac,
                  T_K=T_K, yO2_init=0.0, yCO2_init=0.0)
          .no_gas_feed()
@@ -1059,7 +1059,7 @@ def build_adm1_cv(
         # KineticGasLiquidLink is deprecated in favour of the
         # transfer_models kwarg — but transfer_models is only consumable
         # at ControlVolume construction time, and cv is already built by
-        # FermenterBuilder above (which doesn't support a generic
+        # StirredTankBuilder above (which doesn't support a generic
         # PartitionModel, only Henry constants, in its transfer_species()
         # API). Direct construction here is the deliberate, internal
         # escape hatch, matching how ControlVolume's own

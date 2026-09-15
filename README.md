@@ -105,7 +105,6 @@ PyOMES/                 # Main package
   stream_adapter/       # Lightweight FeedState / FermenterResult (no BioSTEAM)
 
 models/                 # Concrete implementations (imported as `vlmodels`)
-  fermenter/            # CUFermentationSpeciation — main production fermenter unit
   adm1/                 # Anaerobic digestion (ADM1, BSM2 variants)
   hplc/                 # HPLC column chromatography model
 

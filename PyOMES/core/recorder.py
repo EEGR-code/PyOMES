@@ -11,14 +11,6 @@ This module lands C3 of SIMULATION_CLASS. ``Simulation.run()``
 wires the recorder at C4. Controller / profile / accuracy /
 conservation channels exist on the result but are populated only
 once their respective checkpoints land (C9/C10).
-
-Note: the legacy ``BatchResult`` in
-[`models/vlmodels/fermenter/config/factory.py`](../../models/vlmodels/fermenter/config/factory.py)
-is **not** moved here. The two classes coexist on the
-simulation-class branch until C14 deletes ``run_batch`` and its
-``BatchResult``; this avoids a backwards-compat shim per the
-hard-breaks discipline. The two have slightly different schemas
-(the new one is nested per-CV; the legacy one is flat single-CV).
 """
 
 from __future__ import annotations
@@ -87,10 +79,7 @@ class BatchResult:
 
     Nested per-CV by construction (single-CV simulations populate
     every nested dict under their sole CV key — typically
-    ``"main"``). This is intentionally different from the legacy
-    :class:`models.vlmodels.fermenter.config.factory.BatchResult`
-    (flat single-CV) — the two coexist until C14 deletes the
-    legacy.
+    ``"main"``).
 
     Attributes
     ----------

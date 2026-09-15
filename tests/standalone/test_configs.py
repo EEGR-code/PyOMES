@@ -15,7 +15,7 @@ Validates:
 import pytest
 import copy
 
-from vlmodels.fermenter.config import (
+from PyOMES.templates.stirred_tank import (
     TransferMode,
     VesselConfig,
     GasFeedConfig,

@@ -6,7 +6,7 @@ Migrated to the new ``Simulation`` orchestrator (simulation-class C12).
 Walks through the typical fermenter pattern under the new API:
 
     1. Build the fermenter ControlVolume + Simulation via
-       ``FermenterBuilder.build_simulation_and_run()``.
+       ``StirredTankBuilder.build_simulation_and_run()``.
     2. Wire pH control via the CV-native ``PHController`` from
        ``PyOMES.control.cv_loops``.
     3. Read the per-CV time series from the returned ``BatchResult``.
@@ -19,16 +19,9 @@ Set ``USE_PH_CONTROL = False`` near the top to see what happens
 without intervention.
 """
 
-# Bootstrap so the demo runs when PyOMES isn't installed yet.
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import _bootstrap  # noqa: F401, E402
-
 import numpy as np
 
-from vlmodels.fermenter.config import FermenterBuilder
+from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.control.cv_loops import PHController
 
 
@@ -42,8 +35,8 @@ N_STEPS = 1000              # output grid resolution
 
 # ── Build the Simulation ──────────────────────────────────────────────
 
-def build() -> FermenterBuilder:
-    """Build a FermenterBuilder configured for the demo.
+def build() -> StirredTankBuilder:
+    """Build a StirredTankBuilder configured for the demo.
 
     Vessel: 2 L, 305.15 K. Sparged with air at 1 vvm. Kinetic
     gas-liquid transfer with kLa(O2)=150/h. Yeast growing on
@@ -51,7 +44,7 @@ def build() -> FermenterBuilder:
     preset.
     """
     builder = (
-        FermenterBuilder()
+        StirredTankBuilder()
         .vessel(V_total_L=2000, T_K=305.15)
         .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
         .transfer_kinetic(kLa_O2=150.0)

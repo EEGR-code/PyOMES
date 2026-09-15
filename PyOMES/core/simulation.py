@@ -749,9 +749,6 @@ class Simulation:
 
         # Initial speciation solve at t=0 so the recorder's
         # record_init captures pH[0] and ionic_strength[0].
-        # Carries the equivalent from
-        # models/vlmodels/fermenter/config/factory.py:run_batch
-        # lines 542-557.
         for cv in self.cvs.values():
             self._initial_solve(cv)
 
@@ -1225,7 +1222,6 @@ class Simulation:
         are populated before the recorder's ``record_init`` reads them.
 
         No-op if the CV lacks a reaction_system or speciation engine.
-        Mirrors the legacy run_batch initial-solve loop (lines 542-557).
         """
         if cv.reaction_system is None:
             return
