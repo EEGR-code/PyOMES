@@ -14,6 +14,29 @@ final of the three sequenced phases.)*
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[NOTEBOOK_GENERATOR_REMOVAL.md](NOTEBOOK_GENERATOR_REMOVAL.md)** —
+  2026-09-15. Retires the 5 `_generate_notebooks.py` scripts (22
+  notebooks across `ChemicalEquilibriumProtocol`, `SolverProtocols`,
+  `speciation`, `usecases`, `docs/tutorials`) in favor of every notebook
+  being hand-edited and committed with its outputs embedded — the
+  biosteam-style convention, chosen over keeping the generators (with a
+  CI discipline bolted on) or extracting their duplicated boilerplate
+  into a shared module. Confirmed real duplication exists (the
+  water/phosphate/ammonium reaction network retyped in 3+ places) and is
+  a known, accepted cost of this choice. Adds a CI check for
+  code-cell-has-source-but-no-output drift. No Sphinx/mkdocs/jupyter-book
+  — explicitly out of scope. No branch, no checklist, no code yet.
+- **[STIRRED_TANK_TEMPLATE_MIGRATION.md](STIRRED_TANK_TEMPLATE_MIGRATION.md)** —
+  2026-09-15. Moves `models/vlmodels/fermenter/` into `PyOMES` core as
+  `PyOMES/templates/stirred_tank/`, renaming `FermenterBuilder`/
+  `FermenterFactory` to `StirredTankBuilder`/`StirredTankFactory` (no
+  phase qualifier — considered `GasLiquidStirredTank...` but rejected
+  since `PyOMES.core.phases.SolidPhase` already exists and a third phase
+  could plausibly be added to this same class later). Full blast radius
+  confirmed by repo-wide grep (~20 files); two call sites
+  (`adm1/base.py`, `adm1/bsm2.py`) functionally depend on this code, not
+  just cosmetically reference it. 10 checkpoints defined. No branch, no
+  checklist, no code yet.
 - **[RESERVOIR_TYPE.md](RESERVOIR_TYPE.md)** — 2026-07-10, revised
   2026-07-10. Now concludes with `FlowBoundary`, a real unifying protocol
   for `PhaseInterface`/`CVLink`/`ExternalBoundary`, enabled by a
