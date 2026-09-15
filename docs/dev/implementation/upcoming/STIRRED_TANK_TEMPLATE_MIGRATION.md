@@ -6,6 +6,10 @@
 > naming. When this is picked up: follow `README.md`'s "How to start one" —
 > write a checklist file from `PHASE_KICKOFF_TEMPLATE.md`, branch, implement,
 > ship.
+>
+> **Checkpoint 1 resolved 2026-09-15** (before branching): `kinetics.py`
+> stays under `stirred_tank/`. See "Open questions" item 1 below for the
+> reasoning and the new deferred follow-up it spawned.
 
 ## Commit discipline for this phase
 
@@ -95,13 +99,8 @@ anywhere, flagged in the demos/models pruning discussion) is untouched by
 this move and should be resolved independently.
 
 `kinetics.py` (Monod, Contois, Andrews, Tessier, Moser, Blackman,
-DualSubstrateMonod) is a genuine open question, not a settled part of this
-move — see "Open questions" below. Default placement above is inside
-`stirred_tank/` (least disruptive); the alternative is merging it into the
-already-existing `PyOMES/kinetics/` subpackage (which has its own
-`KineticModel` protocol and a concrete model, `YeastAcetateV1`, tested by
-`test_kinetics.py`) so there's one kinetics home in core instead of two
-disconnected ones.
+DualSubstrateMonod) placement was resolved 2026-09-15, before branching —
+**stays under `stirred_tank/`**. See "Open questions" item 1 for why.
 
 ## Full blast radius (confirmed by repo-wide grep, not estimated)
 
@@ -155,8 +154,9 @@ Matches this repo's `PHASE_KICKOFF_TEMPLATE.md` convention — one commit
 per checkpoint, sanity check attached to each, owner commits per the
 "Commit discipline" section above.
 
-1. **Decide the `kinetics.py` destination** (open question below) —
-   resolve before anything touches its importers.
+1. **Decide the `kinetics.py` destination** — **resolved 2026-09-15,
+   before branching: stays under `stirred_tank/`.** See "Open questions"
+   item 1.
 2. **Create skeletons**: `PyOMES/templates/__init__.py` and
    `PyOMES/templates/stirred_tank/__init__.py`, both empty for now — real
    content drafted in checkpoint 4, once the re-export list is final.
@@ -216,11 +216,34 @@ per checkpoint, sanity check attached to each, owner commits per the
 
 ## Open questions for whoever picks this up
 
-1. **`kinetics.py` destination** — stay under the new `stirred_tank/`
-   package, or merge into the existing `PyOMES/kinetics/` subpackage
-   (which already has a `KineticModel` protocol and `YeastAcetateV1`)? The
-   latter avoids two disconnected "kinetics" homes in core but is a larger
-   change than a pure move.
+1. **`kinetics.py` destination — resolved 2026-09-15 (before branching):
+   stays under `stirred_tank/`.** Considered merging into the existing
+   `PyOMES/kinetics/` subpackage (which has its own `KineticModel`
+   protocol and `YeastAcetateV1`), but reading both confirmed the two
+   "kinetics" concepts share a name, not an interface:
+   `fermenter/config/kinetics.py`'s `GrowthKinetics` classes (`Monod`,
+   `Contois`, etc.) compute a scalar μ(S, X) and rely on
+   `_KineticsBase.make_rate_fn` (shared, not reimplemented per class) to
+   convert that into a `rate_fn(env) -> float` that
+   `ReactionBuilder.aerobic_growth` attaches as one reaction among many on
+   the CV — the CV's own reaction/speciation system does the actual state
+   integration. `PyOMES/kinetics/`'s `KineticModel` protocol is the
+   opposite shape: each model (`YeastAcetateV1`) owns its *entire* state
+   vector and a `rhs(t_h, y, env, params) -> (dydt, outputs)` that
+   something calls directly each ODE step — no CV-level reaction
+   composition involved. Confirmed concretely: `YeastAcetateV1.rhs` hand-
+   derives a Monod term inline (`monod_S = Ac / (Ks + Ac)`) rather than
+   reusing `Monod.mu()`, because the two protocols can't compose.
+   Folding `GrowthKinetics` classes into `KineticModel` would mean
+   duplicating `make_rate_fn`'s shared conversion logic per class, or
+   dual-implementing both protocols per class, or replacing the CV's
+   reaction-composition path for growth reactions specifically — a real
+   integration-model redesign, not a rename, and out of scope for this
+   phase. Moving `kinetics.py` into `PyOMES/kinetics/` as an unrelated
+   sibling module (no protocol change) was also considered and rejected —
+   it would only consolidate an import path with zero code sharing, not
+   worth the churn. See open question 6 below for the deferred real
+   unification.
 2. **`hplc/column.py`'s fate** — flagged in the wider demos/models
    discussion as worth the same core-vs-example test this move just
    applied to the fermenter builder (it's generic textbook physics, not
@@ -243,3 +266,14 @@ per checkpoint, sanity check attached to each, owner commits per the
    later pruning pass's core-vs-example sort cleaner) but are tracked
    separately; the wider pruning plan has not yet been written up as its
    own doc.
+6. **Real `GrowthKinetics`/`KineticModel` unification** — surfaced while
+   resolving question 1 above (2026-09-15), explicitly deferred, not
+   scoped for this phase. Two genuinely different real options exist,
+   neither trivial: (a) make `GrowthKinetics` rate laws composable from
+   inside `KineticModel`-style models (e.g. `YeastAcetateV1` calling
+   `Monod.mu()` instead of hand-deriving it), removing the duplicated
+   Monod-shaped math confirmed to exist today; or (b) extend the CV's
+   reaction-composition path so a `KineticModel` can itself be wrapped as
+   a `ReactionBuilder`-attachable rate source. Either is a protocol/
+   integration-model redesign with real behavioral surface, not a rename —
+   worth its own design discussion and phase if picked up.
