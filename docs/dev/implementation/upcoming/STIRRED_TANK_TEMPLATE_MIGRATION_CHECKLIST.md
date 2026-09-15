@@ -121,10 +121,36 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       the now-inaccurate "built on the fermenter framework" docstring
       sentence. Sanity check: `python -c "import vlmodels"` (same
       `PYTHONPATH` note as above) → passed.
-- [ ] 7. **Fix test imports** — `test_builder.py`, `test_configs.py`
-      (import lines only), and the seven named classes in
-      `test_simulation.py`. Sanity check:
-      `pytest tests/standalone/test_builder.py tests/standalone/test_configs.py tests/standalone/test_simulation.py -v`.
+- [x] 7. **Fix test imports** — `test_configs.py`: import line only
+      (its `TransferMode`/`VesselConfig`/etc. usages are unaffected,
+      since those dataclass names didn't change). `test_builder.py`:
+      import line plus a file-wide `FermenterBuilder`→
+      `StirredTankBuilder`/`FermenterFactory`→`StirredTankFactory`
+      sweep (docstring, every instantiation — 30 + 1 occurrences).
+      `test_simulation.py`: the seven named classes
+      (`TestKineticGasLiquidLinkGating`, `TestC9FluxApplyDispatch`,
+      `TestC9ParamPathDispatch`, `TestC10TemperatureRamp`,
+      `TestC10VVMSchedule`, `TestC10ProfileOrderingBeforeAdvance`,
+      `TestC11FermenterBuilderSimulation`) — confirmed via class-boundary
+      grep that every `Fermenter`/`vlmodels.fermenter.config` match in
+      the file falls inside these seven (or the comment immediately
+      above the seventh); `TestC13ADM1Simulation` (the one class the
+      design doc says to leave alone — genuine external `vlmodels.adm1`
+      model) had zero matches, confirmed untouched. **Side effect worth
+      flagging:** the file-wide `FermenterBuilder`→`StirredTankBuilder`
+      replace also renamed the class itself,
+      `TestC11FermenterBuilderSimulation` →
+      `TestC11StirredTankBuilderSimulation` (a substring match, not
+      explicitly scoped by the design doc) — kept deliberately rather
+      than reverted, since the class tests `StirredTankBuilder.
+      build_simulation()` and leaving the old name would itself be
+      stray Fermenter-branded text. The one generic-word usage
+      (`"""Fermenter-shaped CV with a kinetic gas-liquid link..."""`
+      docstring around line 1900) was correctly left alone by the
+      targeted replacements. Sanity check:
+      `pytest tests/standalone/test_builder.py tests/standalone/test_configs.py tests/standalone/test_simulation.py -q`
+      → **397 passed**, including `TestC13ADM1Simulation` (confirms the
+      checkpoint 5 `adm1/base.py` fix holds here too).
 - [ ] 8. **Fix demo imports** — the four `demos/builder/*.py` files
       plus `export_results.py`; update import line, drop
       `import _bootstrap` from all five. Sanity check: run each script
