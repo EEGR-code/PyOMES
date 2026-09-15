@@ -3087,7 +3087,7 @@ class TestCVPHControllerRegistryValidation:
 #  Controller integration with Simulation.run (C9)
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestC9ControllerInvocation:
+class TestControllerInvocation:
     """Verify that Simulation.run actually fires controllers,
     collects their actions in the BatchResult, and dispatches
     flux_applied / params_changed onto the CV."""
@@ -3166,7 +3166,7 @@ class TestC9ControllerInvocation:
         sim.run(tau_h=0.1, n_steps=2)  # should not raise
 
 
-class TestC9SamplePeriodGating:
+class TestSamplePeriodGating:
 
     def test_sample_period_h_gates_compute(self):
         """sample_period_h=0.05 with dt_h=0.01 → compute() fires
@@ -3279,7 +3279,7 @@ class TestC9SamplePeriodGating:
         )
 
 
-class TestC9FluxApplyDispatch:
+class TestFluxApplyDispatch:
 
     def test_flux_applied_routes_to_cv_apply_external_flux(self):
         """An action with flux_applied={"liquid": {"S": -10}} should
@@ -3305,7 +3305,7 @@ class TestC9FluxApplyDispatch:
         )
 
 
-class TestC9ParamPathDispatch:
+class TestParamPathDispatch:
     """The params_changed dispatch via _apply_param_change. Pattern B
     unchecked setters fire during the run; mid-run mutations from
     elsewhere remain gated."""
@@ -3364,7 +3364,7 @@ class TestC9ParamPathDispatch:
             sim.run(tau_h=0.01, n_steps=1)
 
 
-class TestC9EndToEndPHController:
+class TestEndToEndPHController:
     """Drive a real CV-native PHController through Simulation.run
     end-to-end; verify acid is dosed when pH is high."""
 
@@ -3413,7 +3413,7 @@ class TestC9EndToEndPHController:
 #  Profile protocol + concrete profiles (C10)
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestC10ProfileProtocol:
+class TestProfileProtocol:
 
     def test_profile_protocol_importable(self):
         from PyOMES.control.cv_profiles import Profile
@@ -3438,7 +3438,7 @@ class TestC10ProfileProtocol:
         assert isinstance(IdleProfile(), Profile)
 
 
-class TestC10TemperatureRamp:
+class TestTemperatureRamp:
 
     def test_temperature_ramp_mutates_phase_T_K(self):
         from PyOMES.core import Simulation
@@ -3514,7 +3514,7 @@ class TestC10TemperatureRamp:
         sim.run(tau_h=1.0, n_steps=5)
 
 
-class TestC10VVMSchedule:
+class TestVVMSchedule:
 
     def _make_fermenter_with_gas_feed(self):
         from PyOMES.templates.stirred_tank import (
@@ -3564,7 +3564,7 @@ class TestC10VVMSchedule:
             assert "cv.main.gas_feed.vvm_min" in per_step[0].targets
 
 
-class TestC10SetpointTrajectory:
+class TestSetpointTrajectory:
 
     def test_setpoint_trajectory_mutates_controller_attribute(self):
         from PyOMES.core import Simulation
@@ -3588,7 +3588,7 @@ class TestC10SetpointTrajectory:
         assert ctrl.setpoint == pytest.approx(6.0, abs=1e-9)
 
 
-class TestC10ProfileOrderingBeforeAdvance:
+class TestProfileOrderingBeforeAdvance:
     """Verify profiles fire BEFORE cv.advance — temperature ramps
     take effect in the same step rather than the next one."""
 
@@ -3630,7 +3630,7 @@ class TestC10ProfileOrderingBeforeAdvance:
 #  StirredTankBuilder.build_simulation() (C11)
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestC11StirredTankBuilderSimulation:
+class TestStirredTankBuilderSimulation:
 
     def test_new_fluent_methods_exist(self):
         from PyOMES.templates.stirred_tank import StirredTankBuilder
@@ -3756,7 +3756,7 @@ class TestC11StirredTankBuilderSimulation:
 #  ADM1 / BSM2 integration with Simulation (C13)
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestC13ADM1Simulation:
+class TestADM1Simulation:
     """ADM1 CVs build through their legacy helpers and run through the
     new Simulation orchestrator end-to-end. Strong-ion seeding stays
     in CV construction (per STATE_UNIFICATION C4); chem_env is gone."""
