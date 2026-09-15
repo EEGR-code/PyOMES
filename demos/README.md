@@ -12,15 +12,18 @@ Install the package in editable mode from the repo root:
 pip install -e .
 ```
 
-The local [_bootstrap.py](_bootstrap.py) adds `models/` to `sys.path`
-so the demos can import `vlmodels.fermenter.config`. The
-`pip install -e .` exposes the `PyOMES` package directly.
+The builder demos import `PyOMES.templates.stirred_tank` directly — no
+extra path setup needed once the package is installed. Some demos
+elsewhere in this tree still use the local
+[_bootstrap.py](_bootstrap.py), which adds `models/` to `sys.path` so
+`vlmodels` (the concrete model implementations under `models/`) is
+importable.
 
 ## Layout
 
 ```
 demos/
-  builder/                       quick-start: FermenterBuilder fluent API
+  builder/                       quick-start: StirredTankBuilder fluent API
     batch_fermenter.py
     cstr_fermenter.py
     fed_batch_fermenter.py
@@ -128,11 +131,11 @@ the FBA demos print trajectory samples).
 The canonical shape across the builder demos:
 
 ```python
-from vlmodels.fermenter.config import FermenterBuilder
+from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.control.cv_loops import PHController
 
 cv = (
-    FermenterBuilder()
+    StirredTankBuilder()
     .vessel(...)
     .transfer_kinetic(...)
     .chemistry(...)
@@ -148,7 +151,7 @@ result.liquid_mol["main"]["AceticAcid"]   # ndarray
 result.pH["main"]                          # ndarray
 ```
 
-`FermenterBuilder.build_simulation_and_run(tau_h, n_steps)` is the
+`StirredTankBuilder.build_simulation_and_run(tau_h, n_steps)` is the
 one-shot equivalent when you don't need to inspect or attach custom
 boundaries — see [`batch_fermenter.py`](builder/batch_fermenter.py)
 for that form. The `model_api/` demos unfold each of those builder
@@ -157,9 +160,9 @@ steps into explicit construction.
 ## Helpers
 
 - **[_bootstrap.py](_bootstrap.py)** — adds `models/` to `sys.path`
-  so `vlmodels` resolves without a separate install. Imported at
-  the top of every demo via a one-line sys.path tweak that points
-  each demo back at this folder.
+  so `vlmodels` resolves without a separate install. The `builder/`
+  demos don't need it (they only import `PyOMES`, resolved via the
+  editable install); some `model_api/` demos still import it.
 
 ## ADM1 / BSM2
 

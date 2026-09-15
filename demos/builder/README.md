@@ -1,7 +1,7 @@
 # Builder demos
 
 Quick-start tutorials that use the fluent
-[`FermenterBuilder`](../../models/vlmodels/fermenter/config/builder.py)
+[`StirredTankBuilder`](../../PyOMES/templates/stirred_tank/builder.py)
 API. Each demo configures a fermenter in a handful of chained calls
 and runs a `Simulation` shipped in
 [`simulation-class`](../../docs/dev/implementation/shipped/SIMULATION_CLASS.md).
@@ -49,12 +49,12 @@ applicable, controller diagnostics).
 ## Canonical shape
 
 ```python
-from vlmodels.fermenter.config import FermenterBuilder
+from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.core import Simulation
 from PyOMES.control.cv_loops import PHController
 
 cv = (
-    FermenterBuilder()
+    StirredTankBuilder()
     .vessel(V_total_L=2000, T_K=305.15)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
     .transfer_kinetic(kLa_O2=150.0)
@@ -69,7 +69,7 @@ sim = Simulation(cvs={"main": cv}, controllers=[PHController(setpoint=5.0)])
 result = sim.run(tau_h=5.0, n_steps=1000)
 ```
 
-`FermenterBuilder.build_simulation_and_run(tau_h, n_steps)` is the
+`StirredTankBuilder.build_simulation_and_run(tau_h, n_steps)` is the
 one-shot equivalent of `build()` → boundaries → `Simulation(...).run(...)`
 when you don't need to inspect the intermediate CV or attach custom
 boundaries. `batch_fermenter.py` uses that form.

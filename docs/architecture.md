@@ -69,7 +69,7 @@ After Phase 7 (`docs/dev/implementation/shipped/PHASE7_CHECKLIST.md`),
 `{"gas": GasPhase, "liquid": LiquidPhase}` and whose
 `internal_interfaces` list contains a `KineticGasLiquidLink` acting
 as a `PhaseInterface`.  Callers construct one via
-`FermenterFactory.create_volume(...)` (or `FermenterBuilder().build()`).
+`StirredTankFactory.create_volume(...)` (or `StirredTankBuilder().build()`).
 
 Both `SimultaneousEulerSolver` and `SimultaneousAdaptiveSolver` operate directly on
 a `ControlVolume` and return the unified `AdvanceResult`, which
@@ -423,21 +423,10 @@ models/
     headspace.py
     adm1/                        # ADM1 + BSM2 — built on Simulation
       base.py, bsm2.py, bsm2_direct.py
-    fermenter/                   # Legacy CUFermentationSpeciation + builder/factory/profiles
-      unit.py                    # CUFermentationSpeciation (~3400 LOC, CUFermenter island)
-      biosteam.py                # BioSTEAM adapter (CUFermenter island)
-      types.py                   # FermenterState, FermenterCommands (CUFermenter island)
-      profiles.py
-      config/
-        builder.py               # FermenterBuilder (fluent; .build() and .build_simulation())
-        factory.py               # FermenterFactory + legacy run_batch (CUFermenter island)
-        configs.py, kinetics.py
     hplc/                        # HPLC column model (own .simulate() loop; not on Simulation)
       column.py
 ```
 
-The "CUFermenter island" annotation marks modules slated for
-removal in the trigger-gated `CUFERMENTER_SUNSET` phase. New code
-must not depend on island-tagged surfaces; the canonical
-orchestration pathway is `Simulation` + a `ControlVolume` built
-via `FermenterBuilder.build_simulation()`.
+The canonical orchestration pathway is `Simulation` + a
+`ControlVolume` built via
+`PyOMES.templates.stirred_tank.StirredTankBuilder.build_simulation()`.

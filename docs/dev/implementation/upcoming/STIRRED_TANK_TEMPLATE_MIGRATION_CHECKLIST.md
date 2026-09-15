@@ -175,9 +175,45 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       `fed_batch_fermenter.py`, `microplate_fermenter.py`,
       `export_results.py`, the last one's CSV/Parquet round-trip checks
       included — "All export checks passed").
-- [ ] 9. **Fix remaining doc cross-references** —
-      `PyOMES/core/recorder.py`'s stale docstring mention, `README.md`,
-      `demos/README.md`, `demos/builder/README.md`.
+- [x] 9. **Fix remaining doc cross-references** —
+      `PyOMES/core/recorder.py`: removed two now-obsolete "legacy
+      `BatchResult` coexists until C14" notes (module docstring +
+      class docstring) — the legacy class genuinely doesn't exist
+      anywhere in the codebase anymore (confirmed via grep/history),
+      not just at a stale path, so trimmed rather than re-pathed.
+      `PyOMES/core/simulation.py`: also trimmed two dangling
+      `models/vlmodels/fermenter/config/factory.py:run_batch` line-
+      number citations found while in the area (flagged at checkpoint
+      4) — same "points at code that never existed at that path"
+      issue. `README.md`, `demos/README.md`, `demos/builder/README.md`,
+      `demos/_bootstrap.py`: import examples, class names, and the
+      Repository Layout `fermenter/` line (removed — directory no
+      longer exists) updated. **Two scope decisions made with the
+      owner mid-checkpoint** (README.md and several other files turned
+      out to be broadly stale across *many* unrelated prior phases,
+      not just this migration): (1) `README.md` and `docs/
+      architecture.md`'s wider staleness (retired `speciation/`/
+      `MultiCVSystem` names, the unrelated already-sunset
+      `create_standalone_fermenter`/CUFermenter-era API, `docs/
+      architecture.md`'s "CUFermenter island" tags on several *other*
+      subpackages) — narrow-fixed only the lines directly about *this*
+      migration, logged the rest to a new
+      [`../OPEN_WORK.md`](../OPEN_WORK.md) (also fixes a pre-existing
+      dangling link — `upcoming/README.md`'s "Priority order" section
+      already referenced `../OPEN_WORK.md`, which didn't exist until
+      now). (2) Six files mentioning `FermenterBuilder`/
+      `FermenterFactory` only in comments/docstrings, not imports
+      (`demos/model_api/README.md`, `reaction_system.py`, two
+      `raw_construction.py` files, two `_generate_notebooks.py`
+      scripts) — logged to `OPEN_WORK.md`, not touched (not in the
+      design doc's checkpoint 8/9 scope, code still runs). Also found
+      and logged to `OPEN_WORK.md`: seven other demo files still
+      `import _bootstrap` with **zero** actual `vlmodels` usage —
+      possibly dead weight, not verified/touched. No specific sanity
+      check listed for this checkpoint by the design doc; ran the full
+      `pytest tests/standalone` suite as an extra check since
+      `recorder.py`/`simulation.py` were touched beyond the checkpoint's
+      named file list → **2011 passed, 28 skipped, 0 failed.**
 - [ ] 10. **Full suite**: root `pytest`. Then ship per the
        branching/tagging convention (`--no-ff` merge, tag
        `stirred-tank-template-shipped`), moving the design doc + this

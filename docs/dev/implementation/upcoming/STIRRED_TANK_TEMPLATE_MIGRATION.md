@@ -225,7 +225,16 @@ per checkpoint, sanity check attached to each, owner commits per the
    still prints its report.
 9. **Fix remaining doc cross-references**: `PyOMES/core/recorder.py`'s
    stale docstring mention, `README.md`, `demos/README.md`,
-   `demos/builder/README.md`.
+   `demos/builder/README.md`. **Done 2026-09-15** — expanded slightly
+   beyond this list in practice (`PyOMES/core/simulation.py`'s two
+   dangling `run_batch` citations, `demos/_bootstrap.py`'s own
+   docstring). Surfaced much broader pre-existing staleness in
+   `README.md` and `docs/architecture.md` (retired package/class names,
+   an unrelated already-sunset fermenter API, stale "CUFermenter
+   island" tags) — narrow-fixed only what's directly about this move,
+   logged the rest to the new
+   [`../OPEN_WORK.md`](../OPEN_WORK.md). See the checklist for the full
+   breakdown.
 10. **Full suite**: root `pytest`. Then ship per the branching/tagging
     convention (`--no-ff` merge, tag `stirred-tank-template-shipped`),
     moving this doc + its checklist to `../shipped/` with a "Shipped"
