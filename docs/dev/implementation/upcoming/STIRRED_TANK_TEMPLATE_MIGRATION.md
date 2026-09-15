@@ -206,8 +206,16 @@ per checkpoint, sanity check attached to each, owner commits per the
    *Sanity check:* run `pytest tests/standalone/test_bsm2_reference.py -v`
    **in isolation, right here** — not deferred to a final full-suite run —
    since this is the one check that would catch numerical drift from the
-   move.
+   move. **Done 2026-09-15 — found a checkpoint-ordering gap this note
+   didn't call out:** the sanity check can't actually pass without
+   checkpoint 6's fix landing first, since `vlmodels/__init__.py`'s dead
+   `vlmodels.fermenter` re-export blocks importing *any* `vlmodels.*`
+   module at package-init time (including `vlmodels.adm1.bsm2`).
+   Checkpoint 6 was done alongside this one as a prerequisite rather than
+   leaving the sanity check blocked. Result: 6/6 passed, including the
+   numeric sentinel tests — no drift.
 6. **Fix `vlmodels/__init__.py`**. *Sanity check:* `python -c "import vlmodels"`.
+   **Done 2026-09-15, alongside checkpoint 5 (see above).**
 7. **Fix test imports**: `test_builder.py`, `test_configs.py` (import
    lines only, no move), and the seven named classes in `test_simulation.py`.
    *Sanity check:* `pytest tests/standalone/test_builder.py tests/standalone/test_configs.py tests/standalone/test_simulation.py -v`.

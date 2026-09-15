@@ -90,12 +90,37 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       `python -c "from PyOMES.templates.stirred_tank import StirredTankBuilder"`
       → passed. Additional functional smoke test (`build()` and
       `build_simulation()` both construct successfully) → passed.
-- [ ] 5. **Fix the two functionally-dependent call sites**:
-      `adm1/base.py:976` and `adm1/bsm2.py:804-805` (plus its
-      `TransferConfig` import). Sanity check:
-      `pytest tests/standalone/test_bsm2_reference.py -v` in isolation.
-- [ ] 6. **Fix `vlmodels/__init__.py`**. Sanity check:
-      `python -c "import vlmodels"`.
+- [x] 5. **Fix the two functionally-dependent call sites** —
+      `adm1/base.py`: lazy import `FermenterBuilder` →
+      `from PyOMES.templates.stirred_tank import StirredTankBuilder`,
+      the builder-construction call, and one stale comment mentioning
+      `FermenterBuilder`. `adm1/bsm2.py`: lazy imports for both
+      `FermenterBuilder` and `TransferConfig` collapsed into one
+      `from PyOMES.templates.stirred_tank import StirredTankBuilder,
+      TransferConfig`, plus the builder-construction call. **Found a
+      real ordering gap not called out in the design doc:**
+      `models/vlmodels/__init__.py` still did
+      `from vlmodels.fermenter import FermenterFactory, FermenterBuilder`
+      at package-init time — since that submodule no longer exists,
+      this blocked importing *any* `vlmodels.*` module, including
+      `vlmodels.adm1.bsm2`, so checkpoint 5's own sanity check couldn't
+      pass without checkpoint 6's fix landing first. Did checkpoint 6's
+      fix (see below) as a prerequisite rather than block. Sanity check:
+      `pytest tests/standalone/test_bsm2_reference.py -v` (needs
+      `PYTHONPATH` including `models/`, per `README.md` — pytest's own
+      `conftest.py` does this automatically, a bare `python -c` does
+      not) → **6 passed**, including the numeric sentinel tests
+      (`test_final_liquid_concentrations`/`test_final_gas_mol`/
+      `test_final_pH`) — no numerical drift from the move. The
+      `ConservationWarning`/`AccuracyWarning` output is pre-existing
+      BSM2 model behavior, not a regression (the test asserts specific
+      numeric sentinels, not warning-free execution).
+- [x] 6. **Fix `vlmodels/__init__.py`** — done early, as checkpoint 5's
+      prerequisite (see above): dropped the dead `from vlmodels.fermenter
+      import FermenterFactory, FermenterBuilder` re-export entirely and
+      the now-inaccurate "built on the fermenter framework" docstring
+      sentence. Sanity check: `python -c "import vlmodels"` (same
+      `PYTHONPATH` note as above) → passed.
 - [ ] 7. **Fix test imports** — `test_builder.py`, `test_configs.py`
       (import lines only), and the seven named classes in
       `test_simulation.py`. Sanity check:

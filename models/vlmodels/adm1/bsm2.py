@@ -801,8 +801,7 @@ def build_bsm2_cv(
     -------
     ControlVolume
     """
-    from vlmodels.fermenter.config.builder import FermenterBuilder
-    from vlmodels.fermenter.config.configs import TransferConfig
+    from PyOMES.templates.stirred_tank import StirredTankBuilder, TransferConfig
     from PyOMES.core.boundaries import PressureReliefVent
     from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
 
@@ -830,7 +829,7 @@ def build_bsm2_cv(
         + list(reaction_system.cross_phase_equilibria)
     )
 
-    cv = (FermenterBuilder()
+    cv = (StirredTankBuilder()
           .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac,
                   T_K=T_K, yO2_init=0.0, yCO2_init=0.0)
           .no_gas_feed()
