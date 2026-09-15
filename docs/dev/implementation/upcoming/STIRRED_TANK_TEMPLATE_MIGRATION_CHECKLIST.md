@@ -46,9 +46,10 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       protocol/integration-model redesign, out of scope for a rename
       phase — logged as design doc open question 6, deferred. See the
       design doc's "Open questions" item 1 for the full reasoning.
-- [ ] 2. **Create skeletons** — `PyOMES/templates/__init__.py` and
-      `PyOMES/templates/stirred_tank/__init__.py`, both empty. Sanity
-      check: `python -c "import PyOMES.templates.stirred_tank"`.
+- [x] 2. **Create skeletons** — `PyOMES/templates/__init__.py` and
+      `PyOMES/templates/stirred_tank/__init__.py` created, both empty.
+      Sanity check: `python -c "import PyOMES.templates.stirred_tank"`
+      → passed.
 - [ ] 3. **Move the implementation files** (four or five, per
       checkpoint 1) into `PyOMES/templates/stirred_tank/`, preserving
       history. Delete the two old `__init__.py` files outright. Sanity
