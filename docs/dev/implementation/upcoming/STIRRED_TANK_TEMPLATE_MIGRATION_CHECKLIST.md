@@ -50,10 +50,16 @@ Numbered to match the design doc's "Checkpoints" section exactly.
       `PyOMES/templates/stirred_tank/__init__.py` created, both empty.
       Sanity check: `python -c "import PyOMES.templates.stirred_tank"`
       → passed.
-- [ ] 3. **Move the implementation files** (four or five, per
-      checkpoint 1) into `PyOMES/templates/stirred_tank/`, preserving
-      history. Delete the two old `__init__.py` files outright. Sanity
-      check: `models/vlmodels/fermenter/` no longer exists.
+- [x] 3. **Move the implementation files** — `builder.py`, `configs.py`,
+      `factory.py`, `kinetics.py`, `profiles.py` moved (plain filesystem
+      move, not staged) from `models/vlmodels/fermenter/[config/]` into
+      `PyOMES/templates/stirred_tank/`. Both old `__init__.py` files
+      deleted outright, then the now-empty `fermenter/config/` and
+      `fermenter/` directories removed. Sanity check:
+      `models/vlmodels/fermenter/` no longer exists → passed. **Note for
+      staging:** these are plain moves, not `git mv` — `git add -A` (or
+      equivalent) should still let git detect them as renames via
+      content-similarity, since content is untouched in this checkpoint.
 - [ ] 4. **Fix intra-package references** inside the moved files
       (`builder.py`, `factory.py`, `configs.py`, `kinetics.py`,
       `profiles.py`) — renames, deferred-rename docstring cleanup, lazy
