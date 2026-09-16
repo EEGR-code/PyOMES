@@ -106,6 +106,19 @@
       (`cstr_fermenter.py`, `fed_batch_fermenter.py`, `microplate_fermenter.py`, from checkpoint
       6) should get the same treatment as a future follow-up.
 
+## Pre-ship fix: pyproject.toml testpaths
+
+Found while doing a final pre-ship verification (running `pytest tests/` broadly rather than
+the specific paths used at each checkpoint): CI runs bare `pytest` (`.github/workflows/tests.yml`),
+and `[tool.pytest.ini_options] testpaths` was `["tests/standalone"]` only — meaning the new
+`tests/validation/speciation/test_*.py` coverage from checkpoint 3b would **never have run in
+CI**, silently defeating the whole point of writing real pytest assertions instead of leaving
+that content as notebooks-only. Fixed: `testpaths = ["tests/standalone", "tests/validation"]`.
+Verified bare `pytest` now collects both — 2029 passed, 36 skipped, matching the explicit
+`pytest tests/validation/ tests/standalone/` runs from earlier checkpoints exactly. Also fixed
+`docs/tutorials/results/README.md` and its notebook to install via the project's existing
+`pip install -e ".[export]"` extras group instead of an ad-hoc `pandas pyarrow` install.
+
 ## Follow-ups found during this phase (not fixed here, tracked so they aren't lost)
 
 - [ ] `tests/validation/speciation/{07_iron_oxidation,08_iron_oxidation_and_precipitation}.ipynb`
