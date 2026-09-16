@@ -2,7 +2,7 @@
 
 This folder is scenario-first: each notebook opens with a plain-language
 "here's the situation" framing rather than a class-by-class API tour (that's
-what demos/features/ and demos/model_api/chemistry/speciation/ are for).
+what demos/features/ and tests/validation/speciation/ are for).
 Cross-reference those folders once a use case needs more depth than a
 five-minute read supports.
 
@@ -70,7 +70,7 @@ situation ("I have a sample, I want to know X") and gets to an answer in a
 handful of cells. If you want the full API tour of a class instead — every
 constructor argument, every gotcha — see
 [`demos/features/`](../features/) or
-[`demos/model_api/chemistry/speciation/`](../model_api/chemistry/speciation/),
+[`tests/validation/speciation/`](../../tests/validation/speciation/),
 which these notebooks link out to once a use case needs more depth.\
 """),
     md("notebooks", """\

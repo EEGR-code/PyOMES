@@ -4,7 +4,7 @@ This folder covers the `ChemicalEquilibriumEngineProtocol` family — the
 three peer engine implementations (Bisection, NR, PHREEQC) satisfy the same
 solve() contract but differ in scope and calling convention. Each notebook
 covers one engine specifically; see 10_engine_protocol_hierarchy.ipynb in
-demos/model_api/chemistry/speciation/ for a cross-engine comparison.
+tests/validation/speciation/ for a cross-engine comparison.
 
 Run once from the repo root:
     python demos/features/ChemicalEquilibriumProtocol/_generate_notebooks.py
@@ -53,7 +53,7 @@ def code(id_, src):
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  0  Architecture overview (pure markdown, no code — matches the
-#     model_api/chemistry/speciation/0_README.ipynb convention)
+#     tests/validation/speciation/0_README.ipynb convention)
 # ═══════════════════════════════════════════════════════════════════════════
 
 overview_nb = nb(
@@ -122,7 +122,7 @@ tier needs the analytic residual/Jacobian structure only `NRChemicalEquilibriumE
 actually builds).
 
 See
-[`../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb`](../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb)
+[`../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb`](../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb)
 for a fully executed, code-level walkthrough of all three tiers,
 including `NumericalGradientEquilibriumEngine` wrapping and a
 `jacobian_dz_dy()` cost comparison.\
@@ -204,11 +204,11 @@ if you need `jacobian_dz_dy()` and the engine doesn't have it natively.\
 - [`docs/dev/implementation/shipped/LAYER1_GAP_CLOSURE.md`](../../../docs/dev/implementation/shipped/LAYER1_GAP_CLOSURE.md) —
   gas-liquid/precipitation folding into the NR tableau; the CP6 engine
   rename.
-- [`../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb`](../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb) —
+- [`../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb`](../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb) —
   executed, code-level black/gray/white-box walkthrough.
-- [`../../model_api/chemistry/speciation/02_multi_component_systems.ipynb`](../../model_api/chemistry/speciation/02_multi_component_systems.ipynb) —
+- [`../../../tests/validation/speciation/02_multi_component_systems.ipynb`](../../../tests/validation/speciation/02_multi_component_systems.ipynb) —
   Bisection-vs-NR accuracy comparison across conditions.
-- [`../../model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb`](../../model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb) —
+- [`../../../tests/validation/speciation/06_phreeqc_benchmark.ipynb`](../../../tests/validation/speciation/06_phreeqc_benchmark.ipynb) —
   NR-vs-PHREEQC accuracy comparison.\
 """),
 )
@@ -278,9 +278,9 @@ This notebook focuses on the mechanics of the engine itself: constructing
 it, calling `solve()`, and reading back an `EquilibriumResult`. For
 engine-to-engine accuracy comparisons against `NRChemicalEquilibriumEngine`,
 see
-[`../../model_api/chemistry/speciation/02_multi_component_systems.ipynb`](../../model_api/chemistry/speciation/02_multi_component_systems.ipynb)
+[`../../../tests/validation/speciation/02_multi_component_systems.ipynb`](../../../tests/validation/speciation/02_multi_component_systems.ipynb)
 and
-[`../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb`](../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb).\
+[`../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb`](../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb).\
 """),
 
     code("setup", SETUP),
@@ -444,7 +444,7 @@ print(f"species_mol_L       = {result_multi.species_mol_L}")
 print()
 print("For a full NR-vs-charge-balance accuracy sweep on this exact carbonate")
 print("+ ammonia system, see 02_multi_component_systems.ipynb in the")
-print("model_api/chemistry/speciation/ demo family.")
+print("tests/validation/speciation/ demo family.")
 """),
 
     # ── 5. Cross-phase constraints gotcha ─────────────────────────────────────
@@ -594,9 +594,9 @@ constructing it, calling `solve()`, and reading back an
 the third engine, which forgoes declared reaction networks entirely.
 For a deep accuracy comparison against the Bisection engine and the full
 protocol hierarchy (black/gray/white-box), see
-[`../../model_api/chemistry/speciation/02_multi_component_systems.ipynb`](../../model_api/chemistry/speciation/02_multi_component_systems.ipynb)
+[`../../../tests/validation/speciation/02_multi_component_systems.ipynb`](../../../tests/validation/speciation/02_multi_component_systems.ipynb)
 and
-[`../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb`](../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb).\
+[`../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb`](../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb).\
 """),
 
     code("setup", SETUP_NR),
@@ -907,9 +907,9 @@ obscurely later — this notebook assumes it's already installed (it's
 installed in this kernel's environment).
 
 For a deep accuracy comparison against the other two engines, see
-[`../../model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb`](../../model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb)
+[`../../../tests/validation/speciation/06_phreeqc_benchmark.ipynb`](../../../tests/validation/speciation/06_phreeqc_benchmark.ipynb)
 and
-[`../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb`](../../model_api/chemistry/speciation/10_engine_protocol_hierarchy.ipynb).
+[`../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb`](../../../tests/validation/speciation/10_engine_protocol_hierarchy.ipynb).
 See also [`01_bisection_engine_basics.ipynb`](01_bisection_engine_basics.ipynb)
 and [`02_nr_engine_basics.ipynb`](02_nr_engine_basics.ipynb) for the other
 two engines.\

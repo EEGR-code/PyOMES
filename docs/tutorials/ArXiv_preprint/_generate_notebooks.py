@@ -728,7 +728,7 @@ else:
     md("phreeqc-combined-summary-md", """\
 For a much deeper accuracy audit — carbonate, calcium, precipitation —
 see
-[`demos/model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb`](../../../demos/model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb).\
+[`tests/validation/speciation/06_phreeqc_benchmark.ipynb`](../../../tests/validation/speciation/06_phreeqc_benchmark.ipynb).\
 """),
 
     md("runtime-md", """\
@@ -801,7 +801,7 @@ for label, times_ms in runtime_results.items():
 
 - **More chemistry in the same liquid** (strong ions as a matter of
   course, temperature correction, activity coefficients) —
-  [`demos/model_api/chemistry/speciation/`](../../../demos/model_api/chemistry/speciation/),
+  [`tests/validation/speciation/`](../../../tests/validation/speciation/),
   which verifies this same engine against closed-form analytical results
   (including this exact phosphate ladder).
 - **Engine mechanics and gotchas** (constructor arguments, warmstart

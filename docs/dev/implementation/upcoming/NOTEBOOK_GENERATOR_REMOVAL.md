@@ -100,15 +100,16 @@ reader doesn't rediscover the duplication and assume it was missed.
 5 generator scripts to retire (notebook counts from the September 2026
 audit; `demos/usecases/_generate_notebooks.py` and
 `docs/tutorials/_generate_notebooks.py` counts updated post-`tutorials-reorg`,
-which deleted `04_compare_runtime_by_usecase.ipynb` and moved the latter
-script to `docs/tutorials/ArXiv_preprint/_generate_notebooks.py` — see
-`TUTORIALS_REORG_CHECKLIST.md`):
+which deleted `04_compare_runtime_by_usecase.ipynb`, moved the latter script
+to `docs/tutorials/ArXiv_preprint/_generate_notebooks.py`, and moved
+`demos/model_api/chemistry/speciation/` to `tests/validation/speciation/`
+wholesale (generator included) — see `TUTORIALS_REORG_CHECKLIST.md`):
 
 | Generator script | Notebooks produced |
 |---|---|
 | `demos/features/ChemicalEquilibriumProtocol/_generate_notebooks.py` | `01`, `02`, `03`, `0_README` (4) |
 | `demos/features/SolverProtocols/_generate_notebooks.py` | `01`, `0_README` (2) |
-| `demos/model_api/chemistry/speciation/_generate_notebooks.py` | `01`–`08`, `0_README`, `10` (10) |
+| `tests/validation/speciation/_generate_notebooks.py` | `01`–`08`, `0_README`, `10` (10) |
 | `demos/usecases/_generate_notebooks.py` | `0_README`, `03` (2) |
 | `docs/tutorials/ArXiv_preprint/_generate_notebooks.py` | `01`, `02`, `03` (3) |
 
