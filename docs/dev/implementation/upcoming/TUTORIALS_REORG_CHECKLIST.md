@@ -106,50 +106,58 @@
       (`cstr_fermenter.py`, `fed_batch_fermenter.py`, `microplate_fermenter.py`, from checkpoint
       6) should get the same treatment as a future follow-up.
 
-## Pre-ship fix: pyproject.toml testpaths
-
-Found while doing a final pre-ship verification (running `pytest tests/` broadly rather than
-the specific paths used at each checkpoint): CI runs bare `pytest` (`.github/workflows/tests.yml`),
-and `[tool.pytest.ini_options] testpaths` was `["tests/standalone"]` only — meaning the new
-`tests/validation/speciation/test_*.py` coverage from checkpoint 3b would **never have run in
-CI**, silently defeating the whole point of writing real pytest assertions instead of leaving
-that content as notebooks-only. Fixed: `testpaths = ["tests/standalone", "tests/validation"]`.
-Verified bare `pytest` now collects both — 2029 passed, 36 skipped, matching the explicit
-`pytest tests/validation/ tests/standalone/` runs from earlier checkpoints exactly. Also fixed
-`docs/tutorials/results/README.md` and its notebook to install via the project's existing
-`pip install -e ".[export]"` extras group instead of an ad-hoc `pandas pyarrow` install.
-
-## Follow-ups found during this phase (not fixed here, tracked so they aren't lost)
-
-- [ ] `tests/validation/speciation/{07_iron_oxidation,08_iron_oxidation_and_precipitation}.ipynb`
-      have zero pytest coverage. Their own P1 prediction (>70% Fe2+ conversion) is already
-      marked `[CHECK]` (failed) in the notebook's own output — actual conversion is 0.2%,
-      likely because the demo equilibrates to pH 6.5 while the Singer-Stumm rate
-      constant/narrative assumes pH ~4.7. Needs investigation before writing tests against it.
-- [ ] `docs/tutorials/reactions/chemistry_database.py` crashes: `dataclasses.replace(...,
-      activity_model=...)` — `ThermoFramework.__init__()` no longer accepts `activity_model`.
-      Pre-existing, confirmed broken in `demos/model_api/chemistry/chemistry_database.py` too
-      (not caused by this phase's move) — likely drift from the StirredTankBuilder/ThermoFramework
-      refactor.
-- [ ] `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` appears to be an orphaned duplicate —
-      not produced by `demos/usecases/_generate_notebooks.py`, and not referenced anywhere in
-      the repo (confirmed by grep). Likely a leftover from before this notebook was originally
-      curated into `docs/tutorials/` (pre-dating this phase). Probably safe to delete, but
-      left untouched since it's outside this phase's scope.
-- [ ] `docs/tutorials/reactions/partition_model.py` crashes: `h2s.beta(...)` —
-      `HenryEquilibrium` (replacement for the deprecated `HenryPartition`) has no `.beta()`
-      method. Pre-existing, confirmed broken in `demos/model_api/chemistry/partition_model.py`
-      too.
-- [ ] `docs/tutorials/D2C_workshop/raw_construction.py` runs (its import bug is now fixed —
-      see checkpoint 7) but produces pH 12.089 against a `PHController(setpoint=5.0)`, plus
-      `ConservationWarning`s for O/C/H and charge balance exceeding their stated thresholds.
-      Unlike the two bugs above, this was never previously observable at all — the script has
-      never run successfully before (confirmed: the original `demos/` copy raises
-      `ModuleNotFoundError` before reaching the simulation). Likely a PHController
-      tuning issue or a stoichiometry mismatch; not investigated. Does not block this phase —
-      confirmed none of `Example1_mtp_well.ipynb`/`Example2_batch_fermenter.ipynb`/
-      `Example3_CSTR.ipynb` (the actual tutorial content in this folder) import or depend on
-      `raw_construction.py` — it's an independent, standalone comparison script.
+- [x] Pre-ship fix: `pyproject.toml` `testpaths`. Found while doing a final pre-ship
+      verification (running `pytest tests/` broadly rather than the specific paths used at each
+      checkpoint): CI runs bare `pytest` (`.github/workflows/tests.yml`), and
+      `[tool.pytest.ini_options] testpaths` was `["tests/standalone"]` only — meaning the new
+      `tests/validation/speciation/test_*.py` coverage from checkpoint 3b would **never have run
+      in CI**, silently defeating the whole point of writing real pytest assertions instead of
+      leaving that content as notebooks-only. Fixed: `testpaths = ["tests/standalone",
+      "tests/validation"]`. Verified bare `pytest` now collects both — 2029 passed, 36 skipped,
+      matching the explicit `pytest tests/validation/ tests/standalone/` runs from earlier
+      checkpoints exactly. Also fixed `docs/tutorials/results/README.md` and its notebook to
+      install via the project's existing `pip install -e ".[export]"` extras group instead of an
+      ad-hoc `pandas pyarrow` install.
+- [ ] 11. Fix `docs/tutorials/reactions/chemistry_database.py`: crashes on `dataclasses.replace(
+      ..., activity_model=...)` — `ThermoFramework.__init__()` no longer accepts `activity_model`
+      as a kwarg (pre-existing, confirmed broken in the pre-move `demos/` copy too; likely drift
+      from the `stirred-tank-template` `ThermoFramework` refactor). Find the current constructor
+      API and update the call. Once it runs clean, convert to a notebook (same
+      exec-and-capture-stdout treatment as checkpoint 10) and update `reactions/README.md`.
+      Sanity check: `python docs/tutorials/reactions/chemistry_database.py` exits 0 before
+      conversion; the resulting notebook's cells show genuine (non-error) output.
+- [ ] 12. Fix `docs/tutorials/reactions/partition_model.py`: crashes calling `.beta()` on
+      `HenryEquilibrium` — that method doesn't exist on the class that replaced the now-deprecated
+      `HenryPartition` (pre-existing, confirmed broken in the pre-move `demos/` copy too). Find
+      the current equivalent and update the call. Once it runs clean, convert to a notebook and
+      update `reactions/README.md`, same as checkpoint 11. Sanity check: same as checkpoint 11.
+- [ ] 13. Investigate `docs/tutorials/D2C_workshop/raw_construction.py`'s control-loop issue:
+      runs (the import bug checkpoint 7 fixed is resolved) but produces pH 12.089 against a
+      `PHController(setpoint=5.0)`, plus `ConservationWarning`s for O/C/H and charge balance
+      exceeding their stated thresholds. Never previously observable — the script never ran
+      successfully before this phase (confirmed: pre-move `demos/` copy raises
+      `ModuleNotFoundError` before reaching the simulation), so this isn't a regression, it's
+      untested code's first real run. Likely a `PHController` tuning issue or a stoichiometry
+      mismatch; not yet diagnosed. Does not block anything else in this folder — confirmed none
+      of `Example1_mtp_well.ipynb`/`Example2_batch_fermenter.ipynb`/`Example3_CSTR.ipynb` (the
+      actual tutorial content here) import or depend on `raw_construction.py`. Sanity check:
+      re-run and confirm pH settles near the 5.0 setpoint with no `ConservationWarning`s.
+- [ ] 14. Investigate and add pytest coverage for
+      `tests/validation/speciation/{07_iron_oxidation,08_iron_oxidation_and_precipitation}.ipynb`
+      (currently zero coverage — deferred at checkpoint 3 pending this). Their own P1 prediction
+      (>70% Fe2+ conversion) is already marked `[CHECK]` (failed) in the notebook's own output —
+      actual conversion is 0.2%, likely because the demo equilibrates to pH 6.5 while the
+      Singer-Stumm rate constant/narrative assumes pH ~4.7. Diagnose that inconsistency first
+      (fix the notebook's setup, or its narrative claim, whichever is actually wrong), then write
+      `test_*.py` coverage for the corrected behavior, mirroring checkpoint 3b's approach for
+      01/03/06. Sanity check: `pytest tests/validation/` green, including new iron-oxidation
+      tests; the notebook's own P1 cell shows `[PASS]` or its claim is corrected to match reality.
+- [ ] 15. Clean up `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` — an orphaned duplicate,
+      not produced by `demos/usecases/_generate_notebooks.py` and not referenced anywhere in the
+      repo (confirmed by grep), likely a leftover from before this notebook was originally
+      curated into `docs/tutorials/` (pre-dating this phase). Re-confirm it's still unreferenced,
+      then delete. Sanity check: `grep -r "usecases/03_cstr_dilution_rate_sweep"` (outside this
+      checklist) returns nothing before deleting.
 
 ## Shipping
 
