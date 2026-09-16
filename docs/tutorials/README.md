@@ -12,3 +12,4 @@ newcomers working through that topic end to end — see its own README for what'
 | [`protocols/`](protocols/) | Single-class deep dives: the `ChemicalEquilibriumEngineProtocol` family (Bisection/NR/PHREEQC engines) and the `StepSolver`/`SystemSolver` axes — construction, call conventions, gotchas. |
 | [`templates/`](templates/) | Quick-start: the fluent `StirredTankBuilder` API. Configure a fermenter (batch, CSTR, fed-batch, microplate) in a handful of chained calls. |
 | [`D2C_workshop/`](D2C_workshop/) | Manual `Simulation` assembly from `Phase`/`Link`/`ControlVolume` primitives — the DARE2CYCLE scale-up progression: sealed MTP well → sparged batch fermenter → continuous CSTR. |
+| [`results/`](results/) | Post-processing a `BatchResult`: DataFrame export, wide-form pivoting for plotting, CSV/Parquet round-trips. |

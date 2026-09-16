@@ -69,7 +69,7 @@ Short, scenario-first notebooks: each one opens with a plain-language
 situation ("I have a sample, I want to know X") and gets to an answer in a
 handful of cells. If you want the full API tour of a class instead — every
 constructor argument, every gotcha — see
-[`demos/features/`](../features/) or
+[`docs/tutorials/protocols/`](../../docs/tutorials/protocols/) or
 [`tests/validation/speciation/`](../../tests/validation/speciation/),
 which these notebooks link out to once a use case needs more depth.\
 """),

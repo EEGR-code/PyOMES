@@ -72,10 +72,25 @@
       commit for details (1 real bug found and fixed: a checkpoint-6 typo, `../../templates/`
       should have been `../templates/`; the two already-tracked follow-up bugs are the only
       remaining script failures, both expected).
-- [ ] 9. Delete migrated originals from `demos/` (`builder/`, `features/`, `model_api/`
+- [x] 9. Delete migrated originals from `demos/` (`builder/`, `features/`, `model_api/`
       entirely); rewrite `demos/README.md` for the much smaller remaining tree
       (`usecases/` + `aerobic_fermentation_stoichiometry.ipynb`); remove
-      `demos/model_api/README.md`.
+      `demos/model_api/README.md`. **Gap found mid-checkpoint:** `demos/model_api/
+      export_results.py` and `solver_comparison.py` were never in `demos/model_api/README.md`'s
+      documented file table, so no earlier investigation surfaced them — caught only because
+      `git rm -r demos/model_api` swept them up unexpectedly. Neither fit an existing
+      `docs/tutorials/` folder's topic. Resolved: `solver_comparison.py` → converted to a
+      notebook, `docs/tutorials/protocols/SolverProtocols/02_comparing_system_solvers.ipynb`
+      (fills a real gap — that folder had no engine/solver *comparison* table, unlike its
+      `ChemicalEquilibriumProtocol` sibling). `export_results.py` → converted to a notebook in a
+      new `docs/tutorials/results/` folder (post-processing a `BatchResult` is orthogonal to
+      every existing folder's topic). Both conversions executed for real (not fabricated
+      output) via a shared exec-and-capture-stdout harness, matching the "every notebook carries
+      genuine outputs" convention. After the repo-wide re-run of checkpoint 8's link-check
+      (worth doing again after any deletion, not just after copies), two more stale forward-
+      references surfaced and were fixed: `demos/usecases/0_README.ipynb`'s `../features/` link
+      (target now gone) and `docs/tutorials/ArXiv_preprint/01_predict_ph_simple_liquid.ipynb`'s
+      link to the now-deleted `demos/model_api/chemistry/reaction_system.py`.
 - [ ] 10. Convert `docs/tutorials/reactions/*.py` to notebook form, for consistency with the
       rest of `docs/tutorials/` (all notebooks except this folder). Gated on: (a) checkpoint 7's
       de-coupling landing, so `reaction_system.py` has no importers left; (b) the two
