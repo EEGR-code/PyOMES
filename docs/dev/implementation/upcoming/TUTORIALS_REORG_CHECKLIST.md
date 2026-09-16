@@ -55,7 +55,7 @@
       resolve (no 404s when opened).
 - [x] 6. Copy `demos/builder/` → `docs/tutorials/templates/`; fix `README.md`'s link depths and
       its `D2Cworkshop` cross-link. Sanity check: all 4 `.py` files run clean from the new path.
-- [ ] 7. Delete `demos/model_api/D2Cworkshop/basic_layout/` entirely; copy
+- [x] 7. Delete `demos/model_api/D2Cworkshop/basic_layout/` entirely; copy
       `demos/model_api/D2Cworkshop/updated_layout/` → `docs/tutorials/D2C_workshop/`; replace
       the stale `README.md` stub with `0_README.ipynb`-derived content; fix
       `raw_construction.py`'s pre-existing `_chem_dir` path bug (`parents[1]` currently resolves
@@ -104,6 +104,16 @@
       `HenryEquilibrium` (replacement for the deprecated `HenryPartition`) has no `.beta()`
       method. Pre-existing, confirmed broken in `demos/model_api/chemistry/partition_model.py`
       too.
+- [ ] `docs/tutorials/D2C_workshop/raw_construction.py` runs (its import bug is now fixed —
+      see checkpoint 7) but produces pH 12.089 against a `PHController(setpoint=5.0)`, plus
+      `ConservationWarning`s for O/C/H and charge balance exceeding their stated thresholds.
+      Unlike the two bugs above, this was never previously observable at all — the script has
+      never run successfully before (confirmed: the original `demos/` copy raises
+      `ModuleNotFoundError` before reaching the simulation). Likely a PHController
+      tuning issue or a stoichiometry mismatch; not investigated. Does not block this phase —
+      confirmed none of `Example1_mtp_well.ipynb`/`Example2_batch_fermenter.ipynb`/
+      `Example3_CSTR.ipynb` (the actual tutorial content in this folder) import or depend on
+      `raw_construction.py` — it's an independent, standalone comparison script.
 
 ## Shipping
 

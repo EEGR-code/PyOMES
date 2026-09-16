@@ -48,18 +48,20 @@ make_acetate_dissociation(...)       # EquilibriumReaction (single-phase)
 make_co2_partition()                 # EquilibriumReaction (cross-phase)
 ```
 
-[`D2C_workshop/`](../D2C_workshop/)'s `raw_construction.py` imports this
-module and calls those factories to populate a `ReactionSystem`:
+A caller in the same process could populate a `ReactionSystem` from them:
 
 ```python
-import reaction_system as chem
-
 rxn_system = ReactionSystem([
-    chem.make_aerobic_growth_on_acetate(),
-    chem.make_acetate_dissociation(),
-    chem.make_co2_partition(),
+    make_aerobic_growth_on_acetate(),
+    make_acetate_dissociation(),
+    make_co2_partition(),
 ])
 ```
+
+[`D2C_workshop/raw_construction.py`](../D2C_workshop/raw_construction.py)
+declares this exact same pattern independently (a by-value copy, not an
+import) — each tutorial folder stays self-sufficient rather than depending
+on a sibling one.
 
 The same reactions could be reused across different topologies (batch,
 CSTR, microplate, multi-CV networks) without redeclaring stoichiometry,

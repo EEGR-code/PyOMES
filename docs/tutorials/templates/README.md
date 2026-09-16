@@ -9,7 +9,7 @@ and runs a `Simulation` shipped in
 Read these if you want to **run** a fermenter — you don't care how
 the `Phase` / `Link` / `ControlVolume` plumbing fits together, just
 that it does. For that, read the
-[`demos/model_api/D2Cworkshop/`](../../../demos/model_api/D2Cworkshop/) demos.
+[`D2C_workshop/`](../D2C_workshop/) demos.
 
 ## Demos
 
