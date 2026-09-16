@@ -118,46 +118,15 @@
       checkpoints exactly. Also fixed `docs/tutorials/results/README.md` and its notebook to
       install via the project's existing `pip install -e ".[export]"` extras group instead of an
       ad-hoc `pandas pyarrow` install.
-- [ ] 11. Fix `docs/tutorials/reactions/chemistry_database.py`: crashes on `dataclasses.replace(
-      ..., activity_model=...)` — `ThermoFramework.__init__()` no longer accepts `activity_model`
-      as a kwarg (pre-existing, confirmed broken in the pre-move `demos/` copy too; likely drift
-      from the `stirred-tank-template` `ThermoFramework` refactor). Find the current constructor
-      API and update the call. Once it runs clean, convert to a notebook (same
-      exec-and-capture-stdout treatment as checkpoint 10) and update `reactions/README.md`.
-      Sanity check: `python docs/tutorials/reactions/chemistry_database.py` exits 0 before
-      conversion; the resulting notebook's cells show genuine (non-error) output.
-- [ ] 12. Fix `docs/tutorials/reactions/partition_model.py`: crashes calling `.beta()` on
-      `HenryEquilibrium` — that method doesn't exist on the class that replaced the now-deprecated
-      `HenryPartition` (pre-existing, confirmed broken in the pre-move `demos/` copy too). Find
-      the current equivalent and update the call. Once it runs clean, convert to a notebook and
-      update `reactions/README.md`, same as checkpoint 11. Sanity check: same as checkpoint 11.
-- [ ] 13. Investigate `docs/tutorials/D2C_workshop/raw_construction.py`'s control-loop issue:
-      runs (the import bug checkpoint 7 fixed is resolved) but produces pH 12.089 against a
-      `PHController(setpoint=5.0)`, plus `ConservationWarning`s for O/C/H and charge balance
-      exceeding their stated thresholds. Never previously observable — the script never ran
-      successfully before this phase (confirmed: pre-move `demos/` copy raises
-      `ModuleNotFoundError` before reaching the simulation), so this isn't a regression, it's
-      untested code's first real run. Likely a `PHController` tuning issue or a stoichiometry
-      mismatch; not yet diagnosed. Does not block anything else in this folder — confirmed none
-      of `Example1_mtp_well.ipynb`/`Example2_batch_fermenter.ipynb`/`Example3_CSTR.ipynb` (the
-      actual tutorial content here) import or depend on `raw_construction.py`. Sanity check:
-      re-run and confirm pH settles near the 5.0 setpoint with no `ConservationWarning`s.
-- [ ] 14. Investigate and add pytest coverage for
-      `tests/validation/speciation/{07_iron_oxidation,08_iron_oxidation_and_precipitation}.ipynb`
-      (currently zero coverage — deferred at checkpoint 3 pending this). Their own P1 prediction
-      (>70% Fe2+ conversion) is already marked `[CHECK]` (failed) in the notebook's own output —
-      actual conversion is 0.2%, likely because the demo equilibrates to pH 6.5 while the
-      Singer-Stumm rate constant/narrative assumes pH ~4.7. Diagnose that inconsistency first
-      (fix the notebook's setup, or its narrative claim, whichever is actually wrong), then write
-      `test_*.py` coverage for the corrected behavior, mirroring checkpoint 3b's approach for
-      01/03/06. Sanity check: `pytest tests/validation/` green, including new iron-oxidation
-      tests; the notebook's own P1 cell shows `[PASS]` or its claim is corrected to match reality.
-- [ ] 15. Clean up `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` — an orphaned duplicate,
-      not produced by `demos/usecases/_generate_notebooks.py` and not referenced anywhere in the
-      repo (confirmed by grep), likely a leftover from before this notebook was originally
-      curated into `docs/tutorials/` (pre-dating this phase). Re-confirm it's still unreferenced,
-      then delete. Sanity check: `grep -r "usecases/03_cstr_dilution_rate_sweep"` (outside this
-      checklist) returns nothing before deleting.
+## Follow-up phase
+
+Five bugs/cleanup items were found during this phase but deliberately not fixed here — they're
+debugging/investigation work, not file moves, and didn't block this phase's own goal. Split into
+their own phase, [`../upcoming/TUTORIALS_FOLLOWUPS_CHECKLIST.md`](../upcoming/TUTORIALS_FOLLOWUPS_CHECKLIST.md),
+so this phase could ship as one clean, complete unit: the two broken `reactions/` scripts
+(`chemistry_database.py`, `partition_model.py`), `D2C_workshop/raw_construction.py`'s
+control-loop issue, iron-oxidation notebooks' missing test coverage, and the orphaned
+`demos/usecases/03_cstr_dilution_rate_sweep.ipynb` duplicate.
 
 ## Shipping
 
