@@ -25,7 +25,7 @@ topology (0-D sparged batch, aerobic growth on acetic acid, PI pH control)
 built explicitly from `PyOMES.core` primitives instead of
 `StirredTankBuilder`, to show what the builder hides. Not used by the three
 notebooks above. Its chemistry is declared inline rather than imported from
-[`../reactions/reaction_system.py`](../reactions/reaction_system.py), so
+[`../reactions/reaction_system.ipynb`](../reactions/reaction_system.ipynb), so
 this folder stays self-sufficient.
 
 ```bash

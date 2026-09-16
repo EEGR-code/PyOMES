@@ -91,15 +91,20 @@
       references surfaced and were fixed: `demos/usecases/0_README.ipynb`'s `../features/` link
       (target now gone) and `docs/tutorials/ArXiv_preprint/01_predict_ph_simple_liquid.ipynb`'s
       link to the now-deleted `demos/model_api/chemistry/reaction_system.py`.
-- [ ] 10. Convert `docs/tutorials/reactions/*.py` to notebook form, for consistency with the
-      rest of `docs/tutorials/` (all notebooks except this folder). Gated on: (a) checkpoint 7's
-      de-coupling landing, so `reaction_system.py` has no importers left; (b) the two
-      pre-existing bugs below being fixed first — a notebook's outputs should be genuine baked
-      results, not a crash, so `chemistry_database.py`/`partition_model.py` can't be converted
-      until they actually run. `fba/fba_toy.py` and `fba/fba_ecoli_core.py` have no such
-      blocker and could convert independently. Revisit whether `templates/`'s three plain-script
-      files (`cstr_fermenter.py`, `fed_batch_fermenter.py`, `microplate_fermenter.py`, from
-      checkpoint 6) should get the same treatment once this lands.
+- [x] 10. Convert `docs/tutorials/reactions/*.py` to notebook form. Converted the 3 unblocked
+      files — `reaction_system.py` → `reaction_system.ipynb`, `fba/fba_toy.py` →
+      `fba/fba_toy.ipynb`, `fba/fba_ecoli_core.py` → `fba/fba_ecoli_core.ipynb` — each executed
+      for real via a shared exec-and-capture-stdout harness (not fabricated output), verified
+      against the original `.py` scripts' actual printed output before deleting them.
+      `chemistry_database.py`/`partition_model.py` stay `.py`, still blocked on their
+      pre-existing bugs. Note: `fba_ecoli_core.py` used `Path(__file__)` to locate
+      `ecoli_core.json`, which doesn't exist in a notebook — changed to a bare relative path
+      (Jupyter's default cwd is the notebook's own directory). Updated all cross-references
+      (`D2C_workshop/{raw_construction.py,README.md}`, `ArXiv_preprint/`, `reactions/README.md`)
+      and re-ran the full link-checker + every remaining `.py` script — clean, only the two
+      already-tracked bugs fail. Revisit whether `templates/`'s three plain-script files
+      (`cstr_fermenter.py`, `fed_batch_fermenter.py`, `microplate_fermenter.py`, from checkpoint
+      6) should get the same treatment as a future follow-up.
 
 ## Follow-ups found during this phase (not fixed here, tracked so they aren't lost)
 

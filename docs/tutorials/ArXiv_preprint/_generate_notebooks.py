@@ -98,7 +98,7 @@ one engine, one reaction network, one `solve()` call. No `Phase`,
 `ControlVolume`, or `Simulation` objects are needed for a single
 equilibrium snapshot like this — those come in once the chemistry needs to
 evolve over time or couple to other phases (see
-[`docs/tutorials/reactions/reaction_system.py`](../reactions/reaction_system.py)
+[`docs/tutorials/reactions/reaction_system.ipynb`](../reactions/reaction_system.ipynb)
 for that step).\
 """),
 
@@ -809,7 +809,7 @@ for label, times_ms in runtime_results.items():
   [`docs/tutorials/protocols/ChemicalEquilibriumProtocol/`](../protocols/ChemicalEquilibriumProtocol/).
 - **Wiring this into something that evolves over time** — a fermenter or
   reactor where pH is one state among many being integrated — see
-  [`docs/tutorials/reactions/reaction_system.py`](../reactions/reaction_system.py)
+  [`docs/tutorials/reactions/reaction_system.ipynb`](../reactions/reaction_system.ipynb)
   and [`docs/tutorials/templates/`](../templates/) for the full `Simulation` pattern.\
 """),
 )

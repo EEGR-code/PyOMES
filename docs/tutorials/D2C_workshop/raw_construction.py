@@ -9,7 +9,7 @@ control), but constructs every object explicitly using the underlying
 
 The chemistry is declared **inline, in this file** — this tutorial folder
 is self-sufficient and doesn't depend on importing from a sibling
-tutorial folder. (`docs/tutorials/reactions/reaction_system.py` declares
+tutorial folder. (`docs/tutorials/reactions/reaction_system.ipynb` declares
 the same pattern — factory functions returning reusable reaction
 objects — as its own standalone demo; the declarations below are a
 by-value copy, not an import, so the two stay independently readable.)
@@ -61,7 +61,7 @@ from PyOMES.reactions import (
 )
 
 
-# ── Chemistry (inlined — see docs/tutorials/reactions/reaction_system.py
+# ── Chemistry (inlined — see docs/tutorials/reactions/reaction_system.ipynb
 #    for the same declarations as their own standalone, importable demo) ──
 
 # Acetic acid: HA (neutral) and its conjugate base. Acetate⁻ isn't in

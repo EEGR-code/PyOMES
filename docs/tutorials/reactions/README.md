@@ -11,36 +11,39 @@ demos hide, and what [`D2C_workshop/`](../D2C_workshop/) wires into a full
 
 | File | What it shows |
 |---|---|
-| [reaction_system.py](reaction_system.py) | Aerobic-growth `KineticReaction` (via `ReactionBuilder.aerobic_growth`), acid-base `EquilibriumReaction` (`log_K=-pKa`), cross-phase CO₂ partition. Runnable: prints the `ReactionSystem` bucket inventory. Importable: each reaction is a factory function callable from other demos. |
-| [chemistry_database.py](chemistry_database.py) | `ChemistryDatabase` lifecycle: import a stock database (`AD_BASIC`), extend it with a custom species, override its `ThermoFramework`. **Currently broken** — `dataclasses.replace(..., activity_model=...)` no longer matches `ThermoFramework`'s constructor; pre-existing, not caused by this move (see the phase checklist's follow-ups). |
-| [partition_model.py](partition_model.py) | `PartitionModel`/`HenryPartition` inspection, temperature dependence, H₂S alpha correction. **Currently broken** — calls a `.beta()` method that doesn't exist on `HenryEquilibrium`, the class that replaced the now-deprecated `HenryPartition`; pre-existing, not caused by this move. |
-| [fba/fba_toy.py](fba/fba_toy.py) | Dynamic FBA on a 7-reaction toy network, wired through `BlackBoxReactionModel`. The dFBA coupling pattern is faithful to Mahadevan et al 2002; the network shape is hand-crafted (attribution warning in the file). |
-| [fba/fba_ecoli_core.py](fba/fba_ecoli_core.py) | Same FBA wiring against an 18-reaction E. coli subset loaded from JSON. Network is an original hand-crafted pedagogical construction (note in the file documents scope and limitations); covers aerobic growth plus mixed-acid fermentation (PFL + ADH anaerobic route). |
-| [fba/ecoli_core.json](fba/ecoli_core.json) | Stoichiometry data for `fba_ecoli_core.py`. |
+| [reaction_system.ipynb](reaction_system.ipynb) | Aerobic-growth `KineticReaction` (via `ReactionBuilder.aerobic_growth`), acid-base `EquilibriumReaction` (`log_K=-pKa`), cross-phase CO₂ partition. Prints the `ReactionSystem` bucket inventory. |
+| [chemistry_database.py](chemistry_database.py) | `ChemistryDatabase` lifecycle: import a stock database (`AD_BASIC`), extend it with a custom species, override its `ThermoFramework`. **Currently broken** — `dataclasses.replace(..., activity_model=...)` no longer matches `ThermoFramework`'s constructor; pre-existing, not caused by this move (see the phase checklist's follow-ups). Stays `.py` until fixed — a notebook needs genuine output, not a crash. |
+| [partition_model.py](partition_model.py) | `PartitionModel`/`HenryPartition` inspection, temperature dependence, H₂S alpha correction. **Currently broken** — calls a `.beta()` method that doesn't exist on `HenryEquilibrium`, the class that replaced the now-deprecated `HenryPartition`; pre-existing, not caused by this move. Stays `.py` until fixed. |
+| [fba/fba_toy.ipynb](fba/fba_toy.ipynb) | Dynamic FBA on a 7-reaction toy network, wired through `BlackBoxReactionModel`. The dFBA coupling pattern is faithful to Mahadevan et al 2002; the network shape is hand-crafted (attribution warning in the notebook). |
+| [fba/fba_ecoli_core.ipynb](fba/fba_ecoli_core.ipynb) | Same FBA wiring against an 18-reaction E. coli subset loaded from JSON. Network is an original hand-crafted pedagogical construction (note in the notebook documents scope and limitations); covers aerobic growth plus mixed-acid fermentation (PFL + ADH anaerobic route). |
+| [fba/ecoli_core.json](fba/ecoli_core.json) | Stoichiometry data for `fba_ecoli_core.ipynb`. |
 
 ## Reading order
 
-1. **`reaction_system.py`** — start here. Three reactions declared, each
-   demonstrating a different kind. Run it to see the bucket inspector.
-2. **`fba/fba_toy.py`** — pick this up if you want to wire an external
+1. **`reaction_system.ipynb`** — start here. Three reactions declared, each
+   demonstrating a different kind.
+2. **`fba/fba_toy.ipynb`** — pick this up if you want to wire an external
    solver (dynamic FBA, FBA, CBM, ...) through `BlackBoxReactionModel`.
    The protocol is generic; FBA is just one example.
-3. **`fba/fba_ecoli_core.py`** — adds JSON-loaded networks and shows how
+3. **`fba/fba_ecoli_core.ipynb`** — adds JSON-loaded networks and shows how
    to write a small loader against the `JSONFBASolver` schema.
 
 ## Running
 
-From the repo root:
+```bash
+jupyter lab docs/tutorials/reactions/
+```
+
+The two `.py` files (broken, see above) run from the repo root:
 
 ```bash
-python docs/tutorials/reactions/reaction_system.py
-python docs/tutorials/reactions/fba/fba_toy.py
-python docs/tutorials/reactions/fba/fba_ecoli_core.py
+python docs/tutorials/reactions/chemistry_database.py
+python docs/tutorials/reactions/partition_model.py
 ```
 
 ## Pattern: chemistry as a reusable artifact
 
-`reaction_system.py` exposes three factory functions:
+`reaction_system.ipynb` builds three factory functions:
 
 ```python
 make_aerobic_growth_on_acetate(...)  # KineticReaction
