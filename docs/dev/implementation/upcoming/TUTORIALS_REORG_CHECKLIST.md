@@ -20,10 +20,10 @@
 
 ### Checkpoints
 
-- [ ] 1. Delete `docs/publications/ArXiv_preprint/` (figures + README); fix its one
+- [x] 1. Delete `docs/publications/ArXiv_preprint/` (figures + README); fix its one
       cross-reference in `docs/tutorials/README.md`. Sanity check: `grep -r "publications/ArXiv_preprint"`
       returns nothing.
-- [ ] 2. Remove `04_compare_runtime_by_usecase.ipynb` — delete the file; edit
+- [x] 2. Remove `04_compare_runtime_by_usecase.ipynb` — delete the file; edit
       `demos/usecases/_generate_notebooks.py` (drop the 04 section, its README row, fix the
       module docstring) and regenerate `0_README.ipynb`; hand-edit the `"runtime-md"` cell in
       the already-committed `docs/tutorials/01_predict_ph_simple_liquid.ipynb` directly (do not

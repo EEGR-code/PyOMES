@@ -737,9 +737,7 @@ see
 One last comparison, this time on speed rather than accuracy — split by
 *both* axes Section 6 already established, not just by software: the same
 M9-like point from Section 6a (`CT_P`, `CT_N`), solved 500 times each by
-all four engine/activity-model combinations from Sections 6a-6c (same
-four-way split [`04_compare_runtime_by_usecase.ipynb`](../../../demos/usecases/04_compare_runtime_by_usecase.ipynb)
-uses):
+all four engine/activity-model combinations from Sections 6a-6c:
 
 - **PyOMES ideal** (`engine`) — no activity correction.
 - **PyOMES Davies** (`engine_davies`) — `use_activity=True, activity_model="davies"`.
@@ -749,8 +747,8 @@ uses):
 
 Each gets one untimed warmup call first so neither engine's one-time
 import/IPC-connection cost biases the result, then mean ± standard
-deviation over 500 timed replicate calls — not the noise-robust
-"best-of-trials" timing usecase 04 uses, since the point here is to
+deviation over 500 timed replicate calls — not a noise-robust
+"best-of-trials" timing scheme, since the point here is to
 characterize the *spread* of individual call times, not to filter it out.
 The last three rows need `phreeqpython`; without it, only PyOMES ideal is
 reported.
