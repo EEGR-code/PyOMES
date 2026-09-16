@@ -45,7 +45,7 @@
       `demos/builder/batch_fermenter.py`+`.ipynb`). Sanity check: `pytest tests/validation/`
       and `pytest tests/standalone/` both green; `grep -r "model_api/chemistry/speciation"`
       returns nothing.
-- [ ] 4. Copy `demos/model_api/chemistry/{reaction_system.py,fba/,chemistry_database.py,
+- [x] 4. Copy `demos/model_api/chemistry/{reaction_system.py,fba/,chemistry_database.py,
       partition_model.py}` → `docs/tutorials/reactions/`; add a short README. Sanity check:
       `python docs/tutorials/reactions/reaction_system.py` runs clean.
 - [ ] 5. Copy `demos/features/{ChemicalEquilibriumProtocol,SolverProtocols}/` →
@@ -58,15 +58,47 @@
 - [ ] 7. Delete `demos/model_api/D2Cworkshop/basic_layout/` entirely; copy
       `demos/model_api/D2Cworkshop/updated_layout/` → `docs/tutorials/D2C_workshop/`; replace
       the stale `README.md` stub with `0_README.ipynb`-derived content; fix
-      `raw_construction.py`'s two docstring links **and** the pre-existing `_chem_dir` path bug
-      (`parents[1]` → should resolve to the new `reactions/` sibling). Sanity check:
-      `raw_construction.py` actually imports successfully (it doesn't today).
+      `raw_construction.py`'s pre-existing `_chem_dir` path bug (`parents[1]` currently resolves
+      to a directory that doesn't exist). **Do not point the fix at `docs/tutorials/reactions/`**
+      — inline `raw_construction.py`'s own copy of the three reaction-factory functions
+      (`make_aerobic_growth_on_acetate`, `make_acetate_dissociation`, `make_co2_partition`)
+      instead of `import reaction_system as chem`, so `D2C_workshop/` is self-sufficient and
+      doesn't depend on a sibling tutorial folder (tutorials are standalone by default). This
+      also removes the only reason `reactions/reaction_system.py` needed to stay a `.py` module
+      — see checkpoint 10. Sanity check: `raw_construction.py` runs standalone with no imports
+      outside its own folder (besides `PyOMES` itself).
 - [ ] 8. Verify: run/open every copied file from checkpoints 4–7 in its new location, confirm
       no broken links/imports. **Gate — do not proceed to 9 until this passes.**
 - [ ] 9. Delete migrated originals from `demos/` (`builder/`, `features/`, `model_api/`
       entirely); rewrite `demos/README.md` for the much smaller remaining tree
       (`usecases/` + `aerobic_fermentation_stoichiometry.ipynb`); remove
       `demos/model_api/README.md`.
+- [ ] 10. Convert `docs/tutorials/reactions/*.py` to notebook form, for consistency with the
+      rest of `docs/tutorials/` (all notebooks except this folder). Gated on: (a) checkpoint 7's
+      de-coupling landing, so `reaction_system.py` has no importers left; (b) the two
+      pre-existing bugs below being fixed first — a notebook's outputs should be genuine baked
+      results, not a crash, so `chemistry_database.py`/`partition_model.py` can't be converted
+      until they actually run. `fba/fba_toy.py` and `fba/fba_ecoli_core.py` have no such
+      blocker and could convert independently. Revisit whether `templates/`'s three plain-script
+      files (`cstr_fermenter.py`, `fed_batch_fermenter.py`, `microplate_fermenter.py`, from
+      checkpoint 6) should get the same treatment once this lands.
+
+## Follow-ups found during this phase (not fixed here, tracked so they aren't lost)
+
+- [ ] `tests/validation/speciation/{07_iron_oxidation,08_iron_oxidation_and_precipitation}.ipynb`
+      have zero pytest coverage. Their own P1 prediction (>70% Fe2+ conversion) is already
+      marked `[CHECK]` (failed) in the notebook's own output — actual conversion is 0.2%,
+      likely because the demo equilibrates to pH 6.5 while the Singer-Stumm rate
+      constant/narrative assumes pH ~4.7. Needs investigation before writing tests against it.
+- [ ] `docs/tutorials/reactions/chemistry_database.py` crashes: `dataclasses.replace(...,
+      activity_model=...)` — `ThermoFramework.__init__()` no longer accepts `activity_model`.
+      Pre-existing, confirmed broken in `demos/model_api/chemistry/chemistry_database.py` too
+      (not caused by this phase's move) — likely drift from the StirredTankBuilder/ThermoFramework
+      refactor.
+- [ ] `docs/tutorials/reactions/partition_model.py` crashes: `h2s.beta(...)` —
+      `HenryEquilibrium` (replacement for the deprecated `HenryPartition`) has no `.beta()`
+      method. Pre-existing, confirmed broken in `demos/model_api/chemistry/partition_model.py`
+      too.
 
 ## Shipping
 

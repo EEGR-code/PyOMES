@@ -8,3 +8,4 @@ newcomers working through that topic end to end — see its own README for what'
 | Subfolder | What it's for |
 |---|---|
 | [`ArXiv_preprint/`](ArXiv_preprint/) | The three worked examples closest to the project's ArXiv preprint — pH prediction, kinetic gas-liquid equilibration, and a CSTR dilution-rate sweep. |
+| [`reactions/`](reactions/) | How to declare `KineticReaction`, `EquilibriumReaction`, and `BlackBoxReactionModel` (FBA) instances, and how `ReactionSystem` pre-buckets them. |
