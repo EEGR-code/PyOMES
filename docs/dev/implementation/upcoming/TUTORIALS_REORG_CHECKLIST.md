@@ -48,7 +48,7 @@
 - [x] 4. Copy `demos/model_api/chemistry/{reaction_system.py,fba/,chemistry_database.py,
       partition_model.py}` → `docs/tutorials/reactions/`; add a short README. Sanity check:
       `python docs/tutorials/reactions/reaction_system.py` runs clean.
-- [ ] 5. Copy `demos/features/{ChemicalEquilibriumProtocol,SolverProtocols}/` →
+- [x] 5. Copy `demos/features/{ChemicalEquilibriumProtocol,SolverProtocols}/` →
       `docs/tutorials/protocols/` (notebooks + READMEs, not generators); recompute relative
       links for the new depth and the `speciation/` move; write a top-level
       `docs/tutorials/protocols/README.md`. Sanity check: every notebook's relative links

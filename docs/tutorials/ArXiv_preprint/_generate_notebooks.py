@@ -347,7 +347,7 @@ Three engines, same recipe as Section 3:
 PHREEQC solution across calls *incrementally* (a `REACTION` addition, not
 a reset to the declared total), which would double-count the composition
 already used to prime the engine. See
-[`demos/features/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb`](../../../demos/features/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb)
+[`docs/tutorials/protocols/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb`](../protocols/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb)
 §4 for the mechanism.\
 """),
 
@@ -806,7 +806,7 @@ for label, times_ms in runtime_results.items():
   (including this exact phosphate ladder).
 - **Engine mechanics and gotchas** (constructor arguments, warmstart
   caching, what `algebraic_species()` returns) —
-  [`demos/features/ChemicalEquilibriumProtocol/`](../../../demos/features/ChemicalEquilibriumProtocol/).
+  [`docs/tutorials/protocols/ChemicalEquilibriumProtocol/`](../protocols/ChemicalEquilibriumProtocol/).
 - **Wiring this into something that evolves over time** — a fermenter or
   reactor where pH is one state among many being integrated — see
   [`demos/model_api/chemistry/reaction_system.py`](../../../demos/model_api/chemistry/reaction_system.py)
