@@ -59,29 +59,23 @@ When to use each solver:
 +----------------------------+---------------------------------------------+
 """
 
-import sys
 import time
-from pathlib import Path
 
-_repo_root = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_repo_root / "demos"))
-import _bootstrap  # noqa: F401, E402
-
-from PyOMES.core import (  # noqa: E402
+from PyOMES.core import (
     AdvectiveLink,
     ControlVolume,
     LiquidPhase,
     Simulation,
 )
-from PyOMES.core.system_solver import (  # noqa: E402
+from PyOMES.core.system_solver import (
     ExplicitEulerSystemSolver,
     ImplicitTransportSystemSolver,
     MonolithicODESolver,
     MultirateSystemSolver,
     StrangSplittingSystemSolver,
 )
-from PyOMES.control.actions import ControlAction  # noqa: E402
-from PyOMES.control.interfaces import ControllerBase  # noqa: E402
+from PyOMES.control.actions import ControlAction
+from PyOMES.control.interfaces import ControllerBase
 
 
 # ── Model parameters ──────────────────────────────────────────────────

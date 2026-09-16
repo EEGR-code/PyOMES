@@ -645,8 +645,8 @@ plt.show()
   `demos/model_api/chemistry/reaction_system.py` walks through
   `KineticReaction`, `EquilibriumReaction`, and `ReactionSystem` one at a
   time without running a `Simulation`.
-- **`FermenterBuilder`, the fluent alternative to assembling `ControlVolume`
-  by hand** — `models/vlmodels/fermenter/config/builder.py` wraps vessel
+- **`StirredTankBuilder`, the fluent alternative to assembling `ControlVolume`
+  by hand** — `PyOMES/templates/stirred_tank/builder.py` wraps vessel
   geometry, gas feed, transfer, organism, and substrate into one chained
   call; §4 of this notebook is what it builds internally.\
 """),

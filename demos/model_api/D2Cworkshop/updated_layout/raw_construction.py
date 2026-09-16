@@ -38,13 +38,8 @@ Run from the repo root after ``pip install -e .``::
     python demos/model_api/D2Cworkshop/raw_construction.py
 """
 
-# Bootstrap so the demo runs when PyOMES isn't installed yet.
 import sys
 from pathlib import Path
-
-_repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(_repo_root / "demos"))
-import _bootstrap  # noqa: F401, E402
 
 # Sibling chemistry/ folder isn't a package; put it on sys.path so the
 # bare `reaction_system` import resolves. Two demos sharing chemistry

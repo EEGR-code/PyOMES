@@ -32,17 +32,9 @@ Run from the repo root after ``pip install -e .``::
     python demos/model_api/chemistry/reaction_system.py
 """
 
-# Bootstrap so the demo runs when PyOMES isn't installed yet.
-import sys
-from pathlib import Path
-
-_repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(_repo_root / "demos"))
-import _bootstrap  # noqa: F401, E402
-
-from PyOMES.chemistry import Species  # noqa: E402
-from PyOMES.chemistry.common_species import H_plus  # noqa: E402
-from PyOMES.reactions import (  # noqa: E402
+from PyOMES.chemistry import Species
+from PyOMES.chemistry.common_species import H_plus
+from PyOMES.reactions import (
     EquilibriumReaction,
     KineticReaction,
     ReactionBuilder,

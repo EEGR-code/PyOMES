@@ -56,7 +56,6 @@ def code(id_, src):
 # ═══════════════════════════════════════════════════════════════════════════
 
 SETUP = """\
-import sys
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
@@ -66,8 +65,6 @@ def _find_repo():
         if (p / "pyproject.toml").exists():
             return p
     raise RuntimeError("Run from inside the PyOMES repo")
-
-sys.path.insert(0, str(_find_repo() / "models"))
 
 from PyOMES.chemistry.common_species import (
     H2O, H_plus, OH_minus,
@@ -828,20 +825,10 @@ print(f"Written: {save_path_ph}")
 # ═══════════════════════════════════════════════════════════════════════════
 
 KINETIC_SETUP = """\
-import sys
-from pathlib import Path
 import math
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-
-def _find_repo():
-    for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "pyproject.toml").exists():
-            return p
-    raise RuntimeError("Run from inside the PyOMES repo")
-
-sys.path.insert(0, str(_find_repo() / "models"))
 
 from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
 from PyOMES.chemistry import HenryEquilibrium
@@ -1212,7 +1199,6 @@ print(f"Written: {save_path_kinetic}")
 # ═══════════════════════════════════════════════════════════════════════════
 
 CSTR_SETUP = """\
-import sys
 from pathlib import Path
 import math
 import warnings
@@ -1224,8 +1210,6 @@ def _find_repo():
         if (p / "pyproject.toml").exists():
             return p
     raise RuntimeError("Run from inside the PyOMES repo")
-
-sys.path.insert(0, str(_find_repo() / "models"))
 
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.common_species import (
@@ -1936,9 +1920,9 @@ print(f"Saved publication figure to {FIG_DIR / '03_cstr_dilution_rate_sweep.png'
 - **Back to batch, for comparison** —
   [usecase 03](../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) runs the identical
   organism/substrate/kinetics without feed or drain at all.
-- **`FermenterBuilder`, the fluent alternative to hand-assembling the
+- **`StirredTankBuilder`, the fluent alternative to hand-assembling the
   `ControlVolume` in Section 4** —
-  `models/vlmodels/fermenter/config/builder.py`, used directly by
+  `PyOMES/templates/stirred_tank/builder.py`, used directly by
   `demos/builder/cstr_fermenter.py`.\
 """),
 )

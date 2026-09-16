@@ -12,12 +12,8 @@ Install the package in editable mode from the repo root:
 pip install -e .
 ```
 
-The builder demos import `PyOMES.templates.stirred_tank` directly — no
-extra path setup needed once the package is installed. Some demos
-elsewhere in this tree still use the local
-[_bootstrap.py](_bootstrap.py), which adds `models/` to `sys.path` so
-`vlmodels` (the concrete model implementations under `models/`) is
-importable.
+All demos import `PyOMES` directly — no extra path setup needed once
+the package is installed.
 
 ## Layout
 
@@ -156,13 +152,6 @@ one-shot equivalent when you don't need to inspect or attach custom
 boundaries — see [`batch_fermenter.py`](builder/batch_fermenter.py)
 for that form. The `model_api/` demos unfold each of those builder
 steps into explicit construction.
-
-## Helpers
-
-- **[_bootstrap.py](_bootstrap.py)** — adds `models/` to `sys.path`
-  so `vlmodels` resolves without a separate install. The `builder/`
-  demos don't need it (they only import `PyOMES`, resolved via the
-  editable install); some `model_api/` demos still import it.
 
 ## ADM1 / BSM2
 

@@ -62,23 +62,16 @@ Run from the repo root after ``pip install -e .``::
     python demos/model_api/chemistry/fba/fba_ecoli_core.py
 """
 
-# Bootstrap so the demo runs when PyOMES isn't installed yet.
-import sys
+import json
 from pathlib import Path
 
-_repo_root = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(_repo_root / "demos"))
-import _bootstrap  # noqa: F401, E402
+import numpy as np
+from scipy.optimize import linprog
 
-import json  # noqa: E402
-
-import numpy as np  # noqa: E402
-from scipy.optimize import linprog  # noqa: E402
-
-from PyOMES.core import Simulation  # noqa: E402
-from PyOMES.core.control_volume import ControlVolume  # noqa: E402
-from PyOMES.core.phases import LiquidPhase  # noqa: E402
-from PyOMES.reactions import (  # noqa: E402
+from PyOMES.core import Simulation
+from PyOMES.core.control_volume import ControlVolume
+from PyOMES.core.phases import LiquidPhase
+from PyOMES.reactions import (
     BlackBoxReactionModel,
     FluxEntry,
     ReactionSystem,

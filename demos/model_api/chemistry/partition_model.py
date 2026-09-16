@@ -25,17 +25,10 @@ Run from the repo root after ``pip install -e .``::
     python demos/model_api/chemistry/partition_model.py
 """
 
-import sys
-from pathlib import Path
+import math
 
-_repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(_repo_root / "demos"))
-import _bootstrap  # noqa: F401, E402
-
-import math  # noqa: E402
-
-from PyOMES.chemistry import HenryPartition, PartitionModel  # noqa: E402
-from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC  # noqa: E402
+from PyOMES.chemistry import HenryPartition, PartitionModel
+from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
 
 
 # ── 1. Stock partition models in AD_BASIC ──────────────────────────────────────
