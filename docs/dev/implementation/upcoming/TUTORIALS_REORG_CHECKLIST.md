@@ -67,8 +67,11 @@
       also removes the only reason `reactions/reaction_system.py` needed to stay a `.py` module
       — see checkpoint 10. Sanity check: `raw_construction.py` runs standalone with no imports
       outside its own folder (besides `PyOMES` itself).
-- [ ] 8. Verify: run/open every copied file from checkpoints 4–7 in its new location, confirm
-      no broken links/imports. **Gate — do not proceed to 9 until this passes.**
+- [x] 8. Verify: run/open every copied file from checkpoints 4–7 in its new location, confirm
+      no broken links/imports. **Gate — do not proceed to 9 until this passes.** PASSED — see
+      commit for details (1 real bug found and fixed: a checkpoint-6 typo, `../../templates/`
+      should have been `../templates/`; the two already-tracked follow-up bugs are the only
+      remaining script failures, both expected).
 - [ ] 9. Delete migrated originals from `demos/` (`builder/`, `features/`, `model_api/`
       entirely); rewrite `demos/README.md` for the much smaller remaining tree
       (`usecases/` + `aerobic_fermentation_stoichiometry.ipynb`); remove

@@ -810,7 +810,7 @@ for label, times_ms in runtime_results.items():
 - **Wiring this into something that evolves over time** — a fermenter or
   reactor where pH is one state among many being integrated — see
   [`demos/model_api/chemistry/reaction_system.py`](../../../demos/model_api/chemistry/reaction_system.py)
-  and [`docs/tutorials/templates/`](../../templates/) for the full `Simulation` pattern.\
+  and [`docs/tutorials/templates/`](../templates/) for the full `Simulation` pattern.\
 """),
 )
 
