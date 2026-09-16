@@ -32,7 +32,7 @@
       `docs/tutorials/_generate_notebooks.py`; trim stale mentions in `docs/tutorials/README.md`,
       `OPEN_WORK.md`, `NOTEBOOK_GENERATOR_REMOVAL.md`; create `tests/performance/` (empty, short
       README). Sanity check: `grep -r "04_compare_runtime_by_usecase"` returns nothing.
-- [ ] 3. Move `demos/model_api/chemistry/speciation/` → `tests/validation/speciation/`
+- [x] 3. Move `demos/model_api/chemistry/speciation/` → `tests/validation/speciation/`
       (including its self-contained generator, updating its two cosmetic path strings). Fix
       relative links in the ~10 files that reference it (`demos/usecases/*`,
       `docs/tutorials/{01_predict_ph_simple_liquid.ipynb,_generate_notebooks.py}`,
