@@ -53,7 +53,7 @@
       links for the new depth and the `speciation/` move; write a top-level
       `docs/tutorials/protocols/README.md`. Sanity check: every notebook's relative links
       resolve (no 404s when opened).
-- [ ] 6. Copy `demos/builder/` → `docs/tutorials/templates/`; fix `README.md`'s link depths and
+- [x] 6. Copy `demos/builder/` → `docs/tutorials/templates/`; fix `README.md`'s link depths and
       its `D2Cworkshop` cross-link. Sanity check: all 4 `.py` files run clean from the new path.
 - [ ] 7. Delete `demos/model_api/D2Cworkshop/basic_layout/` entirely; copy
       `demos/model_api/D2Cworkshop/updated_layout/` → `docs/tutorials/D2C_workshop/`; replace
@@ -95,6 +95,11 @@
       Pre-existing, confirmed broken in `demos/model_api/chemistry/chemistry_database.py` too
       (not caused by this phase's move) — likely drift from the StirredTankBuilder/ThermoFramework
       refactor.
+- [ ] `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` appears to be an orphaned duplicate —
+      not produced by `demos/usecases/_generate_notebooks.py`, and not referenced anywhere in
+      the repo (confirmed by grep). Likely a leftover from before this notebook was originally
+      curated into `docs/tutorials/` (pre-dating this phase). Probably safe to delete, but
+      left untouched since it's outside this phase's scope.
 - [ ] `docs/tutorials/reactions/partition_model.py` crashes: `h2s.beta(...)` —
       `HenryEquilibrium` (replacement for the deprecated `HenryPartition`) has no `.beta()`
       method. Pre-existing, confirmed broken in `demos/model_api/chemistry/partition_model.py`

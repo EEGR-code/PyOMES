@@ -810,7 +810,7 @@ for label, times_ms in runtime_results.items():
 - **Wiring this into something that evolves over time** — a fermenter or
   reactor where pH is one state among many being integrated — see
   [`demos/model_api/chemistry/reaction_system.py`](../../../demos/model_api/chemistry/reaction_system.py)
-  and [`demos/builder/`](../../../demos/builder/) for the full `Simulation` pattern.\
+  and [`docs/tutorials/templates/`](../../templates/) for the full `Simulation` pattern.\
 """),
 )
 
@@ -1280,7 +1280,7 @@ assumption holds closely only for part of the range this notebook sweeps.
 
 This is the extension [usecase 03's own "where to go
 next"](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) section pointed to, and the same
-setup `demos/builder/cstr_fermenter.py` demonstrates as a plain script;
+setup `docs/tutorials/templates/cstr_fermenter.py` demonstrates as a plain script;
 this notebook adds the dilution-rate sweep and the single publication-style
 summary figure that script doesn't produce.\
 """),
@@ -1660,7 +1660,7 @@ accumulates transiently before consumption stops. Usecase 03 could let pH
 drift freely because a batch run ends; a chemostat runs indefinitely at
 whatever pH this settles to, which is precisely why real continuous
 cultures on acid substrates are normally run under active pH control —
-`demos/builder/cstr_fermenter.py`'s `PHController` (dosing NaOH to a
+`docs/tutorials/templates/cstr_fermenter.py`'s `PHController` (dosing NaOH to a
 setpoint) is the closed-loop fix, left out here so this notebook can stay
 focused on the dilution-rate/productivity relationship itself.\
 """),
@@ -1914,7 +1914,7 @@ print(f"Saved publication figure to {FIG_DIR / '03_cstr_dilution_rate_sweep.png'
   estimate is an aeration artifact rather than a fixed property of this
   organism/substrate pair.
 - **Closed-loop pH (and DO) control for this exact chemostat** —
-  `demos/builder/cstr_fermenter.py`'s `PHController`/`DOAgitationController`
+  `docs/tutorials/templates/cstr_fermenter.py`'s `PHController`/`DOAgitationController`
   cascade, addressing the low-pH note in Section 5.
 - **Back to batch, for comparison** —
   [usecase 03](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) runs the identical
@@ -1922,7 +1922,7 @@ print(f"Saved publication figure to {FIG_DIR / '03_cstr_dilution_rate_sweep.png'
 - **`StirredTankBuilder`, the fluent alternative to hand-assembling the
   `ControlVolume` in Section 4** —
   `PyOMES/templates/stirred_tank/builder.py`, used directly by
-  `demos/builder/cstr_fermenter.py`.\
+  `docs/tutorials/templates/cstr_fermenter.py`.\
 """),
 )
 
