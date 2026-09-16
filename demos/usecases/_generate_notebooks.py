@@ -6,10 +6,10 @@ what demos/features/ and demos/model_api/chemistry/speciation/ are for).
 Cross-reference those folders once a use case needs more depth than a
 five-minute read supports.
 
-Notebooks 01, 02, 02b, and 05 were curated into docs/tutorials/ (the subset
-most closely covered by the ArXiv preprint) and are no longer built here --
-see docs/tutorials/_generate_notebooks.py for those. This script now owns
-only 0_README, 03, and 04.
+Notebooks 01, 02, 02b, and 05 were curated into docs/tutorials/ArXiv_preprint/
+(the subset most closely covered by the ArXiv preprint) and are no longer
+built here -- see docs/tutorials/ArXiv_preprint/_generate_notebooks.py for
+those. This script now owns only 0_README, 03, and 04.
 
 Run once from the repo root:
     python demos/usecases/_generate_notebooks.py
@@ -78,11 +78,11 @@ which these notebooks link out to once a use case needs more depth.\
 
 | Notebook | Situation | Uses |
 |---|---|---|
-| [01_predict_ph_simple_liquid.ipynb](../../docs/tutorials/01_predict_ph_simple_liquid.ipynb) | I'm making up a defined growth medium from KH₂PO₄ (phosphate buffer) and NH₄Cl (nitrogen source), no gas headspace or solid phase to track — what pH does that land at, across the range of doses used in practice? How does that compare against PHREEQC? | `NRChemicalEquilibriumEngine`, `PHREEQCChemicalEquilibriumEngine` (optional) |
-| [02_kinetic_co2_equilibration_microplate_well.ipynb](../../docs/tutorials/02_kinetic_co2_equilibration_microplate_well.ipynb) | Pure water, in direct contact with a large atmospheric reservoir (O₂/N₂/CO₂) across a gas-liquid interface with a finite mass-transfer coefficient (kLa) rather than an instantaneous equilibrium — how does pH evolve over time as dissolved CO₂ approaches its Henry's-law equilibrium, and how does kLa itself set the timescale to get there? First notebook with genuinely kinetic (rate-limited) gas transfer. | `ControlVolume`, `Simulation`, `KineticTransferModel` |
+| [01_predict_ph_simple_liquid.ipynb](../../docs/tutorials/ArXiv_preprint/01_predict_ph_simple_liquid.ipynb) | I'm making up a defined growth medium from KH₂PO₄ (phosphate buffer) and NH₄Cl (nitrogen source), no gas headspace or solid phase to track — what pH does that land at, across the range of doses used in practice? How does that compare against PHREEQC? | `NRChemicalEquilibriumEngine`, `PHREEQCChemicalEquilibriumEngine` (optional) |
+| [02_kinetic_co2_equilibration_microplate_well.ipynb](../../docs/tutorials/ArXiv_preprint/02_kinetic_co2_equilibration_microplate_well.ipynb) | Pure water, in direct contact with a large atmospheric reservoir (O₂/N₂/CO₂) across a gas-liquid interface with a finite mass-transfer coefficient (kLa) rather than an instantaneous equilibrium — how does pH evolve over time as dissolved CO₂ approaches its Henry's-law equilibrium, and how does kLa itself set the timescale to get there? First notebook with genuinely kinetic (rate-limited) gas transfer. | `ControlVolume`, `Simulation`, `KineticTransferModel` |
 | [03_grow_ecoli_on_acetic_acid.ipynb](03_grow_ecoli_on_acetic_acid.ipynb) | Inoculate that same sparged vessel with *E. coli* growing on acetic acid as sole carbon source — how fast does it grow, does dissolved O₂ ever become limiting, and what happens to pH as the acid substrate is consumed? First notebook where the chemistry evolves over time. | `ControlVolume`, `Simulation`, `ReactionBuilder.monod_aerobic_growth`, `ReactionSystem` |
 | [04_compare_runtime_by_usecase.ipynb](04_compare_runtime_by_usecase.ipynb) | Usecases 01-03 all took *some* wall-clock time to run — how much, and where does it go? Compares run time across all three usecases, decomposed by which activity-coefficient treatment did the solving (PyOMES ideal / PyOMES Davies / PHREEQC ideal-equivalent / PHREEQC default). | `NRChemicalEquilibriumEngine`, `PHREEQCChemicalEquilibriumEngine` (optional), `ReactionSystem.configure_engine` |
-| [03_cstr_dilution_rate_sweep.ipynb](../../docs/tutorials/03_cstr_dilution_rate_sweep.ipynb) | Same organism/substrate as 03, but now run as a chemostat — a CSTR fed and drained at the same volumetric flow rate, so the working volume holds steady while biomass and substrate settle onto a dilution-rate-dependent steady state. How does the dilution rate affect the reactor's volumetric productivity, and where does washout kick in? | `ControlVolume`, `Simulation`, `LiquidFeed`, `LiquidDrain` |
+| [03_cstr_dilution_rate_sweep.ipynb](../../docs/tutorials/ArXiv_preprint/03_cstr_dilution_rate_sweep.ipynb) | Same organism/substrate as 03, but now run as a chemostat — a CSTR fed and drained at the same volumetric flow rate, so the working volume holds steady while biomass and substrate settle onto a dilution-rate-dependent steady state. How does the dilution rate affect the reactor's volumetric productivity, and where does washout kick in? | `ControlVolume`, `Simulation`, `LiquidFeed`, `LiquidDrain` |
 
 Launch from the repo root with `jupyter lab demos/usecases/`.\
 """),
@@ -152,7 +152,7 @@ growth_nb = nb(
     md("title", """\
 # Growing E. coli on Acetic Acid — Monod Kinetics in a Batch Bioreactor
 
-**The situation:** [usecase 01](../../docs/tutorials/01_predict_ph_simple_liquid.ipynb) built the
+**The situation:** [usecase 01](../../docs/tutorials/ArXiv_preprint/01_predict_ph_simple_liquid.ipynb) built the
 KH₂PO₄ + NH₄Cl liquid and usecase 02
 opened it to a sparged air atmosphere. Now inoculate that same vessel with
 *E. coli*, using acetic acid as the sole carbon and energy source, and let it

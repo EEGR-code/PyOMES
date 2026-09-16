@@ -1,13 +1,14 @@
-"""Generate the docs/tutorials/ notebooks as valid .ipynb JSON.
+"""Generate the docs/tutorials/ArXiv_preprint/ notebooks as valid .ipynb JSON.
 
 Split out from demos/usecases/_generate_notebooks.py so the tutorials
 notebooks (curated for the ArXiv preprint's worked examples) regenerate
 independently of the full usecases set. This script owns the three
-notebooks migrated to docs/tutorials/: 01, 02 (kinetic CO2 equilibration,
-originally numbered 02b), and 03 (CSTR sweep, originally numbered 05).
+notebooks migrated to docs/tutorials/ArXiv_preprint/: 01, 02 (kinetic CO2
+equilibration, originally numbered 02b), and 03 (CSTR sweep, originally
+numbered 05).
 
 Run once from the repo root:
-    python docs/tutorials/_generate_notebooks.py
+    python docs/tutorials/ArXiv_preprint/_generate_notebooks.py
 """
 import json
 from pathlib import Path
@@ -97,7 +98,7 @@ one engine, one reaction network, one `solve()` call. No `Phase`,
 `ControlVolume`, or `Simulation` objects are needed for a single
 equilibrium snapshot like this — those come in once the chemistry needs to
 evolve over time or couple to other phases (see
-[`demos/model_api/chemistry/reaction_system.py`](../../demos/model_api/chemistry/reaction_system.py)
+[`demos/model_api/chemistry/reaction_system.py`](../../../demos/model_api/chemistry/reaction_system.py)
 for that step).\
 """),
 
@@ -346,7 +347,7 @@ Three engines, same recipe as Section 3:
 PHREEQC solution across calls *incrementally* (a `REACTION` addition, not
 a reset to the declared total), which would double-count the composition
 already used to prime the engine. See
-[`demos/features/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb`](../../demos/features/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb)
+[`demos/features/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb`](../../../demos/features/ChemicalEquilibriumProtocol/03_phreeqc_engine_basics.ipynb)
 §4 for the mechanism.\
 """),
 
@@ -727,7 +728,7 @@ else:
     md("phreeqc-combined-summary-md", """\
 For a much deeper accuracy audit — carbonate, calcium, precipitation —
 see
-[`demos/model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb`](../../demos/model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb).\
+[`demos/model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb`](../../../demos/model_api/chemistry/speciation/06_phreeqc_benchmark.ipynb).\
 """),
 
     md("runtime-md", """\
@@ -737,7 +738,7 @@ One last comparison, this time on speed rather than accuracy — split by
 *both* axes Section 6 already established, not just by software: the same
 M9-like point from Section 6a (`CT_P`, `CT_N`), solved 500 times each by
 all four engine/activity-model combinations from Sections 6a-6c (same
-four-way split [`04_compare_runtime_by_usecase.ipynb`](../../demos/usecases/04_compare_runtime_by_usecase.ipynb)
+four-way split [`04_compare_runtime_by_usecase.ipynb`](../../../demos/usecases/04_compare_runtime_by_usecase.ipynb)
 uses):
 
 - **PyOMES ideal** (`engine`) — no activity correction.
@@ -802,16 +803,16 @@ for label, times_ms in runtime_results.items():
 
 - **More chemistry in the same liquid** (strong ions as a matter of
   course, temperature correction, activity coefficients) —
-  [`demos/model_api/chemistry/speciation/`](../../demos/model_api/chemistry/speciation/),
+  [`demos/model_api/chemistry/speciation/`](../../../demos/model_api/chemistry/speciation/),
   which verifies this same engine against closed-form analytical results
   (including this exact phosphate ladder).
 - **Engine mechanics and gotchas** (constructor arguments, warmstart
   caching, what `algebraic_species()` returns) —
-  [`demos/features/ChemicalEquilibriumProtocol/`](../../demos/features/ChemicalEquilibriumProtocol/).
+  [`demos/features/ChemicalEquilibriumProtocol/`](../../../demos/features/ChemicalEquilibriumProtocol/).
 - **Wiring this into something that evolves over time** — a fermenter or
   reactor where pH is one state among many being integrated — see
-  [`demos/model_api/chemistry/reaction_system.py`](../../demos/model_api/chemistry/reaction_system.py)
-  and [`demos/builder/`](../../demos/builder/) for the full `Simulation` pattern.\
+  [`demos/model_api/chemistry/reaction_system.py`](../../../demos/model_api/chemistry/reaction_system.py)
+  and [`demos/builder/`](../../../demos/builder/) for the full `Simulation` pattern.\
 """),
 )
 
@@ -1250,7 +1251,7 @@ cstr_nb = nb(
     md("title", """\
 # CSTR Dilution-Rate Sweep — Running Usecase 03 as a Chemostat
 
-**The situation:** [usecase 03](../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) grew
+**The situation:** [usecase 03](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) grew
 *E. coli* on acetic acid in a **batch** bottle — inoculate once, watch
 substrate deplete and biomass grow until it's done. Run the same organism
 and substrate instead as a **CSTR (continuous stirred-tank reactor)**: fresh
@@ -1280,7 +1281,7 @@ assumes O₂ is never limiting, and Section 6's own DO panel shows that
 assumption holds closely only for part of the range this notebook sweeps.
 
 This is the extension [usecase 03's own "where to go
-next"](../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) section pointed to, and the same
+next"](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) section pointed to, and the same
 setup `demos/builder/cstr_fermenter.py` demonstrates as a plain script;
 this notebook adds the dilution-rate sweep and the single publication-style
 summary figure that script doesn't produce.\
@@ -1297,7 +1298,7 @@ Same eight equilibrium reactions (water autoionization, the three-step
 phosphate ladder, ammonium/ammonia, the two-step carbonate ladder, and
 acetic acid's own dissociation) and the same `Ecoli`/`AceticAcid` species
 declarations as
-[usecase 03 §2](../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb#2--Declare-the-chemistry)
+[usecase 03 §2](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb#2--Declare-the-chemistry)
 — nothing about the acid-base network changes when the reactor becomes
 continuous instead of batch.\
 """),
@@ -1918,7 +1919,7 @@ print(f"Saved publication figure to {FIG_DIR / '03_cstr_dilution_rate_sweep.png'
   `demos/builder/cstr_fermenter.py`'s `PHController`/`DOAgitationController`
   cascade, addressing the low-pH note in Section 5.
 - **Back to batch, for comparison** —
-  [usecase 03](../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) runs the identical
+  [usecase 03](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) runs the identical
   organism/substrate/kinetics without feed or drain at all.
 - **`StirredTankBuilder`, the fluent alternative to hand-assembling the
   `ControlVolume` in Section 4** —
