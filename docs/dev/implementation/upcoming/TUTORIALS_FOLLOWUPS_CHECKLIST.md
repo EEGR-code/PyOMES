@@ -166,16 +166,19 @@
       [`SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md`](SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md)
       (the `AccuracyWarning` false positive above — `check_scipy_rejections` needs a
       solver-family-aware threshold).
-- [ ] 5. Clean up `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` — an orphaned duplicate, not
+- [x] 5. Clean up `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` — an orphaned duplicate, not
       produced by `demos/usecases/_generate_notebooks.py` and not referenced anywhere in the repo
       (confirmed by grep during `tutorials-reorg`), likely a leftover from before this notebook
       was originally curated into `docs/tutorials/`. Re-confirm it's still unreferenced, then
       delete. Sanity check: `grep -r "usecases/03_cstr_dilution_rate_sweep"` (outside this
-      checklist) returns nothing before deleting.
+      checklist) returns nothing before deleting. Re-confirmed: zero references outside this
+      checklist — even `demos/usecases/0_README.ipynb`'s own notebook table already links to the
+      `docs/tutorials/ArXiv_preprint/03_cstr_dilution_rate_sweep.ipynb` copy, not the local file.
+      Deleted.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch (`pytest`)
+- [x] Full test suite green on the branch (`pytest`) — 2038 passed, 36 skipped, 0 failed.
 - [ ] `git checkout main`
 - [ ] `git merge --no-ff tutorials-followups -m "Merge tutorials-followups: ..."`
 - [ ] `git tag tutorials-followups-shipped <commit-hash>`
