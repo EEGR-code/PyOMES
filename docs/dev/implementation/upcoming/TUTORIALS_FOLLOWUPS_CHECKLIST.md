@@ -1,7 +1,7 @@
 # Phase Kickoff Checklist — tutorials-followups
 
-> Status: written ahead of the branch, as part of closing out `tutorials-reorg` — no branch cut
-> yet. Five bugs/cleanup items found during that phase (see
+> Status: branch `tutorials-followups` cut from `main` (with `tutorials-reorg` merged) on
+> 2026-09-17. Five bugs/cleanup items found during that phase (see
 > [`../shipped/TUTORIALS_REORG_CHECKLIST.md`](../shipped/TUTORIALS_REORG_CHECKLIST.md) once it
 > ships) but deliberately not fixed there — they're debugging/investigation work, not file
 > moves, and didn't block that phase's own goal. Split into its own phase so `tutorials-reorg`
@@ -11,11 +11,11 @@
 
 ## Pre-flight
 
-- [ ] `git status -sb` clean (no stray uncommitted work left over from a previous task)
-- [ ] `git log origin/main..main --oneline` empty (nothing unpushed sitting around from earlier work)
-- [ ] On current `main`, with `tutorials-reorg` already merged (confirm this file's "Status" line
+- [x] `git status -sb` clean (no stray uncommitted work left over from a previous task)
+- [x] `git log origin/main..main --oneline` empty (nothing unpushed sitting around from earlier work)
+- [x] On current `main`, with `tutorials-reorg` already merged (confirm this file's "Status" line
       above no longer says "no branch cut yet" — update it once the branch exists)
-- [ ] Branch created off current `main`: `git checkout -b tutorials-followups`
+- [x] Branch created off current `main`: `git checkout -b tutorials-followups`
 
 ## During
 
