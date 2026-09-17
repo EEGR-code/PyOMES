@@ -14,6 +14,34 @@ final of the three sequenced phases.)*
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
+  2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
+  (`raw_construction.py`'s pH runaway): `PHController` should warn when its
+  configured `chemical_id`/`base_chemical_id` can't actually shift pH (not a
+  recognised strong-corrector alias and not declared in any equilibrium
+  reaction) — the same check `ControlVolume.equilibrate_to_pH` already has,
+  just not reused on `PHController`'s actual dosing path. Scoped strictly to
+  `PHController`'s own two fields; no other controller/boundary is touched.
+  Open questions: warn vs. raise, new warning category vs. plain
+  `UserWarning`. No branch, no checklist, no code yet.
+- **[REACTION_ENVIRONMENT_PHASE_EXPOSURE.md](REACTION_ENVIRONMENT_PHASE_EXPOSURE.md)** —
+  2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 4
+  (iron-oxidation Singer-Stumm rate law): a `KineticReaction`'s `rate_fn`
+  only ever sees liquid-phase concentrations (`ControlVolume.
+  _build_reaction_environment` never merges in gas-phase state), forcing a
+  manual Henry's-law conversion for any literature rate law defined in terms
+  of a gas partial pressure. Proposes exposing gas (and, by the same
+  reasoning, solid) phase state to `ReactionEnvironment` as an additive,
+  read-only extension. Open questions: field shape, default for CVs with no
+  gas phase. No branch, no checklist, no code yet.
+- **[SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md](SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md)** —
+  2026-09-17. Surfaced in the same checkpoint 4 investigation:
+  `AccuracyMonitor.check_scipy_rejections` judges `solve_ivp`'s `nfev`/
+  accepted-steps ratio against one flat threshold calibrated for explicit
+  methods, producing a confirmed structural false positive for implicit
+  solvers (BDF/Radau), whose per-step Newton-iteration overhead inflates
+  `nfev` by design. Proposes a solver-family-aware threshold. No branch, no
+  checklist, no code yet.
 - **[NOTEBOOK_GENERATOR_REMOVAL.md](NOTEBOOK_GENERATOR_REMOVAL.md)** —
   2026-09-15. Retires the 5 `_generate_notebooks.py` scripts (22
   notebooks across `ChemicalEquilibriumProtocol`, `SolverProtocols`,
@@ -66,6 +94,39 @@ final of the three sequenced phases.)*
   no checklist, no code yet.
 
 ## Recently shipped
+
+- `tutorials-followups` (2026-09-17) — five debugging/investigation follow-ups
+  split out of `tutorials-reorg` so that phase could ship as one clean unit.
+  Fixed `reactions/chemistry_database.py` (`ThermoFramework` now takes
+  `liquid_activity=` not string kwargs) and `partition_model.py`
+  (`HenryPartition`/`.beta()` deprecated in favor of
+  `HenryEquilibrium`/`.partition_ratio()`), converting both to notebooks;
+  fixed `D2C_workshop/raw_construction.py`'s pH runaway (missing phosphate
+  ladder meant the `PHController`'s acid corrector was a silent no-op) and
+  its `ConservationWarning`s (small-scale sparged system hitting the
+  monitor's absolute per-step clamp); fixed `tests/validation/speciation/
+  {07,08}_iron_oxidation*.ipynb`'s Singer-Stumm rate law (the literature
+  constant is calibrated against `p(O2)` in atm, but `rate_fn` only ever
+  sees aqueous `[O2]` — a genuine, literature-verified physics bug, not a
+  demo-pacing choice, since these notebooks live in `tests/validation/`)
+  and added `test_iron_oxidation.py` (previously zero coverage); removed
+  the orphaned `demos/usecases/03_cstr_dilution_rate_sweep.ipynb`
+  duplicate. Surfaced three core-package findings along the way, split into
+  their own design notes rather than fixed here (see "Design discussions"
+  above): `PHCONTROLLER_CORRECTOR_VALIDATION.md`,
+  `REACTION_ENVIRONMENT_PHASE_EXPOSURE.md`,
+  `SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md`. Full suite green post-merge:
+  2038 passed, 36 skipped. Tag `tutorials-followups-shipped`. See
+  [`../shipped/TUTORIALS_FOLLOWUPS_CHECKLIST.md`](../shipped/TUTORIALS_FOLLOWUPS_CHECKLIST.md).
+
+- `tutorials-reorg` (2026-09-17) — reorganized `demos/` examples into
+  topic-based `docs/tutorials/` subdirectories, and split
+  validation/performance content into `tests/validation/` and
+  `tests/performance/`. 10 checkpoints plus a pre-ship `pyproject.toml`
+  `testpaths` fix (CI runs bare `pytest`, and the new validation tests
+  weren't on any configured testpath). Full suite green post-merge: 2029
+  passed, 36 skipped. Tag `tutorials-reorg-shipped`. See
+  [`../shipped/TUTORIALS_REORG_CHECKLIST.md`](../shipped/TUTORIALS_REORG_CHECKLIST.md).
 
 - `stirred-tank-template` (2026-09-15) — moved
   `models/vlmodels/fermenter/` into `PyOMES` core as

@@ -1,13 +1,19 @@
 # Phase Kickoff Checklist — tutorials-followups
 
-> Status: branch `tutorials-followups` cut from `main` (with `tutorials-reorg` merged) on
-> 2026-09-17. Five bugs/cleanup items found during that phase (see
-> [`../shipped/TUTORIALS_REORG_CHECKLIST.md`](../shipped/TUTORIALS_REORG_CHECKLIST.md) once it
-> ships) but deliberately not fixed there — they're debugging/investigation work, not file
-> moves, and didn't block that phase's own goal. Split into its own phase so `tutorials-reorg`
-> could ship as one clean, complete unit. When this is picked up: this file already exists on
-> `main` (committed alongside the `tutorials-reorg` merge), so just cut the branch — no need to
-> commit the checklist itself as a first commit, it's already there.
+> **Status: Shipped 2026-09-17** — merged into `main` via `git merge --no-ff`
+> as commit `97688a4`, tagged `tutorials-followups-shipped`. All 5 checkpoints
+> landed. Full suite green post-merge: 2038 passed, 36 skipped. Three
+> core-package findings surfaced during checkpoints 3–4 were split into their
+> own design notes rather than fixed here — see
+> [`../upcoming/PHCONTROLLER_CORRECTOR_VALIDATION.md`](../upcoming/PHCONTROLLER_CORRECTOR_VALIDATION.md),
+> [`../upcoming/REACTION_ENVIRONMENT_PHASE_EXPOSURE.md`](../upcoming/REACTION_ENVIRONMENT_PHASE_EXPOSURE.md),
+> and
+> [`../upcoming/SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md`](../upcoming/SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md).
+
+> Five bugs/cleanup items found during `tutorials-reorg` (see
+> [`TUTORIALS_REORG_CHECKLIST.md`](TUTORIALS_REORG_CHECKLIST.md)) but deliberately not fixed
+> there — they're debugging/investigation work, not file moves, and didn't block that phase's
+> own goal. Split into its own phase so `tutorials-reorg` could ship as one clean, complete unit.
 
 ## Pre-flight
 
@@ -158,12 +164,12 @@
       (27 passed, 8 skipped pre-existing).
       **Three core-package findings surfaced and logged as separate design notes** (not fixed here,
       out of `tutorials-followups` scope, each independently pick-up-able):
-      [`PHCONTROLLER_CORRECTOR_VALIDATION.md`](PHCONTROLLER_CORRECTOR_VALIDATION.md) (from
+      [`../upcoming/PHCONTROLLER_CORRECTOR_VALIDATION.md`](../upcoming/PHCONTROLLER_CORRECTOR_VALIDATION.md) (from
       checkpoint 3 — `PHController` should warn when its configured corrector can't actually shift
-      pH), [`REACTION_ENVIRONMENT_PHASE_EXPOSURE.md`](REACTION_ENVIRONMENT_PHASE_EXPOSURE.md)
+      pH), [`../upcoming/REACTION_ENVIRONMENT_PHASE_EXPOSURE.md`](../upcoming/REACTION_ENVIRONMENT_PHASE_EXPOSURE.md)
       (kinetic `rate_fn`s can't see gas-phase partial pressure, forcing the manual Henry's-law
       conversion above), and
-      [`SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md`](SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md)
+      [`../upcoming/SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md`](../upcoming/SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md)
       (the `AccuracyWarning` false positive above — `check_scipy_rejections` needs a
       solver-family-aware threshold).
 - [x] 5. Clean up `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` — an orphaned duplicate, not

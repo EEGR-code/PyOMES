@@ -4,8 +4,8 @@
 > as commit `1970c8e`, tagged `tutorials-reorg-shipped`. All 10 checkpoints
 > plus the pre-ship `pyproject.toml` testpaths fix landed. Full suite green
 > post-merge: 2029 passed, 36 skipped. Five deferred bugs/cleanup items split
-> into their own phase — see
-> [`../upcoming/TUTORIALS_FOLLOWUPS_CHECKLIST.md`](../upcoming/TUTORIALS_FOLLOWUPS_CHECKLIST.md).
+> into their own phase, `tutorials-followups` — shipped 2026-09-17, see
+> [`TUTORIALS_FOLLOWUPS_CHECKLIST.md`](TUTORIALS_FOLLOWUPS_CHECKLIST.md).
 
 > Reorganize demos/ examples into topic-based docs/tutorials/ subdirectories, and split
 > validation/performance content into tests/validation/ and tests/performance/. See the
