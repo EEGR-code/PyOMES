@@ -56,7 +56,7 @@
       via the same exec-and-capture-stdout harness as checkpoint 1 — output verified to match the
       script's actual run. Old `.py` deleted; `README.md` row and "Running" section updated (no
       `.py` files remain in this folder, so the section collapsed to just `jupyter lab`).
-- [ ] 3. Investigate `docs/tutorials/D2C_workshop/raw_construction.py`'s control-loop issue:
+- [x] 3. Investigate `docs/tutorials/D2C_workshop/raw_construction.py`'s control-loop issue:
       runs (an unrelated import bug was fixed in `tutorials-reorg`) but produces pH 12.089
       against a `PHController(setpoint=5.0)`, plus `ConservationWarning`s for O/C/H and charge
       balance exceeding their stated thresholds. Never previously observable — the script never
@@ -67,6 +67,34 @@
       of `Example1_mtp_well.ipynb`/`Example2_batch_fermenter.ipynb`/`Example3_CSTR.ipynb` (the
       actual tutorial content there) import or depend on `raw_construction.py`. Sanity check:
       re-run and confirm pH settles near the 5.0 setpoint with no `ConservationWarning`s.
+      **Root cause (two independent issues, confirmed by isolating each):**
+      1. **pH runaway.** The `PHController` doses `chemical_id="H3PO4"` (acid) and
+         `base_chemical_id="NaOH"` (base). `NaOH` is a recognised strong-corrector alias
+         (`ControlVolume.apply_external_flux` resolves it to `Na+`, which shifts pH purely via
+         charge balance — no equilibrium reaction needed) but `H3PO4` is not; it only shifts pH
+         by actually dissociating, which requires the phosphate ladder
+         (`H3PO4 ⇌ H2PO4- ⇌ HPO4-- ⇌ PO4---`) to be declared in the CV's `reaction_system`. The
+         manually-built `ReactionSystem` here never declared it (unlike `AD_BASIC`, which
+         `templates/batch_fermenter.py` uses via `StirredTankBuilder`), so dosed `H3PO4`
+         accumulated as inert neutral acid (confirmed: 0.356 mol by t=5h, zero effect on pH) —
+         the acid half of the PI loop was a silent no-op. Base dosing kept working, so pH only
+         ever climbed, unopposed, to 12.089. Fix: added `make_phosphate_ladder()` (by-value copy
+         of `bioprocess_basic.py`'s `eq_phosphate_1/2/3`, same log_K values: -2.15/-7.20/-12.35),
+         wired into the `ReactionSystem`. Confirmed fixed: pH rises from 3.234 to ~5.0 within
+         0.5 h and holds 4.72-5.01 for the rest of the 5 h run (sampled at 8 points across the
+         run, not just the endpoint).
+      2. **ConservationWarnings.** Unrelated to the above — their magnitudes were byte-identical
+         before and after the phosphate-ladder fix. Root cause: `ConservationMonitor`'s per-step
+         threshold clamps to an absolute `1e-8 mol` for any element pool under 1 mol total
+         (`scale = max(abs(baseline), 1.0)` in `PyOMES/monitoring/conservation.py`), and this is
+         a small-scale system (`V_liq`=1.6 L, `V_gas`=0.4 L, sub-1-mol O/C/H pools) with a real
+         `GasFeed` air sparge at 1 vvm — genuine, expected open-system O/C/N throughflow (~1 min
+         headspace turnover), not a stoichiometry bug. Same situation `ArXiv_preprint/
+         _generate_notebooks.py` already documents and silences for its own small-pool kinetic
+         runs; applied the same fix here (`warnings.filterwarnings("ignore",
+         category=ConservationWarning)`, with a comment explaining why). Drive-by cleanup: also
+         replaced the file's remaining `HenryPartition` (deprecated alias) with `HenryEquilibrium`,
+         same issue as checkpoint 2. Confirmed: script now exits 0 with zero warnings of any kind.
 - [ ] 4. Investigate and add pytest coverage for
       `tests/validation/speciation/{07_iron_oxidation,08_iron_oxidation_and_precipitation}.ipynb`
       (currently zero coverage). Their own P1 prediction (>70% Fe2+ conversion) is already marked
