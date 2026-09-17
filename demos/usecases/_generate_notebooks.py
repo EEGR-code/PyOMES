@@ -97,19 +97,9 @@ print(f"Written: {save_path_readme}")
 # ═══════════════════════════════════════════════════════════════════════════
 
 GROWTH_SETUP = """\
-import sys
-from pathlib import Path
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-
-def _find_repo():
-    for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "pyproject.toml").exists():
-            return p
-    raise RuntimeError("Run from inside the PyOMES repo")
-
-sys.path.insert(0, str(_find_repo() / "models"))
 
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.common_species import (

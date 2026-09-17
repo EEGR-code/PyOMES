@@ -61,12 +61,6 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-def _find_repo():
-    for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "pyproject.toml").exists():
-            return p
-    raise RuntimeError("Run from inside the PyOMES repo")
-
 from PyOMES.chemistry.common_species import (
     H2O, H_plus, OH_minus,
     H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
@@ -640,7 +634,7 @@ PUB_STYLE = {
     "grid.linewidth": 0.5,
 }
 
-FIG_DIR = _find_repo() / "docs" / "tutorials" / "figures"
+FIG_DIR = Path.cwd() / "figures"
 FIG_DIR.mkdir(exist_ok=True)
 
 with plt.rc_context(PUB_STYLE):
@@ -1203,12 +1197,6 @@ import math
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-
-def _find_repo():
-    for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "pyproject.toml").exists():
-            return p
-    raise RuntimeError("Run from inside the PyOMES repo")
 
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.common_species import (
@@ -1793,7 +1781,7 @@ PUB_STYLE = {
     "axes.linewidth": 0.6,
 }
 
-FIG_DIR = _find_repo() / "docs" / "tutorials" / "figures"
+FIG_DIR = Path.cwd() / "figures"
 FIG_DIR.mkdir(exist_ok=True)
 
 def _mark_D(ax, label=False):

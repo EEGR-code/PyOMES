@@ -212,7 +212,7 @@ __marimo__/
 
 # Figures exported by demo notebooks (regenerate by re-running the notebook)
 demos/**/figures/
-docs/tutorials/figures/
+docs/tutorials/**/figures/
 .DS_Store
 
 # Personal review notes / scratch (not part of the package)
