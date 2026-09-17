@@ -29,7 +29,7 @@ What this demo shows that the builder hides:
 What this demo intentionally omits:
 
 - Temperature-corrected Henry constants. Values are pinned to 305.15 K;
-  for a real model use ``HenryPartition(H_ref=..., dlnH=...)`` with the
+  for a real model use ``HenryEquilibrium(H_ref=..., dlnH=...)`` with the
   appropriate van 't Hoff coefficient, or rely on the builder which reads
   from the chemistry database automatically.
 
@@ -37,6 +37,8 @@ Run from the repo root after ``pip install -e .``::
 
     python docs/tutorials/D2C_workshop/raw_construction.py
 """
+
+import warnings
 
 import numpy as np
 
@@ -51,14 +53,27 @@ from PyOMES.core import (
 from PyOMES.core.boundaries import GasFeed, PressureReliefVent
 from PyOMES.core.phases import R_L_ATM_MOL_K
 from PyOMES.control.cv_loops import PHController
-from PyOMES.chemistry import HenryPartition, Species
-from PyOMES.chemistry.common_species import H_plus
+from PyOMES.chemistry import HenryEquilibrium, Species
+from PyOMES.chemistry.common_species import (
+    H_plus, H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+)
 from PyOMES.reactions import (
     EquilibriumReaction,
     ReactionBuilder,
     ReactionSystem,
     StoichiometryEntry,
 )
+
+# ConservationMonitor's per-step element/charge threshold is an *absolute*
+# 1e-8 mol clamp for any pool under 1 mol total (see PyOMES.monitoring.
+# conservation: `scale = max(abs(baseline), 1.0)`). This demo's O/N/C
+# element pools sit well under 1 mol (V_liq/V_gas ~ 1.6/0.4 L), and
+# air_sparge (GasFeed at 1 vvm) genuinely turns the headspace over on a
+# ~1-minute timescale -- real, expected open-system O/N/C throughflow, not
+# a stoichiometry bug. Silenced for the same reason ArXiv_preprint's
+# _generate_notebooks.py silences it for its own small-pool kinetic runs.
+from PyOMES.monitoring.conservation import ConservationWarning
+warnings.filterwarnings("ignore", category=ConservationWarning)
 
 
 # ── Chemistry (inlined — see docs/tutorials/reactions/reaction_system.ipynb
@@ -147,6 +162,51 @@ def make_co2_partition() -> EquilibriumReaction:
     )
 
 
+def make_phosphate_ladder() -> list:
+    """Phosphate equilibrium ladder: H3PO4 <-> H2PO4- <-> HPO4-- <-> PO4---.
+
+    The PHController below doses raw ``H3PO4`` as its acid corrector.
+    ``H3PO4`` isn't a recognised strong-corrector alias (unlike
+    ``NaOH`` -> ``Na+``, resolved automatically by
+    ``ControlVolume.apply_external_flux``) -- it only shifts pH by
+    actually dissociating, which requires this ladder to be declared
+    in the CV's own reaction_system. Without it, dosed H3PO4
+    accumulates as inert neutral acid and never releases H+, silently
+    disabling the acid half of the pH loop. Same log_K values as
+    ``PyOMES.chemistry.databases.bioprocess_basic``'s ``eq_phosphate_*``
+    (by-value copy, not an import -- see the module docstring).
+    """
+    return [
+        EquilibriumReaction(
+            stoichiometry=[
+                StoichiometryEntry(species=H3PO4, phase="liquid", coefficient=-1.0),
+                StoichiometryEntry(species=H2PO4_minus, phase="liquid", coefficient=+1.0),
+                StoichiometryEntry(species=H_plus, phase="liquid", coefficient=+1.0),
+            ],
+            log_K=-2.15, balance_elements=("P", "H", "O"),
+            total_id="phosphate", label="eq_phosphate_1",
+        ),
+        EquilibriumReaction(
+            stoichiometry=[
+                StoichiometryEntry(species=H2PO4_minus, phase="liquid", coefficient=-1.0),
+                StoichiometryEntry(species=HPO4_2minus, phase="liquid", coefficient=+1.0),
+                StoichiometryEntry(species=H_plus, phase="liquid", coefficient=+1.0),
+            ],
+            log_K=-7.20, balance_elements=("P", "H", "O"),
+            total_id="phosphate", label="eq_phosphate_2",
+        ),
+        EquilibriumReaction(
+            stoichiometry=[
+                StoichiometryEntry(species=HPO4_2minus, phase="liquid", coefficient=-1.0),
+                StoichiometryEntry(species=PO4_3minus, phase="liquid", coefficient=+1.0),
+                StoichiometryEntry(species=H_plus, phase="liquid", coefficient=+1.0),
+            ],
+            log_K=-12.35, balance_elements=("P", "H", "O"),
+            total_id="phosphate", label="eq_phosphate_3",
+        ),
+    ]
+
+
 # ── Configuration ─────────────────────────────────────────────────────
 
 T_K = 305.15
@@ -160,7 +220,7 @@ TAU_H = 5.0
 N_STEPS = 1000
 
 # Henry constants at 305.15 K, pinned so this demo stays self-contained.
-# Real models should use HenryPartition with dlnH for temperature correction.
+# Real models should use HenryEquilibrium with dlnH for temperature correction.
 HENRY_MOL_L_ATM: dict = {
     "O2": 1.07e-3,
     "CO2": 2.94e-2,
@@ -239,7 +299,7 @@ def build_transfer_models() -> dict:
     equilibrium.
     """
     henry = {
-        sp: HenryPartition(H_ref=kH * 1000.0 / 101325.0, dlnH=0.0)
+        sp: HenryEquilibrium(H_ref=kH * 1000.0 / 101325.0, dlnH=0.0)
         for sp, kH in HENRY_MOL_L_ATM.items()
     }
     return {
@@ -258,15 +318,17 @@ def build() -> Simulation:
     liquid = build_liquid_phase(gas)
 
     # ReactionSystem from the factories declared above. They produce one
-    # kinetic, one single-phase equilibrium, and one cross-phase
-    # equilibrium reaction; the system pre-buckets them at construction
-    # and the CV routes each bucket appropriately.
+    # kinetic reaction, single-phase equilibria (acetate + the phosphate
+    # ladder the pH controller's H3PO4 corrector needs), and one
+    # cross-phase equilibrium reaction; the system pre-buckets them at
+    # construction and the CV routes each bucket appropriately.
     rxn_system = ReactionSystem(
         [
             make_aerobic_growth_on_acetate(
                 mu_max_per_h=0.5, Ks_g_per_L=5e-3, yield_gX_gS=0.36,
             ),
             make_acetate_dissociation(pKa=4.756),
+            *make_phosphate_ladder(),
             make_co2_partition(),
         ],
         label="raw_construction_chemistry",
