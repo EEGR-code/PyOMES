@@ -25,7 +25,7 @@
 
 ### Checkpoints
 
-- [ ] 1. Fix `docs/tutorials/reactions/chemistry_database.py`: crashes on `dataclasses.replace(
+- [x] 1. Fix `docs/tutorials/reactions/chemistry_database.py`: crashes on `dataclasses.replace(
       ..., activity_model=...)` — `ThermoFramework.__init__()` no longer accepts `activity_model`
       as a kwarg (pre-existing, confirmed broken in the pre-`tutorials-reorg` `demos/` copy too;
       likely drift from the `stirred-tank-template` `ThermoFramework` refactor). Find the current
@@ -33,7 +33,15 @@
       cell for real and capture genuine stdout — see `tutorials-reorg`'s checkpoint 10 for the
       harness pattern) and update `docs/tutorials/reactions/README.md`. Sanity check:
       `python docs/tutorials/reactions/chemistry_database.py` exits 0 before conversion; the
-      resulting notebook's cells show genuine (non-error) output.
+      resulting notebook's cells show genuine (non-error) output. **Root cause:**
+      `ThermoFramework` was refactored to hold a `liquid_activity: LiquidPhaseModel` field
+      instead of string kwargs — `use_activity`/`activity_model` are now derived read-only
+      properties, not settable. Fix: `dataclasses.replace(AD_BASIC.thermo,
+      liquid_activity=DaviesLiquidModel())`. Script confirmed exit 0, then converted to
+      `chemistry_database.ipynb` via a one-off exec-and-capture-stdout harness (each cell run
+      for real against a shared namespace, genuine stdout captured into `outputs`) — output
+      verified to match the script's actual run (21 species, pKa 6.3500 → 6.3065, etc.). Old
+      `.py` deleted; `README.md` row and "Running" section updated.
 - [ ] 2. Fix `docs/tutorials/reactions/partition_model.py`: crashes calling `.beta()` on
       `HenryEquilibrium` — that method doesn't exist on the class that replaced the now-deprecated
       `HenryPartition` (pre-existing, confirmed broken in the pre-`tutorials-reorg` `demos/` copy

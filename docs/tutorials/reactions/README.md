@@ -12,7 +12,7 @@ demos hide, and what [`D2C_workshop/`](../D2C_workshop/) wires into a full
 | File | What it shows |
 |---|---|
 | [reaction_system.ipynb](reaction_system.ipynb) | Aerobic-growth `KineticReaction` (via `ReactionBuilder.aerobic_growth`), acid-base `EquilibriumReaction` (`log_K=-pKa`), cross-phase CO₂ partition. Prints the `ReactionSystem` bucket inventory. |
-| [chemistry_database.py](chemistry_database.py) | `ChemistryDatabase` lifecycle: import a stock database (`AD_BASIC`), extend it with a custom species, override its `ThermoFramework`. **Currently broken** — `dataclasses.replace(..., activity_model=...)` no longer matches `ThermoFramework`'s constructor; pre-existing, not caused by this move (see the phase checklist's follow-ups). Stays `.py` until fixed — a notebook needs genuine output, not a crash. |
+| [chemistry_database.ipynb](chemistry_database.ipynb) | `ChemistryDatabase` lifecycle: import a stock database (`AD_BASIC`), extend it with a custom species, override its `ThermoFramework` (`liquid_activity=DaviesLiquidModel()`). |
 | [partition_model.py](partition_model.py) | `PartitionModel`/`HenryPartition` inspection, temperature dependence, H₂S alpha correction. **Currently broken** — calls a `.beta()` method that doesn't exist on `HenryEquilibrium`, the class that replaced the now-deprecated `HenryPartition`; pre-existing, not caused by this move. Stays `.py` until fixed. |
 | [fba/fba_toy.ipynb](fba/fba_toy.ipynb) | Dynamic FBA on a 7-reaction toy network, wired through `BlackBoxReactionModel`. The dFBA coupling pattern is faithful to Mahadevan et al 2002; the network shape is hand-crafted (attribution warning in the notebook). |
 | [fba/fba_ecoli_core.ipynb](fba/fba_ecoli_core.ipynb) | Same FBA wiring against an 18-reaction E. coli subset loaded from JSON. Network is an original hand-crafted pedagogical construction (note in the notebook documents scope and limitations); covers aerobic growth plus mixed-acid fermentation (PFL + ADH anaerobic route). |
@@ -34,10 +34,9 @@ demos hide, and what [`D2C_workshop/`](../D2C_workshop/) wires into a full
 jupyter lab docs/tutorials/reactions/
 ```
 
-The two `.py` files (broken, see above) run from the repo root:
+The remaining `.py` file (broken, see above) runs from the repo root:
 
 ```bash
-python docs/tutorials/reactions/chemistry_database.py
 python docs/tutorials/reactions/partition_model.py
 ```
 
