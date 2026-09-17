@@ -95,7 +95,7 @@
          category=ConservationWarning)`, with a comment explaining why). Drive-by cleanup: also
          replaced the file's remaining `HenryPartition` (deprecated alias) with `HenryEquilibrium`,
          same issue as checkpoint 2. Confirmed: script now exits 0 with zero warnings of any kind.
-- [ ] 4. Investigate and add pytest coverage for
+- [x] 4. Investigate and add pytest coverage for
       `tests/validation/speciation/{07_iron_oxidation,08_iron_oxidation_and_precipitation}.ipynb`
       (currently zero coverage). Their own P1 prediction (>70% Fe2+ conversion) is already marked
       `[CHECK]` (failed) in the notebook's own output — actual conversion is 0.2%, likely because
@@ -106,7 +106,66 @@
       `tests/validation/speciation/test_carbonate_phosphate_benchmarks.py` and
       `test_saturation_index.py` for the established style/conventions to follow). Sanity check:
       `pytest tests/validation/` green, including new iron-oxidation tests; the notebook's own P1
-      cell shows `[PASS]` or its claim is corrected to match reality.
+      cell shows `[PASS]` or its claim is corrected to match reality. **Root cause (this notebook
+      lives in `tests/validation/` — the point is a real, checkable prediction, not a demo-pacing
+      choice — so this was treated as a genuine physics bug and verified against literature, not
+      curve-fit to hit a target):**
+      1. **Wrong pH assumed throughout the narrative.** Section 1 described the reaction at the
+         medium's *natural* pH 4.68, but `cv.equilibrate_to_pH('KOH', 6.5)` has always deliberately
+         run the kinetics at pH 6.5 — every downstream prediction (rate, dominant Fe(III) species)
+         described a scenario the code never actually simulated.
+      2. **The real bug: literature `k` applied to the wrong quantity.** Singer & Stumm (1970)'s
+         rate law is `r = k [Fe2+] p(O2) [OH-]^2` — calibrated against **p(O2) in atm**. But
+         `ControlVolume._build_reaction_environment` only ever builds a kinetic `rate_fn`'s
+         `env.concentrations` from the **liquid** phase (`control_volume.py:700-748`, `:924-1003`
+         — confirmed by reading both call sites; gas-phase state is never merged in). The old
+         `K_SS = 5e11` was that literature `k` applied directly to aqueous `[O2]` in mol/L with no
+         unit conversion — understating the rate by the Henry's-law factor (`kH_O2 ≈ 1.317e-3
+         mol/(L·atm)`, ~760x) regardless of pH, since `[OH-]^2` alone can't close a gap that large.
+         Verified the literature constant via web search rather than trusting memory:
+         `k = 1.33e12 M^-2 atm^-1 s^-1` (Singer & Stumm 1970, Eq. 22), cited via USGS's PHREEQC
+         docs [Example 9](https://water.usgs.gov/water-resources/software/PHREEQC/documentation/phreeqc3-html/phreeqc3-71.htm),
+         which implements the identical rate law. Corrected `K_SS = k / kH_O2 ≈ 3.635e18`, computed
+         explicitly in the notebook, not applied by fiat.
+      3. **O2 was a fixed, depletable 0.75 mM pool** (capping conversion regardless of kinetics)
+         **and Fe2+'s stated loading (2.00 mM) never matched what `phase-cv`'s stock-dilution code
+         actually produces (0.88 mM).** Fixed both: replaced the fixed O2 pool with a real 1000 L
+         air headspace (`GasPhase` + `EquilibriumTransferModel`), same "pseudo-unlimited reservoir"
+         idiom as `ArXiv_preprint/_generate_notebooks.py`'s kinetic CO2 demo (verified <0.01%
+         reservoir drawdown over the run); corrected the Fe2+ table entry to 0.88 mM.
+      4. **O2's initial condition was itself a bug** — caught by noticing an O2(aq) spike right
+         after t=0 in the notebook's plot: O2 started at 0 and let the `EquilibriumTransferModel`
+         jump it to its ~0.276 mM equilibrium value on the solver's very first internal step, an
+         artificial discontinuity, not a physical initial condition (a medium open to air has
+         always been in contact with it). Confirmed this alone roughly quadrupled solver work
+         (~70 vs ~15 accepted BDF steps for an otherwise-identical run). Fixed by initializing O2
+         at its Henry's-law equilibrium value directly.
+      5. **Solver.** This reaction is genuinely stiff (t½ ≈ 11 min inside a 2h run) — switched from
+         the default explicit solver to `SimultaneousAdaptiveSolver(method='BDF',
+         use_engine_jacobian=True)`, a real fix (Fe mass-balance drift dropped ~10x) that also
+         eliminates every `ConservationWarning` the explicit solver accumulated from many large
+         per-step NR re-solves at this reaction speed — not a suppression. It does trip a
+         confirmed-false-positive `AccuracyWarning` (`check_scipy_rejections` judges
+         `nfev`/accepted-steps against a flat threshold calibrated for explicit methods; implicit
+         methods' Newton-iteration overhead inflates `nfev` by design, unrelated to genuine step
+         rejection — confirmed by sweeping rtol/atol, max_step, and both BDF/Radau: ratio stuck at
+         ~1.0 regardless, and Radau scored *worse*, the opposite of what a real rejection problem
+         would show) — documented and suppressed in both notebooks and the test file.
+      Both notebooks now show all 5 predictions `[PASS]` with zero warnings. Added
+      `tests/validation/speciation/test_iron_oxidation.py` (9 tests: rate-law pH-direction and
+      4th-order-structure regression guards, K_SS-derivation check, O2-initial-condition regression
+      guard, and 4 batch-integration checks against P1/P3/P4/P5) — `pytest tests/validation/` green
+      (27 passed, 8 skipped pre-existing).
+      **Three core-package findings surfaced and logged as separate design notes** (not fixed here,
+      out of `tutorials-followups` scope, each independently pick-up-able):
+      [`PHCONTROLLER_CORRECTOR_VALIDATION.md`](PHCONTROLLER_CORRECTOR_VALIDATION.md) (from
+      checkpoint 3 — `PHController` should warn when its configured corrector can't actually shift
+      pH), [`REACTION_ENVIRONMENT_PHASE_EXPOSURE.md`](REACTION_ENVIRONMENT_PHASE_EXPOSURE.md)
+      (kinetic `rate_fn`s can't see gas-phase partial pressure, forcing the manual Henry's-law
+      conversion above), and
+      [`SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md`](SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md)
+      (the `AccuracyWarning` false positive above — `check_scipy_rejections` needs a
+      solver-family-aware threshold).
 - [ ] 5. Clean up `demos/usecases/03_cstr_dilution_rate_sweep.ipynb` — an orphaned duplicate, not
       produced by `demos/usecases/_generate_notebooks.py` and not referenced anywhere in the repo
       (confirmed by grep during `tutorials-reorg`), likely a leftover from before this notebook
