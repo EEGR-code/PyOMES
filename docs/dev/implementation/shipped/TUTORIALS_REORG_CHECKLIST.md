@@ -1,5 +1,12 @@
 # Phase Kickoff Checklist — tutorials-reorg
 
+> **Status: Shipped 2026-09-17** — merged into `main` via `git merge --no-ff`
+> as commit `1970c8e`, tagged `tutorials-reorg-shipped`. All 10 checkpoints
+> plus the pre-ship `pyproject.toml` testpaths fix landed. Full suite green
+> post-merge: 2029 passed, 36 skipped. Five deferred bugs/cleanup items split
+> into their own phase — see
+> [`../upcoming/TUTORIALS_FOLLOWUPS_CHECKLIST.md`](../upcoming/TUTORIALS_FOLLOWUPS_CHECKLIST.md).
+
 > Reorganize demos/ examples into topic-based docs/tutorials/ subdirectories, and split
 > validation/performance content into tests/validation/ and tests/performance/. See the
 > design discussion this was worked out from (conversation, not a doc) for full rationale
@@ -130,10 +137,10 @@ control-loop issue, iron-oxidation notebooks' missing test coverage, and the orp
 
 ## Shipping
 
-- [ ] Full test suite green on the branch (`pytest`)
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff tutorials-reorg -m "Merge tutorials-reorg: ..."`
-- [ ] `git tag tutorials-reorg-shipped <commit-hash>`
-- [ ] `git push && git push --tags`
-- [ ] `git branch -d tutorials-reorg` and `git push origin --delete tutorials-reorg`
-- [ ] Move this checklist to `docs/dev/implementation/shipped/`, add a "Shipped" banner
+- [x] Full test suite green on the branch (`pytest`)
+- [x] `git checkout main`
+- [x] `git merge --no-ff tutorials-reorg -m "Merge tutorials-reorg: ..."`
+- [x] `git tag tutorials-reorg-shipped <commit-hash>`
+- [x] `git push && git push --tags`
+- [x] `git branch -d tutorials-reorg` and `git push origin --delete tutorials-reorg`
+- [x] Move this checklist to `docs/dev/implementation/shipped/`, add a "Shipped" banner
