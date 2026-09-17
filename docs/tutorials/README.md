@@ -1,35 +1,15 @@
 # Tutorials
 
-Curated, user-facing worked examples. Unlike [`demos/`](../../demos/),
-which is the full example set organised by framework layer (for
-contributors exploring the API), this directory holds a smaller,
-hand-picked selection intended for newcomers working through the
-package end to end.
+Curated, user-facing worked examples, organised by what each subfolder demonstrates rather
+than by framework layer (that's [`demos/`](../../demos/)'s organising principle, for
+contributors exploring the API). Each subfolder holds a hand-picked selection intended for
+newcomers working through that topic end to end — see its own README for what's inside and why.
 
-These three were migrated from [`demos/usecases/`](../../demos/usecases/)
-as the subset most closely covered by the project's ArXiv preprint (see
-[`docs/publications/ArXiv_preprint/`](../publications/ArXiv_preprint/)).
-The story continues in `demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb`
-and `04_compare_runtime_by_usecase.ipynb`, which stayed there.
-
-## Notebooks
-
-| Notebook | Situation | Uses |
-|---|---|---|
-| [01_predict_ph_simple_liquid.ipynb](01_predict_ph_simple_liquid.ipynb) | I'm making up a defined growth medium from KH₂PO₄ (phosphate buffer) and NH₄Cl (nitrogen source), no gas headspace or solid phase to track — what pH does that land at, across the range of doses used in practice? How does that compare against PHREEQC? | `NRChemicalEquilibriumEngine`, `PHREEQCChemicalEquilibriumEngine` (optional) |
-| [02_kinetic_co2_equilibration_microplate_well.ipynb](02_kinetic_co2_equilibration_microplate_well.ipynb) | Pure water, in direct contact with a large atmospheric reservoir (O₂/N₂/CO₂) across a gas-liquid interface with a finite mass-transfer coefficient (kLa) rather than an instantaneous equilibrium — how does pH evolve over time as dissolved CO₂ approaches its Henry's-law equilibrium, and how does kLa itself set the timescale to get there? First notebook with genuinely kinetic (rate-limited) gas transfer. | `ControlVolume`, `Simulation`, `KineticTransferModel` |
-| [03_cstr_dilution_rate_sweep.ipynb](03_cstr_dilution_rate_sweep.ipynb) | Same organism/substrate as `demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb`, but now run as a chemostat — a CSTR fed and drained at the same volumetric flow rate, so the working volume holds steady while biomass and substrate settle onto a dilution-rate-dependent steady state. How does the dilution rate affect the reactor's volumetric productivity, and where does washout kick in? | `ControlVolume`, `Simulation`, `LiquidFeed`, `LiquidDrain` |
-
-Launch from the repo root with `jupyter lab docs/tutorials/`.
-
-## Regenerating
-
-These notebooks are generated from
-[`_generate_notebooks.py`](_generate_notebooks.py), split out from
-[`demos/usecases/_generate_notebooks.py`](../../demos/usecases/_generate_notebooks.py)
-so this folder regenerates independently of the rest of `demos/usecases/`.
-Edit the relevant section in this folder's script and re-run:
-
-```bash
-python docs/tutorials/_generate_notebooks.py
-```
+| Subfolder | What it's for |
+|---|---|
+| [`ArXiv_preprint/`](ArXiv_preprint/) | The three worked examples closest to the project's ArXiv preprint — pH prediction, kinetic gas-liquid equilibration, and a CSTR dilution-rate sweep. |
+| [`reactions/`](reactions/) | How to declare `KineticReaction`, `EquilibriumReaction`, and `BlackBoxReactionModel` (FBA) instances, and how `ReactionSystem` pre-buckets them. |
+| [`protocols/`](protocols/) | Single-class deep dives: the `ChemicalEquilibriumEngineProtocol` family (Bisection/NR/PHREEQC engines) and the `StepSolver`/`SystemSolver` axes — construction, call conventions, gotchas. |
+| [`templates/`](templates/) | Quick-start: the fluent `StirredTankBuilder` API. Configure a fermenter (batch, CSTR, fed-batch, microplate) in a handful of chained calls. |
+| [`D2C_workshop/`](D2C_workshop/) | Manual `Simulation` assembly from `Phase`/`Link`/`ControlVolume` primitives — the DARE2CYCLE scale-up progression: sealed MTP well → sparged batch fermenter → continuous CSTR. |
+| [`results/`](results/) | Post-processing a `BatchResult`: DataFrame export, wide-form pivoting for plotting, CSV/Parquet round-trips. |

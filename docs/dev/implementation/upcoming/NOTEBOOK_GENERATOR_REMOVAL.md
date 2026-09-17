@@ -43,12 +43,12 @@ plots inline on GitHub without needing local execution. Concretely:
   JSON directly and hardcodes `"outputs": []` on every cell, every run.
   Hand-editing a generated notebook in Jupyter is a trap — the next
   `python _generate_notebooks.py` run silently discards it.
-- **Drift is already happening, not hypothetical.** `usecases/03_grow_ecoli_on_acetic_acid.ipynb`,
-  `usecases/04_compare_runtime_by_usecase.ipynb`, and
-  `docs/tutorials/01_predict_ph_simple_liquid.ipynb` all contain plotting
-  code but currently have zero outputs, while sibling notebooks from the
-  same generator scripts do have outputs. Nothing catches this today —
-  no CI touches notebooks at all.
+- **Drift is already happening, not hypothetical.** `usecases/03_grow_ecoli_on_acetic_acid.ipynb`
+  and `docs/tutorials/ArXiv_preprint/01_predict_ph_simple_liquid.ipynb` (moved there, and
+  `usecases/04_compare_runtime_by_usecase.ipynb` deleted entirely, by the `tutorials-reorg`
+  phase — see `TUTORIALS_REORG_CHECKLIST.md`) contain plotting code but currently have zero
+  outputs, while sibling notebooks from the same generator scripts do have outputs. Nothing
+  catches this today — no CI touches notebooks at all.
 - **No docs-build pipeline exists** (no Sphinx/mkdocs/jupyter-book
   config anywhere in the repo), so there's no separate mechanism
   rendering these notebooks elsewhere — GitHub's own notebook viewer,
@@ -98,17 +98,22 @@ reader doesn't rediscover the duplication and assume it was missed.
 ## Scope
 
 5 generator scripts to retire (notebook counts from the September 2026
-audit):
+audit; `demos/usecases/_generate_notebooks.py` and
+`docs/tutorials/_generate_notebooks.py` counts updated post-`tutorials-reorg`,
+which deleted `04_compare_runtime_by_usecase.ipynb`, moved the latter script
+to `docs/tutorials/ArXiv_preprint/_generate_notebooks.py`, and moved
+`demos/model_api/chemistry/speciation/` to `tests/validation/speciation/`
+wholesale (generator included) — see `TUTORIALS_REORG_CHECKLIST.md`):
 
 | Generator script | Notebooks produced |
 |---|---|
 | `demos/features/ChemicalEquilibriumProtocol/_generate_notebooks.py` | `01`, `02`, `03`, `0_README` (4) |
 | `demos/features/SolverProtocols/_generate_notebooks.py` | `01`, `0_README` (2) |
-| `demos/model_api/chemistry/speciation/_generate_notebooks.py` | `01`–`08`, `0_README`, `10` (10) |
-| `demos/usecases/_generate_notebooks.py` | `0_README`, `03`, `04` (3) |
-| `docs/tutorials/_generate_notebooks.py` | `01`, `02`, `03` (3) |
+| `tests/validation/speciation/_generate_notebooks.py` | `01`–`08`, `0_README`, `10` (10) |
+| `demos/usecases/_generate_notebooks.py` | `0_README`, `03` (2) |
+| `docs/tutorials/ArXiv_preprint/_generate_notebooks.py` | `01`, `02`, `03` (3) |
 
-22 notebooks total currently generator-produced. The remaining 9 are
+21 notebooks total currently generator-produced. The remaining 9 are
 already standalone/hand-authored and unaffected by the generator
 removal, but are in scope for the "every notebook carries its outputs"
 policy: `demos/aerobic_fermentation_stoichiometry.ipynb`,

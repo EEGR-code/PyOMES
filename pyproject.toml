@@ -15,4 +15,4 @@ test = ["pytest", "pandas", "pyarrow", "phreeqpython>=1.6"]
 all = ["phreeqpython>=1.6", "pandas", "pyarrow"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/standalone"]
+testpaths = ["tests/standalone", "tests/validation"]

@@ -109,7 +109,8 @@ hand-editing the specific stale cell in the committed `.ipynb` (e.g.
 via a notebook-aware editor that touches only that cell) over
 regenerating from source when the target notebook may carry baked
 outputs. `demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb` and
-`0_README.ipynb`/`04_compare_runtime_by_usecase.ipynb` were safe to
-regenerate (no baked outputs, confirmed by a 1-line/no-op diff) — but
-that's a property of each notebook, not the method, and needs
-re-checking per file.
+`0_README.ipynb` were safe to regenerate (no baked outputs, confirmed
+by a 1-line/no-op diff) — but that's a property of each notebook, not
+the method, and needs re-checking per file. (`04_compare_runtime_by_usecase.ipynb`,
+also confirmed safe at the time, was deleted entirely in the
+`tutorials-reorg` phase — see `TUTORIALS_REORG_CHECKLIST.md`.)
