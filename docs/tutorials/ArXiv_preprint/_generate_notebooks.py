@@ -1235,12 +1235,14 @@ print("Imports OK")
 
 cstr_nb = nb(
     md("title", """\
-# CSTR Dilution-Rate Sweep — Running Usecase 03 as a Chemostat
+# CSTR Dilution-Rate Sweep — Running the Batch Culture as a Chemostat
 
-**The situation:** [usecase 03](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) grew
-*E. coli* on acetic acid in a **batch** bottle — inoculate once, watch
-substrate deplete and biomass grow until it's done. Run the same organism
-and substrate instead as a **CSTR (continuous stirred-tank reactor)**: fresh
+**The situation:** notebook 02 built a sparged vessel; inoculating it with
+*E. coli* growing on acetic acid and running it as a **batch** bottle —
+inoculate once, watch substrate deplete and biomass grow until it's done —
+is the natural next step, but not one this series carries as its own
+notebook. Run that same organism and substrate instead as a **CSTR
+(continuous stirred-tank reactor)**: fresh
 sterile medium flows in at a constant volumetric rate $Q$, and broth flows
 out at that *same* rate, so the working liquid volume $V$ never changes.
 That equal-in/equal-out condition is what makes this a **chemostat** — the
@@ -1254,8 +1256,8 @@ at steady state), and substrate is exactly balanced by the difference
 between what arrives in the feed and what the culture consumes.
 
 **Aim of this notebook.** Build one mechanistic CSTR model — the same
-`ControlVolume`/`Simulation` machinery usecase 03 used for a batch bottle,
-now with a `LiquidFeed`/`LiquidDrain` pair added — and run *it alone* to
+`ControlVolume`/`Simulation` machinery a batch bottle would use, now with a
+`LiquidFeed`/`LiquidDrain` pair added — and run *it alone* to
 steady state across a sweep of dilution rates. Because that one model
 already tracks O₂ transfer and the acid-base speciation directly, a single
 mechanistic run gives every quantity of interest at once: steady-state
@@ -1266,8 +1268,7 @@ alongside purely as a sanity check and to pick a sensible sweep range; it
 assumes O₂ is never limiting, and Section 6's own DO panel shows that
 assumption holds closely only for part of the range this notebook sweeps.
 
-This is the extension [usecase 03's own "where to go
-next"](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) section pointed to, and the same
+This is the same
 setup `docs/tutorials/templates/cstr_fermenter.py` demonstrates as a plain script;
 this notebook adds the dilution-rate sweep and the single publication-style
 summary figure that script doesn't produce.\
@@ -1278,13 +1279,12 @@ summary figure that script doesn't produce.\
     # ── 1. Chemistry and organism: unchanged from usecase 03 ────────────
 
     md("chem-md", """\
-## 1  Chemistry and organism — identical to usecase 03
+## 1  Chemistry and organism
 
 Same eight equilibrium reactions (water autoionization, the three-step
 phosphate ladder, ammonium/ammonia, the two-step carbonate ladder, and
 acetic acid's own dissociation) and the same `Ecoli`/`AceticAcid` species
-declarations as
-[usecase 03 §2](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb#2--Declare-the-chemistry)
+declarations a batch culture of the same organism/substrate would use
 — nothing about the acid-base network changes when the reactor becomes
 continuous instead of batch.\
 """),
@@ -1904,9 +1904,9 @@ print(f"Saved publication figure to {FIG_DIR / '03_cstr_dilution_rate_sweep.png'
 - **Closed-loop pH (and DO) control for this exact chemostat** —
   `docs/tutorials/templates/cstr_fermenter.py`'s `PHController`/`DOAgitationController`
   cascade, addressing the low-pH note in Section 5.
-- **Back to batch, for comparison** —
-  [usecase 03](../../../demos/usecases/03_grow_ecoli_on_acetic_acid.ipynb) runs the identical
-  organism/substrate/kinetics without feed or drain at all.
+- **Back to batch, for comparison** — the identical organism/substrate/
+  kinetics without feed or drain at all, just an inoculated bottle left to
+  deplete its substrate.
 - **`StirredTankBuilder`, the fluent alternative to hand-assembling the
   `ControlVolume` in Section 4** —
   `PyOMES/templates/stirred_tank/builder.py`, used directly by

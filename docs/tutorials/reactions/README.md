@@ -11,6 +11,7 @@ demos hide, and what [`D2C_workshop/`](../D2C_workshop/) wires into a full
 
 | File | What it shows |
 |---|---|
+| [aerobic_fermentation_stoichiometry.ipynb](aerobic_fermentation_stoichiometry.ipynb) | Derives aerobic-growth-on-glucose stoichiometric coefficients from an elemental (CHNOSP) balance by hand, comparing two published biomass elemental compositions (Roels extended, Upcraft) — the derivation behind what `ReactionBuilder.aerobic_growth`'s `balance=` argument does internally. Section 6 runs the resulting stoichiometry as a dynamic batch simulation via `StirredTankBuilder`. |
 | [reaction_system.ipynb](reaction_system.ipynb) | Aerobic-growth `KineticReaction` (via `ReactionBuilder.aerobic_growth`), acid-base `EquilibriumReaction` (`log_K=-pKa`), cross-phase CO₂ partition. Prints the `ReactionSystem` bucket inventory. |
 | [chemistry_database.ipynb](chemistry_database.ipynb) | `ChemistryDatabase` lifecycle: import a stock database (`AD_BASIC`), extend it with a custom species, override its `ThermoFramework` (`liquid_activity=DaviesLiquidModel()`). |
 | [partition_model.ipynb](partition_model.ipynb) | `PartitionModel`/`HenryEquilibrium` inspection, temperature dependence, H₂S alpha correction (`partition_ratio(alpha=...)`), extending a database with a custom `HenryEquilibrium`. |
@@ -27,6 +28,9 @@ demos hide, and what [`D2C_workshop/`](../D2C_workshop/) wires into a full
    The protocol is generic; FBA is just one example.
 3. **`fba/fba_ecoli_core.ipynb`** — adds JSON-loaded networks and shows how
    to write a small loader against the `JSONFBASolver` schema.
+4. **`aerobic_fermentation_stoichiometry.ipynb`** — a self-contained detour
+   into where `ReactionBuilder.aerobic_growth`'s coefficients actually come
+   from; read independently of 1-3, not a prerequisite for any of them.
 
 ## Running
 

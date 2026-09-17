@@ -1,9 +1,10 @@
 # Tutorials
 
-Curated, user-facing worked examples, organised by what each subfolder demonstrates rather
-than by framework layer (that's [`demos/`](../../demos/)'s organising principle, for
-contributors exploring the API). Each subfolder holds a hand-picked selection intended for
-newcomers working through that topic end to end — see its own README for what's inside and why.
+Curated, user-facing worked examples, organised by what each subfolder demonstrates. This
+supersedes `demos/`, which organised its examples by framework layer instead — all of its
+content was migrated here (or, where genuinely low-value, removed) and the directory itself
+retired 2026-09-17. Each subfolder holds a hand-picked selection intended for newcomers
+working through that topic end to end — see its own README for what's inside and why.
 
 | Subfolder | What it's for |
 |---|---|

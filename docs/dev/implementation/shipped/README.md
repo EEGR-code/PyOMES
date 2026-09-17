@@ -38,9 +38,10 @@ chemistry-enabled path was never exercised. 1458/1458 tests pass after the fix.
 ### Aerobic fermentation dynamic simulation (2026-06-18)
 
 Added Section 6 to
-[demos/aerobic_fermentation_stoichiometry.ipynb](../../demos/aerobic_fermentation_stoichiometry.ipynb):
-a fully dynamic batch simulation complementing the existing CHNOSP
-stoichiometry analysis.
+[docs/tutorials/reactions/aerobic_fermentation_stoichiometry.ipynb](../../../tutorials/reactions/aerobic_fermentation_stoichiometry.ipynb)
+(then `demos/aerobic_fermentation_stoichiometry.ipynb`; moved 2026-09-17,
+see `docs/tutorials/reactions/README.md`): a fully dynamic batch simulation
+complementing the existing CHNOSP stoichiometry analysis.
 
 **Setup**
 - Initial medium: 30 g/L glucose, 30 g/L KH₂PO₄, 5 g/L NH₄Cl,

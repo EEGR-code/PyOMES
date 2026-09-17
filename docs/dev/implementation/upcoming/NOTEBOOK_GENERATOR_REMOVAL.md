@@ -7,6 +7,19 @@
 > conventions. When this is picked up: follow `README.md`'s "How to start
 > one" — write a checklist file from `PHASE_KICKOFF_TEMPLATE.md`, branch,
 > implement, ship.
+>
+> **Update 2026-09-17:** `demos/usecases/` (and its `_generate_notebooks.py`,
+> one of the 5 scripts below) was deleted outright, outside this phase.
+> That generator's 2 notebooks (`0_README`, `03`) are gone rather than
+> converted to standalone files, so this phase now only has 4 generator
+> scripts / 19 notebooks left in scope, not 5/21. The duplication this doc
+> accepted as a known cost (the `water`/`p1`/`p2`/`p3`/`nh4` network
+> retyped in `demos/usecases/_generate_notebooks.py` among other places) is
+> correspondingly reduced by one copy. Separately, `demos/` itself (having
+> no content left besides its own README) was deleted the same day;
+> `demos/aerobic_fermentation_stoichiometry.ipynb` moved to
+> `docs/tutorials/reactions/aerobic_fermentation_stoichiometry.ipynb`
+> (path below updated to match).
 
 ## Commit discipline for this phase
 
@@ -97,8 +110,10 @@ reader doesn't rediscover the duplication and assume it was missed.
 
 ## Scope
 
-5 generator scripts to retire (notebook counts from the September 2026
-audit; `demos/usecases/_generate_notebooks.py` and
+4 generator scripts left to retire (5 at the September 2026 audit;
+`demos/usecases/_generate_notebooks.py` deleted 2026-09-17, see Update
+banner above). Notebook counts from the September 2026 audit;
+`demos/usecases/_generate_notebooks.py` and
 `docs/tutorials/_generate_notebooks.py` counts updated post-`tutorials-reorg`,
 which deleted `04_compare_runtime_by_usecase.ipynb`, moved the latter script
 to `docs/tutorials/ArXiv_preprint/_generate_notebooks.py`, and moved
@@ -110,13 +125,13 @@ wholesale (generator included) — see `TUTORIALS_REORG_CHECKLIST.md`):
 | `demos/features/ChemicalEquilibriumProtocol/_generate_notebooks.py` | `01`, `02`, `03`, `0_README` (4) |
 | `demos/features/SolverProtocols/_generate_notebooks.py` | `01`, `0_README` (2) |
 | `tests/validation/speciation/_generate_notebooks.py` | `01`–`08`, `0_README`, `10` (10) |
-| `demos/usecases/_generate_notebooks.py` | `0_README`, `03` (2) |
+| ~~`demos/usecases/_generate_notebooks.py`~~ | ~~`0_README`, `03` (2)~~ — deleted 2026-09-17, see Update banner above |
 | `docs/tutorials/ArXiv_preprint/_generate_notebooks.py` | `01`, `02`, `03` (3) |
 
-21 notebooks total currently generator-produced. The remaining 9 are
-already standalone/hand-authored and unaffected by the generator
+19 notebooks total currently generator-produced (was 21). The remaining 9
+are already standalone/hand-authored and unaffected by the generator
 removal, but are in scope for the "every notebook carries its outputs"
-policy: `demos/aerobic_fermentation_stoichiometry.ipynb`,
+policy: `docs/tutorials/reactions/aerobic_fermentation_stoichiometry.ipynb`,
 `demos/builder/batch_fermenter.ipynb`, and the 7 `D2Cworkshop`
 notebooks.
 
