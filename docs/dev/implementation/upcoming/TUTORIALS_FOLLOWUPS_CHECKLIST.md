@@ -42,12 +42,20 @@
       for real against a shared namespace, genuine stdout captured into `outputs`) — output
       verified to match the script's actual run (21 species, pKa 6.3500 → 6.3065, etc.). Old
       `.py` deleted; `README.md` row and "Running" section updated.
-- [ ] 2. Fix `docs/tutorials/reactions/partition_model.py`: crashes calling `.beta()` on
+- [x] 2. Fix `docs/tutorials/reactions/partition_model.py`: crashes calling `.beta()` on
       `HenryEquilibrium` — that method doesn't exist on the class that replaced the now-deprecated
       `HenryPartition` (pre-existing, confirmed broken in the pre-`tutorials-reorg` `demos/` copy
       too). Find the current equivalent and update the call. Once it runs clean, convert to a
       notebook and update `docs/tutorials/reactions/README.md`, same as checkpoint 1. Sanity
-      check: same as checkpoint 1.
+      check: same as checkpoint 1. **Root cause:** `HenryPartition`/`.beta()` are deprecated —
+      `HenryPartition(...)` is now a function that emits `DeprecationWarning` and returns a
+      `HenryEquilibrium`, whose equivalent method is `.partition_ratio()` (same signature, same
+      "ratio >> 1 -> mostly liquid" semantics, just renamed). Updated the script to import and
+      construct `HenryEquilibrium` directly (not the deprecated alias) and renamed all `.beta(`
+      calls to `.partition_ratio(`. Confirmed exit 0, then converted to `partition_model.ipynb`
+      via the same exec-and-capture-stdout harness as checkpoint 1 — output verified to match the
+      script's actual run. Old `.py` deleted; `README.md` row and "Running" section updated (no
+      `.py` files remain in this folder, so the section collapsed to just `jupyter lab`).
 - [ ] 3. Investigate `docs/tutorials/D2C_workshop/raw_construction.py`'s control-loop issue:
       runs (an unrelated import bug was fixed in `tutorials-reorg`) but produces pH 12.089
       against a `PHController(setpoint=5.0)`, plus `ConservationWarning`s for O/C/H and charge
