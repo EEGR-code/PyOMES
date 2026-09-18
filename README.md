@@ -59,7 +59,7 @@ For example, here's a 2 L batch fermenter with pH control, built with the `templ
 
 ```python
 from PyOMES.templates.stirred_tank import StirredTankBuilder
-from PyOMES.control.cv_loops import PHController
+from PyOMES.control import PHController
 
 builder = (
     StirredTankBuilder()
