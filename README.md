@@ -10,14 +10,17 @@
 
 ## What is PyOMES?
 
-A modular framework for simulating fermentation bioreactors and related bioprocesses. Core capabilities:
+A modular framework for simulating fermentation bioreactors and related bioprocesses. 
 
-- Multi-phase, multi-zone reactor modeling (gas headspace, liquid broth, solid material)
-- Aqueous speciation chemistry (pH, ionic strength, carbonate/phosphate/sulfate systems), solved from a set of declared equilibrium reactions
-- Gas-liquid equilibrium (Henry's law + coupled VLE)
-- Stoichiometrically validated reaction networks with fail-fast elemental balance checks
-- Feedback control systems (pressure relief, pH dosing, dissolved oxygen)
-- ODE integration for kinetic models, from a single-step Euler solver up to an adaptive SciPy-backed solver
+Core capabilities:
+- Warnings - built-in diagnostics flag common model problems proactively, across every capability below
+- Reactions - define (bio)chemical reaction phenomena explicitly or use third-party models as plug-ins
+- Phase equilibrium - predict gas-liquid-solid partition behaviour using built-in thermodynamic models (Henry's law + coupled VLE, precipitation equilibrium)
+- Solution chemistry - track solution pH and chemical ionization states
+- Process dynamics - predict time-resolved process behaviour using ODE and ODE-DAE formulations (SciPy-backed solver)
+- Control - implement and assess control frameworks using custom or pre-built controller definitions (e.g. pressure relief, pH dosing, and dissolved oxygen controllers)
+- Multi-zone systems - multi-phase, multi-zone equipment modeling
+
 
 ---
 
