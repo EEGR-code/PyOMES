@@ -216,3 +216,7 @@ docs/tutorials/**/figures/
 
 # Personal review notes / scratch (not part of the package)
 notes/
+
+# General-purpose scratch space (notebook copies, drafts, anything WIP
+# that shouldn't be tracked or committed).
+/scratch/
