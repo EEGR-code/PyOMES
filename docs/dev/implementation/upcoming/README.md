@@ -51,10 +51,15 @@ final of the three sequenced phases.)*
   structurally, from tableau-component non-membership + the species'
   own `.charge` — so an off-allowlist charged species silently drops out
   of the charge balance. Also finds `_STRONG_CHARGES` duplicated
-  verbatim across three separate locations in `nr_engine.py`/
-  `nr_solver.py`. Proposes deriving strong-ion status structurally
-  instead, explicitly scoped to the liquid phase only (matching current,
-  if incidental, behavior). No branch, no checklist, no code yet.
+  verbatim across three locations in `nr_engine.py`/`nr_solver.py`, plus
+  a fully independent copy of the same allowlist pattern in the older
+  `BisectionChemicalEquilibriumEngine` (`engine.py`/`acid_base.py`) — left
+  out of scope, since that engine is still `ReactionSystem`'s *default*
+  solver today, not legacy. Scoped as Phase 0 (decided: de-duplicate the
+  three copies, no behavior change) + Phase 1 (derive structurally,
+  liquid-phase-only by explicit rule); resolves the `S_cat`/`S_an` generic
+  charge-lump question (they should be concrete `Species` declarations,
+  not a special case) along the way. No branch, no checklist, no code yet.
 - **[NOTEBOOK_GENERATOR_REMOVAL.md](NOTEBOOK_GENERATOR_REMOVAL.md)** —
   2026-09-15. Retires the 5 `_generate_notebooks.py` scripts (22
   notebooks across `ChemicalEquilibriumProtocol`, `SolverProtocols`,
