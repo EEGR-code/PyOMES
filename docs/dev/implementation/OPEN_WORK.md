@@ -35,6 +35,41 @@ line-by-line patch. Deliberately **not** done as part of
 one Repository Layout line (`models/fermenter/` — now removed, since
 that directory no longer exists) that was directly about its own move.
 
+## `tests/run_tests.py` imports a deleted `create_standalone_fermenter`
+
+Surfaced 2026-09-18 during a README.md audit (see the "README.md is
+broadly stale" entry above). `tests/run_tests.py` still does
+`from PyOMES import PressureReliefController, PHController,
+create_standalone_fermenter` and calls it in `_fermenter_minimal()` /
+`_fermenter_full()`. That name was never restored after
+`cufermenter-sunset` (2026-06-01) — it isn't exported from
+`PyOMES/__init__.py` and doesn't exist under `models/vlmodels/`
+either, so this script currently fails on import. It isn't part of
+the pytest suite (`pyproject.toml`'s `testpaths` only covers
+`tests/standalone` and `tests/validation`), so it doesn't show up as
+a CI failure — likely why it's gone unnoticed. Needs its own pass:
+either migrate it to `StirredTankBuilder` (mirroring the
+`stirred-tank-template` migration already done for the demo
+notebooks) or delete it if it's fully superseded by
+`tests/standalone`.
+
+## `chemical_equilibrium`'s `use_activity`/`activity_model` split could be one parameter
+
+Surfaced 2026-09-18 during the README.md audit, while checking
+`StirredTankBuilder.chemistry()`'s `use_activity: bool` +
+`activity_model: str = "davies"` signature for the README's Quick
+Start rewrite. The split is threaded from
+`PyOMES.chemical_equilibrium.activity_models.make_activity_model(use_activity,
+activity_model)` through `engine.py`, `factory.py`, and
+`nr_engine.py` — `activity_model` is only meaningful when
+`use_activity=True`, and `"ideal"` is not itself a valid value for
+`activity_model` (it's only reachable via `use_activity=False`).
+Consider collapsing this into a single `activity_model: str`
+parameter that accepts `"ideal"` alongside `"davies"`/`"sit"`,
+removing the separate boolean gate. Touches the builder, the three
+engines above, and their callers — worth scoping as its own small
+phase rather than a drive-by fix.
+
 ## `demos/_bootstrap.py` — resolved 2026-09-16, deleted
 
 Surfaced 2026-09-15 (see above): seven `model_api/` files still
