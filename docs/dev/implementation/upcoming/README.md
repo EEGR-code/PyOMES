@@ -42,6 +42,19 @@ final of the three sequenced phases.)*
   solvers (BDF/Radau), whose per-step Newton-iteration overhead inflates
   `nfev` by design. Proposes a solver-family-aware threshold. No branch, no
   checklist, no code yet.
+- **[STRONG_ION_INFERENCE_GENERALIZATION.md](STRONG_ION_INFERENCE_GENERALIZATION.md)** —
+  2026-09-18. Surfaced while explaining `NRChemicalEquilibriumEngine.solve()`'s
+  `strong_ions=` kwarg for `docs/tutorials/ArXiv_preprint/
+  01_predict_ph_simple_liquid.ipynb`: the phase-based `solve(phases=...)`
+  path derives `strong_ions` from a hardcoded, closed
+  `_STRONG_ION_SPECIES_TO_KEY` allowlist (~15 species) rather than
+  structurally, from tableau-component non-membership + the species'
+  own `.charge` — so an off-allowlist charged species silently drops out
+  of the charge balance. Also finds `_STRONG_CHARGES` duplicated
+  verbatim across three separate locations in `nr_engine.py`/
+  `nr_solver.py`. Proposes deriving strong-ion status structurally
+  instead, explicitly scoped to the liquid phase only (matching current,
+  if incidental, behavior). No branch, no checklist, no code yet.
 - **[NOTEBOOK_GENERATOR_REMOVAL.md](NOTEBOOK_GENERATOR_REMOVAL.md)** —
   2026-09-15. Retires the 5 `_generate_notebooks.py` scripts (22
   notebooks across `ChemicalEquilibriumProtocol`, `SolverProtocols`,
