@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the article below."
+title: PyOMES
+version: 0.12.5
+repository-code: "https://github.com/MGuo-Lab/PyOMES"
+authors:
+  - family-names: Errington
+    given-names: Ethan
+  - family-names: Vinestock
+    given-names: Tom
+  - family-names: Lee
+    given-names: Jaewook
+  - family-names: Guo
+    given-names: Miao
+preferred-citation:
+  type: article
+  title: "PyOMES: an open-source framework for biochemical process modelling"
+  authors:
+    - family-names: Errington
+      given-names: Ethan
+    - family-names: Vinestock
+      given-names: Tom
+    - family-names: Lee
+      given-names: Jaewook
+    - family-names: Guo
+      given-names: Miao
+  year: 2026
+  identifiers:
+    - type: other
+      value: "arXiv:2608.06360"
+  url: "https://arxiv.org/abs/2608.06360"
