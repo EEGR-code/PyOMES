@@ -1,42 +1,47 @@
 # Multi-component complexation and precipitation: implementation plan
 
-> **Shelved 2026-09-20.** Deliberately paused, not abandoned. Reason: no
-> current modelling need for it, nothing else in the package depends on the
-> skeleton, and integration is gated on a full acceptance suite that has not
-> been started. The skeleton stays in place (inert and opt-in).
+> **Shelved 2026-09-20; skeleton removed from the package.** Deliberately
+> paused, not abandoned. Reason: no current modelling need for it, nothing
+> else in the package depended on the skeleton, and integration is gated on
+> a full acceptance suite that had not been started.
 > **Resume when** a concrete model needs coupled multi-metal / citrate /
 > phosphate speciation that `NRTableau` cannot represent (e.g. the
 > growth-medium chemistry behind notebook 08). Its Phase 3 overlaps
 > [`NR_PRECIPITATION_CV_INTEGRATION.md`](NR_PRECIPITATION_CV_INTEGRATION.md),
-> so design the two together. The status block below records what exists and
-> how to pick it up.
+> so design the two together.
 >
-> **Status: partial skeleton, stalled 2026-06-29.** Commit `23e0cb0`
-> ("feat: MULTICOMPONENT_COMPLEXATION — standalone multi-component
-> speciation pathway") added
-> [`PyOMES/chemical_equilibrium/multicomponent/`](../../../../PyOMES/chemical_equilibrium/multicomponent/)
-> — `components.py`, `reactions.py`, `tableau.py`, `network.py`,
-> `inventory.py`, `solver.py`, `residuals.py` (353 lines total) —
-> **directly to `main`**, bypassing this repo's one-branch-per-phase
-> convention (see [`README.md`](README.md)'s branching section). Only
-> `components.py` has tests (8, in
+> **Restoring the skeleton.** The code (`PyOMES/chemical_equilibrium/
+> multicomponent/`, 7 modules plus `__init__.py`, and its 8 tests) was
+> deleted in the `remove-multicomponent-skeleton` change. The last commit
+> that contains it is `69d517a`. To bring it back:
+>
+> ```
+> git checkout 69d517a -- PyOMES/chemical_equilibrium/multicomponent tests/standalone/test_multicomponent_components.py
+> ```
+>
+> **History (as of the 2026-07-09 scoping review).** The skeleton was
+> committed **directly to `main`** on 2026-06-29 (original commit `23e0cb0`,
+> which predates this repo's GitHub history and no longer exists here),
+> bypassing this repo's one-branch-per-phase convention (see
+> [`README.md`](README.md)'s branching section). Modules: `components.py`,
+> `reactions.py`, `tableau.py`, `network.py`, `inventory.py`, `solver.py`,
+> `residuals.py` (353 lines total). Only `components.py` had tests (8, in
 > `tests/standalone/test_multicomponent_components.py`); the other six
-> modules are untested. No `MultiComponentEquilibriumEngine` facade
-> class exists yet (the entry point this plan proposes below). No
-> checklist file was ever written for this work. Notebook 08
+> modules were untested. No `MultiComponentEquilibriumEngine` facade class
+> was ever written (the entry point this plan proposes below), and no
+> checklist file. Notebook 08
 > (`tests/validation/speciation/08_iron_oxidation_and_precipitation.ipynb`,
 > referenced throughout this plan as the acceptance target) was not touched
-> by that commit —
-> `05_precipitation_equilibrium.ipynb` was updated instead.
+> by that commit — `05_precipitation_equilibrium.ipynb` was updated instead.
 >
-> Discovered and documented 2026-07-09 during a scoping review of
-> upcoming work; this banner records the drift found, not a decision to
-> resume or abandon the work. If picked up: retroactively branch
+> If picked up: restore the skeleton as above, branch
 > `multicomponent-complexation` off `main`, write a checklist capturing
-> what already exists against this plan's Phase 1 scope, and continue
-> from there rather than starting over — the existing skeleton follows
-> the plan's proposed module layout (§ "New standalone pathway") and
-> the compatibility rule below has held (nothing in
+> what the restored skeleton covers against this plan's Phase 1 scope, and
+> continue from there rather than starting over. The skeleton broadly
+> followed this plan's proposed module layout (§ "New standalone pathway"),
+> though it lacked `precipitation.py` and `cv_adapter.py` and added
+> `reactions.py`, `network.py`, `inventory.py` and `residuals.py`. The
+> compatibility rule below held (nothing in
 > `BisectionChemicalEquilibriumEngine`/`NRChemicalEquilibriumEngine` was
 > touched).
 
