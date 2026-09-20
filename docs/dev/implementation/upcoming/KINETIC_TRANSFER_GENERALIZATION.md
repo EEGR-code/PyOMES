@@ -19,17 +19,17 @@
 
 ## Where this landed
 
-`KineticTransferModel` today ([`transfer_models.py`](../../src/core/transfer_models.py))
+`KineticTransferModel` today ([`transfer_models.py`](../../../../PyOMES/core/transfer_models.py))
 is pure declarative config — `partition_model`, `k_transfer`,
 `transfer_basis` — with no execution logic of its own. All actual work is
 deferred to `KineticGasLiquidLink`, built by a factory function
 (`_build_transfer_link`,
-[`control_volume.py:46-110`](../../src/core/control_volume.py)) that
+[`control_volume.py:46-110`](../../../../PyOMES/core/control_volume.py)) that
 unpacks a `transfer_models=` dict into the link's `partition_models`/`kLa`/
 `equilibrium_species` fields. `KineticReaction`, by contrast, self-executes
 via an arbitrary user-supplied `rate_fn(env) -> float` and directly
 satisfies `ReactionModel` itself
-([`kinetic.py:48-80`](../../src/reactions/kinetic.py)).
+([`kinetic.py:48-80`](../../../../PyOMES/reactions/kinetic.py)).
 
 This asymmetry is a design choice, not a physical necessity. Transfer
 kinetics today is constrained to first-order linear relaxation
@@ -38,7 +38,7 @@ kinetics today is constrained to first-order linear relaxation
 ordinary `KineticReaction` with cross-phase stoichiometry; nothing wires
 that up as "the" transfer path currently). Resolving the asymmetry is
 desirable independent of `PHENOMENA_PROTOCOL.md`'s taxonomy question — it
-generalizes `VLsim` to model non-linear transfer physics (saturable
+generalizes `PyOMES` to model non-linear transfer physics (saturable
 membrane transport, biofouling-limited `kLa`, …) that linear `kLa` cannot
 express, and matches the existing "sensible default + power-user `rate_fn`
 escape hatch" pattern already shipped in `ReactionBuilder.aerobic_growth`.
@@ -72,7 +72,7 @@ appended to cv.internal_interfaces
 (`source_cv_key`/`source_phase_key`/`sink_cv_key`/`sink_phase_key`/
 `compute_flow`) — with `compute_flux` as a thin adapter that builds a
 synthetic `cvs` dict and delegates to `compute_flow`
-([`gas_liquid_link.py:44-54`](../../src/core/gas_liquid_link.py)).
+([`gas_liquid_link.py:44-54`](../../../../PyOMES/core/gas_liquid_link.py)).
 
 ---
 
@@ -152,7 +152,7 @@ than deciding by default during implementation.
 
 The "simultaneous RHS" benefit this phase is partly motivated by
 (`PHENOMENA_PROTOCOL.md`'s citation of
-[`solvers.py:756-799`](../../src/core/solvers.py)) already works today for
+[`solvers.py:756-799`](../../../../PyOMES/core/solvers.py)) already works today for
 *existing* `KineticTransferModel` instances via `internal_interfaces` —
 generalizing the rate function doesn't change *which* solvers see it.
 `SequentialAdvanceSolver`'s `step_internal_transfer` path must keep working
@@ -197,22 +197,22 @@ doesn't exist yet.
 ## Cross-references
 
 - [`PHENOMENA_PROTOCOL.md`](PHENOMENA_PROTOCOL.md) — Phase 1, depended on.
-- [`MASS_EXCHANGE_ARCHITECTURE.md`](../design/MASS_EXCHANGE_ARCHITECTURE.md)
+- [`MASS_EXCHANGE_ARCHITECTURE.md`](../../ideas/MASS_EXCHANGE_ARCHITECTURE.md)
   §3 (`PartitionModel`/`TransferModel`/`PhaseInterface` invariant — "a
   `TransferModel` never knows chemistry"), §5.3 (gas-liquid transfer
   implementation table).
-- [`src/core/transfer_models.py`](../../src/core/transfer_models.py) —
+- [`PyOMES/core/transfer_models.py`](../../../../PyOMES/core/transfer_models.py) —
   `KineticTransferModel`/`EquilibriumTransferModel` as they exist today.
-- [`src/core/gas_liquid_link.py`](../../src/core/gas_liquid_link.py) —
+- [`PyOMES/core/gas_liquid_link.py`](../../../../PyOMES/core/gas_liquid_link.py) —
   `KineticGasLiquidLink`, the actual executor and dual `PhaseInterface`/
   `CVLink` implementer — now `FlowBoundary`'s two topology cases on one
   object, per `RESERVOIR_TYPE.md` §5.1.
-- [`src/reactions/kinetic.py`](../../src/reactions/kinetic.py) —
+- [`PyOMES/reactions/kinetic.py`](../../../../PyOMES/reactions/kinetic.py) —
   `KineticReaction`, the existing arbitrary-`rate_fn` precedent this phase
   generalizes transfer models toward.
-- [`src/reactions/builder.py`](../../src/reactions/builder.py) —
+- [`PyOMES/reactions/builder.py`](../../../../PyOMES/reactions/builder.py) —
   `ReactionBuilder`'s custom-`rate_fn` escape-hatch precedent (defaults +
   power-user override, the same pattern this phase applies to transfer).
-- [`src/core/solvers.py`](../../src/core/solvers.py) —
+- [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py) —
   `SimultaneousAdaptiveSolver`'s combined-RHS closure; whatever this phase
   builds must keep working correctly inside it.

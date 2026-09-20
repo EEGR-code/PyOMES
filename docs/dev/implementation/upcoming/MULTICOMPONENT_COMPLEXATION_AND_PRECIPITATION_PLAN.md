@@ -3,7 +3,7 @@
 > **Status: partial skeleton, stalled 2026-06-29.** Commit `23e0cb0`
 > ("feat: MULTICOMPONENT_COMPLEXATION — standalone multi-component
 > speciation pathway") added
-> [`src/chemical_equilibrium/multicomponent/`](../../src/chemical_equilibrium/multicomponent/)
+> [`PyOMES/chemical_equilibrium/multicomponent/`](../../../../PyOMES/chemical_equilibrium/multicomponent/)
 > — `components.py`, `reactions.py`, `tableau.py`, `network.py`,
 > `inventory.py`, `solver.py`, `residuals.py` (353 lines total) —
 > **directly to `main`**, bypassing this repo's one-branch-per-phase
@@ -13,8 +13,9 @@
 > modules are untested. No `MultiComponentEquilibriumEngine` facade
 > class exists yet (the entry point this plan proposes below). No
 > checklist file was ever written for this work. Notebook 08
-> (`08_iron_oxidation_and_precipitation.ipynb`, referenced throughout
-> this plan as the acceptance target) was not touched by that commit —
+> (`tests/validation/speciation/08_iron_oxidation_and_precipitation.ipynb`,
+> referenced throughout this plan as the acceptance target) was not touched
+> by that commit —
 > `05_precipitation_equilibrium.ipynb` was updated instead.
 >
 > Discovered and documented 2026-07-09 during a scoping review of
@@ -84,7 +85,7 @@ inside a kinetic `ControlVolume` therefore risks apparent mass loss.
 Create a new package, for example:
 
 ```text
-src/chemical_equilibrium/multicomponent/
+PyOMES/chemical_equilibrium/multicomponent/
     __init__.py
     components.py
     tableau.py
@@ -96,7 +97,7 @@ src/chemical_equilibrium/multicomponent/
 Suggested public entry point:
 
 ```python
-from VLsim.chemical_equilibrium.multicomponent import MultiComponentEquilibriumEngine
+from PyOMES.chemical_equilibrium.multicomponent import MultiComponentEquilibriumEngine
 ```
 
 The new engine must not be constructed by `ReactionSystem.engine`.  Notebook 08

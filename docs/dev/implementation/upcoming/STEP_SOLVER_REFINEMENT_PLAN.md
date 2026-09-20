@@ -12,8 +12,8 @@ Implementation plan for the work described in
 [../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md](../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)
 (shipped; moved from `upcoming/` when Stage 1 shipped) and the
 "interleaving" thread in
-[`../design/MASS_EXCHANGE_ARCHITECTURE.md`](../design/MASS_EXCHANGE_ARCHITECTURE.md)
-§10–13 and [`../design/SOLVER_ARCHITECTURE.md`](../design/SOLVER_ARCHITECTURE.md)'s
+[`../../ideas/MASS_EXCHANGE_ARCHITECTURE.md`](../../ideas/MASS_EXCHANGE_ARCHITECTURE.md)
+§10–13 and [`../../ideas/SOLVER_ARCHITECTURE.md`](../../ideas/SOLVER_ARCHITECTURE.md)'s
 "Identified extensions". Those two docs are the source of truth for
 *why*; this plan pins the **slicing**, the **branch/tag layout**, and
 what's ready to checklist now versus what still needs a design
@@ -87,20 +87,20 @@ wonder why they're absent from this plan.
 Confirmed directly against code before this plan was written (not
 assumed from the docs):
 
-- `cv._context` exists ([`control_volume.py:312`](../../src/core/control_volume.py#L312))
-  but `advance()` ([`control_volume.py:516`](../../src/core/control_volume.py#L516))
+- `cv._context` exists ([`control_volume.py:312`](../../../../PyOMES/core/control_volume.py#L312))
+  but `advance()` ([`control_volume.py:516`](../../../../PyOMES/core/control_volume.py#L516))
   has no check against it — item 1's gap is real.
-- `MonolithicODESolver.advance_system()` ([`system_solver.py:858`](../../src/core/system_solver.py#L858))
+- `MonolithicODESolver.advance_system()` ([`system_solver.py:858`](../../../../PyOMES/core/system_solver.py#L858))
   never calls `sim._solver_for`/reads `sim.solver` — item 2's gap is
   real. Contrast with the four other `SystemSolver`s, all of which do
-  ([`system_solver.py:243`](../../src/core/system_solver.py#L243) inside
-  `StrangSplittingSystemSolver`, [`:346`](../../src/core/system_solver.py#L346)
-  inside `MultirateSystemSolver`, [`:557`](../../src/core/system_solver.py#L557)
+  ([`system_solver.py:243`](../../../../PyOMES/core/system_solver.py#L243) inside
+  `StrangSplittingSystemSolver`, [`:346`](../../../../PyOMES/core/system_solver.py#L346)
+  inside `MultirateSystemSolver`, [`:557`](../../../../PyOMES/core/system_solver.py#L557)
   inside `ImplicitTransportSystemSolver`, and
-  [`simulation.py:859`](../../src/core/simulation.py#L859) inside
+  [`simulation.py:859`](../../../../PyOMES/core/simulation.py#L859) inside
   `Simulation._step_default` — the path `ExplicitEulerSystemSolver`
   transparently forwards to).
-- `_build_rhs()` ([`system_solver.py:714-736`](../../src/core/system_solver.py#L714-L736))
+- `_build_rhs()` ([`system_solver.py:714-736`](../../../../PyOMES/core/system_solver.py#L714-L736))
   moves each species independently at its own `kLa`/`Q`, no gray-box
   Jacobian consulted — the D_eff gap (§10.3) is real and unchanged
   since `MASS_EXCHANGE_ARCHITECTURE.md` §10.4 was last corrected
