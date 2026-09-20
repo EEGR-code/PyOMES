@@ -17,7 +17,7 @@ import sys
 
 import pytest
 
-from PyOMES.chemical_equilibrium.phreeqc_engine import (
+from PyOMES.chemical_equilibrium.engines.phreeqc import (
     PHREEQCChemicalEquilibriumEngine,
     _strip_oxidation_state,
     phreeqc_to_vlsim,

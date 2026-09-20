@@ -236,8 +236,25 @@
       (1)–(2) are recorded in the recipe-layer section of
       `STRONG_ION_INFERENCE_GENERALIZATION.md`, next to the
       `SALT_DISSOCIATION_MAP` question they now join._
-- [ ] 10. `git mv phreeqc_engine.py engines/phreeqc.py`. Run
+- [x] 10. `git mv phreeqc_engine.py engines/phreeqc.py`. Run
       `tests/validation/speciation/`.
+      _Notes: one `git mv` rename. The file's only relative import was
+      `.protocols` → `..protocols` (three dots would apply to a parent-package
+      import such as `..units`; the file has none — `phreeqpython` is an
+      absolute lazy import inside `__init__`, unchanged). Old dotted path
+      rewritten in 8 files (8 replacements, exactly the checkpoint-1 inventory):
+      `bisection/engine.py` and `phreeqc.py` docstrings, `test_phreeqc_engine.py`,
+      `test_phreeqc_nr_agreement.py`, the ArXiv generator template,
+      notebooks `ArXiv/01`, `validation/10` and `protocols/03`. **Silent-skip
+      trap checked:** ArXiv `01` and validation `10` wrap the import in
+      `try/except ImportError` and would have *silently skipped* their PHREEQC
+      cells on a wrong path; confirmed `_HAVE_PHREEQC = True` and
+      `HAS_PHREEQC = True` with the engine's `__module__` now
+      `...engines.phreeqc`. Verified: new 182-value PHREEQC fingerprint
+      (real `phreeqpython 1.6.2` solves, 3 temperatures × 2 systems × 2 calls
+      for the cache path, plus name-translation functions) byte-identical
+      before/after; Bisection and NR fingerprints still byte-identical; old
+      path raises `ModuleNotFoundError`; full suite 2080 passed (unchanged)._
 - [ ] 11. Update the package `__init__.py` re-exports, then external callers:
       `PyOMES/reactions/reaction_system.py`, `models/vlmodels/adm1/{base,bsm2}.py`,
       both notebook generators, notebooks, tests. Finish with a repo-wide

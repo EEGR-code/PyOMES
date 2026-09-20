@@ -313,7 +313,7 @@ reports that and the rest of the notebook is unaffected.\
 
     code("phreeqc-setup", """\
 try:
-    from PyOMES.chemical_equilibrium.phreeqc_engine import PHREEQCChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.phreeqc import PHREEQCChemicalEquilibriumEngine
     _HAVE_PHREEQC = True
     print("phreeqpython available - PHREEQC benchmark cells will run.")
 except ImportError as exc:

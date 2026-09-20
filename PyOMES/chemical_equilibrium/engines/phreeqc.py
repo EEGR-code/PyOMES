@@ -27,7 +27,7 @@ Usage
 -----
 ::
 
-    from PyOMES.chemical_equilibrium.phreeqc_engine import PHREEQCChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.phreeqc import PHREEQCChemicalEquilibriumEngine
 
     engine = PHREEQCChemicalEquilibriumEngine(
         {"CO2": 1.0, "NH3": 0.5},          # priming composition, mmol/L
@@ -41,7 +41,7 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Dict, FrozenSet, Optional
 
-from .protocols import EquilibriumResult
+from ..protocols import EquilibriumResult
 
 # ---------------------------------------------------------------------------
 # Name-translation utilities (no phreeqpython dependency)
