@@ -501,13 +501,12 @@ phases — re-decide before picking any of them up.
   **shelved 2026-09-20.** A separate, standalone-by-design engine for
   coupled multi-metal / citrate / phosphate chemistry that `NRTableau` can't
   represent. A partial skeleton (7 modules, 353 lines, only `components.py`
-  tested) sits in `PyOMES/chemical_equilibrium/multicomponent/`, committed
-  directly to `main` on 2026-06-29 without a branch or checklist; nothing
-  else in the package uses it. Resume when a concrete model needs this
-  chemistry. Its Phase 3 (a persistent solid-phase adapter) overlaps
-  `NR_PRECIPITATION_CV_INTEGRATION` above, so design the two together. See
-  the banner at the top of that doc for the current status and how to pick
-  it up.
+  tested) was committed directly to `main` on 2026-06-29 without a branch or
+  checklist. Nothing else in the package used it, so it was **removed from
+  the package on 2026-09-20**; it can be restored from commit `69d517a` (the
+  plan's banner has the exact command). Resume when a concrete model needs
+  this chemistry. Its Phase 3 (a persistent solid-phase adapter) overlaps
+  `NR_PRECIPITATION_CV_INTEGRATION` above, so design the two together.
 
 ---
 
