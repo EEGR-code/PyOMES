@@ -18,11 +18,11 @@ Two solve paths are available inside :meth:`BisectionChemicalEquilibriumEngine.s
   :class:`~PyOMES.chemistry.equilibria.EquilibriumSet` (built by
   :meth:`~BisectionChemicalEquilibriumEngine.from_reactions`), concentrations are read
   from the phase state and the charge balance is solved via
-  :func:`~PyOMES.chemical_equilibrium.acid_base.solve_from_equilibrium_set`.
+  :func:`~PyOMES.chemical_equilibrium.engines.bisection.acid_base.solve_from_equilibrium_set`.
 - **Legacy path** (backward compatibility): when explicit
   ``acid_totals``/``acid_pKas``/``CT_TIC`` keyword arguments are
   supplied without an ``EquilibriumSet``, the solver falls back to
-  :func:`~PyOMES.chemical_equilibrium.acid_base.solve_acid_base` directly.
+  :func:`~PyOMES.chemical_equilibrium.engines.bisection.acid_base.solve_acid_base` directly.
 
 :meth:`BisectionChemicalEquilibriumEngine.solve` returns an immutable
 :class:`~PyOMES.chemical_equilibrium.protocols.EquilibriumResult`. It makes no
@@ -41,8 +41,8 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 from .acid_base import solve_acid_base, solve_from_equilibrium_set
-from ..thermo import make_activity_model
-from .protocols import EquilibriumResult
+from ....thermo import make_activity_model
+from ...protocols import EquilibriumResult
 
 
 # Special-case total_key mapping for species whose tracking key deviates
@@ -199,8 +199,8 @@ class BisectionChemicalEquilibriumEngine:
             solid-liquid items live on ``engine.cross_phase_constraints``.
         """
         from collections import defaultdict
-        from ..chemistry.equilibria import EquilibriumSet
-        from ..reactions.equilibrium import (
+        from ....chemistry.equilibria import EquilibriumSet
+        from ....reactions.equilibrium import (
             EquilibriumConstraint, EquilibriumReaction,
             classify_equilibrium_constraint,
         )

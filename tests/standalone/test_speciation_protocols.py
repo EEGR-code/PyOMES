@@ -79,7 +79,7 @@ def _make_reactions():
 
 @pytest.fixture(scope="module")
 def speciation_engine():
-    from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
     return BisectionChemicalEquilibriumEngine.from_reactions(_make_reactions())
 
 

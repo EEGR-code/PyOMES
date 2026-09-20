@@ -325,7 +325,7 @@ class TestNRSolverDirect:
 
 def _cb_engine():
     """Build the existing BisectionChemicalEquilibriumEngine for the bespoke chemistry."""
-    from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
     return BisectionChemicalEquilibriumEngine.from_reactions(_make_reactions())
 
 
@@ -426,7 +426,7 @@ class TestReactionSystemRouter:
 
     def test_default_is_charge_balance(self):
         from PyOMES.reactions.reaction_system import ReactionSystem
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         rs = ReactionSystem(_make_reactions())
         assert rs._solver == "charge_balance"
         eng = rs.engine

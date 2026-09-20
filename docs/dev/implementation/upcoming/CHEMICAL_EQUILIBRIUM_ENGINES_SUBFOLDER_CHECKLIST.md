@@ -175,9 +175,31 @@
       814-value fingerprint byte-identical before/after (same SHA-256); old
       path now raises `ModuleNotFoundError`; 10 changed notebooks run;
       generators compile; full suite 2080 passed (unchanged)._
-- [ ] 9. `git mv` the Bisection files into `engines/bisection/` (`engine.py`,
+- [x] 9. `git mv` the Bisection files into `engines/bisection/` (`engine.py`,
       `acid_base.py`, `__init__.py`). Run `test_speciation*.py` and
       `test_bisection_chemical_equilibrium_engine_alias.py`.
+      _Notes: two `git mv` renames plus a docstring-only
+      `engines/bisection/__init__.py`. Inside the moved files: `.acid_base`
+      stays (sibling); `..thermo` → `....thermo`; `.protocols` → `...protocols`;
+      `.activity` → `...activity` (acid_base, incl. its lazy import); lazy
+      `..chemistry.equilibria` / `..reactions.equilibrium` → four dots
+      (engine). Staying files repointed: `api.py`, `factory.py`, package
+      `__init__.py` (import + the `solve_acid_base` re-export). Old dotted paths
+      rewritten in 23 tracked `.py`/`.ipynb` files (38 replacements: 34
+      `engine`, 4 `acid_base`): tests, `reactions/reaction_system.py`,
+      `adm1/{base,bsm2}.py`, generator template, 3 notebooks, docstrings. The
+      `unittest.mock.patch.object(_eng_mod, "solve_acid_base")` in
+      `test_speciation.py` still works (patches the name in the moved module).
+      Verified: new 271-value fingerprint of the Bisection path (engine class at
+      4 temperatures ± activity, `get_CO2aq_from_totals`, the legacy
+      `ChemicalEquilibriumEngine` alias, `SpeciationFactory` + adapter in both
+      policies, direct `solve_acid_base`, and "package re-export is the same
+      callable") byte-identical before/after; the checkpoint-8 NR fingerprint
+      still byte-identical; old paths raise `ModuleNotFoundError`; 3 changed
+      notebooks run (from the scratch dir); generator compiles; full suite 2080
+      passed (unchanged). Housekeeping: a stray untracked `figures/` folder
+      created by my checkpoint-8 notebook run (cwd was the repo root) was
+      found and removed; later notebook runs use the scratch dir._
 - [ ] 10. `git mv phreeqc_engine.py engines/phreeqc.py`. Run
       `tests/validation/speciation/`.
 - [ ] 11. Update the package `__init__.py` re-exports, then external callers:

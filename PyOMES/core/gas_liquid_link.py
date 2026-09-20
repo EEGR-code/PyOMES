@@ -925,7 +925,7 @@ class KineticGasLiquidLink:
         (e.g. ``CO2``), the liquid-side TOTAL inventory is the sum of
         all related molecular species in n_mol (e.g. ``CO2aq`` +
         ``HCO3-`` + ``CO3--``). The ladder is looked up by gas-side
-        key via :data:`~PyOMES.chemical_equilibrium.acid_base._CANONICAL_NAMES`;
+        key via :data:`~PyOMES.chemical_equilibrium.engines.bisection.acid_base._CANONICAL_NAMES`;
         species without a recognised ladder fall back to a single
         n_mol entry under the same key (e.g. ``O2``, ``N2``).
 
@@ -955,7 +955,7 @@ class KineticGasLiquidLink:
         where ``mol_key = speciation_keys[species]`` (the molecular
         form's species id) and ``ladder`` is the canonical-name set
         for the gas species, looked up via
-        :data:`~PyOMES.chemical_equilibrium.acid_base._CANONICAL_NAMES`.
+        :data:`~PyOMES.chemical_equilibrium.engines.bisection.acid_base._CANONICAL_NAMES`.
 
         Returns ``None`` when:
 

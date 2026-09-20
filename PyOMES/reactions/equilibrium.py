@@ -15,7 +15,7 @@ shared base class; shared validation logic lives as free functions in
 ``_shared.py``.
 
 Equilibrium reactions have no rate; they are routed to
-:class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine` as algebraic
+:class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine` as algebraic
 constraints (with ``log_K`` setting their constant), or to
 :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink` as partition
 declarations (cross-phase reactions). They do not implement
@@ -278,9 +278,9 @@ class EquilibriumReaction:
         :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink`
         which liquid molecular form corresponds to a given gas
         species. They are not thermodynamic constraints solved by
-        :class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine`; the
+        :class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine`; the
         engine's
-        :meth:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine.from_reactions`
+        :meth:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine.from_reactions`
         skips them silently.
         """
         return is_cross_phase_from_entries(self.stoichiometry)

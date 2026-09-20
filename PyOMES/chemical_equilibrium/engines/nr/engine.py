@@ -2,7 +2,7 @@
 """Newton-Raphson speciation engine.
 
 :class:`NRChemicalEquilibriumEngine` is a drop-in alternative to
-:class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine` that solves aqueous
+:class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine` that solves aqueous
 equilibrium chemistry via a full Newton-Raphson system in log-activity
 space rather than the 1-D charge-balance bisection used by the existing
 engine.

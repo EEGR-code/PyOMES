@@ -170,6 +170,6 @@ def is_cross_phase_from_entries(
     derived property. Cross-phase equilibrium reactions are
     partition declarations consumed by
     :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink`, not by
-    :class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine`.
+    :class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine`.
     """
     return len({e.phase for e in entries}) > 1

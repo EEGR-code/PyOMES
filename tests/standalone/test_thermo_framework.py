@@ -107,7 +107,7 @@ class TestThermoFrameworkKwAtT:
 
 class TestChemicalEquilibriumEngineThermo:
     def test_thermo_overrides_explicit_kwargs(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         from PyOMES.thermo import ThermoFramework, DaviesLiquidModel
         tf = ThermoFramework(liquid_activity=DaviesLiquidModel())
         eng = BisectionChemicalEquilibriumEngine(
@@ -119,13 +119,13 @@ class TestChemicalEquilibriumEngineThermo:
         assert eng.activity_model == "davies"
 
     def test_no_thermo_uses_explicit(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         eng = BisectionChemicalEquilibriumEngine(use_activity=True, activity_model="ideal")
         assert eng.use_activity is True
         assert eng.activity_model == "ideal"
 
     def test_thermo_liquid_activity_stored(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         from PyOMES.thermo import ThermoFramework, DaviesLiquidModel
         model = DaviesLiquidModel()
         tf = ThermoFramework(liquid_activity=model)

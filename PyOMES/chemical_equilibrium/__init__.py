@@ -1,9 +1,9 @@
-from .engine import BisectionChemicalEquilibriumEngine, ChemicalEquilibriumEngine
+from .engines.bisection.engine import BisectionChemicalEquilibriumEngine, ChemicalEquilibriumEngine
 from .protocols import EquilibriumResult
 from .api import SpeciationEngineAdapter
 from .factory import SpeciationFactory
 from .activity import ionic_strength_from_speciation, warn_if_high_ionic_strength
-from .acid_base import solve_acid_base
+from .engines.bisection.acid_base import solve_acid_base
 
 __all__ = [
     "BisectionChemicalEquilibriumEngine",

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .engine import BisectionChemicalEquilibriumEngine
+from .engines.bisection.engine import BisectionChemicalEquilibriumEngine
 from .api import SpeciationEngineAdapter
 
 

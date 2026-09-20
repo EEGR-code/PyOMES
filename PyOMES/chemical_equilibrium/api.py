@@ -1,6 +1,6 @@
 """Public API wrapper for the speciation engine.
 
-The existing :class:`PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine` is optimized
+The existing :class:`PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine` is optimized
 for being called inside ODE loops via a keyword-heavy ``solve(...)`` method.
 
 For the orchestrator refactor we want a *stable*, typed interface that can be
@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from ..chemistry.types import AqueousTotals, AqueousTotalsUser, AqueousEquilibrium
-from .engine import BisectionChemicalEquilibriumEngine
+from .engines.bisection.engine import BisectionChemicalEquilibriumEngine
 
 
 @dataclass
@@ -101,7 +101,7 @@ class SpeciationEngineAdapter:
     def get_CO2aq_from_totals(self, totals: AqueousTotals | AqueousTotalsUser, *, options: Optional[Dict[str, Any]] = None) -> float:
         """Convenience wrapper for Henry-law coupling.
 
-        Mirrors :meth:`PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine.get_CO2aq_from_totals`.
+        Mirrors :meth:`PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine.get_CO2aq_from_totals`.
         """
         if isinstance(totals, AqueousTotalsUser):
             totals_eng = totals.to_engine()

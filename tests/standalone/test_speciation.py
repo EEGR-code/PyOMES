@@ -6,7 +6,7 @@ published reference values.  No bioSTEAM dependency.
 
 import pytest
 import numpy as np
-from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
 
 
 def _solve_simple(*, CT_TIC=0.0, acid_totals=None, acid_pKas=None,
@@ -315,7 +315,7 @@ class TestChemicalEquilibriumEngineTemperatureOverride:
         engine = BisectionChemicalEquilibriumEngine(T_C=25.0)
         received = {}
 
-        import PyOMES.chemical_equilibrium.engine as _eng_mod
+        import PyOMES.chemical_equilibrium.engines.bisection.engine as _eng_mod
         original_fn = _eng_mod.solve_acid_base
 
         def capturing_fn(**kwargs):

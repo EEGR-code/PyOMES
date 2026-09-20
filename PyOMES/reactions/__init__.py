@@ -9,7 +9,7 @@ This package provides:
 - :class:`EquilibriumReaction` — a single algebraic equilibrium
   constraint with an equilibrium constant and optional Van 't Hoff
   temperature parameters, routed to
-  :class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine` (single-phase) or
+  :class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine` (single-phase) or
   :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink`
   (cross-phase partition declarations).
 - :class:`ReactionSystem` — single attach point for all reactions on a

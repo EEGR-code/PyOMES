@@ -428,7 +428,7 @@ discrepancies are expected and grow with the step number:
 SETUP2 = SETUP.replace(
     "from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine",
     "from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine\n"
-    "from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine",
+    "from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine",
 )
 
 multi_nb = nb(

@@ -169,12 +169,12 @@ class TestClassifyEquilibriumConstraint:
 
 class TestChemicalEquilibriumEngineCrossPhaseExposure:
     def test_default_cross_phase_constraints_empty(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         eng = BisectionChemicalEquilibriumEngine()
         assert eng.cross_phase_constraints == ()
 
     def test_cross_phase_reaction_not_dropped_silently(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         partition_decl = _co2_gas_liquid_declaration()
         eng = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction(), partition_decl], T_K=298.15,
@@ -183,7 +183,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
         assert eng.cross_phase_constraints[0] is partition_decl
 
     def test_henry_equilibrium_exposed_as_cross_phase(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         henry = _henry_co2()
         eng = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction(), henry], T_K=298.15,
@@ -191,7 +191,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
         assert henry in eng.cross_phase_constraints
 
     def test_no_cross_phase_items_gives_empty_tuple(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         eng = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction()], T_K=298.15,
         )
@@ -199,7 +199,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
 
     def test_acid_base_solve_unaffected_by_cross_phase_item_presence(self):
         from PyOMES.core.phases import LiquidPhase
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         eng_plain = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction()], T_K=298.15,
         )
@@ -214,7 +214,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
         assert out_plain["HCO3-"] == pytest.approx(out_mixed["HCO3-"])
 
     def test_non_conforming_item_raises_value_error(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         with pytest.raises(ValueError):
             BisectionChemicalEquilibriumEngine.from_reactions([_water_reaction(), object()], T_K=298.15)
 
