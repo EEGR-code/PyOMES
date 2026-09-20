@@ -54,11 +54,19 @@
 
 **Part A — thermo consolidation** (retire `activity_models.py` / `sit.py`)
 
-- [ ] 2. Add `ActivityModel` and `make_activity_model` to `thermo/` (in
+- [x] 2. Add `ActivityModel` and `make_activity_model` to `thermo/` (in
       `liquid_phase_model.py` or a small `thermo/factory.py` — decide here);
       export from `PyOMES.thermo`. Fix the stale `PyOMES/speciation/`
       docstring paths in `liquid_phase_model.py`. `activity_models.py` still
       exists after this checkpoint.
+      _Decided: `ActivityModel` protocol in `thermo/liquid_phase_model.py`
+      (next to its sibling `LiquidPhaseModel`); `make_activity_model` in new
+      `thermo/factory.py` (top-level imports, no import cycle). Old-vs-new
+      factory checked equal on 10 valid + 3 error inputs;
+      `test_liquid_phase_model`, `test_thermo_framework`, `test_speciation`,
+      `test_nr_tableau_gas_liquid`: 116 passed. Left for you:
+      `thermo/water_properties.py:6` also has a stale `PyOMES/speciation/`
+      mention (outside the plan's scope)._
 - [ ] 3. Repoint importers at `PyOMES.thermo`: `engine.py`, `nr_engine.py`,
       `acid_base.py`, `activity.py` (`thermo.water_properties`),
       `test_nr_tableau_gas_liquid.py`, and the `DaviesActivityModel` users in
