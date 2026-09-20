@@ -67,16 +67,18 @@ that still describe open work are "Open phases" and the pending stages in
   charge-lump question (they should be concrete `Species` declarations,
   not a special case) along the way. No branch, no checklist, no code yet.
 - **[NOTEBOOK_GENERATOR_REMOVAL.md](NOTEBOOK_GENERATOR_REMOVAL.md)** —
-  2026-09-15. Retires the 5 `_generate_notebooks.py` scripts (22
-  notebooks across `ChemicalEquilibriumProtocol`, `SolverProtocols`,
-  `speciation`, `usecases`, `docs/tutorials`) in favor of every notebook
+  2026-09-15, re-audited 2026-09-20. Retires the 2 remaining
+  `_generate_notebooks.py` scripts (13 notebooks: `ArXiv_preprint` and
+  `tests/validation/speciation`; 5 scripts at the original audit, the other
+  three have since been deleted by other phases) in favor of every notebook
   being hand-edited and committed with its outputs embedded — the
   biosteam-style convention, chosen over keeping the generators (with a
   CI discipline bolted on) or extracting their duplicated boilerplate
   into a shared module. Confirmed real duplication exists (the
   water/phosphate/ammonium reaction network retyped in 3+ places) and is
   a known, accepted cost of this choice. Adds a CI check for
-  code-cell-has-source-but-no-output drift. No Sphinx/mkdocs/jupyter-book
+  never-executed code cells (drift between source and saved outputs; the
+  exact rule is still an open question). No Sphinx/mkdocs/jupyter-book
   — explicitly out of scope. No branch, no checklist, no code yet.
 - **[RESERVOIR_TYPE.md](RESERVOIR_TYPE.md)** — 2026-07-10, revised
   2026-07-10. Now concludes with `FlowBoundary`, a real unifying protocol
@@ -484,14 +486,22 @@ of the NR speciation engine shipped in `nr-speciation-engine`.
   Phase 2: CV/SolidPhase integration. `_read_from_phases` sums solid
   contribution; `SolidPhase` writeback; consistent phase-type validation across
   all three phase types on `ControlVolume`. Phase 1 has shipped, so this is
-  unblocked; not yet started.
+  unblocked; not yet started. **Needs re-derivation before pickup:** the note
+  predates `EQUILIBRIUM_CONSTRAINT_UNIFICATION` and `LAYER1_GAP_CLOSURE`
+  (which changed how precipitation is classified and folded into the
+  solve), and its file paths use the old `src/` layout — re-check its design
+  against the current code first.
 
 - **[MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md](MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md)** —
   a separate, standalone-by-design track (Fe/Ca/phosphate/citrate networks
   `NRTableau` can't represent). **Partial skeleton, stalled 2026-06-29** —
   see the status banner at the top of that doc; committed directly to `main`
   without a branch or checklist, only one of seven modules tested. Not part
-  of the two-phase NR Precipitation sequence above.
+  of the two-phase NR Precipitation sequence above. **Needs a decision
+  before pickup:** its body still uses the old `src/` paths and `VLsim`
+  name, and its Phase 3 (a persistent solid-phase adapter) overlaps
+  `NR_PRECIPITATION_CV_INTEGRATION` above — settle resume-or-shelve, and how
+  the two fit together, first.
 
 ---
 

@@ -20,6 +20,31 @@
 > `demos/aerobic_fermentation_stoichiometry.ipynb` moved to
 > `docs/tutorials/reactions/aerobic_fermentation_stoichiometry.ipynb`
 > (path below updated to match).
+>
+> **Update 2026-09-20 (re-audit against `main`):** scope had drifted further.
+> Current state of the 32 tracked notebooks (the gitignored `scratch/`
+> folder is not counted):
+>
+> - **2 generator scripts remain**, not 4: `docs/tutorials/ArXiv_preprint/
+>   _generate_notebooks.py` (3 notebooks) and `tests/validation/speciation/
+>   _generate_notebooks.py` (10 notebooks) — 13 notebooks in scope for
+>   conversion. The `ChemicalEquilibriumProtocol` and `SolverProtocols`
+>   generators were deleted 2026-09-16 (`tutorials-reorg`); their 7
+>   notebooks now live as standalone files in `docs/tutorials/protocols/`,
+>   all with outputs embedded.
+> - **6 notebooks have no executed cells at all**: `ArXiv_preprint` 01 and
+>   03, `D2C_workshop` Example2 and Example3,
+>   `reactions/aerobic_fermentation_stoichiometry`, and
+>   `templates/batch_fermenter`. Two more (`ArXiv_preprint` 02, `D2C_workshop`
+>   Example1) contain a few cells that were never executed.
+> - The D2C workshop has 4 notebooks, not 7.
+> - The CI rule proposed below ("a code cell has source but empty outputs")
+>   would false-positive on cells that ran but print nothing — see Open
+>   question 3.
+>
+> The counts quoted in the "Why", "Alternatives considered" and "Known cost"
+> sections below are the September audit's and are left as originally
+> written, as a record of that audit.
 
 ## Commit discipline for this phase
 
@@ -38,9 +63,10 @@ plots inline on GitHub without needing local execution. Concretely:
 
 1. Every committed `.ipynb` carries its outputs (execute-and-save before
    commit is normal practice, not an afterthought).
-2. The 5 `_generate_notebooks.py` scripts are retired — notebooks they
-   currently build become standalone, hand-edited files like any other
-   notebook in the repo.
+2. The remaining 2 `_generate_notebooks.py` scripts (`ArXiv_preprint` and
+   `tests/validation/speciation`) are retired — notebooks they currently
+   build become standalone, hand-edited files like any other notebook in
+   the repo.
 3. A CI check is added that fails a push/PR if any code cell has
    non-empty source but empty `outputs` — catches "edited but forgot to
    execute-and-save" without needing CI to write back to the branch.
@@ -110,37 +136,33 @@ reader doesn't rediscover the duplication and assume it was missed.
 
 ## Scope
 
-4 generator scripts left to retire (5 at the September 2026 audit;
-`demos/usecases/_generate_notebooks.py` deleted 2026-09-17, see Update
-banner above). Notebook counts from the September 2026 audit;
-`demos/usecases/_generate_notebooks.py` and
-`docs/tutorials/_generate_notebooks.py` counts updated post-`tutorials-reorg`,
-which deleted `04_compare_runtime_by_usecase.ipynb`, moved the latter script
-to `docs/tutorials/ArXiv_preprint/_generate_notebooks.py`, and moved
-`demos/model_api/chemistry/speciation/` to `tests/validation/speciation/`
-wholesale (generator included) — see `TUTORIALS_REORG_CHECKLIST.md`):
+2 generator scripts left to retire (5 at the September 2026 audit). The
+other three are already gone: the `ChemicalEquilibriumProtocol` and
+`SolverProtocols` generators were deleted 2026-09-16 by `tutorials-reorg`
+(see `TUTORIALS_REORG_CHECKLIST.md`) and `demos/usecases/_generate_notebooks.py`
+on 2026-09-17. Counts as of the 2026-09-20 re-audit:
 
 | Generator script | Notebooks produced |
 |---|---|
-| `demos/features/ChemicalEquilibriumProtocol/_generate_notebooks.py` | `01`, `02`, `03`, `0_README` (4) |
-| `demos/features/SolverProtocols/_generate_notebooks.py` | `01`, `0_README` (2) |
 | `tests/validation/speciation/_generate_notebooks.py` | `01`–`08`, `0_README`, `10` (10) |
-| ~~`demos/usecases/_generate_notebooks.py`~~ | ~~`0_README`, `03` (2)~~ — deleted 2026-09-17, see Update banner above |
 | `docs/tutorials/ArXiv_preprint/_generate_notebooks.py` | `01`, `02`, `03` (3) |
 
-19 notebooks total currently generator-produced (was 21). The remaining 9
-are already standalone/hand-authored and unaffected by the generator
-removal, but are in scope for the "every notebook carries its outputs"
-policy: `docs/tutorials/reactions/aerobic_fermentation_stoichiometry.ipynb`,
-`demos/builder/batch_fermenter.ipynb`, and the 7 `D2Cworkshop`
-notebooks.
+13 notebooks are currently generator-produced. The other 19 tracked
+notebooks are already standalone/hand-authored and unaffected by the
+generator removal, but are in scope for the "every notebook carries its
+outputs" policy: the 7 in `docs/tutorials/protocols/` (the former
+generator-produced ones), the 4 in `docs/tutorials/D2C_workshop/`, 6 in
+`docs/tutorials/reactions/` (including
+`aerobic_fermentation_stoichiometry.ipynb`), `docs/tutorials/results/
+01_exporting_results.ipynb`, and `docs/tutorials/templates/
+batch_fermenter.ipynb`.
 
 ## Policy adopted
 
 1. Every committed `.ipynb` carries its outputs. No exceptions besides
    genuinely output-free notebooks (pure-markdown `0_README.ipynb`
    files).
-2. The 5 `_generate_notebooks.py` scripts are deleted once their
+2. The remaining 2 `_generate_notebooks.py` scripts are deleted once their
    notebooks are converted to standalone files.
 3. CI gains a check that fails the push/PR if any code cell has
    non-empty source but empty `outputs`.
@@ -157,11 +179,17 @@ notebooks.
    Option-3-style extraction later if drift becomes a real maintenance
    problem.
 2. **Conversion order.** Convert folder-by-folder (smallest first —
-   `SolverProtocols`, 2 notebooks) or all 5 generator folders in one
-   pass? Not decided.
+   `ArXiv_preprint`, 3 notebooks, then `tests/validation/speciation`, 10)
+   or both generator folders in one pass? Not decided.
 3. **CI mechanism.** A small custom script comparing `outputs` against
    `source` per cell, or an existing tool (`nbval` / `pytest --nbval`,
    which re-executes and diffs — stronger but slower)? Not decided.
+   **Caveat found 2026-09-20:** the rule as stated in Goal 3 ("non-empty
+   source but empty `outputs`") false-positives on cells that ran but print
+   nothing — e.g. `07_iron_oxidation` cell 12 is a bare assignment with
+   `execution_count` 7 and no output. Checking for `execution_count: null`
+   instead flags only never-run cells, which is the drift this check is
+   for (e.g. the `import` cells in `ArXiv_preprint/02`).
 4. **`aerobic_fermentation_stoichiometry.ipynb` needs re-running** so
    its committed outputs actually include the Section 6 dynamic-simulation
    plots. ~~Once outputs are embedded, the standalone
@@ -170,7 +198,8 @@ notebooks.
    wanted for reference elsewhere (not decided).~~ Resolved ahead of this
    phase (2026-09-15): the `savefig` call was dropped from the Section 6
    plotting cell, so this is no longer open. The notebook still needs
-   re-running to embed Section 6's outputs — that part of this item
+   re-running to embed its outputs — as of 2026-09-20 it has no executed
+   cells at all, not just a missing Section 6 — that part of this item
    stands.
 
 ## Related, separate item from the same conversation
