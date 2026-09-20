@@ -94,3 +94,26 @@ hand-editing the specific stale cell in the committed `.ipynb` over
 regenerating, and check per notebook whether it carries baked outputs.
 Moot once [`upcoming/NOTEBOOK_GENERATOR_REMOVAL.md`](upcoming/NOTEBOOK_GENERATOR_REMOVAL.md)
 ships.
+
+## Three copies of the mol/L → mol/kg-water conversion in `PyOMES/thermo/`
+
+Surfaced 2026-09-20 during `chemical-equilibrium-engines-subfolder`
+checkpoint 4, while checking where `debye_huckel_A` lives. Left alone there
+because that phase is a pure move/delete refactor. The conversion "divide
+ionic strength by water density in kg/L" exists three times:
+
+- `water_properties.ionic_strength_molal_from_molar(I_molL, *, T_K)` — the
+  public one, exported from `PyOMES.thermo`. Returns `0.0` for a non-finite or
+  non-positive `I_molL`, and falls back to returning `I` unchanged when the
+  water density is non-finite or non-positive.
+- `liquid_phase_model._kg_per_L(T_K)` and `sit_liquid_model._kg_per_L(T_K)` —
+  two private copies with identical bodies. Both return the density in kg/L,
+  falling back to `1.0` when the density is bad. They are used only to build
+  `dIm_dImolL = 1.0 / _kg_per_L(T_K)` in each model's Jacobian method.
+
+The fallbacks agree (a bad density acts as 1 kg/L in all three), so this looks
+like harmless duplication rather than a numerical inconsistency, but that is
+unverified. A small cleanup would make one public helper in
+`water_properties.py` (for example `water_kg_per_L(T_K)`), and have all three
+call sites use it. Check the Jacobian tests in
+`tests/standalone/test_liquid_phase_model.py` still pass afterwards.
