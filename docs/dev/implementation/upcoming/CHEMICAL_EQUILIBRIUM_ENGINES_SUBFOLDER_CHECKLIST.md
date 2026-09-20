@@ -370,6 +370,67 @@
       `architecture.md` `equilibria/` lines (long-deleted island); my own
       dated notes that name removed files. Verified: changed code files
       compile; full suite 2080 passed (unchanged)._
+- [ ] 12b. _Added during Part C (requested after checkpoint 12)._ **Documentation
+      sweep and rewrite of `PyOMES/chemical_equilibrium/`**: remove
+      development-history references (phase and checkpoint labels, pointers to
+      old design documents, "this phase" wording) from docstrings and comments,
+      unless there is a good reason for one to remain. Docs should describe what
+      the code does now and why, in the present tense.
+      **Scope:** the 9 `.py` files under `PyOMES/chemical_equilibrium/`. A
+      survey (2026-09-20, by script, classifying each hit by token type)
+      found **83 distinct lines** across 9 files, in 7 categories:
+      (A) 33 lines naming a design doc — `LAYER1_GAP_CLOSURE` ×20,
+      `MASS_EXCHANGE_ARCHITECTURE` ×3, `MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN` ×3,
+      `PARTITION_MODEL` ×2, `NR_PRECIPITATION_CV_INTEGRATION` ×2,
+      `EQUILIBRIUM_CONSTRAINT_UNIFICATION` ×2, `CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE` ×1;
+      (B) 33 checkpoint labels (`CP1`/`CP2`…, `C4d`, "Stage 16");
+      (C) 30 phase/era names (`chemistry-unification-3b`, "Phase 2", "Layer 1");
+      (D) 1 retired "Level 1 foundation" (`acid_base.py` header);
+      (E) 7 "design doc" / `§` pointers; (F) 17 changelog-style phrases
+      ("`--- NEW:`", "was deleted in", "Fixed since", "this phase's folding");
+      (G) 7 old-project-name mentions (`vlsim`, all in `engines/phreeqc.py`).
+      By kind: 91 docstring hits, 23 comments, **14 runtime strings** (7
+      distinct error/warning messages). Heaviest files: `engines/nr/tableau.py`
+      (29 lines), `engines/nr/engine.py` (16), `engines/nr/solver.py` (10),
+      `engines/bisection/acid_base.py` (8), `phreeqc.py` (7).
+      **Rules.** (1) Keep the *reasoning*, drop the *label*: where a comment
+      records a constraint that is still true and non-obvious (for example why
+      `retain_jacobian=True` is unsupported with folded gas-liquid rows, or why
+      the tableau has one master per component), rewrite it as a present-tense
+      statement of that constraint. (2) A pointer to a design document may stay
+      **only** if that document is the canonical, still-current explanation, is
+      too long to summarise in two or three lines, and lives at a stable path
+      (`docs/dev/ideas/` or `shipped/`, never `upcoming/`, which moves on ship);
+      each retained pointer is listed in this entry's notes with its reason.
+      (3) Text that is *about* the code (a class named after a protocol, the word
+      "legacy" for a code path that genuinely exists today) is not history and is
+      reviewed, not removed. (4) No code changes. **Runtime strings** (the 7
+      messages, e.g. the `NotImplementedError` in `engines/nr/engine.py` and the
+      `ConfigurationError` texts in `engines/nr/tableau.py`) may be reworded to
+      state the limitation directly, but must keep the fragments tests match on:
+      **`V_liq_L`** (3 tests in `test_nr_tableau_gas_liquid.py`) and
+      **`bridge`** (`ConfigurationError` test) — and each rewritten message is
+      listed in the notes.
+      **Decision needed at kickoff:** `engines/phreeqc.py` calls PyOMES's
+      former name `vlsim` in its docs and in a public function,
+      `phreeqc_to_vlsim` (also the default `species_map`, imported by
+      `test_phreeqc_engine.py`). Rewording the docs is in scope; *renaming the
+      function* (e.g. to `phreeqc_to_pyomes`) is a code change. The package has
+      no outside users, so a rename without an alias is cheap (one module, one
+      test file, the protocol tutorial notebook); default if not decided:
+      docs only, function name kept, rename logged in `OPEN_WORK.md`.
+      **Verification (planned):** an AST comparison per file with docstrings
+      removed — the code must be identical except the explicitly listed
+      runtime-string edits; the full suite; a re-run of the survey script
+      (target: 0 lines, or only the listed retained pointers); the
+      `V_liq_L` / `bridge` tests by name.
+      **Out of scope, logged separately:** the same style of reference exists
+      elsewhere — 108 lines in 32 files under the rest of `PyOMES/` (`core/` 67,
+      `chemistry/` 14, `thermo/` 8, `templates/` 6, `reactions/` 5,
+      `control/` 4, other 4) — and in tests (module docstrings such as
+      "Tests for CP2 of LAYER1_GAP_CLOSURE", and files named after checkpoints:
+      `test_nr_gas_liquid_cp2.py`, `test_raoult_h2o_fold_cp4.py`,
+      `test_precipitation_gas_liquid_cp5.py`). See `OPEN_WORK.md`.
 
 **Part D — gas-constant unification** (after Part C; see the plan doc's
 "Gas-constant definitions (Part D)" audit and Decisions 11–15)

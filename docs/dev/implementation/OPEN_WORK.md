@@ -196,3 +196,35 @@ trigger should be a concrete model that needs a non-default value, which is
 also the point at which the ADM1 rounding question (Part D, Decision 14) gets
 answered for real. **Depends on Part D landing first**, since overriding a
 constant that still has ten copies would only change some of them.
+
+## Development-history references in docstrings and tests outside `chemical_equilibrium/`
+
+Raised 2026-09-20 while scoping checkpoint 12b of
+`chemical-equilibrium-engines-subfolder`, which rewrites this kind of
+reference inside `PyOMES/chemical_equilibrium/` only. Docstrings and comments
+across the package cite the phase or checkpoint that introduced a piece of
+code (`CP2 of LAYER1_GAP_CLOSURE`, `chemistry-unification-3b`, "Phase 2"), or
+point at a design document by name, instead of describing what the code does
+now. They go stale as phases ship and their docs move (`upcoming/` to
+`shipped/`), and they tell a new reader about the development process rather
+than the code.
+
+**Measured 2026-09-20** (script: lines that name any design doc under
+`docs/dev/` or a `CP<n>` / `chemistry-unification-*` / `Phase <n>` / "Layer 1"
+label), excluding `chemical_equilibrium/`: **108 lines in 32 files** under
+`PyOMES/` — `core/` 67 (14 files), `chemistry/` 14, `thermo/` 8, `templates/` 6,
+`reactions/` 5, `control/` 4, other 4. Some are in this phase's new code and
+its neighbours, for example `thermo/liquid_phase_model.py` ("Added by CP2 of
+`LAYER1_GAP_CLOSURE`…").
+
+**Tests have the same problem, and worse in the file names.** Module
+docstrings read "Tests for CP2 of LAYER1_GAP_CLOSURE…", and several files are
+named after the checkpoint that added them (`test_nr_gas_liquid_cp2.py`,
+`test_raoult_h2o_fold_cp4.py`, `test_precipitation_gas_liquid_cp5.py`,
+`test_step_internal_transfer_scope_filter.py` cites CP3) rather than after the
+behaviour they test. Renaming test files is a separate, mechanical change.
+
+Suggested approach: reuse the rules and survey script from checkpoint 12b (keep
+the still-true reasoning, drop the label; keep a design-doc pointer only when it
+is the canonical explanation and lives at a stable path; AST-compare each file to
+prove no code change), package by package, `core/` first.

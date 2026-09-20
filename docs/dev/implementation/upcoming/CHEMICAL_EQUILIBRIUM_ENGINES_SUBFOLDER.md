@@ -367,6 +367,18 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     `docs/architecture.md` (lists `activity_models.py`, `sit.py`). Leave
     historical docs under `docs/dev/implementation/shipped/` and
     `docs/dev/ideas/` alone — they record what was true when written.
+12b. *Added during Part C at the owner's request.* Documentation sweep and
+    rewrite of `PyOMES/chemical_equilibrium/`: remove development-history
+    references (phase and checkpoint labels such as `LAYER1_GAP_CLOSURE CP1/CP2`
+    or `chemistry-unification-3b`, pointers to old design documents, "this
+    phase" wording, the retired "Level 1" terminology) from docstrings,
+    comments and error messages, keeping only the still-true reasoning and any
+    pointer that has a good reason to stay. A survey found 83 such lines across
+    the 9 files. No behaviour change; the AST of each file (minus docstrings)
+    must be identical apart from a listed set of reworded runtime messages that
+    keep the fragments tests match on. Scope, rules, the `phreeqc_to_vlsim`
+    naming decision and verification are in the checklist entry. Runs before
+    Part D so Part D's diff stays purely numerical.
 
 **Part D — gas-constant unification** (runs after Part C so Parts A–C stay
 bit-identical and verifiable; Part D changes numbers)
