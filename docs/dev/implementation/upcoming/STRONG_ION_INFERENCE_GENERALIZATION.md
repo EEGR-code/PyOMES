@@ -9,6 +9,15 @@
 > only, leave `BisectionChemicalEquilibriumEngine` alone for now) were made
 > in the same conversation, same day. See "How to start one" below when
 > picked up.
+>
+> **Paths re-derived 2026-09-20** after `chemical-equilibrium-engines-subfolder`
+> moved the engine files: `nr_engine.py` / `nr_tableau.py` / `nr_solver.py`
+> are now `engines/nr/{engine,tableau,solver}.py`, and `engine.py` /
+> `acid_base.py` are now `engines/bisection/{engine,acid_base}.py`, all under
+> `PyOMES/chemical_equilibrium/`. Every file-and-line citation below was
+> re-checked against the moved code; in `engines/nr/engine.py` they moved down
+> by one line (a new import), the `engines/nr/solver.py` and
+> `engines/bisection/engine.py` ones did not.
 
 ## Motivation
 
@@ -22,7 +31,7 @@ presence or amount.
 While explaining this, a natural question came up: the engine also has a
 *phase-based* call pattern (`solve(phases={"liquid": liquid_phase})`,
 `NRChemicalEquilibriumEngine._read_from_phases`,
-`PyOMES/chemical_equilibrium/nr_engine.py:530-582`) that takes one
+`PyOMES/chemical_equilibrium/engines/nr/engine.py:530-583`) that takes one
 `n_mol` dict of *everything present* and derives both `totals` (by
 summing `n_mol` over each tableau component's species) and `strong_ions`
 for you. That's a strictly nicer API — you just state the recipe's
@@ -36,7 +45,7 @@ Investigating found that the phase-based path's strong-ion derivation is
 closed lookup:
 
 ```python
-# PyOMES/chemical_equilibrium/nr_engine.py:56-75
+# PyOMES/chemical_equilibrium/engines/nr/engine.py:57-76
 _STRONG_ION_SPECIES_TO_KEY: Dict[str, str] = {
     "K+": "CT_K", "Na+": "CT_Na", "Cl-": "CT_Cl", "NO3-": "CT_NO3",
     "Mg++": "CT_Mg", "Ca++": "CT_Ca", "Zn++": "CT_Zn", "Mn++": "CT_Mn",
@@ -47,7 +56,7 @@ _STRONG_ION_SPECIES_TO_KEY: Dict[str, str] = {
 ```
 
 `_read_from_phases` only recognizes a species as a strong ion if its id
-is literally one of these ~15 entries (`nr_engine.py:576-580`:
+is literally one of these ~15 entries (`engines/nr/engine.py:577-581`:
 `if sp_id in n_mol` gated by iterating this dict, not by iterating
 `n_mol`). A species present in `n_mol` that (a) isn't part of any
 declared reaction's component *and* (b) isn't on this list silently
@@ -61,9 +70,9 @@ duplicates information the `Species` object already carries on `.charge`
 — and it exists as **three independently-written copies**, currently in
 sync but with nothing enforcing that:
 
-- `PyOMES/chemical_equilibrium/nr_engine.py:86-92`
-- `PyOMES/chemical_equilibrium/nr_solver.py:321-327` (inside `_ionic_strength`)
-- `PyOMES/chemical_equilibrium/nr_solver.py:452-458` (inside `solve_nr`)
+- `PyOMES/chemical_equilibrium/engines/nr/engine.py:87-93`
+- `PyOMES/chemical_equilibrium/engines/nr/solver.py:321-327` (inside `_ionic_strength`)
+- `PyOMES/chemical_equilibrium/engines/nr/solver.py:452-458` (inside `solve_nr`)
 
 Every time a new charged strong ion needs to be supported (the most
 recent additions look like `Mg++`/`Ca++`/`Zn++`/`Mn++`/`Cu++`/`Co++`/
@@ -75,11 +84,12 @@ those species already declares its own charge in `common_species.py`.
 
 ## Scope: `NRChemicalEquilibriumEngine` only, for now
 
-The duplication described above isn't confined to `nr_engine.py`/
-`nr_solver.py`. `PyOMES/chemical_equilibrium/engine.py` (the older,
-bisection-based `BisectionChemicalEquilibriumEngine`) carries its **own**,
-independently-written copy of the species→`CT_*` allowlist
-(`engine.py:747-758`), and `acid_base.py` goes further — `CT_K`, `CT_Na`,
+The duplication described above isn't confined to `engines/nr/engine.py`/
+`engines/nr/solver.py`. `PyOMES/chemical_equilibrium/engines/bisection/engine.py`
+(the older, bisection-based `BisectionChemicalEquilibriumEngine`) carries its
+**own**, independently-written copy of the species→`CT_*` allowlist
+(`engines/bisection/engine.py:747-758`), and `engines/bisection/acid_base.py`
+goes further — `CT_K`, `CT_Na`,
 `CT_Cl`, `CT_cation`, `CT_anion`, etc. are literal **named function
 parameters** on its `solve`-shaped functions, not just dict keys.
 
@@ -140,7 +150,7 @@ Reasonable to expect some existing check would flag this — the ingredients
 are already in the codebase. Checked directly, and it isn't caught, for
 two separable reasons.
 
-`EquilibriumResult.charge_residual` (`nr_solver.py:573`, literally
+`EquilibriumResult.charge_residual` (`engines/nr/solver.py:573`, literally
 `R_final[-1]`, the last row of the Newton residual at convergence) is
 *purely the solver's own self-consistency check* on the charge-balance
 equation it was actually given. It's near-zero by construction whenever
@@ -199,10 +209,10 @@ runs.
 ## Phase 0: de-duplicate immediately (decided, low-risk)
 
 Independent of whether/when the full generalization below happens: pull
-the three `_STRONG_CHARGES` copies (`nr_engine.py:86-92`,
-`nr_solver.py:321-327`, `nr_solver.py:452-458`) into a single canonical
-definition — e.g. keep it once in `nr_engine.py` next to
-`_STRONG_ION_SPECIES_TO_KEY` and have both `nr_solver.py` call sites
+the three `_STRONG_CHARGES` copies (`engines/nr/engine.py:87-93`,
+`engines/nr/solver.py:321-327`, `engines/nr/solver.py:452-458`) into a single
+canonical definition — e.g. keep it once in `engines/nr/engine.py` next to
+`_STRONG_ION_SPECIES_TO_KEY` and have both `engines/nr/solver.py` call sites
 import it instead of retyping it. Pure DRY refactor, no behavior change,
 no open questions, ships on its own ahead of (or instead of, if the
 bigger generalization stalls) Phase 1. This alone removes the "three
@@ -234,13 +244,13 @@ scoping above. This would:
 1. **`CT_*` key naming.** Downstream code (`strong_ions` dict keys,
    `_STRONG_CHARGES` lookups, any caller passing `strong_ions=` directly
    by name) is written in terms of `CT_K`/`CT_Cl`/etc., not raw species
-   ids. Does anything outside `nr_engine.py`/`nr_solver.py` depend on
+   ids. Does anything outside `engines/nr/engine.py`/`engines/nr/solver.py` depend on
    these specific key strings, or could the generalized path key
    `strong_ions` by species id directly (`"K+"` instead of `"CT_K"`)?
    Needs a usage audit before deciding whether `CT_*` naming survives as
    a public convention or becomes purely internal.
 2. **`S_cat`/`S_an` generic buckets — resolved, not actually open.**
-   `nr_engine.py:73-74` maps `S_cat`/`S_an` to `CT_cation`/`CT_anion`, but
+   `engines/nr/engine.py:74-75` maps `S_cat`/`S_an` to `CT_cation`/`CT_anion`, but
    neither is declared anywhere as a concrete `Species`. That's the
    actual gap, not a conceptual one:
    `PyOMES/monitoring/conservation.py`'s own charge-balance accounting
@@ -382,7 +392,7 @@ above, write a checklist file
 (`STRONG_ION_INFERENCE_GENERALIZATION_CHECKLIST.md`), cut a branch off
 `main` (suggested name: `strong-ion-inference-generalization`). Small and
 self-contained — no dependency on any other in-flight phase, though it
-touches the same `nr_engine.py`/`nr_solver.py` files as the NR
+touches the same `engines/nr/engine.py`/`engines/nr/solver.py` files as the NR
 Precipitation and `MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md`
 tracks, so re-check for merge overlap if either is in flight when this is
 picked up.

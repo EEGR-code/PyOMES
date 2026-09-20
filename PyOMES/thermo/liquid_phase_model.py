@@ -50,7 +50,7 @@ class DifferentiableLiquidModel(Protocol):
     a cheap analytic derivative (Davies, SIT). NRTL would need the full
     ``∂γ_i/∂x_j`` matrix, deferred.
 
-    This is standalone groundwork, not yet wired into ``nr_solver.py``'s
+    This is standalone groundwork, not yet wired into ``engines/nr/solver.py``'s
     inner Newton loop: that loop already achieves correct convergence via
     the existing outer (ionic-strength fixed-point) / inner (NR) split,
     which treats γ as frozen within each inner solve rather than

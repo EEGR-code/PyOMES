@@ -329,11 +329,47 @@
       deleted module stays deleted; (4) no dynamic/string imports, `patch()` or
       `sys.modules` targets mention the old paths; (5) full suite 2080 passed
       (unchanged)._
-- [ ] 12. Update docstring cross-references (~15 files using
+- [x] 12. Update docstring cross-references (~15 files using
       `PyOMES.chemical_equilibrium.engine...`-style paths) and current docs,
       including `OPEN_WORK.md` (cites `activity_models.make_activity_model`) and
       `docs/architecture.md` (lists `activity_models.py`, `sit.py`). Leave
       `shipped/` and `docs/dev/ideas/` alone.
+      _Notes: the dotted-path docstring references (~89 + 38 + 8 replacements)
+      were already rewritten with the moves (C8–C10), so this checkpoint handled
+      the remaining prose and the current docs. **Code comments (5):**
+      `engines/nr/engine.py:86`, `engines/nr/tableau.py:113`,
+      `protocols.py:72-73`, `thermo/liquid_phase_model.py:53`,
+      `models/vlmodels/adm1/base.py:1048` now name the real files. **Tutorial
+      notebook:** two markdown cells in `01_bisection_engine_basics.ipynb` said
+      bare `engine.py` (now ambiguous: there is one under `bisection/` and one
+      under `nr/`); edited as exact-count raw bytes, markdown only, still valid
+      JSON. **Docs:** `docs/architecture.md` — replaced the stale `speciation/`
+      block (which described files such as `chemistry_level1.py` and
+      `legacy_adapter.py` that no longer exist, plus the deleted
+      `activity_models.py`/`sit.py`/`strong_ions.py`/`api.py`/`factory.py`)
+      with the real `chemical_equilibrium/` tree including `engines/`, and
+      added a `thermo/` line so a reader can find where the activity models
+      went (a small addition: `thermo/` was not in that tree at all); the
+      separate stale `equilibria/`/`sim/`/`solvers/` "CUFermenter island"
+      entries are untouched (an `OPEN_WORK.md` item, whose entry now records
+      that this block is fixed). `OPEN_WORK.md` — the `use_activity` entry now
+      cites `PyOMES.thermo.make_activity_model` and
+      `engines/{bisection,nr}/engine.py` (and notes the deleted `factory.py`);
+      the constants entry cites `engines/nr/solver.py`.
+      `upcoming/README.md` and `NR_PRECIPITATION_CV_INTEGRATION.md` — paths.
+      **`STRONG_ION_INFERENCE_GENERALIZATION.md`:** every file-and-line
+      citation (about 20 references) was re-derived against the moved code, not
+      just renamed: the NR-engine ones moved down one line (checkpoint 7 added
+      an import), the solver and Bisection-engine ones did not; a script then
+      verified all 9 cited ranges contain what the doc says (including that the
+      two solver `_STRONG_CHARGES` copies really sit inside `_ionic_strength`
+      and `solve_nr`); a short dated note at the top records the re-derivation.
+      **Deliberately left:** `shipped/` and `docs/dev/ideas/` (historical);
+      `test_accuracy_monitor.py:560` ("The legacy engine.py RuntimeWarning was
+      replaced…", a narrative of a past phase); `OPEN_WORK.md:21` and
+      `architecture.md` `equilibria/` lines (long-deleted island); my own
+      dated notes that name removed files. Verified: changed code files
+      compile; full suite 2080 passed (unchanged)._
 
 **Part D — gas-constant unification** (after Part C; see the plan doc's
 "Gas-constant definitions (Part D)" audit and Decisions 11–15)

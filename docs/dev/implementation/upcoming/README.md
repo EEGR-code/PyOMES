@@ -57,9 +57,9 @@ that still describe open work are "Open phases" and the pending stages in
   structurally, from tableau-component non-membership + the species'
   own `.charge` — so an off-allowlist charged species silently drops out
   of the charge balance. Also finds `_STRONG_CHARGES` duplicated
-  verbatim across three locations in `nr_engine.py`/`nr_solver.py`, plus
+  verbatim across three locations in `engines/nr/engine.py`/`engines/nr/solver.py`, plus
   a fully independent copy of the same allowlist pattern in the older
-  `BisectionChemicalEquilibriumEngine` (`engine.py`/`acid_base.py`) — left
+  `BisectionChemicalEquilibriumEngine` (`engines/bisection/engine.py`/`acid_base.py`) — left
   out of scope, since that engine is still `ReactionSystem`'s *default*
   solver today, not legacy. Scoped as Phase 0 (decided: de-duplicate the
   three copies, no behavior change) + Phase 1 (derive structurally,

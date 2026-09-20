@@ -25,9 +25,14 @@ is dead and should come out, not just be re-pathed:
   `HenryEquilibriumInterface` as a live second pathway); mentions of `CUFermentationSpeciation`
   (~lines 152, 253, 353); the Repository Layout tree (~lines 372–418).
 - **Also stale, not mentioned in the original entry:** the layout tree
-  still shows `PyOMES/speciation/` (~line 391), which was renamed to
+  still showed `PyOMES/speciation/` (~line 391), which was renamed to
   `chemical_equilibrium/` at the close of `LAYER1_GAP_CLOSURE` (shipped
-  2026-07-03).
+  2026-07-03). **Partly fixed 2026-09-20:** `chemical-equilibrium-engines-subfolder`
+  (checkpoint 12) replaced that one block with the real
+  `chemical_equilibrium/` tree (including the new `engines/` layout) and added
+  a `thermo/` line. The rest of the tree (e.g. the `equilibria/`, `sim/` and
+  `solvers/` "CUFermenter island" entries, and any other package that is
+  missing) still needs the re-derivation described below.
 
 Needs a pass that re-derives the Repository Layout and the equilibrium
 section from the actual tree rather than a line-by-line patch.
@@ -54,9 +59,12 @@ notebooks) or delete it if it's fully superseded by
 Surfaced 2026-09-18 while checking
 `StirredTankBuilder.chemistry()`'s `use_activity: bool` +
 `activity_model: str = "davies"` signature. The split is threaded from
-`PyOMES.chemical_equilibrium.activity_models.make_activity_model(use_activity,
-activity_model)` through `engine.py`, `factory.py`, and
-`nr_engine.py` — `activity_model` is only meaningful when
+`PyOMES.thermo.make_activity_model(use_activity, activity_model)` (it lived in
+`chemical_equilibrium/activity_models.py` until
+`chemical-equilibrium-engines-subfolder` moved it) through
+`engines/bisection/engine.py` and `engines/nr/engine.py` (the
+`chemical_equilibrium/factory.py` that used to be in this list was deleted in
+that phase) — `activity_model` is only meaningful when
 `use_activity=True`, and `"ideal"` is not itself a valid value for
 `activity_model` (it's only reachable via `use_activity=False`).
 Consider collapsing this into a single `activity_model: str`
@@ -161,7 +169,7 @@ the float (`from PyOMES.units import R_J_PER_MOL_K`), which binds the value at
 import time. Overriding per simulation means consumers must read the value from
 something they are given, not from a module global. The consumers include hot
 paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
-`core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/nr_solver.py`,
+`core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
 `equilibria/vle.py`, `chemistry/partition.py`, `thermo/framework.py` and
 `thermo/equilibrium_constants.py`.
 

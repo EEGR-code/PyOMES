@@ -83,7 +83,7 @@ _JACOBIAN_DISABLED_MSG = (
 
 _LN10 = float(np.log(10.0))
 
-# Strong-ion charge dictionary (mirrors the one in nr_solver.py)
+# Strong-ion charge dictionary (mirrors the ones in solver.py)
 _STRONG_CHARGES: Dict[str, int] = {
     "CT_K": +1, "CT_Na": +1, "CT_cation": +1,
     "CT_Cl": -1, "CT_NO3": -1, "CT_anion": -1,

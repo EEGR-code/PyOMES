@@ -110,7 +110,7 @@ class SecondaryEntry:
         Python dict construction silently lets the later-inserted entry
         (the gas secondary, built after masters) overwrite the earlier
         one (the liquid master's own concentration), corrupting its mass
-        balance. ``nr_solver.py`` uses this key everywhere it builds or
+        balance. ``solver.py`` uses this key everywhere it builds or
         reads a ``{species_id: value}`` dict keyed by tableau species
         (``c``, ``gammas``, ``all_charges``); the *public* identity for
         output purposes (``species_mol_L`` vs ``partial_pressures_atm``

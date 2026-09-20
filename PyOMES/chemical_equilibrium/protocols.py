@@ -69,8 +69,9 @@ class EquilibriumResult:
     ----------------
     ``pH``, ``pH_conc``, ``logH``, ``aH``, ``gamma_H``, ``gamma_OH``,
     ``ionic_strength``, ``charge_residual`` are the common meta keys emitted
-    by both the legacy acid-base solver (``acid_base.py``) and the NR solver
-    (``nr_solver.py``). ``n_iter`` is carried for forward-compatibility with
+    by both the legacy acid-base solver (``engines/bisection/acid_base.py``)
+    and the NR solver (``engines/nr/solver.py``). ``n_iter`` is carried for
+    forward-compatibility with
     callers that guard on it; it is not currently populated by any engine.
 
     ``species_mol_L`` holds equilibrated species concentrations (mol/L),
