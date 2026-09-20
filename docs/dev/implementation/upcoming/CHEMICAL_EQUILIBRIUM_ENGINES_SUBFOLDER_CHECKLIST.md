@@ -488,6 +488,57 @@
       (`chemistry/equilibria.py:510-511`, `core/gas_liquid_link.py:928,958,966`,
       `reactions/reaction_system.py:250`); two saved notebook outputs that
       quote the old warning text; the wider 108-line cleanup.
+- [ ] 12c. _Added during Part C (requested after checkpoint 12b; plan Decision
+      17)._ **Delete the orphaned `chemical_equilibrium/activity_dispatch.py`
+      and its test.**
+      **Why.** `activity_for_entry()` has never had a production caller: a
+      search of `.py`, `.ipynb` and `.md`, and of git history back to the first
+      commit (2026-08-06), finds it imported only by
+      `tests/standalone/test_activity_dispatch.py` (12 tests). It was meant to
+      be wired into the NR solver by `LAYER1_GAP_CLOSURE`, whose checklist ticks
+      "wire the dispatch helper into the NR residual" while allowing "(or
+      equivalent log-linear form)" — the log-linear tableau route was built and
+      the helper stayed unused, with no deviation note. It is about 30 lines of
+      phase routing (liquid γ via `thermo.liquid_activity.gamma_all`, gas
+      pressure via `gas_eos.partial_pressures_atm`, solid = 1) around calls
+      `ThermoFramework` already exposes, and it is a poor primitive for
+      reaction-quotient or saturation-index work (each call recomputes γ over
+      the whole liquid composition to return one value). It is not groundwork
+      for non-ideal gas in the solver, which needs residual and Jacobian
+      assembly, not a point evaluator. Same grounds as the `api.py` /
+      `factory.py` deletion (9b): no callers, no outside users.
+      **Steps.** (1) Re-run the fresh search and history check before deleting.
+      (2) Delete `PyOMES/chemical_equilibrium/activity_dispatch.py` and
+      `tests/standalone/test_activity_dispatch.py` (plain file deletion; you
+      stage it). (3) Update current files that name it:
+      `PyOMES/chemical_equilibrium/engines/__init__.py` (its docstring lists
+      the shared modules), `README.md:149` (the test-coverage table),
+      `docs/architecture.md:394` (the `chemical_equilibrium/` tree), and the
+      `OPEN_WORK.md` entry (change "has no production caller" to "deleted in
+      12c", record the restore commit, and keep the idea of a properly
+      designed batch helper for entry-level activity diagnostics, should one be
+      wanted). The plan doc is already updated (audit table, target layout,
+      Decision 17, checkpoint 12c). (4) Leave alone: mentions in
+      `docs/dev/implementation/shipped/` and `docs/dev/ideas/` (historical), and
+      this checklist's own dated notes about the module.
+      **Expected effect on the suite:** 2080 → **2068** passed (exactly the 12
+      deleted tests), 0 failed; nothing else changes. Top level of
+      `chemical_equilibrium/` becomes `__init__`, `protocols`, `activity`,
+      `numerical_gradient`.
+      **Verification (planned).** Fresh search: only historical, plan and
+      checklist mentions remain. The AST import audit from checkpoint 11
+      (every `PyOMES`/`models` import in every `.py` and notebook cell
+      resolves): no new problems attributable to this deletion.
+      `import PyOMES.chemical_equilibrium.activity_dispatch` fails with
+      `ModuleNotFoundError`. Engine fingerprints (NR 814, Bisection 265,
+      PHREEQC 182 values) byte-identical, since nothing the engines use is
+      touched. Full suite 2068 passed.
+      **Restore point:** the last commit before the deletion, currently
+      `9d71cb9` (checkpoint 12b) if no commit intervenes:
+      `git show 9d71cb9:PyOMES/chemical_equilibrium/activity_dispatch.py`, and
+      likewise the test file. Confirm the hash at the time.
+      **Effects outside this phase's scope:** none expected; a fresh search
+      found no other current reference. Record any that turn up.
 
 **Part D — gas-constant unification** (after Part C; see the plan doc's
 "Gas-constant definitions (Part D)" audit and Decisions 11–15)

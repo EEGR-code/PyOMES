@@ -60,10 +60,11 @@ audit and Decisions 11–15 below).
 
 | Group | Files |
 |---|---|
-| Shared (stay at top level) | `protocols.py`, `activity.py`, `activity_dispatch.py`, `numerical_gradient.py` |
+| Shared (stay at top level) | `protocols.py`, `activity.py`, `numerical_gradient.py` |
 | Thermo compatibility layer (Part A: dissolved into `thermo/`) | `activity_models.py`, `sit.py` |
 | Orphaned helper (Part B: deleted) | `strong_ions.py` |
 | Orphaned Bisection-only entry points (checkpoint 9b: deleted) | `api.py`, `factory.py` |
+| Orphaned per-entry activity helper (checkpoint 12c: to be deleted) | `activity_dispatch.py` |
 | Bisection engine | `engine.py`, `acid_base.py` (~2,040 lines) |
 | NR engine | `nr_engine.py`, `nr_tableau.py`, `nr_solver.py` (~2,520 lines) |
 | PHREEQC engine | `phreeqc_engine.py` (327 lines) |
@@ -193,7 +194,7 @@ literal occurrences of them across 16 package files. Out of scope for this phase
 chemical_equilibrium/
     __init__.py            (public re-exports, unchanged)
     protocols.py
-    activity.py  activity_dispatch.py
+    activity.py
     numerical_gradient.py
     engines/
         __init__.py
@@ -206,9 +207,9 @@ thermo/
                             or a small thermo/factory.py; decide at kickoff)
 ```
 
-The top level drops from 16 files to 5 (including `__init__.py`), all of them
-engine-agnostic. `activity_models.py`, `sit.py`, `strong_ions.py`, `api.py` and
-`factory.py` are gone. `nr_engine.py` becomes
+The top level drops from 16 files to 4 (including `__init__.py`), all of them
+engine-agnostic. `activity_models.py`, `sit.py`, `strong_ions.py`, `api.py`,
+`factory.py` and `activity_dispatch.py` are gone. `nr_engine.py` becomes
 `engines/nr/engine.py`, so the `nr_` prefixes become redundant. PHREEQC is a
 flat file because it is a single 327-line module; it can become a package if it
 grows. The optional `phreeqpython` dependency stays confined to one file.
@@ -290,6 +291,22 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     `factory.py`). Consequences outside this phase's scope are logged in the
     checklist and in `STRONG_ION_INFERENCE_GENERALIZATION.md`'s
     recipe-layer section.
+17. **`activity_dispatch.py` is deleted** (checkpoint 12c), on the same
+    grounds as Decision 16. `activity_for_entry()` has never had a production
+    caller (only its own 12 tests import it; verified against git history back
+    to the first commit), and the package has no outside users. It was meant to
+    be wired into the NR solver by `LAYER1_GAP_CLOSURE`, but that phase built
+    gas-liquid rows as tableau secondaries instead, so the helper stayed
+    unused. It is about 30 lines of phase routing around calls that
+    `ThermoFramework` already exposes, and a poor primitive for reaction-quotient
+    or saturation-index work (each call recomputes γ for the whole liquid
+    composition to return one value). It is not groundwork for non-ideal gas in
+    the solver either: that needs residual and Jacobian assembly, not a point
+    evaluator. If entry-level activity diagnostics are wanted later, a batch
+    function designed for that job is the better starting point. Restorable
+    from the last commit before the deletion (`9d71cb9`, checkpoint 12b, if no
+    commit intervenes): `git show 9d71cb9:PyOMES/chemical_equilibrium/activity_dispatch.py`,
+    and likewise `tests/standalone/test_activity_dispatch.py`.
 
 ## Proposed checkpoints
 
@@ -379,6 +396,11 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     keep the fragments tests match on. Scope, rules, the `phreeqc_to_vlsim`
     naming decision and verification are in the checklist entry. Runs before
     Part D so Part D's diff stays purely numerical.
+12c. *Added during Part C at the owner's request (Decision 17).* Delete the
+    orphaned `activity_dispatch.py` and `tests/standalone/test_activity_dispatch.py`
+    (12 tests) and remove the mentions in current files. Bit-identical for the
+    engines; the suite drops by exactly the 12 deleted tests. Details are in
+    the checklist entry.
 
 **Part D — gas-constant unification** (runs after Part C so Parts A–C stay
 bit-identical and verifiable; Part D changes numbers)
