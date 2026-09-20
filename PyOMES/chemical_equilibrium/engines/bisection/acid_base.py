@@ -38,7 +38,7 @@ AcidPKa = Union[float, Sequence[float]]
 import numpy as np
 from scipy.optimize import brentq
 
-from ...activity import ionic_strength_from_speciation
+from .ionic_strength import ionic_strength_from_speciation
 from ....thermo import ActivityModel
 from ....thermo.equilibrium_constants import vant_hoff_K
 
@@ -883,7 +883,7 @@ def solve_from_equilibrium_set(
         Same format as :func:`solve_acid_base`: ``pH``, ``H+``, ``OH-``,
         species concentrations, ``IonicStrength``, ``logH``, etc.
     """
-    from ...activity import ionic_strength_from_speciation
+    from .ionic_strength import ionic_strength_from_speciation
     from ....thermo import make_activity_model as _make_am
 
     if activity_model is None:

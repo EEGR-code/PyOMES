@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
-"""Activity-related utilities (ionic strength + warnings).
+"""Ionic strength of a Bisection-engine speciation dict.
 
-Activity-coefficient models live in :mod:`PyOMES.thermo`. Current fermenter behavior
-uses ideal-solution speciation; the warning function helps users spot when activity
-effects may become important.
+The Bisection engine returns concentrations keyed by species id, and some of
+those ids are synthesised rather than declared (``{name}_HA``, ``{name}_A-``,
+``{name}_H2A-``). The charge of each key is therefore read from its trailing
+``+`` / ``-`` tokens, with a small override table for ids that carry no such
+token. The convention holds for the ids that engine emits; an id that writes its
+charge as a number (``Fe2+`` for Fe²⁺) would be read as +1. The NR engine takes
+charges from declared ``Species.charge`` instead, and PHREEQC reports its own
+ionic strength.
+
+Activity-coefficient models live in :mod:`PyOMES.thermo`.
 """
 
 from __future__ import annotations
 
-import numpy as np
 import warnings
 from typing import Any, Dict
 
@@ -88,37 +94,3 @@ def ionic_strength_from_speciation(sp: Dict[str, Any]) -> float:
                 RuntimeWarning, stacklevel=2,
             )
     return 0.5 * float(I_sum)
-
-
-def warn_if_high_ionic_strength(
-    I_molL: float,
-    *,
-    threshold_molL: float = 0.1,
-    t_hr: float | None = None,
-    pH: float | None = None,
-) -> bool:
-    """Emit a one-time warning if ionic strength is high enough that activity effects may matter."""
-    try:
-        I = float(I_molL)
-    except (TypeError, ValueError, AttributeError, KeyError):
-        return False
-    if not np.isfinite(I):
-        return False
-    if I < float(threshold_molL):
-        return False
-
-    ctx = []
-    if t_hr is not None and np.isfinite(t_hr):
-        ctx.append(f"t={float(t_hr):.3g} h")
-    if pH is not None and np.isfinite(pH):
-        ctx.append(f"pH={float(pH):.3g}")
-    ctx_s = (", " + ", ".join(ctx)) if ctx else ""
-
-    warnings.warn(
-        f"[activity] Ionic strength is {I:.3g} mol/L{ctx_s}. "
-        f"At this ionic strength, solution activity effects (activity coefficients / pKa shifts) "
-        f"may become important; results from ideal-solution speciation may be biased.",
-        RuntimeWarning,
-        stacklevel=2,
-    )
-    return True

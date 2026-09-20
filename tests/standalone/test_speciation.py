@@ -382,14 +382,14 @@ class TestChemicalEquilibriumEngineTemperatureOverride:
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestChargeFromSuffix:
-    """Validate :func:`PyOMES.chemical_equilibrium.activity._charge_from_suffix`
+    """Validate :func:`PyOMES.chemical_equilibrium.engines.bisection.ionic_strength._charge_from_suffix`
     correctly parses canonical (``HCO3-``, ``CO3--``, ``Mg++``,
     ``PO4---``) and generic (``S_ac_A-``, ``S_ac_HA``) species
     keys using one rule.
     """
 
     def test_neutral_keys(self):
-        from PyOMES.chemical_equilibrium.activity import _charge_from_suffix
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import _charge_from_suffix
         assert _charge_from_suffix("CO2") == 0
         assert _charge_from_suffix("CO2aq") == 0
         assert _charge_from_suffix("NH3") == 0
@@ -397,7 +397,7 @@ class TestChargeFromSuffix:
         assert _charge_from_suffix("AceticAcid_HA") == 0
 
     def test_single_charge(self):
-        from PyOMES.chemical_equilibrium.activity import _charge_from_suffix
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import _charge_from_suffix
         assert _charge_from_suffix("H+") == 1
         assert _charge_from_suffix("Na+") == 1
         assert _charge_from_suffix("NH4+") == 1
@@ -406,7 +406,7 @@ class TestChargeFromSuffix:
         assert _charge_from_suffix("S_ac_A-") == -1
 
     def test_multi_charge(self):
-        from PyOMES.chemical_equilibrium.activity import _charge_from_suffix
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import _charge_from_suffix
         assert _charge_from_suffix("Mg++") == 2
         assert _charge_from_suffix("CO3--") == -2
         assert _charge_from_suffix("PO4---") == -3
@@ -416,7 +416,7 @@ class TestChargeFromSuffix:
         """Ions whose ids don't carry a trailing +/- suffix are
         resolved via :data:`_CHARGE_OVERRIDES`.
         """
-        from PyOMES.chemical_equilibrium.activity import (
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import (
             _CHARGE_OVERRIDES, _charge_from_suffix,
         )
         assert _charge_from_suffix("Cation(inert)") == 0
@@ -427,14 +427,14 @@ class TestChargeFromSuffix:
 
 class TestIonicStrengthFromSpeciation:
     """Validate the suffix-based
-    :func:`PyOMES.chemical_equilibrium.activity.ionic_strength_from_speciation`
+    :func:`PyOMES.chemical_equilibrium.engines.bisection.ionic_strength.ionic_strength_from_speciation`
     correctly combines canonical and generic species names without
     double-counting.
     """
 
     def test_canonical_only(self):
         """Canonical names contribute via suffix parsing."""
-        from PyOMES.chemical_equilibrium.activity import ionic_strength_from_speciation
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import ionic_strength_from_speciation
         I = ionic_strength_from_speciation({
             "H+": 1e-7, "OH-": 1e-7,
             "HCO3-": 0.05, "CO3--": 0.005,
@@ -446,7 +446,7 @@ class TestIonicStrengthFromSpeciation:
         """VFA generic ``{name}_A-`` keys contribute via the same
         suffix rule.
         """
-        from PyOMES.chemical_equilibrium.activity import ionic_strength_from_speciation
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import ionic_strength_from_speciation
         I = ionic_strength_from_speciation({
             "S_ac_A-": 0.01, "S_pro_A-": 0.005,
         })
@@ -458,7 +458,7 @@ class TestIonicStrengthFromSpeciation:
         :data:`_CHARGE_OVERRIDES` table because their ids don't
         follow the suffix convention.
         """
-        from PyOMES.chemical_equilibrium.activity import ionic_strength_from_speciation
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import ionic_strength_from_speciation
         I = ionic_strength_from_speciation({
             "Cation(inert)": 0.02, "Anion(inert)": 0.02,
         })
@@ -467,7 +467,7 @@ class TestIonicStrengthFromSpeciation:
 
     def test_multi_charge_correct_squared_weight(self):
         """Multi-charge ions contribute ``c * z²``."""
-        from PyOMES.chemical_equilibrium.activity import ionic_strength_from_speciation
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import ionic_strength_from_speciation
         I = ionic_strength_from_speciation({"Mg++": 0.01, "PO4---": 0.005})
         # I = 0.5 * (0.01*4 + 0.005*9) = 0.5 * 0.085
         assert I == pytest.approx(0.0425, rel=1e-12)
@@ -476,7 +476,7 @@ class TestIonicStrengthFromSpeciation:
         """Keys not ending in +/- and not in the override table
         contribute zero (neutral aqueous species).
         """
-        from PyOMES.chemical_equilibrium.activity import ionic_strength_from_speciation
+        from PyOMES.chemical_equilibrium.engines.bisection.ionic_strength import ionic_strength_from_speciation
         I = ionic_strength_from_speciation({
             "CO2aq": 0.05,
             "NH3": 0.01,

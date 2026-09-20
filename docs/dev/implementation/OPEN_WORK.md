@@ -275,3 +275,52 @@ by `tests/standalone/test_phreeqc_engine.py` and used by the
 `03_phreeqc_engine_basics.ipynb` tutorial. With no outside users a rename
 without an alias is cheap (for example `phreeqc_to_pyomes`): one module, one
 test file, one notebook.
+
+## No engine emits a high-ionic-strength warning
+
+Found 2026-09-20 while reviewing `chemical_equilibrium/activity.py` (checkpoint
+12d). `AccuracyMonitor.check_ionic_strength` (`monitoring/accuracy.py`) is meant to
+warn when ionic strength leaves the range an activity model is good for, with
+config thresholds (`ionic_strength_ideal_threshold` 0.10 mol/L,
+`ionic_strength_davies_threshold` 0.50 mol/L) and throttling. Nothing in the
+package calls it: `ReactionSystem` sets `engine._accuracy_monitor`, but no engine
+reads it, and the only caller is a stub engine in
+`tests/standalone/test_accuracy_monitor.py`. Its docstring ("Replaces the
+per-instance `_warned_high_I` dedup…") describes a hook that no longer exists.
+The older `warn_if_high_ionic_strength` in `activity.py` never had a caller either
+and was deleted in 12d. Wiring the monitor into the engines would add new
+warnings, so it is a behaviour change and was not done there. Both the Bisection
+and NR engines already return `ionic_strength` in `EquilibriumResult`, so the call
+could sit in `ReactionSystem` rather than in each engine.
+
+## Ionic strength and ion charges are defined in several places
+
+Found 2026-09-20 in checkpoint 12d, not changed there because unifying them
+changes numbers. Three implementations of `I = ½ Σ z²c`:
+
+- Bisection: `engines/bisection/ionic_strength.py` infers charge from the trailing
+  `+`/`-` tokens of each output key. It reads an id that writes its charge as a
+  number, such as `Fe2+`, as +1 (declared: +2; see
+  `tests/validation/speciation/test_iron_oxidation.py:78-80`, which uses the NR
+  path, so nothing wrong is computed today).
+- NR: `engines/nr/solver.py::_ionic_strength` uses declared `Species.charge` plus
+  a `_STRONG_CHARGES` table for strong ions. That table is copied three times
+  (`engines/nr/engine.py`, and twice in `engines/nr/solver.py`), and
+  Bisection's charge-balance residual hard-codes strong-ion charges again
+  (`engines/bisection/acid_base.py`, `solve_from_equilibrium_set`).
+- `thermo/`: `gamma_all` in `liquid_phase_model.py` and `sit_liquid_model.py`
+  computes I from a caller-supplied `charge` dict and clamps negative
+  concentrations to 0, which the other two do not. SIT also keeps a fixed
+  `ION_CHARGES` table for `compute_gammas`, which Bisection calls with
+  approximate compositions.
+
+Declared charges cannot simply replace the suffix rule in Bisection: the
+deprecated `{name}_HA` / `{name}_A-` keys (the VFA rows of
+`EquilibriumSet.bsm2_default()`) and `Cation(inert)` / `Anion(inert)` have no
+`Species` objects. A replacement would have the emitter return a `{key: charge}`
+map alongside the concentrations. The comment at `tests/standalone/test_bsm2_reference.py:185-203`
+shows the risk: a species emitted under a key the rule does not recognise
+silently drops out of I (a missed `NH4+` under-counted BSM2's I by about 25%).
+Bisection also ignores `CT_Cu`, `CT_Fe2` and `CT_MoO4`, which NR handles.
+Also open: whether the package root should keep re-exporting
+`ionic_strength_from_speciation`, which has no users in the repo besides tests.

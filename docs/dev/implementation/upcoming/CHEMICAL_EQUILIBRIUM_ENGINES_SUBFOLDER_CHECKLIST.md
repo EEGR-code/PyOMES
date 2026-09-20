@@ -565,7 +565,7 @@
       and likewise the test file. Observation, not acted on:
       `models/vlmodels/adm1/bsm2_direct.py` fails to import (`No module named
       'vlmodels'`), before and after this checkpoint; unrelated._
-- [ ] 12d. _Added during Part C (requested after checkpoint 12c; plan Decision
+- [x] 12d. _Added during Part C (requested after checkpoint 12c; plan Decision
       18)._ **Dissolve `chemical_equilibrium/activity.py`: move its
       Bisection-only ionic-strength helpers to
       `engines/bisection/ionic_strength.py` and delete the uncalled
@@ -645,6 +645,34 @@
       **Effects outside this phase's scope:** none expected (no outside users);
       the follow-ups above go to `OPEN_WORK.md`. Record any other reference that
       turns up.
+      _Notes: done 2026-09-20. `git mv` recorded as a rename
+      (`activity.py` → `engines/bisection/ionic_strength.py`); in it, the module
+      docstring was rewritten, `warn_if_high_ionic_strength` and the `numpy`
+      import were removed, and nothing else changed. Repointed `acid_base.py` (two
+      lines: the top-level import and the redundant local one, which was left in
+      place), the package `__init__.py` (root re-export of
+      `ionic_strength_from_speciation` kept, `warn_if_high_ionic_strength`
+      dropped) and 11 references in `test_speciation.py` (9 imports, 2
+      docstrings). Updated `engines/__init__.py`, `docs/architecture.md`, and
+      `OPEN_WORK.md` (two new entries: no engine emits a high-ionic-strength
+      warning; ionic strength and ion charges are defined in several places).
+      `upcoming/README.md:276` needed no change: it is a dated changelog line that
+      names the function but no path. **Verification:** (1) fresh search: the old
+      path, `warn_if_high_ionic_strength` and `activity.py` remain only in
+      `OPEN_WORK.md`, this checklist and the plan doc. (2) AST of the three moved
+      helpers (docstrings removed) has the same SHA-256 before and after, and
+      `acid_base.py` differs by exactly the two import lines. (3) AST import audit
+      over every tracked `.py` and notebook cell: 70 modules, the only unresolved
+      name is `PyOMES.control.state_builder`, which `test_simulation.py` imports
+      on purpose to assert it is gone. `import
+      PyOMES.chemical_equilibrium.activity` raises `ModuleNotFoundError`; the root
+      `ionic_strength_from_speciation` still works and is the same object as the
+      new module's; `from PyOMES.chemical_equilibrium import
+      warn_if_high_ionic_strength` raises `ImportError`. (4) **Deviation from the
+      plan:** engine fingerprints were not re-run (no saved baseline, as in 12c).
+      In their place: the helper ASTs are identical and every Bisection solve
+      goes through them, and the BSM2 reference sentinels and the 9 relocated
+      tests all pass. (5) Full suite 2068 passed, 0 failed (unchanged from 12c)._
 
 **Part D — gas-constant unification** (after Part C; see the plan doc's
 "Gas-constant definitions (Part D)" audit and Decisions 11–15)

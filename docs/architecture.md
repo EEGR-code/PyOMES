@@ -390,10 +390,10 @@ PyOMES/
     _shared.py                   # Shared validation helpers
   chemical_equilibrium/          # Aqueous speciation engines
     protocols.py                 # Engine protocols, EquilibriumResult
-    activity.py                  # ionic_strength_from_speciation, high-I warning
     numerical_gradient.py        # NumericalGradientEquilibriumEngine (wraps any engine)
     engines/
-      bisection/                 # engine.py (BisectionChemicalEquilibriumEngine), acid_base.py
+      bisection/                 # engine.py (BisectionChemicalEquilibriumEngine), acid_base.py,
+                                 # ionic_strength.py (suffix-based ionic strength)
       nr/                        # engine.py (NRChemicalEquilibriumEngine), tableau.py, solver.py
       phreeqc.py                 # PHREEQCChemicalEquilibriumEngine (optional phreeqpython)
   thermo/                        # Activity models (Ideal/Davies/SIT), ThermoFramework, water properties,
