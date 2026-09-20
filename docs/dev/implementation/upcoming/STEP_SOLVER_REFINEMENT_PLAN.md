@@ -4,7 +4,7 @@
 
 > **Stage 0 and Stage 1 shipped 2026-07-08.** See the Sequencing table
 > below for tags; [STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md)
-> for Stage 1's full implementation log. Stages 2–3 remain as scoped
+> for Stage 1's full implementation log. Stages 2–4 remain as scoped
 > below — Stage 2 (Q7 design decision) has not been resolved, so Stage
 > 4 (SIA) is not yet ready to checklist.
 

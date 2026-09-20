@@ -421,10 +421,10 @@ design (Phases A–E) — not the SUNDIALS/DAE Phase F/G track.
   interleaving/multi-CV-aware solver tier discussion is Stages 2–4 of the
   plan, not yet resolved.
 - **[STEP_SOLVER_REFINEMENT_PLAN.md](STEP_SOLVER_REFINEMENT_PLAN.md)** —
-  the 4-stage sequencing plan. Stage 0 (rename) and Stage 1 (the bundle)
-  shipped; Stage 2 (SIA z-staleness design decision, §12 Q7) and Stage 3
-  (reactive D_eff transport) still pending — see the plan doc for current
-  status.
+  the sequencing plan (Stages 0–4). Stage 0 (rename) and Stage 1 (the
+  bundle) shipped; Stage 2 (z-staleness design decision, §12 Q7), Stage 3
+  (reactive D_eff transport) and Stage 4 (SIA, blocked on Stage 2) still
+  pending — see the plan doc for current status.
 - **[STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md)** —
   Stage 1's full checkpoint-by-checkpoint implementation log (10
   checkpoints, all shipped), including several scope corrections found
