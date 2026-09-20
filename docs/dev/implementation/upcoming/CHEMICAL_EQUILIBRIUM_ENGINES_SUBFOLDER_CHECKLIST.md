@@ -255,6 +255,36 @@
       for the cache path, plus name-translation functions) byte-identical
       before/after; Bisection and NR fingerprints still byte-identical; old
       path raises `ModuleNotFoundError`; full suite 2080 passed (unchanged)._
+- [x] 10b. _Added during Part C; unrelated to the engine layout._ Make the
+      PHREEQC availability flag consistent and make the ArXiv guard actually
+      work. _Notes: found while checking checkpoint 10's silent-skip trap.
+      Two notebooks guarded the same import with different names —
+      `_HAVE_PHREEQC` (ArXiv `01_predict_ph_simple_liquid.ipynb` and its
+      `_generate_notebooks.py`, 9 uses each, from 2026-09-14) and `HAS_PHREEQC`
+      (validation `10_engine_protocol_hierarchy.ipynb`, 3 uses, hand-written,
+      no generator) — with no repo convention behind either (no other
+      availability flags exist; the package raises `ImportError` at the point
+      of use and pytest uses `importorskip`). The names also hid a real
+      difference: `engines/phreeqc.py` imports `phreeqpython` lazily inside
+      `__init__`, so the ArXiv guard (which only imported the engine module)
+      reported `True` even when `phreeqpython` was missing, and the PHREEQC
+      cells then crashed instead of being skipped as the notebook's own text
+      promises. Pre-existing; not caused by this phase.
+      **Fix:** standardised on `HAS_PHREEQC` (PEP 8 constant style; matches the
+      correct guard) by renaming the 9 uses in the ArXiv generator template and
+      the 9 in the notebook, and added notebook 10's `import phreeqpython`
+      presence check to the ArXiv guard. Raw byte edits with exact-count
+      assertions (generator is CRLF, notebook JSON `\n` escapes handled);
+      validation notebook 10 untouched. **Verified:** before the fix, with
+      `phreeqpython` simulated absent, the notebook failed at code cell 7 with
+      the flag `True`; after, it completes all 13 cells with the flag `False`,
+      and with `phreeqpython` present the flag is `True` and it completes as
+      before; the generator template and the notebook's guard cell are
+      identical; all 14 changed notebook lines are `source` lines (no saved
+      output touched); generator compiles; no `_HAVE_PHREEQC` left in
+      `.py`/`.ipynb`; full suite 2080 passed (unchanged). The historical
+      mention of `_HAVE_PHREEQC` in checkpoint 10's notes above is left as the
+      record of what was true then._
 - [ ] 11. Update the package `__init__.py` re-exports, then external callers:
       `PyOMES/reactions/reaction_system.py`, `models/vlmodels/adm1/{base,bsm2}.py`,
       both notebook generators, notebooks, tests. Finish with a repo-wide

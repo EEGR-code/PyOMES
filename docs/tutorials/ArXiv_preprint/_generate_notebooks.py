@@ -313,11 +313,12 @@ reports that and the rest of the notebook is unaffected.\
 
     code("phreeqc-setup", """\
 try:
+    import phreeqpython as _phreeqpython  # noqa: F401 - presence check only
     from PyOMES.chemical_equilibrium.engines.phreeqc import PHREEQCChemicalEquilibriumEngine
-    _HAVE_PHREEQC = True
+    HAS_PHREEQC = True
     print("phreeqpython available - PHREEQC benchmark cells will run.")
 except ImportError as exc:
-    _HAVE_PHREEQC = False
+    HAS_PHREEQC = False
     print(f"phreeqpython not installed ({exc}); skipping PHREEQC benchmark cells.")
     print("Install with: pip install PyOMES[phreeqc]")
 """),
@@ -346,7 +347,7 @@ already used to prime the engine. See
 """),
 
     code("phreeqc-point-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     engine_davies = NRChemicalEquilibriumEngine.from_reactions(
         [water, p1, p2, p3, nh4], use_activity=True, activity_model="davies",
     )
@@ -386,7 +387,7 @@ pH at matching doses — perfect agreement falls on the dashed 1:1 line).\
 """),
 
     code("phreeqc-sweep-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     pH_P_davies = [engine_davies.solve(totals={"H3PO4": CT, "NH3": 0.0},
                                         strong_ions={"CT_K": CT}).pH
                    for CT in CT_P_vals]
@@ -468,7 +469,7 @@ solver itself.\
 """),
 
     code("phreeqc-ideal-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     import tempfile
     from phreeqpython import PhreeqPython as _RawPhreeqPython
 
@@ -557,7 +558,7 @@ check the earlier sections couldn't isolate.\
 """),
 
     code("phreeqc-ideal-sweep-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     pH_P_ideal_pq = np.array([_solve_ideal_pq(ct, 0.0) for ct in CT_P_vals])
 
     fig, ax = plt.subplots(figsize=(5.5, 5))
@@ -673,7 +674,7 @@ with plt.rc_context(PUB_STYLE):
     plt.show()
 
     # -- figure 2: PHREEQC parity, own file, if available ----------------
-    if _HAVE_PHREEQC:
+    if HAS_PHREEQC:
         fig_b, ax_b = plt.subplots(figsize=(PUB_FIG_WIDTH_IN, 3.3), layout="constrained")
 
         # Marker colors sampled from the same viridis colormap as the
@@ -710,7 +711,7 @@ with plt.rc_context(PUB_STYLE):
                           dpi=PUB_DPI, bbox_inches="tight")
         plt.show()
 
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     print(f"Max |ideal series|    (NR ideal  vs. PHREEQC gamma->1) = {np.max(np.abs(pH_P_arr - pH_P_ideal_pq)):.4f} pH units")
     print(f"Max |nonideal series| (NR Davies vs. PHREEQC WATEQ D-H) = {np.max(np.abs(pH_P_davies_arr - pH_P_pq)):.4f} pH units")
     print(f"Saved: {FIG_DIR / 'fig_contour_ph_design_space.pdf'}")
@@ -771,7 +772,7 @@ runtime_results["PyOMES ideal"] = time_replicates(lambda: engine.solve(
     strong_ions={"CT_K": CT_P, "CT_Cl": CT_N},
 ))
 
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     runtime_results["PyOMES Davies"] = time_replicates(lambda: engine_davies.solve(
         totals={"H3PO4": CT_P, "NH3": CT_N},
         strong_ions={"CT_K": CT_P, "CT_Cl": CT_N},

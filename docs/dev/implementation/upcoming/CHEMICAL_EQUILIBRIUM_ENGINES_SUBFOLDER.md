@@ -348,6 +348,14 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     apart from the removed names.
 10. Move `phreeqc_engine.py` to `engines/phreeqc.py`. Run
    `tests/validation/speciation/`.
+10b. *Added during Part C; unrelated to the layout.* Surfaced while
+    verifying checkpoint 10: the two notebooks that guard the PHREEQC import
+    used different flag names (`_HAVE_PHREEQC` in the ArXiv tutorial,
+    `HAS_PHREEQC` in validation notebook 10), and the ArXiv guard did not
+    actually detect a missing `phreeqpython` (the engine imports it lazily, so
+    importing the module never fails). Standardise on `HAS_PHREEQC` and add the
+    presence check to the ArXiv guard, in the generator template and the
+    notebook together.
 11. Update `__init__.py` re-exports, then external callers: `PyOMES/reactions/
    reaction_system.py`, `models/vlmodels/adm1/{base,bsm2}.py`, the notebook
    generators, and tests. No shims are left at the old paths (Decision 2), so
