@@ -19,7 +19,6 @@ from PyOMES.thermo.equilibrium_constants import (
 )
 from PyOMES.units import R_J_PER_MOL_K
 
-_R_J_PER_MOLK = 8.31446261815324
 _LOG10_E = np.log10(np.e)
 
 
@@ -34,7 +33,7 @@ def _legacy_vant_hoff_K(K_ref, dH_J_per_mol, T_K, T_ref_K=298.15):
         return float(K_ref)
     if not np.isfinite(T_K) or T_K <= 0.0:
         return float(K_ref)
-    return float(K_ref * np.exp(-(dH_J_per_mol / _R_J_PER_MOLK) * (1.0 / T_K - 1.0 / T_ref_K)))
+    return float(K_ref * np.exp(-(dH_J_per_mol / R_J_PER_MOL_K) * (1.0 / T_K - 1.0 / T_ref_K)))
 
 
 def _legacy_vant_hoff_log_K(log_K_ref, dH_J_per_mol, T_K, T_ref_K):

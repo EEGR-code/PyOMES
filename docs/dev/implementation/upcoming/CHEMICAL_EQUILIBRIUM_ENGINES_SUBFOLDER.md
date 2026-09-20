@@ -166,6 +166,8 @@ touched the L·atm value.
 | `reactions/plots.py:18` `_R_GAS` | 8.314 | −5.6e-5 | Van 't Hoff plot only |
 | Literals in tests | 0.0820574 (`test_gas_liquid_link:895`, `test_nr_gas_liquid_cp2` ×2, `test_partition_model` ×2, `test_precipitation_gas_liquid_cp5:29`); 8.31446261815324 (`test_equilibrium_constants:22`, added in checkpoint 7 as a frozen reference) | | |
 | `docs/tutorials/D2C_workshop/Example1_mtp_well.ipynb:202` `R_LA` | 0.08205 | −9e-5 | |
+| `docs/tutorials/D2C_workshop/Example2_batch_fermenter.ipynb:79` `R_ATM` | 0.08205 | −9e-5 | Found by the checkpoint 13 re-search |
+| `docs/tutorials/protocols/ChemicalEquilibriumProtocol/02_nr_engine_basics.ipynb:228` (code-cell literal) | 0.0820574 | +4.1e-7 | Found by the checkpoint 13 re-search |
 
 Already correct (import from `units`): `thermo/framework.py`,
 `thermo/equilibrium_constants.py`, `chemistry/thermo_params.py`,
@@ -445,8 +447,10 @@ bit-identical and verifiable; Part D changes numbers)
     `R_J_PER_MOL_K` (Decision 12); repoint `core/phases.py` (rename per
     Decision 13, all 25 files), `partition.py`, `peng_robinson.py`,
     `cv_loops.py`, `plots.py`, and — per Decision 14 — the three ADM1/BSM2
-    files; replace the test literals and the `Example1_mtp_well.ipynb`
-    `R_LA` with imports; empty the guard allowlist. Expect: every
+    files; replace the test literals and the notebook literals
+    (`Example1_mtp_well.ipynb` `R_LA`, `Example2_batch_fermenter.ipynb`
+    `R_ATM`, and a code cell in `02_nr_engine_basics.ipynb`) with imports; empty
+    the guard allowlist. Expect: every
     `p = nRT/V` shifts by about 4e-7 relative, and the BSM2 sentinels
     (`RTOL_SENTINEL = 1e-9`) and any test with a tight tolerance on a gas
     quantity will move. Before changing anything, record a fingerprint of

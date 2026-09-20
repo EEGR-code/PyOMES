@@ -677,17 +677,53 @@
 **Part D — gas-constant unification** (after Part C; see the plan doc's
 "Gas-constant definitions (Part D)" audit and Decisions 11–15)
 
-- [ ] 13. _Value-preserving._ Re-verify the plan's audit table with a fresh
+- [x] 13. _Value-preserving._ Re-verify the plan's audit table with a fresh
       search. Replace `cv_loops._R_UNIV` (bit-identical copy) with an import
       from `units`; make `test_equilibrium_constants.py` import `R` instead of
       holding a literal. Add the guard test with an allowlist of every copy that
       remains (Decision 15). Bit-identical (fingerprint).
+      _Notes: done 2026-09-20. **Fresh search** (every tracked `.py` and
+      `.ipynb`; any numeric spelling of R, plus the named symbols): every entry in
+      the plan's audit table is still there at the stated line, and the search
+      found **two the table missed**, both saved notebook code cells:
+      `docs/tutorials/D2C_workshop/Example2_batch_fermenter.ipynb:79`
+      (`R_ATM = 0.08205`, −9e-5 vs the root, the same value as Example1's `R_LA`)
+      and `docs/tutorials/protocols/ChemicalEquilibriumProtocol/02_nr_engine_basics.ipynb:228`
+      (`0.0820574 * T_K`). Neither is under `PyOMES/` or `models/`, so they do not
+      affect this checkpoint or the guard; they are added to checkpoint 14's
+      scope and to the plan's audit table. **Changes:** `cv_loops.py` now imports
+      `R_J_PER_MOL_K` and its four uses read it directly (the private `_R_UNIV`
+      is gone; no other file used it); `test_equilibrium_constants.py` drops its
+      `_R_J_PER_MOLK` literal (the file already imported `R_J_PER_MOL_K` for its
+      other reference), so both legacy references use the same R;
+      `PyOMES/units.py`'s docstring title is corrected from `fermenter.units` to
+      `PyOMES.units` (Decision 11, docstring only). **Guard:** new
+      `tests/standalone/test_gas_constant_single_source.py`, 4 tests. It reads
+      Python number tokens (so comments, docstrings and strings are ignored and
+      any spelling is caught) and flags any within 0.1 % of R in J or L·atm under
+      `PyOMES/` and `models/`, other than `units.py`. `_KNOWN_COPIES` lists the
+      8 remaining copies by file and token (partition, cv_loops `_R_L_ATM_PER_MOL_K`,
+      phases, peng_robinson, plots, and the three ADM1/BSM2 files); a new literal
+      fails one test and a listed copy that disappears fails the other, so the
+      list can only shrink. The other two tests pin the root values (`R_J`
+      exactly, `R_L_ATM` to 1e-12 and to `R_J / 101.325`) and check the scan
+      against a synthetic file, so an empty result means something.
+      **Verification:** (1) fingerprint of `mixture_gamma_and_mw` and
+      `mass_flow_kg_s`, the only code that read `_R_UNIV` (104 values over four gas
+      mixtures and 96 flow cases): identical SHA-256 before and after, as expected
+      since the two literals are the same float. (2) No leftover `_R_UNIV`,
+      `_R_J_PER_MOLK` or `fermenter.units` in any `.py` or `.ipynb`. (3) Full suite
+      **2072 passed** (2068 + the 4 new guard tests), 0 failed. **Left for 14:**
+      `tests/standalone/test_boundaries.py:200-201` has a comment calling
+      `R_L_ATM_MOL_K=0.0820574` "more precise" than the legacy value; it becomes
+      wrong when that name goes, so reword it then._
 - [ ] 14. _Numerics-changing, own commit._ Derive `R_L_ATM_PER_MOL_K` from
       `R_J_PER_MOL_K`; repoint `core/phases.py` (rename all 25 files, Decision
       13), `partition.py`, `peng_robinson.py`, `cv_loops.py`, `plots.py`, the
       three ADM1/BSM2 files (Decision 14 — **confirm keep-or-unify first**),
-      test literals and `Example1_mtp_well.ipynb` `R_LA`; empty the guard
-      allowlist. Record a gas-liquid + BSM2 fingerprint before, the shift after
+      test literals and the notebook literals (`Example1_mtp_well.ipynb` `R_LA`,
+      `Example2_batch_fermenter.ipynb` `R_ATM`, `02_nr_engine_basics.ipynb`
+      cell literal); empty the guard allowlist. Record a gas-liquid + BSM2 fingerprint before, the shift after
       (expect ~4.1e-7 relative on `nRT/V`, ~3.2e-7 on ADM1 `Ka(T)`), and
       re-baseline sentinels with a dated before/after comment.
 - [ ] 15. Full suite green, then ship (see below).

@@ -1,4 +1,4 @@
-"""fermenter.units
+"""PyOMES.units
 
 Central place for **units**, **conversion helpers**, and shared physical constants.
 
