@@ -67,7 +67,7 @@ from PyOMES.reactions.environment import ReactionEnvironment
 from PyOMES.core import (
     LiquidPhase, GasPhase, ControlVolume, Simulation, EquilibriumTransferModel,
 )
-from PyOMES.core.phases import R_L_ATM_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.solvers import SimultaneousAdaptiveSolver
 
 # Singer & Stumm (1970) Eq. 22, p(O2) basis (M^-2 atm^-1 s^-1 -> per hour).
@@ -140,7 +140,7 @@ def _make_cv(pH_target, V_L=1.0, V_gas=1000.0, T_K=298.15):
     with it, so starting at 0 mM produces an artificial discontinuity on
     the very first internal solver step (confirmed: this alone took an
     otherwise-identical BDF run from ~15 accepted steps to ~70)."""
-    n_gas_total = (1.0 * V_gas) / (R_L_ATM_MOL_K * T_K)
+    n_gas_total = (1.0 * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
     gas = GasPhase(
         n_mol={"O2": n_gas_total * 0.2095, "N2": n_gas_total * 0.7905},
         V_L=V_gas, T_K=T_K,

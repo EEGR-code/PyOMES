@@ -39,6 +39,8 @@ import math
 
 import pytest
 
+from PyOMES.units import R_L_ATM_PER_MOL_K
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Shared chemistry builders
@@ -119,7 +121,7 @@ class TestInertGasMatchesPartitionModel:
         n_liq_expected = henry.equilibrium_a_moles(n_total_O2, V_liq, V_gas, T_K)
         C_liq_expected = n_liq_expected / V_liq
         n_gas_expected = n_total_O2 - n_liq_expected
-        p_gas_expected = n_gas_expected * 0.0820574 * T_K / V_gas
+        p_gas_expected = n_gas_expected * R_L_ATM_PER_MOL_K * T_K / V_gas
 
         assert out.species_mol_L["O2"] == pytest.approx(C_liq_expected, rel=1e-8)
         assert out.partial_pressures_atm["O2"] == pytest.approx(p_gas_expected, rel=1e-8)
@@ -149,7 +151,7 @@ class TestCoupledMassConservation:
             + out.species_mol_L["CO3--"]
         )
         n_liq = C_liq_total * V_liq
-        n_gas = out.partial_pressures_atm["CO2"] * V_gas / (0.0820574 * T_K)
+        n_gas = out.partial_pressures_atm["CO2"] * V_gas / (R_L_ATM_PER_MOL_K * T_K)
         assert (n_liq + n_gas) == pytest.approx(n_total_C, abs=1e-9)
 
     def test_pH_in_plausible_range(self):

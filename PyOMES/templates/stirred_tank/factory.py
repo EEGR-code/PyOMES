@@ -39,7 +39,8 @@ from .configs import (
     SubstrateConfig,
     SimulationConfig,
 )
-from PyOMES.core.phases import GasPhase, LiquidPhase, R_L_ATM_MOL_K
+from PyOMES.core.phases import GasPhase, LiquidPhase
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.transfer_models import KineticTransferModel, EquilibriumTransferModel
 from PyOMES.core.boundaries import GasFeed
@@ -151,7 +152,7 @@ class StirredTankFactory:
         V_liq = vessel.V_liquid_L
 
         # Initial gas moles from ideal gas law
-        n_total_gas = (vessel.P_init_atm * V_gas) / (R_L_ATM_MOL_K * T_K)
+        n_total_gas = (vessel.P_init_atm * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
         y_sum = vessel.yO2_init + vessel.yCO2_init + vessel.yN2_init
         if y_sum > 0:
             yO2 = vessel.yO2_init / y_sum

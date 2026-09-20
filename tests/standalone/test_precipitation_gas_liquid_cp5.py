@@ -24,9 +24,7 @@ from __future__ import annotations
 
 import pytest
 
-
-def _R_L_ATM_MOL_K():
-    return 0.0820574
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 
 def _carbonate_reactions():
@@ -157,7 +155,7 @@ class TestPrecipitationCoexistsWithGasLiquidFold:
         C_liq = (out.species_mol_L["CO2"] + out.species_mol_L["HCO3-"]
                  + out.species_mol_L["CO3--"])
         n_liq_C = C_liq * V_liq
-        n_gas_C = out.partial_pressures_atm["CO2"] * V_gas / (_R_L_ATM_MOL_K() * T_K)
+        n_gas_C = out.partial_pressures_atm["CO2"] * V_gas / (R_L_ATM_PER_MOL_K * T_K)
         n_solid_C = xi * V_liq  # 1 carbon per mol CaCO3
 
         total_C = n_liq_C + n_gas_C + n_solid_C

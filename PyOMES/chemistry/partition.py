@@ -42,14 +42,12 @@ from typing import (
 )
 
 from ..units import R_J_PER_MOL_K as _R_J_MOL
+from ..units import R_L_ATM_PER_MOL_K
 from .species import Species
 
 if TYPE_CHECKING:
     from PyOMES.thermo import ThermoFramework
     from PyOMES.reactions.stoichiometry import StoichiometryEntry
-
-_R_L_ATM_MOL_K = 0.0820574  # L·atm/(mol·K) — must match core.phases.R_L_ATM_MOL_K
-
 
 def _resolve_species(species: Union[str, Species, None]) -> Optional[Species]:
     """Resolve a species id string or ``Species`` object to a ``Species``.
@@ -180,7 +178,7 @@ class HenryEquilibrium:
         """
         kH = self._kH_mol_L_atm(T_K)
         gamma = self._gamma(species_id, x_mol, charge, T_K)
-        return (kH / (max(1e-12, alpha) * gamma)) * _R_L_ATM_MOL_K * T_K * capacity_a / capacity_b
+        return (kH / (max(1e-12, alpha) * gamma)) * R_L_ATM_PER_MOL_K * T_K * capacity_a / capacity_b
 
     def equilibrium_a_moles(
         self,
@@ -359,7 +357,7 @@ class RaoultEquilibrium:
         Ps = self.P_sat(T_K)
         if Ps <= 0.0:
             return float("inf")
-        return (self.C_water_mol_L * capacity_a * _R_L_ATM_MOL_K * T_K) / (Ps * capacity_b)
+        return (self.C_water_mol_L * capacity_a * R_L_ATM_PER_MOL_K * T_K) / (Ps * capacity_b)
 
     def equilibrium_a_moles(
         self,
@@ -663,6 +661,6 @@ class MultispeciesVLEPartition:
             H_ref = self.kH_ref[species_id]
             dlnH  = self.dlnH.get(species_id, 0.0)
             kH = _kH_mol_L_atm_from_ref(H_ref, dlnH, T_K, self.T_ref)
-            r = kH * _R_L_ATM_MOL_K * T_K * capacity_a / capacity_b
+            r = kH * R_L_ATM_PER_MOL_K * T_K * capacity_a / capacity_b
             result[species_id] = r * float(n_total) / (1.0 + r)
         return result

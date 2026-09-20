@@ -717,7 +717,7 @@
       `tests/standalone/test_boundaries.py:200-201` has a comment calling
       `R_L_ATM_MOL_K=0.0820574` "more precise" than the legacy value; it becomes
       wrong when that name goes, so reword it then._
-- [ ] 14. _Numerics-changing, own commit._ Derive `R_L_ATM_PER_MOL_K` from
+- [x] 14. _Numerics-changing, own commit._ Derive `R_L_ATM_PER_MOL_K` from
       `R_J_PER_MOL_K`; repoint `core/phases.py` (rename all 25 files, Decision
       13), `partition.py`, `peng_robinson.py`, `cv_loops.py`, `plots.py`,
       test literals and the notebook literals (`Example1_mtp_well.ipynb` `R_LA`,
@@ -730,6 +730,56 @@
       (no alias), so `core/` imports from `units`; 14 leave the ADM1/BSM2
       `_R_J = 8.31446` copies and flag them in `OPEN_WORK.md`, so they are not in
       this checkpoint's scope._
+      _Notes: done 2026-09-20, 33 files. **Baseline:** before changing code, a
+      63-value fingerprint (scratch script, not committed; two runs
+      byte-identical) of everything that depends on the L·atm R: `GasPhase` P and
+      p_i, Henry `partition_ratio` and `equilibrium_a_moles`, an NR gas-liquid
+      CO2/carbonate solve, Peng-Robinson pressures, and the full BSM2 end state
+      (every liquid and gas mole count, pH). **Changes:** `units.py` now has one
+      literal for R (`R_J_PER_MOL_K`, moved above the conversion constants) and
+      `R_L_ATM_PER_MOL_K = R_J_PER_MOL_K / (PA_PER_ATM / L_PER_M3)` =
+      0.08205736608095968. `core/phases.py` no longer defines `R_L_ATM_MOL_K`
+      (renamed, no alias, Decision 13): `core/` now imports from `units`.
+      Repointed `boundaries.py`, the NR solver, the stirred-tank factory,
+      `partition.py` (its private copy is gone), `peng_robinson.py` (imports it
+      as the local name `R`), `cv_loops.py`, and `plots.py` (`_R_GAS` 8.314 →
+      CODATA; van 't Hoff plot only). Two imports of the old name that were never
+      used were deleted (`gas_liquid_link.py`, `solvers.py`). Outside the package:
+      10 test files, `test_iron_oxidation.py`, the ArXiv generator, 8 notebooks
+      (7 by import/identifier rewrite, 3 literal replacements: `Example1` `R_LA`,
+      `Example2` `R_ATM`, a `02_nr_engine_basics` cell), 2 tutorial `.py` files.
+      **Shift, after vs before.** R itself: −4.13e-7. Quantities proportional to R
+      moved by exactly that (−4.134e-7: `GasPhase` P and each p_i, Henry partition
+      ratio, Peng-Robinson ideal-gas fallback; PR mixture −4.127e-7). Equilibrium-
+      coupled quantities moved by fractions of it (Henry equilibrium moles
+      −1.5e-7; NR CO2 partial pressure and dissolved CO2 −7.9e-8; NR H+, HCO3-,
+      OH- ±4.0e-8; NR pH +4.4e-9). BSM2: gas moles CO2 +3.6e-7, CH4 +1.1e-7, H2
+      +7.9e-8, N2 +4.5e-7; gas-linked liquid species S_h2 −3.3e-7, S_ch4 −3.0e-7,
+      CO2 −5.8e-8, HCO3- −5.7e-8; NH3 +7e-10, pH +1.3e-10; every species not linked
+      to the gas phase moved by ≤1e-15 (round-off), so ADM1 `Ka(T)` is unchanged as
+      intended. Nothing shifted by 1e-5 or more; the largest (N2 gas moles) is
+      about 9 % above the bare ratio, plausible for a fed quantity that feeds back
+      through the integration. 28 of the 63 values are bit-identical.
+      **Tests:** first full run, 2 failed / 2070 passed: exactly the two BSM2
+      sentinel tests (liquid concentrations, gas moles), which have a 1e-9
+      tolerance; the pH sentinel and every test whose literal was replaced passed.
+      Re-baselined all sentinels with a dated before/after note in
+      `test_bsm2_reference.py`. The guard test's `_KNOWN_COPIES` is down to the
+      three ADM1/BSM2 entries kept by Decision 14, and its pin test now asserts
+      `R_L_ATM_PER_MOL_K == R_J_PER_MOL_K / (PA_PER_ATM / L_PER_M3)` exactly.
+      **Verification:** (1) `R_L_ATM_MOL_K` appears in no tracked file outside
+      `docs/dev/`. (2) Guard test: 4 passed. (3) Import audit, now also checking
+      each imported name: 70 modules; unresolved: `PyOMES.control.state_builder`
+      (asserted absent on purpose by `test_simulation.py`) and, newly visible
+      because names are now checked, `create_standalone_fermenter`, imported by
+      `tests/run_tests.py:107` and absent from `PyOMES` at the parent commit too
+      (unrelated: that non-pytest script is stale; observation, not acted on).
+      (4) All changed notebooks and generators parse, every code cell included.
+      (5) Full suite **2072 passed**, 0 failed (count unchanged: no test added or
+      removed). **Not done:** the changed notebooks were not re-executed, so their
+      saved outputs still show pre-change numbers, differing from a re-run by
+      about 4e-7 relative. **Restore point:** `9b16871` (the last commit before
+      this checkpoint).
 - [ ] 15. Full suite green, then ship (see below).
 
 ### Checkpoint 1 inventory

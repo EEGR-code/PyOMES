@@ -29,7 +29,8 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
-from .phases import GasPhase, LiquidPhase, Phase, R_L_ATM_MOL_K
+from ..units import R_L_ATM_PER_MOL_K
+from .phases import GasPhase, LiquidPhase, Phase
 from ..control.descriptors import MutableDict as _MutableDict, MutableScalar as _MS
 
 
@@ -299,7 +300,7 @@ class GasFeed:
         T_K = max(T_K, 1.0)
 
         Q_gas_L_per_min = self.vvm_min * V_liq
-        n_dot_total = (self.P_inlet_atm * Q_gas_L_per_min * 60.0) / (R_L_ATM_MOL_K * T_K)
+        n_dot_total = (self.P_inlet_atm * Q_gas_L_per_min * 60.0) / (R_L_ATM_PER_MOL_K * T_K)
 
         return {sp: yi * n_dot_total for sp, yi in self._y.items()}
 
@@ -453,7 +454,7 @@ class PressureReliefVent:
         """Moles to vent for instant (hard-clamp) pressure relief."""
         T_K = max(float(gas.T_K), 1.0)
         V_L = max(float(gas.V_L), 1e-30)
-        n_target = (self.P_set_atm * V_L) / (R_L_ATM_MOL_K * T_K)
+        n_target = (self.P_set_atm * V_L) / (R_L_ATM_PER_MOL_K * T_K)
         return max(0.0, n_total - max(0.0, n_target))
 
     def _smooth_vent_mol(self, P_atm: float, n_total: float, dt_h: float) -> float:
@@ -983,7 +984,7 @@ class ProportionalGasOutlet:
         #   n_dot_water = P_water × q_gas / (R × T)
         if self.include_water_vapour and P_water > 0.0:
             self.last_water_loss_mol_per_h = (
-                P_water * q_gas_L_h / (R_L_ATM_MOL_K * T_K)
+                P_water * q_gas_L_h / (R_L_ATM_PER_MOL_K * T_K)
             )
         else:
             self.last_water_loss_mol_per_h = 0.0

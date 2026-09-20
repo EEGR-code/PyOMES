@@ -831,7 +831,7 @@ from PyOMES.core import (
     ControlVolume, GasPhase, LiquidPhase, KineticTransferModel, Simulation,
     SimultaneousAdaptiveSolver,
 )
-from PyOMES.core.phases import R_L_ATM_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 # Pure water's tracked H/OH totals are tiny (~1e-8 mol, just the
 # autoionization ions -- bulk solvent water isn't part of the element
@@ -977,7 +977,7 @@ T_K = 298.15    # 25 C
 p_CO2_atm, p_O2_atm, p_N2_atm = 400e-6, 0.20946, 0.78084
 
 def build_cv(kLa, label="pure_water"):
-    n_gas = (1.0 * V_gas) / (R_L_ATM_MOL_K * T_K)   # 1 atm headspace
+    n_gas = (1.0 * V_gas) / (R_L_ATM_PER_MOL_K * T_K)   # 1 atm headspace
     gas_phase = GasPhase(
         n_mol={
             "CO2": n_gas * p_CO2_atm,
@@ -1019,7 +1019,7 @@ _kH = {"CO2": kH_mol_L_atm(co2_henry.H_ref, co2_henry.dlnH, T_K),
        "O2": kH_mol_L_atm(o2_henry.H_ref, o2_henry.dlnH, T_K),
        "N2": kH_mol_L_atm(n2_henry.H_ref, n2_henry.dlnH, T_K)}
 _p = {"CO2": p_CO2_atm, "O2": p_O2_atm, "N2": p_N2_atm}
-_n_gas_total = (1.0 * V_gas) / (R_L_ATM_MOL_K * T_K)
+_n_gas_total = (1.0 * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
 for _sp in ("CO2", "O2", "N2"):
     _needed = _kH[_sp] * _p[_sp] * V_liq
     _available = _n_gas_total * _p[_sp]
@@ -1215,7 +1215,7 @@ from PyOMES.core import (
     KineticTransferModel, EquilibriumTransferModel,
     Simulation, GasFeed, PressureReliefVent, LiquidFeed, LiquidDrain,
 )
-from PyOMES.core.phases import R_L_ATM_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 # Same rationale as usecase 03: the explicit-Euler CV solver clamps a
 # species' removal rate when a step would otherwise drive it negative
@@ -1525,7 +1525,7 @@ def make_transfer_models():
 
 def build_cv(D_per_h, X0_gL=0.05):
     Q_L_per_h = D_per_h * V_liq
-    n_total_gas = (1.0 * V_gas) / (R_L_ATM_MOL_K * T_K)
+    n_total_gas = (1.0 * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
     gas_phase = GasPhase(
         n_mol={
             "O2": n_total_gas * 0.2095, "N2": n_total_gas * 0.7901,

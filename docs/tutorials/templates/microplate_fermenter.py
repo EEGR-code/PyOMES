@@ -32,7 +32,7 @@ import numpy as np
 from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import MembraneGasBoundary
-from PyOMES.core.phases import R_L_ATM_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.control.cv_loops import PHController
 
 
@@ -184,8 +184,8 @@ if len(valid_pH) > 0:
 n_O2_gas = result.gas_mol[cv_key].get("O2", np.zeros(1))
 V_hs = cv.phases["gas"].V_L
 if V_hs > 0:
-    pO2_0 = n_O2_gas[0] * R_L_ATM_MOL_K * T_K / V_hs
-    pO2_f = n_O2_gas[-1] * R_L_ATM_MOL_K * T_K / V_hs
+    pO2_0 = n_O2_gas[0] * R_L_ATM_PER_MOL_K * T_K / V_hs
+    pO2_f = n_O2_gas[-1] * R_L_ATM_PER_MOL_K * T_K / V_hs
     print(f"  p(O2):    {pO2_0:.4f} -> {pO2_f:.4f} atm")
 
 n_O2_liq = result.liquid_mol[cv_key].get("O2", np.zeros(1))

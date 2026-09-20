@@ -259,23 +259,42 @@ def bsm2_trajectory():
 # SpeciationPropertySolver wrapper; subtle differences in monitor
 # wiring + alpha-lookup timing account for the residual.
 # Qualitative behaviour unchanged.
+#
+# Re-baselined 2026-09-20 during the gas-constant unification of
+# chemical-equilibrium-engines-subfolder: every gas-liquid calculation now
+# takes R in L·atm/(mol·K) from PyOMES.units.R_L_ATM_PER_MOL_K
+# (0.08205736608095968, derived from the CODATA J value) instead of the rounded
+# 0.0820574 that core/phases.py, chemistry/partition.py and the NR solver used,
+# a change of -4.13e-7 relative in R. Only quantities that touch the gas phase
+# move (before -> after, relative shift):
+#   liquid S_h2   1.7012434527e-08 -> 1.7012428869e-08  (-3.3e-7)
+#   liquid S_ch4  2.4113464447e-05 -> 2.4113457134e-05  (-3.0e-7)
+#   liquid CO2    8.5095286959e-03 -> 8.5095282020e-03  (-5.8e-8)
+#   liquid HCO3-  8.4680010073e-06 -> 8.4680005212e-06  (-5.7e-8)
+#   gas CO2       3.6699170425     -> 3.6699183465      (+3.6e-7)
+#   gas S_ch4     0.2430501559     -> 0.2430501827      (+1.1e-7)
+#   gas S_h2      2.6888028641e-04 -> 2.6888030769e-04  (+7.9e-8)
+# NH3 moved +7e-10, pH +1.3e-10, and S_ac / S_pro / NH4+ only at round-off
+# (~1e-15). The ADM1/BSM2 van 't Hoff Ka(T) keeps its own rounded R (8.31446) and
+# is unchanged. Qualitative behaviour unchanged; this is the constant becoming
+# self-consistent, not a model change.
 SENTINEL_FINAL_LIQUID_CONC = {
-    "S_ac":   0.00500000039477684,
-    "S_pro":  0.0019999999947897394,
-    "S_h2":   1.7012434526578658e-08,
-    "S_ch4":  2.4113464446918378e-05,
-    "CO2":    0.00850952869589902,
-    "HCO3-":  8.468001007344533e-06,
-    "NH3":    1.1190790929182218e-08,
-    "NH4+":   0.004999988933569145,
+    "S_ac":   0.005000000394776845,
+    "S_pro":  0.0019999999947897386,
+    "S_h2":   1.7012428869211983e-08,
+    "S_ch4":  2.4113457134101973e-05,
+    "CO2":    0.008509528201993919,
+    "HCO3-":  8.468000521229999e-06,
+    "NH3":    1.1190790936989985e-08,
+    "NH4+":   0.0049999889335691425,
 }
 
 # End-of-trajectory gas-phase mole counts (mol).
 # Re-baselined alongside the liquid concentrations above.
 SENTINEL_FINAL_GAS_MOL = {
-    "S_ch4": 0.24305015591967846,
-    "S_h2":  0.00026888028640737274,
-    "CO2":   3.669917042504009,
+    "S_ch4": 0.24305018265489403,
+    "S_h2":  0.00026888030769022084,
+    "CO2":   3.6699183464850305,
 }
 
 # End-of-trajectory pH.  Sits well below typical AD operating range
@@ -340,7 +359,7 @@ SENTINEL_FINAL_GAS_MOL = {
 # sentinels (including pH) unchanged within tolerance. Qualitative
 # behaviour unchanged — this is the constants becoming self-consistent,
 # not a model change.
-SENTINEL_FINAL_PH = 3.3044056113459916  # re-baselined C7 (writeback "CO2aq"→"CO2")
+SENTINEL_FINAL_PH = 3.304405611772982  # re-baselined 2026-09-20 (gas-constant unification, +1.3e-10)
 
 RTOL_SENTINEL = 1e-9
 

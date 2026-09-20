@@ -23,9 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Protocol, runtime_checkable
 
 from ..control.descriptors import MutableScalar as _MS
-
-# Ideal gas constant in L·atm/(mol·K)
-R_L_ATM_MOL_K = 0.0820574
+from ..units import R_L_ATM_PER_MOL_K
 
 
 def _require_positive(name: str, value: float) -> float:
@@ -219,7 +217,7 @@ class GasPhase:
         """Total pressure (atm) from ideal gas law: P = nRT/V."""
         if self._V_L <= 0.0:
             return 0.0
-        return self.n_total * R_L_ATM_MOL_K * self._T_K / self._V_L
+        return self.n_total * R_L_ATM_PER_MOL_K * self._T_K / self._V_L
 
     @property
     def y(self) -> Dict[str, float]:
@@ -234,7 +232,7 @@ class GasPhase:
         """Partial pressures (atm): p_i = n_i RT / V."""
         if self._V_L <= 0.0:
             return {k: 0.0 for k in self._n_mol}
-        factor = R_L_ATM_MOL_K * self._T_K / self._V_L
+        factor = R_L_ATM_PER_MOL_K * self._T_K / self._V_L
         return {k: v * factor for k, v in self._n_mol.items()}
 
     # ── Water vapour (analytical, Raoult's law) ───────────────────────

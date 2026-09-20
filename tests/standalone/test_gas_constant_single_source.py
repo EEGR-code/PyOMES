@@ -34,12 +34,10 @@ _R_J_PER_MOL_K = 8.314462618
 _R_L_ATM_PER_MOL_K = 0.082057366
 _REL_TOL = 1e-3
 
+# The ADM1 / BSM2 models keep a rounded R (8.31446, 3.2e-7 below CODATA) for their
+# van 't Hoff Ka(T) corrections. It is left in place on purpose until it is known
+# whether the benchmark specification fixes that value (see OPEN_WORK.md).
 _KNOWN_COPIES = {
-    "PyOMES/chemistry/partition.py": {"0.0820574": 1},
-    "PyOMES/control/cv_loops.py": {"0.08205736608095958": 1},
-    "PyOMES/core/phases.py": {"0.0820574": 1},
-    "PyOMES/equilibria/peng_robinson.py": {"0.0820574": 1},
-    "PyOMES/reactions/plots.py": {"8.314": 1},
     "models/vlmodels/adm1/base.py": {"8.31446": 1},
     "models/vlmodels/adm1/bsm2.py": {"8.31446": 1},
     "models/vlmodels/adm1/bsm2_direct.py": {"8.31446": 1},
@@ -106,13 +104,15 @@ def test_known_copies_list_has_no_stale_entries():
 
 
 def test_units_holds_the_reference_values():
-    """The root itself: CODATA 2018 for J, and L·atm agreeing to 1e-12."""
+    """The root itself: CODATA 2018 for J, and L·atm derived from it."""
     assert units.R_J_PER_MOL_K == 8.31446261815324
-    assert units.R_L_ATM_PER_MOL_K == pytest.approx(0.08205736608096, rel=1e-12)
-    # The two roots describe the same constant: R[L·atm] = R[J] / (Pa/atm * L/m3).
-    assert units.R_L_ATM_PER_MOL_K == pytest.approx(
-        units.R_J_PER_MOL_K / (units.PA_PER_ATM / 1000.0), rel=1e-12
+    # The two describe one constant: R[L·atm] = R[J] / (Pa per atm / L per m3),
+    # so they cannot disagree.
+    assert units.R_L_ATM_PER_MOL_K == units.R_J_PER_MOL_K / (
+        units.PA_PER_ATM / units.L_PER_M3
     )
+    # And it is the familiar published value, to the digits usually quoted.
+    assert units.R_L_ATM_PER_MOL_K == pytest.approx(0.082057366080960, rel=1e-12)
 
 
 def test_scan_detects_a_new_literal(tmp_path, monkeypatch):

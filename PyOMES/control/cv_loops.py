@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from PyOMES.control.actions import ControlAction
 from PyOMES.core.snapshot import CVSnapshot, SimulationSnapshot
-from PyOMES.units import R_J_PER_MOL_K
+from PyOMES.units import R_J_PER_MOL_K, R_L_ATM_PER_MOL_K
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -909,10 +909,6 @@ class DOCascadeController:
 #  Pressure-relief controllers — Pattern 1 / CV-native
 # ════════════════════════════════════════════════════════════════════════
 
-# R in (L·atm)/(mol·K) for ideal gas.
-_R_L_ATM_PER_MOL_K = 0.08205736608095958
-
-
 def _smooth_vent_fraction(
     excess_atm: float,
     dt_h: float,
@@ -1018,7 +1014,7 @@ class InstantPressureReliefController:
         # Ideal-gas target: n_target = P_set * V / (R * T)
         n_target = (
             float(self.P_set_atm) * float(cv.V_gas_L)
-            / (_R_L_ATM_PER_MOL_K * float(cv.T_K))
+            / (R_L_ATM_PER_MOL_K * float(cv.T_K))
         )
         vent_mol = max(0.0, n_tot - max(0.0, n_target))
         if vent_mol <= 0.0:

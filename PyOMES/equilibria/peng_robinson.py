@@ -34,8 +34,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
 
-# Gas constant in L·atm/(mol·K)
-R = 0.0820574
+from PyOMES.units import R_L_ATM_PER_MOL_K as R  # gas constant, L·atm/(mol·K)
 
 # PR constants
 OMEGA_A = 0.45724

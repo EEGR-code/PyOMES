@@ -6,8 +6,9 @@ import dataclasses
 import math
 import pytest
 
-# R in L·atm/(mol·K) — must match partition.py and core.phases.R_L_ATM_MOL_K
-_R = 0.0820574
+from PyOMES.units import R_L_ATM_PER_MOL_K
+
+_R = R_L_ATM_PER_MOL_K  # L·atm/(mol·K)
 _T_REF = 298.15
 
 # A representative H2S HenryPartition: kH ≈ 0.10 mol/(L·atm) at 298.15 K.
@@ -252,7 +253,7 @@ class TestHenryPartitionActivityCorrection:
 
 
 class TestRaoultPartition:
-    _R = 0.0820574  # L·atm/(mol·K)
+    _R = R_L_ATM_PER_MOL_K  # L·atm/(mol·K)
     _C_W = 55.51     # mol/L pure water
 
     def test_construction_defaults(self):

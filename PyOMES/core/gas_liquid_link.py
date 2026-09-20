@@ -93,7 +93,6 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Sequence, Union
 
-from .phases import R_L_ATM_MOL_K
 from ..control.descriptors import MutableDict as _MutableDict
 from ..chemistry.partition import PartitionModel
 

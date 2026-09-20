@@ -46,7 +46,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from .tableau import NRTableau, SecondaryEntry
-from ....core.phases import R_L_ATM_MOL_K as _R_L_ATM_MOL_K
+from ....units import R_L_ATM_PER_MOL_K
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +180,7 @@ def _residual_and_jacobian(
         (atm) to an equivalent liquid-normalized concentration (mol/L),
         so it can be summed into the same mass-balance row as ordinary
         liquid concentrations: ``n_gas/V_liq = p_gas·V_gas/(R·T·V_liq)``,
-        i.e. ``gas_scale = V_gas_L/(R_L_ATM_MOL_K·T_K·V_liq_L)``. Applied
+        i.e. ``gas_scale = V_gas_L/(R_L_ATM_PER_MOL_K·T_K·V_liq_L)``. Applied
         only to secondaries with ``phase == "gas"`` — liquid species and
         masters are unaffected (``gas_scale`` has no effect when the
         tableau has no folded gas rows; default ``0.0`` matches that
@@ -437,7 +437,7 @@ def solve_nr(
                 "or via phases={'liquid':..., 'gas':...} on "
                 "NRChemicalEquilibriumEngine.solve()."
             )
-        gas_scale = float(V_gas_L) / (_R_L_ATM_MOL_K * float(T_K) * float(V_liq_L))
+        gas_scale = float(V_gas_L) / (R_L_ATM_PER_MOL_K * float(T_K) * float(V_liq_L))
     else:
         gas_scale = 0.0
 

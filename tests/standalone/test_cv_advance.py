@@ -759,7 +759,7 @@ class TestCVWithKineticGasLiquidLink:
         Ported from the deleted ``test_gas_liquid_volume.py`` (Phase 7 C5)."""
         from PyOMES.core import ControlVolume, GasPhase, LiquidPhase
         from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
-        from PyOMES.core.phases import R_L_ATM_MOL_K
+        from PyOMES.units import R_L_ATM_PER_MOL_K
 
         V_gas, V_liq, T_K = 0.4, 1.6, 305.15
         gas = GasPhase(
@@ -788,7 +788,7 @@ class TestCVWithKineticGasLiquidLink:
         kH_O2 = 1.3e-3
         n_gas = cv.phases["gas"].n_mol["O2"]
         n_liq = cv.phases["liquid"].n_mol.get("O2", 0.0)
-        p_eq = n_gas * R_L_ATM_MOL_K * T_K / V_gas
+        p_eq = n_gas * R_L_ATM_PER_MOL_K * T_K / V_gas
         C_eq = n_liq / V_liq
         assert C_eq == pytest.approx(kH_O2 * p_eq, rel=0.02)
 

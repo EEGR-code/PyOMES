@@ -12,7 +12,8 @@ Tests cover:
 import math
 import pytest
 
-from PyOMES.core.phases import GasPhase, LiquidPhase, R_L_ATM_MOL_K
+from PyOMES.core.phases import GasPhase, LiquidPhase
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.boundaries import (
     ExternalBoundary,
@@ -120,7 +121,7 @@ class TestGasFeed:
         feed = GasFeed(vvm_min=vvm, y={"O2": 1.0}, P_inlet_atm=P_in)
         cv = _make_gl_cv(V_liq=V_liq, T_K=T_K)
         flux = feed.compute_flux(cv, dt_h=0.01)
-        expected = (P_in * vvm * V_liq * 60.0) / (R_L_ATM_MOL_K * T_K)
+        expected = (P_in * vvm * V_liq * 60.0) / (R_L_ATM_PER_MOL_K * T_K)
         assert flux["O2"] == pytest.approx(expected, rel=1e-10)
 
     def test_pressure_scales_linearly(self):
@@ -148,7 +149,7 @@ class TestGasFeed:
         flux = feed.compute_flux(cv, dt_h=0.01)
         # Compare with expected using override volume
         T_K = cv["gas"].T_K
-        expected = (1.0 * 1.0 * 500.0 * 60.0) / (R_L_ATM_MOL_K * T_K)
+        expected = (1.0 * 1.0 * 500.0 * 60.0) / (R_L_ATM_PER_MOL_K * T_K)
         assert flux["O2"] == pytest.approx(expected, rel=1e-10)
 
     def test_T_override(self):
@@ -157,7 +158,7 @@ class TestGasFeed:
         feed = GasFeed(vvm_min=1.0, y={"O2": 1.0}, T_override_K=T_override)
         cv = _make_gl_cv(T_K=400.0)  # Should be ignored
         flux = feed.compute_flux(cv, dt_h=0.01)
-        expected = (1.0 * 1.0 * 800.0 * 60.0) / (R_L_ATM_MOL_K * T_override)
+        expected = (1.0 * 1.0 * 800.0 * 60.0) / (R_L_ATM_PER_MOL_K * T_override)
         assert flux["O2"] == pytest.approx(expected, rel=1e-10)
 
     def test_no_liquid_phase_without_override_gives_zero(self):
@@ -197,11 +198,11 @@ class TestGasFeed:
     def test_parity_with_legacy_formula(self):
         """GasFeed must match the legacy formula from fermenter_unit._gas_feed_mol_per_h.
 
-        Note: the legacy code uses R=0.082057, while GasFeed uses the more
-        precise R_L_ATM_MOL_K=0.0820574.  We test parity with the same R
-        constant that GasFeed uses (i.e. the one from phases.py).
+        Note: the legacy code uses the rounded R=0.082057, while GasFeed uses
+        the shared R_L_ATM_PER_MOL_K from PyOMES.units.  We test parity with
+        the same R constant that GasFeed uses.
         """
-        R = R_L_ATM_MOL_K  # same constant GasFeed uses
+        R = R_L_ATM_PER_MOL_K  # same constant GasFeed uses
         vvm = 1.0
         V_liq = 800.0
         T_K = 305.15
@@ -250,7 +251,7 @@ class TestPressureReliefVent:
         T_K = 305.15
         V_gas = 200.0
         P_set = 1.0
-        n_target = (P_set * V_gas) / (R_L_ATM_MOL_K * T_K)
+        n_target = (P_set * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
         gas = GasPhase({"N2": n_target}, V_L=V_gas, T_K=T_K)
         liq = LiquidPhase({}, V_L=800.0, T_K=T_K)
         cv = ControlVolume(phases={"gas": gas, "liquid": liq})
@@ -268,7 +269,7 @@ class TestPressureReliefVent:
         T_K = 305.15
         V_gas = 200.0
         P_set = 1.0
-        n_target = (P_set * V_gas) / (R_L_ATM_MOL_K * T_K)
+        n_target = (P_set * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
         n_excess = 0.5
         gas = GasPhase({"O2": n_target + n_excess}, V_L=V_gas, T_K=T_K)
         liq = LiquidPhase({}, V_L=800.0, T_K=T_K)
@@ -342,7 +343,7 @@ class TestPressureReliefVent:
         T_K = 305.15
         V_gas = 200.0
         P_set = 1.0
-        n_target = (P_set * V_gas) / (R_L_ATM_MOL_K * T_K)
+        n_target = (P_set * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
         n_excess = 0.01  # small excess
         gas = GasPhase({"N2": n_target + n_excess}, V_L=V_gas, T_K=T_K)
         liq = LiquidPhase({}, V_L=800.0, T_K=T_K)
