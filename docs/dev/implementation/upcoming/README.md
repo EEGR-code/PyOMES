@@ -6,7 +6,7 @@ that would justify picking it up. Notes here are stable —
 implementation only begins when one is moved through to active work
 (i.e. a checklist file is added) and ultimately to
 [../shipped/](../shipped/) once shipped.
-
++-*
 **Finding work in progress.** This folder does not track which phases are
 currently being worked on. Each phase lives on its own feature branch (see
 [How to start one](#how-to-start-one)), so list the active ones with
@@ -381,7 +381,7 @@ recorder story.
 
 Six design docs added from the 2026-06-11 solver architecture session.
 Phases A–E all shipped 2026-06-11/12; docs moved to `shipped/`.
-See **[SOLVER_ARCHITECTURE.md](SOLVER_ARCHITECTURE.md)** for the anchor doc
+See **[SOLVER_ARCHITECTURE.md](../../ideas/SOLVER_ARCHITECTURE.md)** for the anchor doc
 and Phase F+G placeholders (SUNDIALS opt-in, no work scheduled).
 
 - **[../shipped/CV_COMPUTE_INTERFACE.md](../shipped/CV_COMPUTE_INTERFACE.md)** — Phase A. *Shipped 2026-06-11.*
@@ -421,7 +421,7 @@ design (Phases A–E) — not the SUNDIALS/DAE Phase F/G track.
 Design discussion 2026-06-23. Active-set precipitation equilibrium built on top
 of the NR speciation engine shipped in `nr-speciation-engine`.
 
-- **[NR_PRECIPITATION_SPECIATION.md](NR_PRECIPITATION_SPECIATION.md)** —
+- **[NR_PRECIPITATION_SPECIATION.md](../shipped/NR_PRECIPITATION_SPECIATION.md)** —
   Phase 1: speciation layer only. Outer active-set loop in
   `NRChemicalEquilibriumEngine.solve()`; `precipitation_equilibria` bucket on
   `ReactionSystem`; `element_stoichiometry` cross-component mass balance fix;
