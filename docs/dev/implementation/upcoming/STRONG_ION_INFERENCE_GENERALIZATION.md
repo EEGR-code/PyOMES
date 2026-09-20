@@ -336,6 +336,27 @@ If BioSTEAM coupling ever needs neutral-salt expansion again, it belongs in
 `PyOMES/stream_adapter.py`, emitting species ids (not `CT_*` keys) and warning
 on unmapped species — not in the equilibrium package.
 
+**Update 2026-09-20 (same phase, checkpoint 9b):** `chemical_equilibrium/api.py`
+(`SpeciationEngineAdapter`) and `factory.py` (`SpeciationFactory`) were also
+removed — Bisection-only, no callers, restorable from commit `2e5554a`. That
+leaves a second orphaned cluster in the same recipe layer, deliberately **not**
+touched by that phase:
+
+- `chemistry/types.py`: `AqueousEquilibrium` is now unused anywhere;
+  `AqueousTotalsUser.to_engine()` has no caller; `AqueousTotals` and
+  `AqueousTotalsUser` are reachable only through `SolutionRecipe.to_totals_user()`
+  / `to_totals()` in `chemistry/recipe.py`, which nothing outside `recipe.py`
+  calls. All three are still exported from `PyOMES.chemistry`.
+- Stale wording: `chemistry/recipe.py`'s docstring says its totals are "for use
+  with the standalone speciation interface", and `chemistry/registry.py`'s
+  docstring lists `AqueousTotalsUser` as a consumer; the interface they refer
+  to no longer exists.
+
+Together with `SALT_DISSOCIATION_MAP` and `chem_recipe.py`'s `ChemSpec`
+registry, this makes the recipe layer (`chem_recipe.py`, `recipe.py`,
+`registry.py`, `types.py`) a candidate for the separate "keep, merge or remove"
+note described above: most of it now has no consumer inside the repo.
+
 ## Trigger conditions
 
 **Phase 0 needs no trigger** — it's a decided, no-risk de-duplication and

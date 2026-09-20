@@ -60,9 +60,10 @@ audit and Decisions 11–15 below).
 
 | Group | Files |
 |---|---|
-| Shared (stay at top level) | `protocols.py`, `activity.py`, `activity_dispatch.py`, `api.py`, `factory.py`, `numerical_gradient.py` |
+| Shared (stay at top level) | `protocols.py`, `activity.py`, `activity_dispatch.py`, `numerical_gradient.py` |
 | Thermo compatibility layer (Part A: dissolved into `thermo/`) | `activity_models.py`, `sit.py` |
 | Orphaned helper (Part B: deleted) | `strong_ions.py` |
+| Orphaned Bisection-only entry points (checkpoint 9b: deleted) | `api.py`, `factory.py` |
 | Bisection engine | `engine.py`, `acid_base.py` (~2,040 lines) |
 | NR engine | `nr_engine.py`, `nr_tableau.py`, `nr_solver.py` (~2,520 lines) |
 | PHREEQC engine | `phreeqc_engine.py` (327 lines) |
@@ -78,8 +79,13 @@ Notes:
   `__init__` re-export of `solve_acid_base`. It is Bisection's back end.
 - `numerical_gradient.py` wraps *any* engine and imports only `protocols`, so
   it stays shared.
-- `api.py` / `factory.py` are hard-wired to the Bisection engine but are the
-  package's public entry points, so they stay at the top level.
+- `api.py` / `factory.py` were originally planned to stay at the top level as
+  "the package's public entry points". A re-check during Part C (2026-09-20)
+  found they are hard-wired to the Bisection engine (`SpeciationFactory`
+  builds only that engine; `SpeciationEngineAdapter` is typed to it and calls
+  its legacy keyword interface) and have **no callers anywhere in the repo**
+  (no test, notebook, model or tutorial). Engine selection already lives in
+  `ReactionSystem.engine`. They are deleted in checkpoint 9b (Decision 16).
 
 ### Thermo compatibility layer (Part A)
 
@@ -188,7 +194,6 @@ chemical_equilibrium/
     __init__.py            (public re-exports, unchanged)
     protocols.py
     activity.py  activity_dispatch.py
-    api.py  factory.py
     numerical_gradient.py
     engines/
         __init__.py
@@ -201,8 +206,9 @@ thermo/
                             or a small thermo/factory.py; decide at kickoff)
 ```
 
-The top level drops from 16 files to 7 (including `__init__.py`). `activity_models.py`,
-`sit.py` and `strong_ions.py` are gone. `nr_engine.py` becomes
+The top level drops from 16 files to 5 (including `__init__.py`), all of them
+engine-agnostic. `activity_models.py`, `sit.py`, `strong_ions.py`, `api.py` and
+`factory.py` are gone. `nr_engine.py` becomes
 `engines/nr/engine.py`, so the `nr_` prefixes become redundant. PHREEQC is a
 flat file because it is a single 327-line module; it can become a package if it
 grows. The optional `phreeqpython` dependency stays confined to one file.
@@ -271,6 +277,19 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     patterns, with an explicit allowlist). The allowlist is added in
     checkpoint 13 listing the known remaining copies, and emptied in
     checkpoint 14.
+16. **`api.py` and `factory.py` are deleted, not moved or generalised**
+    (checkpoint 9b). Neither has any caller in the repo, the package has no
+    outside users yet (so the exported names `SpeciationFactory` and
+    `SpeciationEngineAdapter` carry little weight), and both are
+    Bisection-only: the adapter's typed API (`CT_TIC`/`CT_NH_T`/`CT_P` totals,
+    a pH scan with `n_scan`/`pH_min`/`tol`) does not fit NR (totals by master
+    species plus `strong_ions`, built from declared reactions) or PHREEQC (a
+    `component_map`). A general factory would also duplicate
+    `ReactionSystem.engine`. Restorable from commit `2e5554a`
+    (`git show 2e5554a:PyOMES/chemical_equilibrium/api.py`, and likewise
+    `factory.py`). Consequences outside this phase's scope are logged in the
+    checklist and in `STRONG_ION_INFERENCE_GENERALIZATION.md`'s
+    recipe-layer section.
 
 ## Proposed checkpoints
 
@@ -322,6 +341,11 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
    `test_equilibrium_classification.py`.
 9. Move the Bisection files (`engines/bisection/`). Run `test_speciation*.py`
    and `test_bisection_chemical_equilibrium_engine_alias.py`.
+9b. *Added during Part C.* Delete `api.py` and `factory.py` and their two
+    package-level exports (Decision 16); reword the two `protocols.py`
+    docstrings that cite them. Log the knock-on effects outside this phase's
+    scope (checklist and `STRONG_ION_INFERENCE_GENERALIZATION.md`). Bit-identical
+    apart from the removed names.
 10. Move `phreeqc_engine.py` to `engines/phreeqc.py`. Run
    `tests/validation/speciation/`.
 11. Update `__init__.py` re-exports, then external callers: `PyOMES/reactions/
@@ -397,8 +421,11 @@ here as a record.
 3. **Where does the shared `_vant_hoff` helper live?** *Resolved: `PyOMES/thermo/`*
    (Decision 3).
 4. **Should `api.py` / `factory.py` move under `engines/bisection/`?**
-   *Resolved (default, not put to a vote): no.* They are public entry points and
-   the factory is the natural place to add engine selection later.
+   *Originally resolved (default, not put to a vote): no*, on the grounds that
+   they were public entry points and the natural place for engine selection.
+   *Reopened and re-resolved 2026-09-20 (Decision 16): delete them.* They have
+   no callers, the package has no outside users yet, and a general factory
+   would duplicate `ReactionSystem.engine`.
 5. **Interaction with `NOTEBOOK_GENERATOR_REMOVAL.md`.** *Resolved (default):*
    Part A edits `tests/validation/speciation/_generate_notebooks.py` and its
    notebooks. If the generator has been retired first, only the notebooks need

@@ -71,8 +71,7 @@ class EquilibriumResult:
     ``ionic_strength``, ``charge_residual`` are the common meta keys emitted
     by both the legacy acid-base solver (``acid_base.py``) and the NR solver
     (``nr_solver.py``). ``n_iter`` is carried for forward-compatibility with
-    callers that already guard on it (e.g. ``speciation/api.py``); it is not
-    currently populated by any engine.
+    callers that guard on it; it is not currently populated by any engine.
 
     ``species_mol_L`` holds equilibrated species concentrations (mol/L),
     keyed by species ID — this is what :meth:`apply_to_phases` writes back.
@@ -141,8 +140,7 @@ class EquilibriumResult:
         """Return a plain-dict snapshot of every field.
 
         A narrow, explicit concession for callers that need a dict-shaped
-        result (e.g. :class:`~PyOMES.chemical_equilibrium.api.SpeciationEngineAdapter`'s
-        ``raw=`` field) — this is not a ``Mapping`` implementation:
+        result — this is not a ``Mapping`` implementation:
         ``EquilibriumResult`` does not support ``result["pH"]`` or
         ``result.get(...)``, only attribute access and this explicit method.
         """

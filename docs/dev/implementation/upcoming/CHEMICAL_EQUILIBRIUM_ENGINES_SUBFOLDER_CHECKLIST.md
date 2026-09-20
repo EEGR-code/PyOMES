@@ -200,6 +200,42 @@
       passed (unchanged). Housekeeping: a stray untracked `figures/` folder
       created by my checkpoint-8 notebook run (cwd was the repo root) was
       found and removed; later notebook runs use the scratch dir._
+- [x] 9b. _Added during Part C (plan Decision 16)._ Delete the orphaned,
+      Bisection-only `api.py` (`SpeciationEngineAdapter`) and `factory.py`
+      (`SpeciationFactory`) and their two package-level exports; reword the two
+      `protocols.py` docstrings that cited them (`n_iter` note and
+      `EquilibriumResult.to_dict`). Log knock-on effects outside this phase.
+      _Notes: prompted by the question of whether `factory.py` belonged in
+      `engines/bisection/`; a fresh search (`.py`, `.ipynb`, `.md`, config)
+      found zero callers, and the package has no outside users yet, so
+      deleting was chosen over moving or generalising (engine selection
+      already exists in `ReactionSystem.engine`; the adapter's typed API is
+      Bisection-shaped). **Restore point: commit `2e5554a`**
+      (`git show 2e5554a:PyOMES/chemical_equilibrium/api.py`, likewise
+      `factory.py`). Top level of `chemical_equilibrium/` is now `__init__`,
+      `protocols`, `activity`, `activity_dispatch`, `numerical_gradient` and
+      `phreeqc_engine` (leaves in C10): everything left is engine-agnostic.
+      Verified: Bisection fingerprint minus the removed adapter lines
+      (265 values) byte-identical to the checkpoint-9 baseline; NR fingerprint
+      byte-identical; `SpeciationFactory`, `SpeciationEngineAdapter` and both
+      module paths now fail to import while every other package-level name
+      still imports; full suite 2080 passed (unchanged: neither file had
+      tests).
+      **Effects outside this phase's scope (logged, not touched):**
+      (1) `chemistry/types.py`: `AqueousEquilibrium` is now unused;
+      `AqueousTotalsUser.to_engine()` has no caller; `AqueousTotals` and
+      `AqueousTotalsUser` are reachable only via `SolutionRecipe.to_totals_user()`
+      / `to_totals()` (`chemistry/recipe.py`), which nothing outside `recipe.py`
+      calls; all three still exported from `PyOMES.chemistry`.
+      (2) Stale wording: `chemistry/recipe.py:5` ("standalone speciation
+      interface") and `chemistry/registry.py:18` (lists `AqueousTotalsUser` as
+      a consumer). (3) `EquilibriumResult.to_dict()` was added for the
+      adapter's `raw=` field; it stays (harmless, tested once in
+      `test_speciation_protocols.py`) but now has no in-package caller.
+      (4) `docs/architecture.md:398` still lists `api.py, factory.py` (C12).
+      (1)–(2) are recorded in the recipe-layer section of
+      `STRONG_ION_INFERENCE_GENERALIZATION.md`, next to the
+      `SALT_DISSOCIATION_MAP` question they now join._
 - [ ] 10. `git mv phreeqc_engine.py engines/phreeqc.py`. Run
       `tests/validation/speciation/`.
 - [ ] 11. Update the package `__init__.py` re-exports, then external callers:
