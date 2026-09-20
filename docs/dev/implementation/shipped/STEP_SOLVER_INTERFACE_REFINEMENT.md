@@ -6,7 +6,7 @@
 > [`STEP_SOLVER_REFINEMENT_PLAN.md`](../upcoming/STEP_SOLVER_REFINEMENT_PLAN.md)
 > on branch `step-solver-interface-refinement`
 > (tag `step-solver-interface-refinement-shipped`) — see
-> [`STEP_SOLVER_REFINEMENT_CHECKLIST.md`](../upcoming/STEP_SOLVER_REFINEMENT_CHECKLIST.md)
+> [`STEP_SOLVER_REFINEMENT_CHECKLIST.md`](STEP_SOLVER_REFINEMENT_CHECKLIST.md)
 > for the full implementation log, including several scope corrections found
 > during implementation (notably: item 6's generalization split into two
 > checkpoints, 4 and 7b, because `SimultaneousAdaptiveSolver`'s ODE hot loop

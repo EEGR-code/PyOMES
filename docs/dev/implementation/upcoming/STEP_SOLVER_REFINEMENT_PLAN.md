@@ -3,7 +3,7 @@
 ## Status
 
 > **Stage 0 and Stage 1 shipped 2026-07-08.** See the Sequencing table
-> below for tags; [STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md)
+> below for tags; [STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md)
 > for Stage 1's full implementation log. Stages 2–4 remain as scoped
 > below — Stage 2 (Q7 design decision) has not been resolved, so Stage
 > 4 (SIA) is not yet ready to checklist.
@@ -29,7 +29,7 @@ section below for what was confirmed and the one drift found.
 | # | Name | Branch / tag | Content | Readiness |
 |---|---|---|---|---|
 | 0 | Merge rename | *(no branch — finished `rename-simultaneous-step-solvers`)* | `EulerSnapshotSolver`→`SimultaneousEulerSolver`, `ScipyODESolver`→`SimultaneousAdaptiveSolver`. | **Shipped 2026-07-06** — tag `rename-simultaneous-step-solvers-shipped`. Turned out to be entirely uncommitted working-tree state (not actually merged as the design note's banner implied) — split into a rename commit + one unrelated doc-fix commit before merging; see checklist checkpoint 0. |
-| 1 | Step-solver interface refinement | `step-solver-interface-refinement` / `step-solver-interface-refinement-shipped` | Items 1, 2, 3, 4, 6, 7, 8, 9 from `STEP_SOLVER_INTERFACE_REFINEMENT.md` (ownership guard, Monolithic validation, `SequentialAdvanceSolver` reification, state-vector unification, gas/liquid generalization, shared clamp module, clamp diagnostics, demo notebook). | **Shipped 2026-07-08** — tag `step-solver-interface-refinement-shipped`. 10 checkpoints (0–9, including 7b split out from 4); full log in [STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md). 1950 → 2003 tests. |
+| 1 | Step-solver interface refinement | `step-solver-interface-refinement` / `step-solver-interface-refinement-shipped` | Items 1, 2, 3, 4, 6, 7, 8, 9 from `STEP_SOLVER_INTERFACE_REFINEMENT.md` (ownership guard, Monolithic validation, `SequentialAdvanceSolver` reification, state-vector unification, gas/liquid generalization, shared clamp module, clamp diagnostics, demo notebook). | **Shipped 2026-07-08** — tag `step-solver-interface-refinement-shipped`. 10 checkpoints (0–9, including 7b split out from 4); full log in [STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md). 1950 → 2003 tests. |
 | 2 | Z-staleness decision (Q7) | *(no branch — design discussion only)* | Resolve `MASS_EXCHANGE_ARCHITECTURE.md` §12 Q7: does `SequentialIterativeSystemSolver` re-solve speciation (z) each iteration, or reuse the first pass? | **Blocks Stage 4.** Not code — a design conversation to have before opening the SIA branch. |
 | 3 | Reactive D_eff transport | `reactive-deff-transport` / `reactive-deff-transport-shipped` | `DispersiveFlow.compute_flow()` gains an optional engine reference; when the engine satisfies `GrayBoxEngineProtocol`, compute `D_eff,CT = Σ(∂z_i/∂CT)·D_i` via the already-shipped `jacobian_dz_dy()` before assembling flux. | **Not blocked** — `MonolithicODESolver` (its stated prerequisite) already shipped 2026-06-12. Scoped in `SOLVER_ARCHITECTURE.md` "Identified extensions"; not yet checklisted at checkpoint granularity. |
 | 4 | SIA (`SequentialIterativeSystemSolver`) | `sequential-iterative-system-solver` / `...-shipped` | New `SystemSolver` iterating `(transport → cv.advance())` to convergence. | **Blocked on Stage 2.** Scoped in `SOLVER_ARCHITECTURE.md`; not checklisted — the checkpoint list depends on the Q7 answer (whether a re-solve hook needs adding to `cv.advance()`/`compute_rhs()` as part of the same phase). |
@@ -130,7 +130,7 @@ assumed from the docs):
 
 ## What ships where — detail
 
-- **Stage 1**: see [STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md)
+- **Stage 1**: see [STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md)
   for the full checkpoint-by-checkpoint breakdown.
 - **Stage 3 (D_eff)**: scope transcribed from `SOLVER_ARCHITECTURE.md`'s
   "Identified extensions" — extend `DispersiveFlow.compute_flow()` to
@@ -159,7 +159,7 @@ Followed [README.md](README.md)'s branching convention:
 3. `git push && git push --tags`
 4. `git branch -d rename-simultaneous-step-solvers && git push origin --delete rename-simultaneous-step-solvers`
 5. `git checkout -b step-solver-interface-refinement` off the now-updated `main`
-6. Worked through [STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md)
+6. Worked through [STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md)
    in order (10 checkpoints, one commit each), then shipped the same way:
    merge `--no-ff` to `main`, tag `step-solver-interface-refinement-shipped`,
    push, delete branch.

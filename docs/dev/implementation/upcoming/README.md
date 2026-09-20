@@ -202,7 +202,7 @@ that still describe open work are "Open phases" and the pending stages in
   `step-solver-interface-refinement-shipped`. See
   [../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md](../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)
   and
-  [STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md).
+  [../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md).
 
 - `simulation-class` (2026-05-27) — third and final of the three
   sequenced phases. New `Simulation` class as the single
@@ -425,12 +425,12 @@ design (Phases A–E) — not the SUNDIALS/DAE Phase F/G track.
   bundle) shipped; Stage 2 (z-staleness design decision, §12 Q7), Stage 3
   (reactive D_eff transport) and Stage 4 (SIA, blocked on Stage 2) still
   pending — see the plan doc for current status.
-- **[STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md)** —
+- **[../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md)** —
   Stage 1's full checkpoint-by-checkpoint implementation log (10
   checkpoints, all shipped), including several scope corrections found
-  during implementation — kept here rather than archived since it documents
-  decisions (e.g. the checkpoint 4/7b split) relevant to Stages 2–4 still
-  to come.
+  during implementation. Archived in `shipped/` now that Stage 1 has
+  shipped; still worth reading for decisions (e.g. the checkpoint 4/7b
+  split) relevant to Stages 2–4 still to come.
 
 ## Recently surfaced (2026-07-01 Layer 1 gap closure)
 
