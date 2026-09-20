@@ -39,13 +39,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
-
-from ..units import R_J_PER_MOL_K as _R_J_MOL_K
+from ..thermo.equilibrium_constants import vant_hoff_log_K
 
 logger = logging.getLogger(__name__)
-
-_LOG10_E = np.log10(np.e)        # 1/ln(10), used to convert ln K to log10 K
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -192,29 +188,6 @@ class NRTableau:
         return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Temperature correction helper
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _vant_hoff_log_K(
-    log_K_ref: float,
-    dH_J_per_mol: Optional[float],
-    T_K: float,
-    T_ref_K: float,
-) -> float:
-    """Apply Van't Hoff correction to log10(K).
-
-    Returns ``log_K_ref`` unchanged when ``dH_J_per_mol`` is None or ~0.
-    """
-    if dH_J_per_mol is None or abs(dH_J_per_mol) < 1e-30:
-        return float(log_K_ref)
-    if abs(T_K - T_ref_K) < 1e-10:
-        return float(log_K_ref)
-    # ln K(T) = ln K(T_ref) − (ΔH/R) (1/T − 1/T_ref)
-    delta_ln_K = -(float(dH_J_per_mol) / _R_J_MOL_K) * (1.0 / float(T_K) - 1.0 / float(T_ref_K))
-    return float(log_K_ref) + delta_ln_K * _LOG10_E
-
-
 def _derive_gas_secondary(rxn, known: Dict[str, Tuple[dict, float]], T_K: float) -> "SecondaryEntry":
     """Derive one gas-phase :class:`SecondaryEntry` from an already-resolved tableau.
 
@@ -283,7 +256,7 @@ def _derive_gas_secondary(rxn, known: Dict[str, Tuple[dict, float]], T_K: float)
 
     target_coeff, target_id, target_sp = unknowns[0]
 
-    log_K_rxn = _vant_hoff_log_K(
+    log_K_rxn = vant_hoff_log_K(
         float(rxn.log_K),
         rxn.dH_J_per_mol,
         T_K,
@@ -357,7 +330,7 @@ def _derive_solvent_gas_secondary(rxn, T_K: float) -> "SecondaryEntry":
     liq_e = liquid_entries[0]
     target_coeff = float(gas_e.coefficient)
 
-    log_K_rxn = _vant_hoff_log_K(
+    log_K_rxn = vant_hoff_log_K(
         float(rxn.log_K), rxn.dH_J_per_mol, T_K, float(rxn.T_ref_K),
     )
     # Liquid-side activity == 1 by the pure-solvent convention, so its
@@ -488,7 +461,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
             "Declare one EquilibriumReaction with H⁺ and OH⁻ as products."
         )
 
-    log_Kw = _vant_hoff_log_K(
+    log_Kw = vant_hoff_log_K(
         float(water_rxn.log_K),
         water_rxn.dH_J_per_mol,
         T_K,
@@ -702,7 +675,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
             # Exactly one unknown — derive it.
             target_coeff, target_id, target_sp = unknowns[0]
 
-            log_K_rxn = _vant_hoff_log_K(
+            log_K_rxn = vant_hoff_log_K(
                 float(rxn.log_K),
                 rxn.dH_J_per_mol,
                 T_K,

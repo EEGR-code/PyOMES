@@ -40,38 +40,7 @@ from scipy.optimize import brentq
 
 from .activity import ionic_strength_from_speciation
 from ..thermo import ActivityModel
-
-
-# Gas constant (J/mol/K) for van 't Hoff temperature corrections
-_R_J_PER_MOLK = 8.31446261815324
-
-
-def _vant_hoff_K(
-    K_ref: float,
-    dH_J_per_mol: float,
-    T_K: float,
-    T_ref_K: float = 298.15,
-) -> float:
-    """Temperature-correct an equilibrium constant using the van 't Hoff relation.
-
-    ln K(T) = ln K(T_ref) - (ΔH°/R) * (1/T - 1/T_ref)
-
-    Notes:
-      - ΔH° should be the *standard enthalpy change of the equilibrium reaction*.
-      - If dH_J_per_mol is 0, this reduces to K(T) = K_ref (no temperature effect).
-      - This function intentionally keeps the wider codebase interface unchanged.
-    """
-    K_ref = float(K_ref)
-    dH_J_per_mol = float(dH_J_per_mol)
-    T_K = float(T_K)
-    T_ref_K = float(T_ref_K)
-    if not np.isfinite(K_ref) or K_ref <= 0.0:
-        return float(K_ref)
-    if not np.isfinite(dH_J_per_mol) or abs(dH_J_per_mol) < 1e-30:
-        return float(K_ref)
-    if not np.isfinite(T_K) or T_K <= 0.0:
-        return float(K_ref)
-    return float(K_ref * np.exp(-(dH_J_per_mol / _R_J_PER_MOLK) * (1.0 / T_K - 1.0 / T_ref_K)))
+from ..thermo.equilibrium_constants import vant_hoff_K
 
 
 # Charges for common ions (used for gamma application and a few computed keys)
@@ -234,7 +203,7 @@ def solve_acid_base(
     acid_dH = dict(acid_dH_J_per_mol or {})
 
     # Kw is used directly in the water equilibrium (OH = Kw/H)
-    Kw = _vant_hoff_K(Kw, dH_Kw_J_per_mol, float(T_K), float(T_ref_K))
+    Kw = vant_hoff_K(Kw, dH_Kw_J_per_mol, float(T_K), float(T_ref_K))
 
     # pH window preferences from warm-start
     if logH_guess is not None and np.isfinite(logH_guess):
@@ -341,7 +310,7 @@ def solve_acid_base(
             Ka_steps_ref_T = []
             for p in pka_list:
                 Ka_ref = 10.0 ** (-float(p))
-                Ka_T = _vant_hoff_K(Ka_ref, acid_dH.get(name, 0.0), float(T_K), float(T_ref_K))
+                Ka_T = vant_hoff_K(Ka_ref, acid_dH.get(name, 0.0), float(T_K), float(T_ref_K))
                 Ka_steps_ref_T.append(float(Ka_T))
         
             # Activity-correct each step: step i produces charge -i
@@ -353,13 +322,13 @@ def solve_acid_base(
             Ka_vfa_eff[name] = Ka_steps_eff
 
 
-        Ka1 = _vant_hoff_K(10.0 ** (-float(pKa1_TIC)), dH_TIC1_J_per_mol, float(T_K), float(T_ref_K))
-        Ka2 = _vant_hoff_K(10.0 ** (-float(pKa2_TIC)), dH_TIC2_J_per_mol, float(T_K), float(T_ref_K))
-        KaN = _vant_hoff_K(10.0 ** (-float(pKa_NH)),   dH_NH_J_per_mol,   float(T_K), float(T_ref_K))
-        KaP1 = _vant_hoff_K(10.0 ** (-float(pKa1_P)),  dH_P1_J_per_mol,   float(T_K), float(T_ref_K))
-        KaP2 = _vant_hoff_K(10.0 ** (-float(pKa2_P)),  dH_P2_J_per_mol,   float(T_K), float(T_ref_K))
-        KaP3 = _vant_hoff_K(10.0 ** (-float(pKa3_P)),  dH_P3_J_per_mol,   float(T_K), float(T_ref_K))
-        KaS  = _vant_hoff_K(10.0 ** (-float(pKa_HSO4)), dH_HSO4_J_per_mol, float(T_K), float(T_ref_K))
+        Ka1 = vant_hoff_K(10.0 ** (-float(pKa1_TIC)), dH_TIC1_J_per_mol, float(T_K), float(T_ref_K))
+        Ka2 = vant_hoff_K(10.0 ** (-float(pKa2_TIC)), dH_TIC2_J_per_mol, float(T_K), float(T_ref_K))
+        KaN = vant_hoff_K(10.0 ** (-float(pKa_NH)),   dH_NH_J_per_mol,   float(T_K), float(T_ref_K))
+        KaP1 = vant_hoff_K(10.0 ** (-float(pKa1_P)),  dH_P1_J_per_mol,   float(T_K), float(T_ref_K))
+        KaP2 = vant_hoff_K(10.0 ** (-float(pKa2_P)),  dH_P2_J_per_mol,   float(T_K), float(T_ref_K))
+        KaP3 = vant_hoff_K(10.0 ** (-float(pKa3_P)),  dH_P3_J_per_mol,   float(T_K), float(T_ref_K))
+        KaS  = vant_hoff_K(10.0 ** (-float(pKa_HSO4)), dH_HSO4_J_per_mol, float(T_K), float(T_ref_K))
 
         return dict(
             Ka_vfa_eff=Ka_vfa_eff,

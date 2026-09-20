@@ -37,12 +37,13 @@ from typing import Any, Dict, FrozenSet, List, Optional
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from .nr_tableau import NRTableau, _vant_hoff_log_K, build_tableau
+from .nr_tableau import NRTableau, build_tableau
 from .nr_solver import (
     NRSolverCache, _gamma_safe, solve_nr,
     _build_gammas, _compute_concentrations, _residual_and_jacobian,
 )
 from ..thermo import make_activity_model
+from ..thermo.equilibrium_constants import vant_hoff_log_K
 from .protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
 
 logger = logging.getLogger(__name__)
@@ -648,7 +649,7 @@ class NRChemicalEquilibriumEngine:
         for rxn in rxns:
             label = rxn.label or rxn.stoichiometry[0].species.id
             labels.append(label)
-            log_ksp = _vant_hoff_log_K(
+            log_ksp = vant_hoff_log_K(
                 float(rxn.log_K),
                 rxn.dH_J_per_mol,
                 T_K,
