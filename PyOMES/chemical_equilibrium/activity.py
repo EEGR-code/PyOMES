@@ -65,12 +65,10 @@ def ionic_strength_from_speciation(sp: Dict[str, Any]) -> float:
     not ending in a charge token and not in the override table)
     contribute 0.
 
-    The single-rule design (Phase 3, chemistry-unification-3)
-    replaces the pre-Phase-3 bipartite z-dict + ``_A-`` fallback
-    loop. Adding a new ion that follows the suffix convention needs
-    no edit here — its charge is inferred automatically. Adding an
-    ion whose id doesn't follow the convention requires one entry
-    in :data:`_CHARGE_OVERRIDES`.
+    Charge inference follows a single rule: adding a new ion that
+    follows the suffix convention needs no edit here — its charge is
+    inferred automatically. Adding an ion whose id doesn't follow the
+    convention requires one entry in :data:`_CHARGE_OVERRIDES`.
     """
     I_sum = 0.0
     for key, v in sp.items():

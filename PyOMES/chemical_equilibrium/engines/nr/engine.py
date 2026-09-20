@@ -4,29 +4,30 @@
 :class:`NRChemicalEquilibriumEngine` is a drop-in alternative to
 :class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine` that solves aqueous
 equilibrium chemistry via a full Newton-Raphson system in log-activity
-space rather than the 1-D charge-balance bisection used by the existing
+space rather than the 1-D charge-balance bisection used by the Bisection
 engine.
 
 The two engines expose the same ``.solve(phases=...)`` interface and
 emit the same output-dict format.  The NR engine is selected by
 passing ``solver="newton_raphson"`` to :class:`~PyOMES.reactions.reaction_system.ReactionSystem`.
 
-Key differences vs the existing engine
----------------------------------------
+Key differences vs the Bisection engine
+----------------------------------------
 - The NR engine handles **arbitrary reaction networks** (cross-component
   species, metal complexation) once the chemistry is declared.
 - H⁺, OH⁻, and H₂O are written to ``phase.n_mol`` as **engine-owned
-  derived species** after every solve (the existing engine only writes
+  derived species** after every solve (the Bisection engine only writes
   H⁺ and OH⁻).
-- Activity correction is an outer fixed-point loop (identical to the
-  existing engine) wrapping the inner NR loop.
+- Activity correction is an outer fixed-point loop (the same scheme as
+  the Bisection engine) wrapping the inner NR loop.
 - Warmstarting uses the full log-activity vector, not just log[H⁺].
 
-Scope (this implementation)
-----------------------------
-- Single liquid phase; acid-base and metal-complexation networks.
-- Precipitation/phase detection: deferred (see design doc).
-- Redox (pe as a master): deferred.
+Scope
+-----
+- Single liquid phase; acid-base and metal-complexation networks, with
+  optional folded gas-liquid rows and solid-liquid (precipitation)
+  equilibria.
+- Redox (pe as a master): not supported.
 """
 from __future__ import annotations
 
@@ -135,16 +136,15 @@ class NRChemicalEquilibriumEngine:
         if retain_jacobian and any(sec.phase == "gas" for sec in tableau.secondaries):
             raise NotImplementedError(
                 "NRChemicalEquilibriumEngine: retain_jacobian=True is not yet "
-                "supported for a tableau with folded gas-liquid secondaries "
-                "(LAYER1_GAP_CLOSURE CP1/CP2). The white-box Jacobian "
+                "supported for a tableau with folded gas-liquid secondaries. "
+                "The white-box Jacobian "
                 "machinery (residual(), jacobian_dg_dz(), jacobian_dz_dy()) "
                 "keys its internal caches by bare species_id, which "
                 "collides whenever a gas secondary shares an id with its "
-                "liquid parent (the common Henry case, e.g. both 'CO2') — "
-                "CP3 confirmed algebraic_species() itself needed no change "
-                "(it already unions bare ids across phases correctly for "
-                "set-membership use), but did not thread a phase-aware "
-                "distinction through the white-box methods, so this guard "
+                "liquid parent (the common Henry case, e.g. both 'CO2'). "
+                "algebraic_species() already unions bare ids across phases "
+                "correctly for set-membership use, but the white-box "
+                "methods are not phase-aware, so this guard "
                 "stays in place. The main solve() path is unaffected."
             )
         if thermo is not None:
@@ -209,13 +209,13 @@ class NRChemicalEquilibriumEngine:
             dict reports ``xi_mol_L`` and ``SI`` for each mineral.
 
             .. note::
-                For CV/SolidPhase integration (ξ writeback to n_mol, lazy phase
-                creation) see NR_PRECIPITATION_CV_INTEGRATION.md (Phase 2).
+                Mineral amounts are reported in the result only; this engine
+                does not write them back to a ``SolidPhase`` (no ξ writeback to
+                ``n_mol``, no lazy phase creation).
         precipitation_reactions : list of EquilibriumReaction, optional
             Deprecated — solid-liquid items are now auto-classified from
-            ``equilibrium_reactions``. Kept for one phase
-            (``EQUILIBRIUM_CONSTRAINT_UNIFICATION`` CP2); emits
-            ``DeprecationWarning`` and is merged with the auto-detected set.
+            ``equilibrium_reactions``. Emits ``DeprecationWarning`` and is
+            merged with the auto-detected set.
         use_activity : bool
             Enable Davies activity corrections.  Default ``False``.
         activity_model : str
@@ -257,7 +257,7 @@ class NRChemicalEquilibriumEngine:
                 "NRChemicalEquilibriumEngine.from_reactions(precipitation_reactions=...) "
                 "is deprecated; solid-liquid items are now auto-classified "
                 "from equilibrium_reactions via StoichiometryEntry(phase="
-                "'solid') tags (EQUILIBRIUM_CONSTRAINT_UNIFICATION CP2). "
+                "'solid') tags. "
                 "Pass them directly in equilibrium_reactions instead.",
                 DeprecationWarning,
                 stacklevel=2,
@@ -312,9 +312,9 @@ class NRChemicalEquilibriumEngine:
             ``{"liquid": phase_obj, "gas": phase_obj}`` where each
             ``phase_obj`` has ``.n_mol`` (``dict[str, float]``) and
             ``.V_L`` (float, litres). ``"gas"`` is required only if the
-            tableau folds any gas-liquid equilibrium (CP1/CP2 of
-            ``LAYER1_GAP_CLOSURE``); its totals and volume feed the
-            volume-aware mass balance for those components.
+            tableau folds any gas-liquid equilibrium; its totals and
+            volume feed the volume-aware mass balance for those
+            components.
         totals : dict, optional
             Direct override: ``{master_id: C_total (mol/L)}``. For a
             folded component this must already be the total *across both
@@ -344,9 +344,8 @@ class NRChemicalEquilibriumEngine:
             precipitated).
 
         .. note::
-            For CV/SolidPhase integration (writing ξ back to ``n_mol``,
-            lazy SolidPhase creation, ODE state update) see
-            ``NR_PRECIPITATION_CV_INTEGRATION.md`` (Phase 2).
+            Mineral amounts are reported in the result only; this engine
+            does not write ξ back to ``n_mol`` or create a ``SolidPhase``.
         """
         phases = kwargs.pop("phases", None)
         T_K_override = kwargs.pop("T_K", None)
@@ -407,10 +406,9 @@ class NRChemicalEquilibriumEngine:
 
         # -- Build EquilibriumResult -------------------------------------
         # species_mol_L is the full masters + liquid secondaries + H2O set
-        # — mirrors what this engine has always written back (no canonical
-        # restriction, unlike BisectionChemicalEquilibriumEngine, since the NR tableau owns
-        # its full species set). Gas-phase secondaries (CP1/CP2 of
-        # LAYER1_GAP_CLOSURE) go to partial_pressures_atm instead — their
+        # (no canonical restriction, unlike BisectionChemicalEquilibriumEngine,
+        # since the NR tableau owns its full species set). Gas-phase
+        # secondaries go to partial_pressures_atm instead — their
         # value is a pressure (atm), not a concentration (mol/L), and
         # sec.c_key (not sec.species_id) is required to read them out of
         # `out` without colliding with a same-named liquid entry.
@@ -468,12 +466,11 @@ class NRChemicalEquilibriumEngine:
         """Species IDs written to ``phase.n_mol`` by this engine.
 
         These form the algebraic state z (complement of the differential
-        state y) in any DAE formulation. Already includes folded gas-
-        liquid species (CP1/CP2 of ``LAYER1_GAP_CLOSURE``) alongside
-        ordinary acid-base and solid-liquid species — the underlying set
-        union is over bare ``species_id`` regardless of
-        ``SecondaryEntry.phase``, so no change was needed here to pick
-        them up (verified by CP3; see :meth:`gas_liquid_species` for the
+        state y) in any DAE formulation. Includes folded gas-liquid
+        species alongside ordinary acid-base and solid-liquid species —
+        the underlying set union is over bare ``species_id`` regardless
+        of ``SecondaryEntry.phase``, so folded gas-phase secondaries are
+        picked up automatically (see :meth:`gas_liquid_species` for the
         narrower subset that actually has a folded gas-liquid row).
         """
         ids = set(self._tableau.masters)
@@ -489,7 +486,7 @@ class NRChemicalEquilibriumEngine:
         include ordinary acid-base species like liquid CO2/HCO3-/CO3--
         that have no gas-liquid coupling declared at all). Used by
         :meth:`~PyOMES.core.control_volume.ControlVolume.step_internal_transfer`
-        (CP3 of ``LAYER1_GAP_CLOSURE``) to skip a separately-declared
+        to skip a separately-declared
         ``transfer_models`` entry only for species this engine already
         resolves simultaneously with acid-base — for a species with
         ordinary acid-base chemistry but no folded Henry/Raoult row, a
@@ -538,11 +535,10 @@ class NRChemicalEquilibriumEngine:
             which case ``solve_nr`` raises a clear error downstream).
 
         For a component with folded gas-liquid secondaries
-        (``comp.gas_species_ids``, CP1/CP2 of ``LAYER1_GAP_CLOSURE``), the
-        total now sums moles across *both* phases before dividing by
-        ``V_liq_L`` — matching the existing convention already used by
-        ``PartitionModel.equilibrium_a_moles`` (``n_total`` spans both
-        phases there too), not the liquid-only sum this used before CP2.
+        (``comp.gas_species_ids``), the total sums moles across *both*
+        phases before dividing by ``V_liq_L`` — matching the convention
+        used by ``PartitionModel.equilibrium_a_moles`` (``n_total`` spans
+        both phases there too), not the liquid-only sum.
         """
         liq = phases.get("liquid") if hasattr(phases, "get") else None
         if liq is None:
@@ -616,7 +612,7 @@ class NRChemicalEquilibriumEngine:
             Ca²⁺ (and similar precipitating ions with no dissolved
             complexation) stays a strong ion.  The outer loop adjusts its
             effective contribution via ``strong_ions["CT_Ca"] -= ξ_calcite``.
-            If Ca²⁺ complexation is declared in future, it enters the NR
+            If Ca²⁺ complexation is declared, it enters the NR
             tableau naturally via the BFS step; no new apparatus is required.
         """
         rxns = self._precipitation_reactions

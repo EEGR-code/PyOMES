@@ -10,12 +10,10 @@ its activity/fugacity correction for whatever phase it lives in:
   pressure p_i, atm).
 - ``phase == "solid"`` → ``1.0`` (pure-solid convention: solid activity is 1).
 
-This is groundwork for Phase 2 of Layer 1 gap closure
-(``LAYER1_GAP_CLOSURE.md``), which wires this dispatch into
-``build_tableau()``'s Newton residual so gas-liquid/solid-liquid rows can
-be solved simultaneously with acid-base rows. This module only proves the
-dispatch is correct in isolation — it is not called from
-``build_tableau()``/``solve_nr()`` yet.
+The NR solver does not call this helper: it folds gas-liquid rows into the
+tableau as gas-phase secondaries and handles solid-liquid equilibria in the
+engine's precipitation loop. The function is exercised only by its own tests,
+which check the dispatch in isolation.
 
 Why ``charge`` is a separate keyword, not derived internally
 --------------------------------------------------------------
@@ -25,8 +23,8 @@ strength (Davies/SIT) — but ``Phase`` objects store only ``n_mol`` floats,
 no ``Species``/charge metadata. That map has to come from wherever the
 reaction declarations are (each ``StoichiometryEntry.species.charge``),
 which for standalone use here means the caller supplies it explicitly.
-Phase 2's wiring passes the full charge map already available on the
-built ``NRTableau`` (``tableau.master_charges``); without a caller-
+A caller that has a built ``NRTableau`` can pass the full charge map it
+already holds (``tableau.master_charges``); without a caller-
 supplied map, this function falls back to the single ``entry`` species'
 own charge, matching every other species in ``x_mol`` to ``0`` — correct
 mass-action behaviour for that species alone, but underestimates ionic

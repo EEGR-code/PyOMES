@@ -1,3 +1,4 @@
+
 # Phase Kickoff Checklist — chemical-equilibrium-engines-subfolder
 
 > Checklist for [`CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`](CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md),
@@ -370,7 +371,7 @@
       `architecture.md` `equilibria/` lines (long-deleted island); my own
       dated notes that name removed files. Verified: changed code files
       compile; full suite 2080 passed (unchanged)._
-- [ ] 12b. _Added during Part C (requested after checkpoint 12)._ **Documentation
+- [x] 12b. _Added during Part C (requested after checkpoint 12)._ **Documentation
       sweep and rewrite of `PyOMES/chemical_equilibrium/`**: remove
       development-history references (phase and checkpoint labels, pointers to
       old design documents, "this phase" wording) from docstrings and comments,
@@ -431,6 +432,62 @@
       "Tests for CP2 of LAYER1_GAP_CLOSURE", and files named after checkpoints:
       `test_nr_gas_liquid_cp2.py`, `test_raoult_h2o_fold_cp4.py`,
       `test_precipitation_gas_liquid_cp5.py`). See `OPEN_WORK.md`.
+      **RESULT (done).** The survey went from **83 lines to 4**, and all 4 are
+      justified: two are ordinary English ("is used to convert", in
+      `solver.py` and `tableau.py`) and two name the real function
+      `phreeqc_to_vlsim`. **No design-document pointer was retained**: every one
+      failed the "canonical, current, too long to summarise, stable path" test
+      (`LAYER1_GAP_CLOSURE`, `MASS_EXCHANGE_ARCHITECTURE`,
+      `MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN`,
+      `NR_PRECIPITATION_CV_INTEGRATION`, `EQUILIBRIUM_CONSTRAINT_UNIFICATION`,
+      `PARTITION_MODEL` and `CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE` are either
+      shipped/historical or live in `upcoming/`), and each surrounding statement
+      was already self-explanatory once the label was dropped. Beyond the
+      planned categories, a second, looser scan found more history-flavoured
+      wording my patterns had missed: three **"CHANGE (Update N)"** changelog
+      headers in `acid_base.py`, "behave exactly as before", "(legacy)/(new)"
+      labels, "separated for future extensions", "it has always written back",
+      "deferred" (now "is not performed"), and `protocols.py` calling the
+      Bisection solver "legacy" although it is `ReactionSystem`'s default solver.
+      **Statements that were false, not just stale, and are now corrected:**
+      `engines/nr/engine.py`'s module "Scope" said precipitation was "deferred
+      (see design doc)" although the engine has a full precipitation loop and
+      gas-liquid folding; `activity_dispatch.py` promised that a later phase
+      "wires this dispatch into `build_tableau()`" (that phase shipped without
+      doing so — the function is called only by its own tests); `acid_base.py`
+      promised the `_HA`/`_A-` fallback "is removed in the PARTITION_MODEL phase"
+      (it shipped and the fallback is still live for the BSM2 VFA rows) and
+      described a `_CANONICAL_NAMES` path that no longer exists;
+      `tableau.py` said a component's total would read the gas phase "once CP2
+      wires" it (it already does); `phreeqc.py` had a comment describing the
+      opposite of what the next line does ("convert PHREEQC keys back").
+      **Reasoning kept, label dropped**, for example: why `retain_jacobian=True`
+      is unsupported with folded gas-liquid rows; why `SecondaryEntry.c_key`
+      needs a `":gas"` suffix; why totals span both phases; why gas-phase write
+      back is not implemented in `apply_to_phases`.
+      **Runtime messages reworded: 7** (1 Bisection engine, 2 NR engine, 1
+      solver, 3 tableau), all listed by the AST tool; the fragments tests match
+      on survive (`V_liq_L`, `bridge`); the 22 tests in
+      `test_nr_tableau_gas_liquid.py` pass.
+      **Verification.** (1) AST comparison of all 14 files against `HEAD`, with
+      docstrings removed: **no code changes**; only string literals differ, and
+      only those 7. (2) Bit-level fingerprints for all three engines (NR,
+      Bisection, PHREEQC — 814 + 265 + 182 values) byte-identical. (3) Full
+      suite 2080 passed (unchanged). (4) Both surveys re-run. (5) The line-number
+      citations in `STRONG_ION_INFERENCE_GENERALIZATION.md` shifted again with
+      these edits (the `engines/nr/engine.py` and `engines/bisection/engine.py`
+      ranges; the solver ones did not), so they were re-derived and re-verified
+      with a stricter checker that requires each range to start on the defining
+      line and end on its closing line — the checkpoint-12 checker was too
+      lenient (it passed ranges that were one line off).
+      **Decision applied:** `phreeqc_to_vlsim` (and the local `vlsim_name`) kept;
+      docs reworded; rename logged in `OPEN_WORK.md`. **Logged, not touched
+      (`OPEN_WORK.md`):** `activity_dispatch.py` as an orphan candidate (same
+      situation as the deleted `api.py`/`factory.py`); the same false or stale
+      statements found outside this directory
+      (`chemistry/equilibria.py:510-511`, `core/gas_liquid_link.py:928,958,966`,
+      `reactions/reaction_system.py:250`); two saved notebook outputs that
+      quote the old warning text; the wider 108-line cleanup.
 
 **Part D — gas-constant unification** (after Part C; see the plan doc's
 "Gas-constant definitions (Part D)" audit and Decisions 11–15)

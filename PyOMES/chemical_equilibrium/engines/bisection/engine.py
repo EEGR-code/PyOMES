@@ -57,9 +57,9 @@ _TOTAL_KEY_OVERRIDES = {
 }
 
 # Species written back to phase.n_mol by EquilibriumResult.apply_to_phases()
-# for this engine. Fixed since chemistry-unification-3b; deliberately does
-# NOT include generic polyprotic-ladder keys (e.g. "{name}_HA") — those were
-# never part of the writeback and land in EquilibriumResult.extra instead.
+# for this engine. This is a fixed set; it deliberately does NOT include
+# generic polyprotic-ladder keys (e.g. "{name}_HA") — those land in
+# EquilibriumResult.extra instead.
 _CANONICAL_WRITEBACK_SPECIES = (
     "H+", "OH-",
     "CO2", "HCO3-", "CO3--",
@@ -119,8 +119,8 @@ class BisectionChemicalEquilibriumEngine:
         self.n_solve_calls = 0
 
         # Gas-liquid/solid-liquid EquilibriumConstraint items supplied to
-        # from_reactions() — outside this engine's tableau (this phase
-        # doesn't fold them in), but visible for downstream consumers
+        # from_reactions() — outside what this engine solves (it does not
+        # fold them in), but visible for downstream consumers
         # (KineticGasLiquidLink) rather than silently discarded.
         self.cross_phase_constraints: tuple = ()
 
@@ -174,10 +174,10 @@ class BisectionChemicalEquilibriumEngine:
         Items that classify as ``"gas_liquid"`` or ``"solid_liquid"``
         (e.g. gas-liquid partition declarations like ``CO2(gas) ⇌
         CO2aq(liquid)``, or a ``HenryEquilibrium``/``KspEquilibrium``/
-        ``RaoultEquilibrium``) are outside this engine's tableau in
-        this phase (this phase does not fold them in) but are visible
-        via ``engine.cross_phase_constraints`` for downstream
-        consumers (``KineticGasLiquidLink``) rather than discarded.
+        ``RaoultEquilibrium``) are outside what this engine solves (it
+        does not fold them in) but are visible via
+        ``engine.cross_phase_constraints`` for downstream consumers
+        (``KineticGasLiquidLink``) rather than discarded.
 
         Parameters
         ----------
@@ -469,11 +469,10 @@ class BisectionChemicalEquilibriumEngine:
 
         # ------------------------------------------------------------------
         # Build EquilibriumResult. species_mol_L is restricted to the fixed
-        # canonical tuple this engine has always written back (state-
-        # unification C3) — generic polyprotic-ladder keys (e.g. "{name}_HA")
-        # were never part of that writeback and land in `extra` instead, not
-        # species_mol_L, so apply_to_phases() doesn't change writeback
-        # behavior.
+        # canonical tuple of species this engine writes back — generic
+        # polyprotic-ladder keys (e.g. "{name}_HA") land in `extra` instead,
+        # not species_mol_L, so apply_to_phases() only writes the canonical
+        # set.
         # ------------------------------------------------------------------
         species_mol_L: Dict[str, float] = {}
         extra: Dict[str, Any] = {}
@@ -614,7 +613,7 @@ def _classify_equilibrium(rxn) -> str:
             f"Equilibrium reaction {rxn.label!r} has multiple "
             "non-solvent reactants — only single-step monoprotic "
             "dissociations are supported by "
-            "BisectionChemicalEquilibriumEngine.from_reactions in this phase."
+            "BisectionChemicalEquilibriumEngine.from_reactions."
         )
     acid = reactants[0].species
     if int(acid.charge) > 0:

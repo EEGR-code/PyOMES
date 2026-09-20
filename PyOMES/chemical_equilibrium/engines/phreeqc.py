@@ -100,15 +100,15 @@ class PHREEQCChemicalEquilibriumEngine:
     Parameters
     ----------
     components : dict
-        ``{vlsim_component_id: initial_concentration_mmol_L}`` — initial
+        ``{component_id: initial_concentration_mmol_L}`` — initial
         composition used for the priming solve at construction.  Every key
         must appear in ``component_map``.
     component_map : dict
-        ``{vlsim_component_id: phreeqc_element_key}`` — maps PyOMES component
+        ``{component_id: phreeqc_element_key}`` — maps PyOMES component
         IDs to PHREEQC element keys used in ``add_solution_raw`` / ``change()``.
         Use oxidation-state notation where needed (e.g. ``"S(-2)"``).
     species_map : callable or None
-        ``(phreeqc_name: str) -> vlsim_name: str``.  Applied to every key in
+        ``(phreeqc_name: str) -> species_id: str``.  Applied to every key in
         ``sol.species`` when building the output dict and the
         algebraic-species cache.  Pass ``None`` to disable translation (PHREEQC
         names are used verbatim).  Default: :func:`phreeqc_to_vlsim`.
@@ -219,7 +219,8 @@ class PHREEQCChemicalEquilibriumEngine:
             if phreeqc_key is not None:
                 composition_mmol[phreeqc_key] = float(mol_L) * 1000.0
 
-        # Convert PHREEQC keys back: _fresh_solution expects {vlsim_id: mmol_L}.
+        # _fresh_solution expects {component_id: mmol_L} and applies
+        # component_map itself.
         # Fresh solves are the correctness baseline.  phreeqpython's
         # Solution.change() path mutates an existing solution and does not
         # reliably match a clean absolute-total solve.
@@ -275,7 +276,7 @@ class PHREEQCChemicalEquilibriumEngine:
         Parameters
         ----------
         components_mmol : dict
-            ``{vlsim_component_id: mmol_L}`` — values in mmol/L.
+            ``{component_id: mmol_L}`` — values in mmol/L.
         T_C : float
             Temperature (°C).
         """

@@ -26,7 +26,7 @@ Analytic Jacobian (``∂c_j/∂x_k = ln(10) · ν_{jk} · c_j``):
 Activity outer loop
 -------------------
 Davies (or other) activity coefficients are updated in an outer fixed-point
-iteration on ionic strength, identical to the existing engine.  The NR loop
+iteration on ionic strength, the same scheme as the Bisection engine.  The NR loop
 runs to convergence at each ionic-strength iterate.
 
 Warmstart
@@ -62,7 +62,7 @@ class NRSolverCache:
     """Persistent state for warmstarting consecutive solve calls."""
     log_x: Optional[np.ndarray] = None   # last converged log10-activities
     I_last: Optional[float] = None        # last converged ionic strength
-    jacobian: Optional[np.ndarray] = None  # last converged NR Jacobian (Phase 4)
+    jacobian: Optional[np.ndarray] = None  # last converged NR Jacobian
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -108,14 +108,14 @@ def _compute_concentrations(
     -------
     dict mapping species_id → concentration (mol/L) for liquid-phase
         species and masters; **partial pressure (atm)** for any gas-phase
-        secondary (``sec.phase == "gas"``, folded by CP1 of
-        ``LAYER1_GAP_CLOSURE``) — the log-linear formula's activity-space
-        consistency (``a_liquid = γ_liquid·C_liquid``) already yields the
-        correct Henry's-law partial pressure directly (``p_gas =
-        a_liquid/kH``, verified against ``HenryEquilibrium``'s own
-        ``p_i = γ_i·C_i/kH`` convention — see CP2 design notes), so no
-        additional γ correction is applied here beyond what the existing
-        per-species ``gammas`` division already does for every secondary.
+        secondary (``sec.phase == "gas"``, a folded gas-liquid row) — the
+        log-linear formula's activity-space consistency
+        (``a_liquid = γ_liquid·C_liquid``) already yields the correct
+        Henry's-law partial pressure directly (``p_gas = a_liquid/kH``,
+        consistent with ``HenryEquilibrium``'s own
+        ``p_i = γ_i·C_i/kH`` convention), so no additional γ correction
+        is applied here beyond what the per-species ``gammas`` division
+        already does for every secondary.
         Callers accumulating mass balance (:func:`_residual_and_jacobian`)
         must convert this to an equivalent liquid-normalized concentration
         before summing it against liquid-phase concentrations — see that
@@ -164,11 +164,11 @@ def _residual_and_jacobian(
         liquid species, partial pressure (atm) for gas-phase secondaries.
     totals : dict
         ``{master_id: C_total}`` for each non-H⁺ master. For a component
-        with folded gas-liquid rows (CP1/CP2 of ``LAYER1_GAP_CLOSURE``),
-        this is total moles *across both phases* divided by ``V_liq_L``
-        (matching the existing ``PartitionModel.equilibrium_a_moles``
-        convention where ``n_total`` already spans both phases) — not
-        liquid-only, as it was before this phase.
+        with folded gas-liquid rows, this is total moles *across both
+        phases* divided by ``V_liq_L`` (matching the
+        ``PartitionModel.equilibrium_a_moles`` convention where
+        ``n_total`` already spans both phases) — not the liquid-only
+        total.
     strong_charge : float
         Net charge from strong ions (Σ z_s · C_s_strong), mol/L.
     pin_specs : list of (row_idx, x_col_idx, pin_val), optional
@@ -398,11 +398,11 @@ def solve_nr(
         toward ``−∞``.  Default ``1e-20``.
     V_liq_L, V_gas_L : float, optional
         Liquid- and gas-phase volumes (litres). Required (both, > 0) when
-        *tableau* carries any gas-phase secondary (folded by CP1 of
-        ``LAYER1_GAP_CLOSURE``) — used to convert that secondary's partial
-        pressure into an equivalent liquid-normalized concentration for
-        the mass-balance row it's attached to (CP2). Ignored when the
-        tableau has no folded gas rows.
+        *tableau* carries any gas-phase secondary (a folded gas-liquid
+        row) — used to convert that secondary's partial pressure into an
+        equivalent liquid-normalized concentration for the mass-balance
+        row it's attached to. Ignored when the tableau has no folded gas
+        rows.
 
     Returns
     -------
@@ -430,8 +430,8 @@ def solve_nr(
         if not (V_liq_L is not None and V_gas_L is not None
                 and float(V_liq_L) > 0.0 and float(V_gas_L) > 0.0):
             raise ValueError(
-                f"solve_nr: tableau folds gas-liquid secondaries {gas_species} "
-                "(LAYER1_GAP_CLOSURE CP1/CP2), which requires V_liq_L and "
+                f"solve_nr: tableau folds gas-liquid secondaries {gas_species}, "
+                "which requires V_liq_L and "
                 "V_gas_L (both > 0) to convert gas partial pressure into an "
                 "equivalent mass-balance contribution. Pass them explicitly, "
                 "or via phases={'liquid':..., 'gas':...} on "

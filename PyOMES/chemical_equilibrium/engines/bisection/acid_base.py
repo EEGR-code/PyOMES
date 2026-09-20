@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Core acid-base speciation solver (Level 1 foundation).
+Core acid-base speciation solver used by the Bisection engine.
 
 Systems included:
 - Water: H+/OH-
@@ -147,9 +147,9 @@ def solve_acid_base(
     pKa3_P: float = 12.35,
     pKa_HSO4: float = 1.99,
 
-    # --- NEW: van 't Hoff temperature corrections (defaults keep legacy behavior) ---
+    # --- van 't Hoff temperature corrections ---
     # Provide ΔH° (J/mol) for each equilibrium to enable temperature-dependent K.
-    # If left at 0.0, the constant is treated as temperature-invariant (legacy).
+    # If left at 0.0, the constant is treated as temperature-invariant.
     dH_Kw_J_per_mol: float = 0.0,
     dH_TIC1_J_per_mol: float = 0.0,
     dH_TIC2_J_per_mol: float = 0.0,
@@ -197,9 +197,8 @@ def solve_acid_base(
     CT_P = _safe_float(CT_P)
 
     # --- van 't Hoff temperature corrections for equilibrium constants ---
-    # We keep the wider interface unchanged: callers can optionally provide ΔH° values
-    # (J/mol) for each equilibrium. If ΔH° is left at 0.0, the constant remains
-    # temperature-invariant (legacy behavior).
+    # Callers can optionally provide ΔH° values (J/mol) for each equilibrium.
+    # If ΔH° is left at 0.0, the constant remains temperature-invariant.
     acid_dH = dict(acid_dH_J_per_mol or {})
 
     # Kw is used directly in the water equilibrium (OH = Kw/H)
@@ -213,7 +212,7 @@ def solve_acid_base(
     else:
         pH_lo_pref, pH_hi_pref = float(pH_min), float(pH_max)
         
-    # --- NEW: model-agnostic gamma wrapper (supports gamma(z, I) and gamma(z, I, T_K)) ---
+    # --- model-agnostic gamma wrapper (supports gamma(z, I) and gamma(z, I, T_K)) ---
     # Supports:
     #   gamma(z, I, *, T_K=...)   (DaviesLiquidModel)
     #   gamma(z, I, T_K)          (positional temperature)
@@ -221,7 +220,7 @@ def solve_acid_base(
     def _gamma(z: int, I_val: float) -> float:
         I_val = max(0.0, float(I_val))
         z = int(z)
-        # 1) Preferred: keyword-only temperature (DaviesLiquidModel in your codebase)
+        # 1) Preferred: keyword-only temperature (e.g. DaviesLiquidModel)
         try:
             return float(activity_model.gamma(z, I_val, T_K=float(T_K)))
         except TypeError:
@@ -238,7 +237,7 @@ def solve_acid_base(
     def gammas_from_I(I_val: float) -> Dict[str, float]:
         I_val = max(0.0, float(I_val))
 
-        # Stage 16: If the activity model has compute_gammas (e.g. SIT),
+        # If the activity model has compute_gammas (e.g. SIT),
         # call it with the full solution composition for ion-pair-specific
         # corrections.  Otherwise fall back to charge-only gamma calls.
         if hasattr(activity_model, 'compute_gammas'):
@@ -287,10 +286,9 @@ def solve_acid_base(
         """
         Build activity- and temperature-corrected equilibrium constants.
 
-        CHANGE (Update 3):
         - Supports monoprotic acids (pKa is float) AND polyprotic acids (pKa is list/tuple).
-        - Ka_vfa_eff[name] becomes a LIST of Ka steps [Ka1, Ka2, ...].
-          (Monoprotic acids will have a list of length 1.)
+        - Ka_vfa_eff[name] is a LIST of Ka steps [Ka1, Ka2, ...].
+          (Monoprotic acids have a list of length 1.)
         - Applies activity correction per step using gamma for the product species charge (-i).
         """
 
@@ -381,9 +379,8 @@ def solve_acid_base(
         Return electroneutrality residual:
             sum(cations) - sum(anions)
     
-        CHANGE (Update 4):
         - Handles polyprotic acids if Ka_vfa_eff[name] is a list of Ka steps.
-        - Monoprotic acids behave exactly as before.
+        - Monoprotic acids are the length-1 case.
         """
     
         def _polyprotic_charge(CT: float, H: float, Kas: list[float]) -> float:
@@ -429,7 +426,7 @@ def solve_acid_base(
             if Kas is None:
                 continue
     
-            # Allow either a float (legacy) or list (new)
+            # Allow either a float or a list
             if isinstance(Kas, (float, int)):
                 Kas_list = [float(Kas)]
             else:
@@ -685,10 +682,10 @@ def compute_species(
     strong_ions: Dict[str, float],
 ) -> Dict[str, Any]:
     """
-    CHANGE (Update 5):
-    - Supports monoprotic acids (Ka list length 1) with legacy keys:
+    Species keys emitted for each acid:
+    - Monoprotic acids (Ka list length 1) use the keys:
         {name}_HA and {name}_A-
-    - Supports polyprotic acids (Ka list length > 1) and outputs:
+    - Polyprotic acids (Ka list length > 1) output:
         {name}_H{n}A, {name}_H{n-1}A-, ..., {name}_A---...
       Example for citric (n=3):
         CitricAcid_H3A
@@ -745,7 +742,7 @@ def compute_species(
         if Kas is None:
             raise KeyError(f"Ka_vfa_eff missing for acid '{name}'. Check acid_pKas/effective_constants.")
 
-        # Accept either float (legacy) or list
+        # Accept either a float or a list
         if isinstance(Kas, (float, int)):
             Kas_list = [float(Kas)]
         else:
@@ -1059,7 +1056,7 @@ def _generalised_acid_charge(H, CT, Kas):
     Returns
     -------
     (cations, anions) : tuple of float
-        For standard acids, cations=0.  Separated for future extensions.
+        For standard acids, cations=0.
     """
     n = len(Kas)
     prods = [1.0]
@@ -1078,15 +1075,13 @@ def _generalised_acid_charge(H, CT, Kas):
     return 0.0, anion_charge
 
 
-# _CANONICAL_NAMES was deleted in chemistry-unification-3b.
 # All recognised acid systems (CO₂, NH₄⁺/NH₃, phosphate, bisulfate)
-# now carry ``species_refs`` on their ``EquilibriumDef`` so
+# carry ``species_refs`` on their ``EquilibriumDef`` so
 # ``_compute_species_eq`` emits by ``Species.id`` directly.
-# The only remaining fallback in ``_compute_species_eq`` is the
-# deprecated generic ``{name}_HA``/``{name}_A-`` path for string-based
-# entries without ``species_refs`` (legacy VFA rows in
-# ``EquilibriumSet.bsm2_default()``).  That path is removed in the
-# PARTITION_MODEL phase.
+# The only fallback in ``_compute_species_eq`` is the deprecated generic
+# ``{name}_HA``/``{name}_A-`` path for string-based entries without
+# ``species_refs`` (the VFA rows in ``EquilibriumSet.bsm2_default()``
+# still use it).
 
 
 def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
@@ -1096,24 +1091,19 @@ def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
     species exist physically even if some are excluded from the charge
     balance.
 
-    Emission priority (chemistry-unification-3b):
+    Emission priority:
 
     1. If ``eq_def.species_refs`` is non-empty, emit using the declared
        ``Species.id`` for each ladder position — no synthesised suffixes.
        Example: ``CO2`` Species emits ``out["CO2"]``; ``HCO3-`` Species
        emits ``out["HCO3-"]``.
 
-    2. Otherwise fall back to the legacy paths:
-
-       - Recognised names (entries in :data:`_CANONICAL_NAMES`) emit
-         canonical keys (``"CO2aq"``, ``"NH4+"``, etc.).
-       - Unrecognised acids (VFAs, custom systems) emit generic
-         ``{name}_HA`` / ``{name}_A-`` / ``{name}_BH+`` / ``{name}_B``
-         keys via :func:`_species_key`.  These are **deprecated** —
-         string-based ``EquilibriumDef`` entries without ``species_refs``
-         (e.g. VFA rows in ``EquilibriumSet.bsm2_default()``) still use
-         this path. It will be removed in the PARTITION_MODEL phase once
-         those entries gain ``species_refs``.
+    2. Otherwise fall back to generic keys built from the entry name:
+       ``{name}_HA`` / ``{name}_A-`` / ``{name}_BH+`` / ``{name}_B``
+       via :func:`_species_key`.  These are **deprecated** —
+       string-based ``EquilibriumDef`` entries without ``species_refs``
+       (e.g. the VFA rows in ``EquilibriumSet.bsm2_default()``) still
+       use this path.
     """
     H = 10.0 ** (-float(pH))
     OH = Kw / (gamma_H * gamma_OH * H) if H > 0 else 0.0
@@ -1136,8 +1126,8 @@ def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
                 if len(refs) > 1:
                     out[refs[1].id] = float(B)
             else:
-                # Deprecated legacy path: string-based entry without
-                # species_refs (VFA rows in EquilibriumSet.bsm2_default()).
+                # Deprecated generic path: string-based entry without
+                # species_refs (e.g. VFA rows in EquilibriumSet.bsm2_default()).
                 out[f"{eq_def.name}_BH+"] = float(BH)
                 out[f"{eq_def.name}_B"] = float(B)
 
@@ -1151,8 +1141,8 @@ def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
                 for i in range(min(n + 1, len(refs))):
                     out[refs[i].id] = float(CT * alphas[i])
             else:
-                # Deprecated legacy path: string-based entry without
-                # species_refs (VFA rows in EquilibriumSet.bsm2_default()).
+                # Deprecated generic path: string-based entry without
+                # species_refs (e.g. VFA rows in EquilibriumSet.bsm2_default()).
                 for i in range(n + 1):
                     key = _species_key(eq_def.name, n, i)
                     out[key] = float(CT * alphas[i])

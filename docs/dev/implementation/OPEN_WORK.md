@@ -228,3 +228,47 @@ Suggested approach: reuse the rules and survey script from checkpoint 12b (keep
 the still-true reasoning, drop the label; keep a design-doc pointer only when it
 is the canonical explanation and lives at a stable path; AST-compare each file to
 prove no code change), package by package, `core/` first.
+
+**Found while doing checkpoint 12b (2026-09-20), outside `chemical_equilibrium/`
+and therefore left alone.** Some of these are not just stale labels but
+statements that are now false:
+
+- `chemistry/equilibria.py:510-511` (in `EquilibriumSet.bsm2_default()`) says
+  the deprecated `_HA`/`_A-` fallback "is removed in the PARTITION_MODEL phase".
+  That phase shipped and the fallback is still live: the four VFA rows
+  (`S_ac`, `S_pro`, `S_bu`, `S_va`) have no `species_refs`, so the BSM2 model
+  still uses it. The same false promise was in `acid_base.py` and was rewritten.
+- `core/gas_liquid_link.py:928,958,966` cite
+  `...bisection.acid_base._CANONICAL_NAMES`, which no longer exists.
+- `reactions/reaction_system.py:250` cites `EQUILIBRIUM_CONSTRAINT_UNIFICATION CP2`.
+- Two saved validation notebooks (`05_precipitation_equilibrium.ipynb`,
+  `06_phreeqc_benchmark.ipynb`) contain *captured stderr* quoting the old
+  `DeprecationWarning` text with its `EQUILIBRIUM_CONSTRAINT_UNIFICATION CP2`
+  label. It is a recorded past run, not a live message; it refreshes the next time
+  those notebooks are re-run.
+
+## `chemical_equilibrium/activity_dispatch.py` has no production caller
+
+Found 2026-09-20 in checkpoint 12b. `activity_for_entry()` is called only by its
+own tests (`tests/standalone/test_activity_dispatch.py`). Its old docstring said
+a later phase "wires this dispatch into `build_tableau()`", but that phase
+(`LAYER1_GAP_CLOSURE`) shipped without doing so: the NR solver folds gas-liquid
+rows into the tableau as gas-phase secondaries and handles solid-liquid
+equilibria in the engine's precipitation loop. The docstring now says this.
+
+This is the same situation as `api.py` and `factory.py`, which
+`chemical-equilibrium-engines-subfolder` deleted (checkpoint 9b): no callers, and
+the package has no outside users. Options: delete the module and its test
+(restorable from git), or keep it if the dispatch is wanted for a planned use.
+Not decided here.
+
+## Rename `phreeqc_to_vlsim` (and drop the old project name `vlsim`)
+
+`chemical_equilibrium/engines/phreeqc.py` still names PyOMES's former project
+name in a public function, `phreeqc_to_vlsim`, which is also the default
+`species_map`, and in a local variable `vlsim_name`. Checkpoint 12b reworded the
+docs but kept the names, because renaming is a code change. It is also imported
+by `tests/standalone/test_phreeqc_engine.py` and used by the
+`03_phreeqc_engine_basics.ipynb` tutorial. With no outside users a rename
+without an alias is cheap (for example `phreeqc_to_pyomes`): one module, one
+test file, one notebook.

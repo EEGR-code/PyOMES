@@ -11,8 +11,6 @@ Tier summary
 ChemicalEquilibriumEngineProtocol   — black box: solve() only
 GrayBoxEngineProtocol      — adds jacobian_dz_dy() (total sensitivity)
 WhiteBoxEngineProtocol     — adds residual(), jacobian_dg_dz(), jacobian_dg_dy()
-
-See docs/dev/ideas/CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md for the full design.
 """
 from __future__ import annotations
 
@@ -69,7 +67,7 @@ class EquilibriumResult:
     ----------------
     ``pH``, ``pH_conc``, ``logH``, ``aH``, ``gamma_H``, ``gamma_OH``,
     ``ionic_strength``, ``charge_residual`` are the common meta keys emitted
-    by both the legacy acid-base solver (``engines/bisection/acid_base.py``)
+    by both the Bisection acid-base solver (``engines/bisection/acid_base.py``)
     and the NR solver (``engines/nr/solver.py``). ``n_iter`` is carried for
     forward-compatibility with
     callers that guard on it; it is not currently populated by any engine.
@@ -77,14 +75,14 @@ class EquilibriumResult:
     ``species_mol_L`` holds equilibrated species concentrations (mol/L),
     keyed by species ID — this is what :meth:`apply_to_phases` writes back.
     Its exact membership is engine-specific: :class:`BisectionChemicalEquilibriumEngine`
-    restricts it to the canonical species tuple it has always written back;
+    restricts it to a fixed canonical species tuple;
     :class:`NRChemicalEquilibriumEngine` includes every tableau master + secondary
     (+ H2O); :class:`PHREEQCChemicalEquilibriumEngine` includes every PHREEQC species.
 
     ``saturation_indices`` holds mineral SI values (from precipitation
     equilibria, when declared). ``extra`` is a catch-all for engine-specific
     diagnostics that don't warrant a named field (e.g. mineral
-    ``xi_mol_L``, or generic polyprotic-ladder keys that were never part of
+    ``xi_mol_L``, or generic polyprotic-ladder keys, which are not part of
     the phase writeback).
     """
 
@@ -117,15 +115,12 @@ class EquilibriumResult:
 
         .. note::
             Does **not** write ``partial_pressures_atm`` back to a gas
-            phase — CP2 of ``LAYER1_GAP_CLOSURE`` (which first populates
-            that field, for folded gas-liquid secondaries) scoped gas-
-            phase write-back out of this phase entirely. CP3 added the
-            related ``step_internal_transfer()`` engine-owned-species
-            scope-filter fix but deliberately did not add gas write-back
-            alongside it (a separate, still-open follow-up). Until it's
-            implemented, a folded ``NRChemicalEquilibriumEngine`` solve is
-            a correct diagnostic (its returned split is right) but has no
-            effect on gas-phase ``n_mol`` when committed via this method.
+            phase. That field is populated when an
+            ``NRChemicalEquilibriumEngine`` solve folds in gas-liquid
+            secondaries, and gas-phase write-back is not implemented, so
+            such a solve is a correct diagnostic (its returned split is
+            right) but has no effect on gas-phase ``n_mol`` when committed
+            via this method.
         """
         liq = phases.get(liquid_key) if hasattr(phases, "get") else None
         if liq is None or not hasattr(liq, "_refresh_derived"):
