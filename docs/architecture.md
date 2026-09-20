@@ -388,14 +388,16 @@ PyOMES/
     environment.py               # ReactionEnvironment
     protocols.py                 # ReactionModel protocol
     _shared.py                   # Shared validation helpers
-  speciation/                    # Acid-base speciation engine
-    engine.py                    # BisectionChemicalEquilibriumEngine + level dispatch (1, 2, 2.5)
-    acid_base.py                 # _CANONICAL_NAMES, ladder definitions
-    activity.py, activity_models.py, sit.py, strong_ions.py, …
-    chemistry_level1.py, chemistry_level2.py, carbamate_level25.py,
-      chemistry_level3.py        # level=3 is a stub
-    legacy_adapter.py            # speciate_multi_acids_TIC for level ≤ 2 callers
-    api.py, factory.py, associations_level2.py
+  chemical_equilibrium/          # Aqueous speciation engines
+    protocols.py                 # Engine protocols, EquilibriumResult
+    numerical_gradient.py        # NumericalGradientEquilibriumEngine (wraps any engine)
+    engines/
+      bisection/                 # engine.py (BisectionChemicalEquilibriumEngine), acid_base.py,
+                                 # ionic_strength.py (suffix-based ionic strength)
+      nr/                        # engine.py (NRChemicalEquilibriumEngine), tableau.py, solver.py
+      phreeqc.py                 # PHREEQCChemicalEquilibriumEngine (optional phreeqpython)
+  thermo/                        # Activity models (Ideal/Davies/SIT), ThermoFramework, water properties,
+                                 # make_activity_model, van 't Hoff helpers (equilibrium_constants.py)
   equilibria/                    # Legacy CO₂/O₂/N₂ partition (CUFermenter island)
     engine.py                    # ProcessCoupledEquilibrator
     coupled.py, factory.py, interfaces.py, vle.py, peng_robinson.py

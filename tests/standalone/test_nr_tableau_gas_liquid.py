@@ -163,7 +163,7 @@ class TestAttachOntoExistingComponent:
 
     @pytest.fixture(scope="class")
     def tableau(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         reactions = _base_reactions() + [_h2s_ladder(), _co2_henry(), _nh3_henry(), _h2s_henry()]
         return build_tableau(reactions, T_K=298.15)
 
@@ -226,7 +226,7 @@ class TestSingletonComponent:
 
     @pytest.fixture(scope="class")
     def tableau(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         inert = _inert_gas_species()
         henries = [
             _inert_henry("O2", inert["O2"], 1.3e-5, 1500.0),
@@ -299,7 +299,7 @@ class TestBridgingRaisesConfigurationError:
         )
 
     def test_bridging_reaction_raises_configuration_error(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau, ConfigurationError
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau, ConfigurationError
 
         reactions = _base_reactions() + [self._pathological_bridge_reaction()]
         with pytest.raises(ConfigurationError, match="bridge"):
@@ -311,13 +311,13 @@ class TestBridgingRaisesConfigurationError:
         that broadly catch ValueError still see it, while callers that
         want to distinguish 'out of capability' from 'malformed input'
         can catch ConfigurationError specifically."""
-        from PyOMES.chemical_equilibrium.nr_tableau import ConfigurationError
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import ConfigurationError
         assert issubclass(ConfigurationError, ValueError)
 
     def test_non_bridging_system_still_builds(self):
         """Sanity check: the same base chemistry without the pathological
         reaction builds fine (isolates the failure to the bridge itself)."""
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         tableau = build_tableau(_base_reactions() + [_co2_henry()], T_K=298.15)
         assert "CO2" in tableau.masters
 
@@ -336,7 +336,7 @@ class TestUnparameterizedGasLiquidStillSkipped:
         from PyOMES.chemistry.common_species import CO2
         from PyOMES.reactions.equilibrium import EquilibriumReaction
         from PyOMES.reactions.stoichiometry import StoichiometryEntry
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
 
         routing_only = EquilibriumReaction(
             stoichiometry=[
@@ -356,7 +356,7 @@ class TestUnparameterizedGasLiquidStillSkipped:
         an empty stoichiometry (classify_equilibrium_constraint raises
         ValueError internally) and is silently skipped, as before."""
         from PyOMES.chemistry import HenryEquilibrium
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
 
         partition_only = HenryEquilibrium(H_ref=3.4e-4, dlnH=2400.0)
         tableau = build_tableau(_base_reactions() + [partition_only], T_K=298.15)
@@ -374,9 +374,9 @@ class TestUnparameterizedGasLiquidStillSkipped:
 class TestSolveRequiresVolumes:
 
     def test_solve_nr_raises_without_volumes(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
-        from PyOMES.chemical_equilibrium.nr_solver import solve_nr
-        from PyOMES.chemical_equilibrium.activity_models import make_activity_model
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.solver import solve_nr
+        from PyOMES.thermo import make_activity_model
 
         tableau = build_tableau(_base_reactions() + [_co2_henry()], T_K=298.15)
         am = make_activity_model(False, "ideal")
@@ -384,7 +384,7 @@ class TestSolveRequiresVolumes:
             solve_nr(tableau, {"CO2": 0.05, "NH3": 0.04}, {}, activity_model=am)
 
     def test_engine_solve_raises_without_volumes(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         engine = NRChemicalEquilibriumEngine.from_reactions(
             _base_reactions() + [_co2_henry()], T_K=298.15,
@@ -394,7 +394,7 @@ class TestSolveRequiresVolumes:
             engine.solve(totals={"CO2": 0.05, "NH3": 0.04}, strong_ions={})
 
     def test_engine_solve_succeeds_with_volumes(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         engine = NRChemicalEquilibriumEngine.from_reactions(
             _base_reactions() + [_co2_henry()], T_K=298.15,
@@ -410,7 +410,7 @@ class TestSolveRequiresVolumes:
         """Sanity/regression check: a tableau with no gas-liquid folding
         (the pre-CP1 case) is completely unaffected by the volume
         requirement."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         engine = NRChemicalEquilibriumEngine.from_reactions(_base_reactions(), T_K=298.15)
         out = engine.solve(totals={"CO2": 0.05, "NH3": 0.04}, strong_ions={})
@@ -426,7 +426,7 @@ class TestSolveRequiresVolumes:
         volumes is refused rather than silently producing a contaminated
         result."""
         from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         # AD_BASIC.reactions already includes a water-dissociation reaction
         # (inherited from BIOPROCESS_BASIC) alongside _CO2_HENRY.

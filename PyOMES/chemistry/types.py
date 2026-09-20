@@ -30,7 +30,7 @@ def _T_K_to_C(T_K: float) -> float:
 class AqueousTotals:
     """Conserved totals and weak-acid systems for aqueous speciation.
 
-    This schema mirrors the current :class:`PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine`
+    This schema mirrors the current :class:`PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine`
     call signature, so it can be adopted without changing chemistry logic.
 
     Parameters

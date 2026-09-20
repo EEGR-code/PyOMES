@@ -68,7 +68,7 @@ def _make_reactions():
 
 @pytest.fixture(scope="module")
 def nr_engine():
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
 
 

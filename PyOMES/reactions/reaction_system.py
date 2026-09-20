@@ -248,7 +248,7 @@ class ReactionSystem:
         :attr:`precipitation_equilibria` — ``NRChemicalEquilibriumEngine`` auto-
         classifies solid-liquid items back out of the flat list
         (EQUILIBRIUM_CONSTRAINT_UNIFICATION CP2) — since ``charge_balance``
-        (:class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine`) has no
+        (:class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine`) has no
         precipitation support, that path omits them.
 
         Returns ``None`` when the system declares no equilibria —
@@ -265,7 +265,7 @@ class ReactionSystem:
             )
             if not equilibria:
                 return None
-            from ..chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+            from ..chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
             self._engine = NRChemicalEquilibriumEngine.from_reactions(
                 equilibria,
                 use_activity=self._engine_config["use_activity"],
@@ -277,7 +277,7 @@ class ReactionSystem:
             )
             if not equilibria:
                 return None
-            from ..chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+            from ..chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
             self._engine = BisectionChemicalEquilibriumEngine.from_reactions(
                 equilibria,
                 use_activity=self._engine_config["use_activity"],

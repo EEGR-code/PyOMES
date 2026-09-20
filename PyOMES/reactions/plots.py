@@ -11,11 +11,11 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
 
+from ..units import R_J_PER_MOL_K as _R_GAS  # J / (mol · K)
+
 if TYPE_CHECKING:
     from .equilibrium import EquilibriumReaction
     from .reaction_system import ReactionSystem
-
-_R_GAS = 8.314  # J / (mol · K)
 
 # Species excluded from ladder-member detection — they are the solvent/proton
 # channel and never form the "pool" being speciated.

@@ -21,7 +21,8 @@ Validates:
 import numpy as np
 import pytest
 
-from PyOMES.core.phases import GasPhase, LiquidPhase, R_L_ATM_MOL_K
+from PyOMES.core.phases import GasPhase, LiquidPhase
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
 from PyOMES.chemistry import HenryPartition
@@ -47,7 +48,7 @@ def _make_two_cv_system(n_gas, n_liq, V_gas=0.4, V_liq=1.6, T_K=305.15):
 
 def _henry_equilibrium_conc(kH, n_gas_species, V_gas, T_K):
     """Compute Henry equilibrium dissolved concentration from gas moles."""
-    p = n_gas_species * R_L_ATM_MOL_K * T_K / V_gas
+    p = n_gas_species * R_L_ATM_PER_MOL_K * T_K / V_gas
     return kH * p
 
 
@@ -219,7 +220,7 @@ class TestEquilibriumMode:
         n_gas_eq = n_total - n_transferred
         n_liq_eq = n_transferred
 
-        p_eq = n_gas_eq * R_L_ATM_MOL_K * T_K / V_gas
+        p_eq = n_gas_eq * R_L_ATM_PER_MOL_K * T_K / V_gas
         C_eq = n_liq_eq / V_liq
 
         assert C_eq == pytest.approx(kH_N2 * p_eq, rel=1e-10)
@@ -230,7 +231,7 @@ class TestEquilibriumMode:
         kH = 6.5e-4
         # Set up at equilibrium
         n_total = 0.5
-        beta = kH * R_L_ATM_MOL_K * T_K * V_liq / V_gas
+        beta = kH * R_L_ATM_PER_MOL_K * T_K * V_liq / V_gas
         n_liq = beta * n_total / (1.0 + beta)
         n_gas = n_total - n_liq
 
@@ -636,7 +637,7 @@ class TestIntegrationKineticApproach:
         # Should be near equilibrium
         n_gas_final = sys["gas"]["gas"].n_mol["O2"]
         n_liq_final = sys["liquid"]["liquid"].n_mol["O2"]
-        p_final = n_gas_final * R_L_ATM_MOL_K * T_K / V_gas
+        p_final = n_gas_final * R_L_ATM_PER_MOL_K * T_K / V_gas
         C_final = n_liq_final / V_liq
 
         assert C_final == pytest.approx(kH * p_final, rel=0.01)
@@ -892,7 +893,7 @@ class TestH2SAlphaCorrection:
         return link, alpha_override
 
     def _gas_fraction(self, alpha=1.0):
-        R = 0.0820574
+        R = R_L_ATM_PER_MOL_K
         T, V_liq, V_gas = self._T_K, self._V_liq, self._V_gas
         kH = self._kH_H2S
         beta = (kH / alpha) * R * T * V_liq / V_gas

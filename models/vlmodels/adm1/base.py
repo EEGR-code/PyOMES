@@ -975,7 +975,7 @@ def build_adm1_cv(
     """
     from PyOMES.templates.stirred_tank import StirredTankBuilder
     from PyOMES.core.boundaries import PressureReliefVent
-    from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
 
     use_activity = activity_model.lower() != "ideal"
 
@@ -1045,7 +1045,7 @@ def build_adm1_cv(
     # and gas H2O pools instead. That requires a real liquid H2O pool to
     # draw from — this model didn't track one before this phase — seeded
     # here at the standard pure-water concentration (matches
-    # nr_engine.py's _C_WATER_MOL_L).
+    # engines/nr/engine.py's _C_WATER_MOL_L).
     liq = cv.phases["liquid"]
     liq.n_mol["H2O"] = 55.51 * float(liq.V_L)
     gas = cv.phases["gas"]

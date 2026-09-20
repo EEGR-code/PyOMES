@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """NRTableau — log-linear tableau for the Newton-Raphson speciation engine.
 
-Builds the data structure consumed by :func:`~PyOMES.chemical_equilibrium.nr_solver.solve_nr`:
+Builds the data structure consumed by :func:`~PyOMES.chemical_equilibrium.engines.nr.solver.solve_nr`:
 for every non-master species ``j``, stores the log-linear expression
 
     log(a_j) = log_K'_j  +  Σ_k  ν_{jk} · x_k
@@ -16,8 +16,8 @@ Public entry point
 objects (single-phase, from a :class:`~PyOMES.reactions.reaction_system.ReactionSystem`)
 and returns a :class:`NRTableau`.
 
-Master species selection (Steps 1-3 from the design doc)
----------------------------------------------------------
+Master species selection
+------------------------
 1. H⁺ is pre-registered as a universal master (not in the reaction graph).
 2. Non-H⁺, non-H₂O species form nodes; each EquilibriumReaction adds edges.
 3. Connected components are found via BFS on the undirected graph.
@@ -26,8 +26,8 @@ Master species selection (Steps 1-3 from the design doc)
    (b) DAG source — species that is a reactant in ≥1 reaction but never a product;
    (c) Tiebreak: most H atoms, then most positive charge.
 
-Tableau derivation (Step 4)
-----------------------------
+Tableau derivation
+------------------
 BFS from the master set.  For each reaction where exactly one non-H₂O/H⁺
 species is unknown, we rearrange the equilibrium log-K equation to express
 ``log(a_unknown)`` in terms of known log-activities.  Van't Hoff temperature
@@ -39,13 +39,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
-
-from ..units import R_J_PER_MOL_K as _R_J_MOL_K
+from ....thermo.equilibrium_constants import vant_hoff_log_K
 
 logger = logging.getLogger(__name__)
-
-_LOG10_E = np.log10(np.e)        # 1/ln(10), used to convert ln K to log10 K
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,13 +55,11 @@ class ConfigurationError(ValueError):
     raises for malformed/incomplete input (missing water reaction,
     undeclared masters) — a ``ConfigurationError`` specifically means "this
     chemistry is out of the tableau's current *capability*", not "this
-    chemistry is malformed". The motivating case (CP1 of
-    ``LAYER1_GAP_CLOSURE``): a gas-liquid reaction whose liquid-phase
-    participants span two independent, already-multi-species acid-base
-    components — folding it would require merging those components, which
-    ``NRTableau``'s one-master-per-component design does not support (see
-    ``MASS_EXCHANGE_ARCHITECTURE.md`` §14.3). That capability is tracked by
-    ``MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md``, not here.
+    chemistry is malformed". The typical case: a gas-liquid reaction whose
+    liquid-phase participants span two independent, already-multi-species
+    acid-base components — folding it would require merging those
+    components, which ``NRTableau``'s one-master-per-component design does
+    not support.
     """
 
 
@@ -84,9 +78,9 @@ class SecondaryEntry:
 
     ``phase`` distinguishes a liquid-phase secondary (``"liquid"``, the
     default — its value is a concentration in mol/L, e.g. HCO₃⁻ derived
-    from the CO₂ master) from a gas-phase secondary folded in by CP1 of
-    ``LAYER1_GAP_CLOSURE`` (``"gas"`` — its value is a partial pressure in
-    atm, e.g. gas-phase CO₂ derived from the same master via Henry's law).
+    from the CO₂ master) from a folded gas-phase secondary (``"gas"`` — its
+    value is a partial pressure in atm, e.g. gas-phase CO₂ derived from the
+    same master via Henry's law).
     A gas-phase secondary's ``species_id`` may collide with a liquid-phase
     master/secondary's bare id (gas and liquid CO₂ are conventionally
     declared with the identical id, per ``HenryEquilibrium``) — ``phase``
@@ -106,15 +100,14 @@ class SecondaryEntry:
     def c_key(self) -> str:
         """Internal dict key for concentration/gamma/charge lookups.
 
-        Equal to ``species_id`` for liquid-phase secondaries (backward
-        compatible with pre-CP1 behaviour). Gas-phase secondaries get a
-        reserved ``":gas"`` suffix — CP2 of ``LAYER1_GAP_CLOSURE`` found
-        that using bare ``species_id`` for both collides whenever gas and
-        liquid share an id (the common Henry case, e.g. both "CO2"):
-        Python dict construction silently lets the later-inserted entry
-        (the gas secondary, built after masters) overwrite the earlier
-        one (the liquid master's own concentration), corrupting its mass
-        balance. ``nr_solver.py`` uses this key everywhere it builds or
+        Equal to ``species_id`` for liquid-phase secondaries. Gas-phase
+        secondaries get a reserved ``":gas"`` suffix, because using bare
+        ``species_id`` for both would collide whenever gas and liquid
+        share an id (the common Henry case, e.g. both "CO2"): Python dict
+        construction silently lets the later-inserted entry (the gas
+        secondary, built after masters) overwrite the earlier one (the
+        liquid master's own concentration), corrupting its mass
+        balance. ``solver.py`` uses this key everywhere it builds or
         reads a ``{species_id: value}`` dict keyed by tableau species
         (``c``, ``gammas``, ``all_charges``); the *public* identity for
         output purposes (``species_mol_L`` vs ``partial_pressures_atm``
@@ -133,13 +126,12 @@ class ComponentInfo:
     to get ``C_i_total`` for the mass-balance residual.
 
     ``gas_species_ids`` lists the bare ids of any gas-phase secondaries
-    folded onto this component (CP1 of ``LAYER1_GAP_CLOSURE`` — see
-    :class:`SecondaryEntry`'s ``phase`` field). Disjoint in *meaning* from
-    ``species_ids`` even when the bare id strings coincide (the common
-    Henry case): a gas-phase id here is a reminder that this component's
-    total, once CP2 wires the volume-aware mass balance, must also read
-    from the gas phase's ``n_mol``, not only the liquid phase's. Empty for
-    components with no folded gas-liquid equilibrium.
+    folded onto this component (see :class:`SecondaryEntry`'s ``phase``
+    field). Disjoint in *meaning* from ``species_ids`` even when the bare
+    id strings coincide (the common Henry case): a gas-phase id here means
+    this component's total must also read from the gas phase's ``n_mol``,
+    not only the liquid phase's. Empty for components with no folded
+    gas-liquid equilibrium.
     """
     master_id: str
     species_ids: Tuple[str, ...]   # all liquid-phase members of this component
@@ -192,29 +184,6 @@ class NRTableau:
         return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Temperature correction helper
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _vant_hoff_log_K(
-    log_K_ref: float,
-    dH_J_per_mol: Optional[float],
-    T_K: float,
-    T_ref_K: float,
-) -> float:
-    """Apply Van't Hoff correction to log10(K).
-
-    Returns ``log_K_ref`` unchanged when ``dH_J_per_mol`` is None or ~0.
-    """
-    if dH_J_per_mol is None or abs(dH_J_per_mol) < 1e-30:
-        return float(log_K_ref)
-    if abs(T_K - T_ref_K) < 1e-10:
-        return float(log_K_ref)
-    # ln K(T) = ln K(T_ref) − (ΔH/R) (1/T − 1/T_ref)
-    delta_ln_K = -(float(dH_J_per_mol) / _R_J_MOL_K) * (1.0 / float(T_K) - 1.0 / float(T_ref_K))
-    return float(log_K_ref) + delta_ln_K * _LOG10_E
-
-
 def _derive_gas_secondary(rxn, known: Dict[str, Tuple[dict, float]], T_K: float) -> "SecondaryEntry":
     """Derive one gas-phase :class:`SecondaryEntry` from an already-resolved tableau.
 
@@ -227,15 +196,15 @@ def _derive_gas_secondary(rxn, known: Dict[str, Tuple[dict, float]], T_K: float)
     gas-phase participant is the one unknown being solved for. Mirrors the
     log-linear rearrangement used for acid-base secondaries, but the
     resulting entry's value is a partial pressure (atm), not a
-    concentration (mol/L) — CP2 of ``LAYER1_GAP_CLOSURE`` is what wires
-    the unit-aware residual/Jacobian assembly; this function only builds
-    the log-linear expression itself.
+    concentration (mol/L) — the unit-aware residual/Jacobian assembly
+    lives in the solver (``_residual_and_jacobian``); this function only
+    builds the log-linear expression itself.
 
     Raises
     ------
     ConfigurationError
         If *rxn* does not have exactly one gas-phase participant (multi-
-        gas-species mass-action rows are not supported by this phase), or
+        gas-species mass-action rows are not supported), or
         if a liquid-phase participant is unexpectedly absent from *known*
         (should not happen given the caller's prior validation).
     """
@@ -271,19 +240,19 @@ def _derive_gas_secondary(rxn, known: Dict[str, Tuple[dict, float]], T_K: float)
             "should have been routed to _derive_solvent_gas_secondary, "
             "not here — this indicates a reaction with a non-solvent "
             "liquid participant but no non-solvent gas participant, which "
-            "this phase's folding does not support."
+            "the tableau's folding does not support."
         )
     if len(unknowns) != 1:
         raise ConfigurationError(
             f"NRTableau: gas-liquid reaction {rxn!r} must have exactly one "
             f"gas-phase participant to fold into the tableau; found "
             f"{len(unknowns)}. Multi-gas-species mass-action rows are not "
-            "supported by this phase's folding."
+            "supported by the tableau's folding."
         )
 
     target_coeff, target_id, target_sp = unknowns[0]
 
-    log_K_rxn = _vant_hoff_log_K(
+    log_K_rxn = vant_hoff_log_K(
         float(rxn.log_K),
         rxn.dH_J_per_mol,
         T_K,
@@ -317,7 +286,7 @@ def _derive_gas_secondary(rxn, known: Dict[str, Tuple[dict, float]], T_K: float)
 
 def _derive_solvent_gas_secondary(rxn, T_K: float) -> "SecondaryEntry":
     """Derive a constant gas-phase :class:`SecondaryEntry` for a solvent
-    Raoult fold (H2O — CP4 of ``LAYER1_GAP_CLOSURE``).
+    Raoult fold (H2O).
 
     Unlike :func:`_derive_gas_secondary`, the liquid-phase participant is
     never looked up in ``known`` — there is no master/component for a
@@ -331,12 +300,10 @@ def _derive_solvent_gas_secondary(rxn, T_K: float) -> "SecondaryEntry":
     matching its own ``P_sat()`` method exactly), with **no** coupling to
     any master and **no** contribution to any mass-balance row
     (``element_stoichiometry = {}``). Consequently this fold does not by
-    itself track/decrement the liquid water pool — CP4 relies on
-    ``transfer_models=EquilibriumTransferModel(RaoultEquilibrium())``
-    (§6.2 of ``MASS_EXCHANGE_ARCHITECTURE.md``) for that; tracking water
-    as a genuine finite-total master (so this fold's own Newton system
-    closes the liquid-side balance directly) is deferred as a follow-up,
-    not attempted here (see CP4's design discussion).
+    itself track/decrement the liquid water pool — that relies on
+    ``transfer_models=EquilibriumTransferModel(RaoultEquilibrium())``;
+    tracking water as a genuine finite-total master (so this fold's own
+    Newton system closes the liquid-side balance directly) is not done.
 
     Raises
     ------
@@ -357,7 +324,7 @@ def _derive_solvent_gas_secondary(rxn, T_K: float) -> "SecondaryEntry":
     liq_e = liquid_entries[0]
     target_coeff = float(gas_e.coefficient)
 
-    log_K_rxn = _vant_hoff_log_K(
+    log_K_rxn = vant_hoff_log_K(
         float(rxn.log_K), rxn.dH_J_per_mol, T_K, float(rxn.T_ref_K),
     )
     # Liquid-side activity == 1 by the pure-solvent convention, so its
@@ -397,7 +364,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
         ``EquilibriumReaction``, but any ``EquilibriumConstraint``-
         conforming item is accepted. Items are classified via
         :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`:
-        acid-base items build the graph as before; gas-liquid items with a
+        acid-base items build the graph; gas-liquid items with a
         ``log_K`` set (e.g. a fully-parameterized ``HenryEquilibrium``/
         ``RaoultEquilibrium``) are folded in as gas-phase secondaries
         attached to the acid-base component their liquid-phase form
@@ -405,12 +372,11 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
         acid-base ladder — see :class:`SecondaryEntry`'s ``phase`` field);
         gas-liquid items with ``log_K is None`` are pure partition-routing
         declarations (consumed elsewhere, e.g. by
-        ``KineticGasLiquidLink``) and are silently skipped, as before;
+        ``KineticGasLiquidLink``) and are silently skipped;
         solid-liquid items are always silently skipped — precipitation is
-        folded into :class:`~PyOMES.chemical_equilibrium.nr_engine.NRChemicalEquilibriumEngine`
-        via its own nested active-set loop, not via this graph (see
-        ``MASS_EXCHANGE_ARCHITECTURE.md`` §14.3). Must include exactly one
-        water-dissociation reaction (H₂O ⇌ H⁺ + OH⁻).
+        folded into :class:`~PyOMES.chemical_equilibrium.engines.nr.engine.NRChemicalEquilibriumEngine`
+        via its own nested active-set loop, not via this graph. Must
+        include exactly one water-dissociation reaction (H₂O ⇌ H⁺ + OH⁻).
     T_K : float
         Operating temperature (K).  Van't Hoff correction is applied to
         all log_K values at this temperature.
@@ -429,10 +395,10 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
     ConfigurationError
         If a gas-liquid reaction's liquid-phase participants span two
         independent, already-multi-species acid-base components — folding
-        it would require merging components, which is out of this phase's
-        capability (see ``MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md``).
+        it would require merging components, which the tableau does not
+        support.
     """
-    from ..reactions.equilibrium import (
+    from ....reactions.equilibrium import (
         EquilibriumConstraint, classify_equilibrium_constraint,
     )
 
@@ -441,10 +407,9 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
     ab_rxns: List = []   # acid-base (non-water, non-cross-phase)
     gas_rxns: List = []  # gas-liquid, fully parameterized (log_K set)
     solvent_gas_rxns: List = []
-    # gas-liquid where BOTH sides are a solvent species (H2O Raoult fold,
-    # CP4 of LAYER1_GAP_CLOSURE) — routed separately from gas_rxns since
-    # a solvent has no component/master to attach onto (see
-    # _derive_solvent_gas_secondary).
+    # gas-liquid where BOTH sides are a solvent species (H2O Raoult fold)
+    # — routed separately from gas_rxns since a solvent has no
+    # component/master to attach onto (see _derive_solvent_gas_secondary).
 
     for rxn in reactions:
         if not isinstance(rxn, EquilibriumConstraint):
@@ -458,7 +423,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
             continue
         if kind == "solid_liquid":
             # Precipitation — handled by NRChemicalEquilibriumEngine's own nested
-            # active-set loop, not folded into this graph (§14.3).
+            # active-set loop, not folded into this graph.
             continue
         if kind == "gas_liquid":
             if rxn.log_K is None:
@@ -488,7 +453,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
             "Declare one EquilibriumReaction with H⁺ and OH⁻ as products."
         )
 
-    log_Kw = _vant_hoff_log_K(
+    log_Kw = vant_hoff_log_K(
         float(water_rxn.log_K),
         water_rxn.dH_J_per_mol,
         T_K,
@@ -538,9 +503,8 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
     # singleton component when none of its liquid entries appear in any
     # existing component (the inert-gas O2/CH4/N2/H2 case). An item whose
     # liquid entries span more than one *existing* component would require
-    # merging two independent multi-species components — out of this
-    # phase's capability (§14.3) — and raises ConfigurationError rather
-    # than silently misattaching.
+    # merging two independent multi-species components — not supported —
+    # and raises ConfigurationError rather than silently misattaching.
     gas_attachments: Dict[int, List] = {}
     for rxn in gas_rxns:
         liquid_ids = [
@@ -571,9 +535,8 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
             raise ConfigurationError(
                 f"NRTableau: gas-liquid reaction {rxn!r} would bridge "
                 f"independent multi-species components (indices "
-                f"{sorted(found_indices)}) — merging components is out of "
-                "this phase's capability. See "
-                "MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md."
+                f"{sorted(found_indices)}) — merging components is not "
+                "supported."
             )
 
         # Register any not-yet-seen liquid species so master selection's
@@ -702,7 +665,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
             # Exactly one unknown — derive it.
             target_coeff, target_id, target_sp = unknowns[0]
 
-            log_K_rxn = _vant_hoff_log_K(
+            log_K_rxn = vant_hoff_log_K(
                 float(rxn.log_K),
                 rxn.dH_J_per_mol,
                 T_K,
@@ -783,7 +746,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
             secondaries.append(_derive_gas_secondary(rxn, known, T_K))
 
     # ── Derive solvent (H2O) Raoult secondaries ────────────────────────
-    # CP4 of LAYER1_GAP_CLOSURE — see _derive_solvent_gas_secondary for
+    # See _derive_solvent_gas_secondary for
     # why this is a separate, simpler pass (constant relation, no master
     # coupling) rather than reusing the gas_attachments machinery above.
     for rxn in solvent_gas_rxns:
@@ -796,12 +759,12 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
     # Simple check: each master must appear as a key in its own nu dict
     # (and no other master's nu dict should map to it with coefficient ±1
     # unless there's also a self-coefficient).
-    # Full rank check of the formula matrix is deferred.
+    # A full rank check of the formula matrix is not performed.
     for m_id in master_ids:
         # If any secondary's nu has ONLY one non-zero key equal to m_id,
         # that secondary IS m_id (would mean we're deriving a master as
         # a secondary), which is a construction error.
-        pass  # BFS correctness prevents this; full rank check deferred.
+        pass  # BFS correctness prevents this; no full rank check is performed.
 
     return NRTableau(
         masters=["H+"] + master_ids,

@@ -51,7 +51,7 @@ from PyOMES.core import (
     Simulation,
 )
 from PyOMES.core.boundaries import GasFeed, PressureReliefVent
-from PyOMES.core.phases import R_L_ATM_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.control.cv_loops import PHController
 from PyOMES.chemistry import HenryEquilibrium, Species
 from PyOMES.chemistry.common_species import (
@@ -242,7 +242,7 @@ def build_gas_phase() -> GasPhase:
     because the carbonate ladder pulls liquid pH downward when
     sparging starts.
     """
-    n_total = (1.0 * V_GAS) / (R_L_ATM_MOL_K * T_K)
+    n_total = (1.0 * V_GAS) / (R_L_ATM_PER_MOL_K * T_K)
     return GasPhase(
         n_mol={
             "O2":  n_total * 0.2095,

@@ -70,13 +70,13 @@ def _make_reactions():
 
 @pytest.fixture(scope="module")
 def blackbox_engine():
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
 
 
 @pytest.fixture(scope="module")
 def whitebox_engine():
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
     # Warm up with a solve so all caches are populated
     eng.solve(totals={"CO2": 0.05, "NH3": 0.04})
@@ -148,7 +148,7 @@ class TestDisabledGuard:
         assert not math.isnan(out.pH)
 
     def test_no_stale_keys_in_solve_output(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         out = eng.solve(totals=dict(_TOTALS))
         for key in ("_jacobian_matrix", "_log_activities", "_ionic_strength_final"):
@@ -212,7 +212,7 @@ class TestJacobianDgDz:
         assert np.all(diag >= 0.0)
 
     def test_raises_before_solve(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         with pytest.raises(RuntimeError, match="solve\\(\\)"):
             eng.jacobian_dg_dz()
@@ -314,7 +314,7 @@ class TestResidual:
             whitebox_engine.residual()
 
     def test_missing_cached_state_raises(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         with pytest.raises(RuntimeError, match="solve\\(\\)"):
             eng.residual(totals=dict(_TOTALS))
@@ -331,7 +331,7 @@ class TestResidual:
 class TestJacobianDzDy:
     @pytest.fixture(scope="class")
     def both_engines(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         from PyOMES.chemical_equilibrium.numerical_gradient import NumericalGradientEquilibriumEngine
         reactions = _make_reactions()
         wb = NRChemicalEquilibriumEngine.from_reactions(reactions, retain_jacobian=True)
@@ -405,7 +405,7 @@ class TestJacobianDzDy:
         )
 
     def test_raises_before_solve(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         with pytest.raises(RuntimeError, match="solve\\(\\)"):
             eng.jacobian_dz_dy()
@@ -433,7 +433,7 @@ class TestResetCache:
         assert whitebox_engine._cached_concentrations is None
 
     def test_whitebox_methods_raise_after_reset(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         eng.solve(totals=dict(_TOTALS))
         eng.reset_cache()
@@ -441,7 +441,7 @@ class TestResetCache:
             eng.jacobian_dg_dz()
 
     def test_solve_repopulates_after_reset(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         eng.solve(totals=dict(_TOTALS))
         eng.reset_cache()
@@ -455,17 +455,17 @@ class TestResetCache:
 
 class TestFromReactions:
     def test_default_retain_jacobian_false(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
         assert eng.retain_jacobian is False
 
     def test_explicit_retain_jacobian_true(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         assert eng.retain_jacobian is True
 
     def test_whitebox_works_via_from_reactions(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), retain_jacobian=True)
         eng.solve(totals=dict(_TOTALS))
         jac = eng.jacobian_dg_dz()

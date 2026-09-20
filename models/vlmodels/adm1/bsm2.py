@@ -803,7 +803,7 @@ def build_bsm2_cv(
     """
     from PyOMES.templates.stirred_tank import StirredTankBuilder, TransferConfig
     from PyOMES.core.boundaries import PressureReliefVent
-    from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
 
     use_activity = activity_model.lower() != "ideal"
     kLa_h = k_L_a_per_d / 24.0

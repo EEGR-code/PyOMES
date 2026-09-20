@@ -117,7 +117,7 @@ class TestNRTableau:
 
     @pytest.fixture(scope="class")
     def tableau(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         return build_tableau(_make_reactions(), T_K=298.15)
 
     def test_masters_list(self, tableau):
@@ -197,7 +197,7 @@ class TestNRSolverDirect:
 
     @pytest.fixture(scope="class")
     def engine(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         return NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
 
     def test_pure_water_ph(self, engine):
@@ -299,7 +299,7 @@ class TestNRSolverDirect:
 
     def test_warmstart_reduces_iterations(self):
         """Calling solve() twice with the same problem should converge from cache."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions(), use_warmstart=True)
         totals = {"CO2": 0.05, "NH3": 0.04}
         out1 = eng.solve(totals=totals, strong_ions={})
@@ -309,7 +309,7 @@ class TestNRSolverDirect:
 
     def test_reset_cache(self):
         """reset_cache() clears the warmstart state without breaking subsequent solves."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         eng = NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
         eng.solve(totals={"CO2": 0.05, "NH3": 0.04}, strong_ions={})
         eng.reset_cache()
@@ -325,7 +325,7 @@ class TestNRSolverDirect:
 
 def _cb_engine():
     """Build the existing BisectionChemicalEquilibriumEngine for the bespoke chemistry."""
-    from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
     return BisectionChemicalEquilibriumEngine.from_reactions(_make_reactions())
 
 
@@ -352,7 +352,7 @@ class TestNRvsChargeBalance:
         cb_out = cb.solve(CT_TIC=CT_TIC, CT_NH_T=CT_NH_T, CT_Na=CT_Na, CT_Cl=CT_Cl)
 
         # NR engine
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         nr = NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
         strong_ions = {}
         if CT_Na:
@@ -426,7 +426,7 @@ class TestReactionSystemRouter:
 
     def test_default_is_charge_balance(self):
         from PyOMES.reactions.reaction_system import ReactionSystem
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         rs = ReactionSystem(_make_reactions())
         assert rs._solver == "charge_balance"
         eng = rs.engine
@@ -434,7 +434,7 @@ class TestReactionSystemRouter:
 
     def test_newton_raphson_solver(self):
         from PyOMES.reactions.reaction_system import ReactionSystem
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         rs = ReactionSystem(_make_reactions(), solver="newton_raphson")
         assert rs._solver == "newton_raphson"
         eng = rs.engine
@@ -489,7 +489,7 @@ class TestPhaseWriteback:
         return _MockPhase({"CO2": 0.05, "NH3": 0.04}, V_L=1.0)
 
     def _run(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         engine = NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
         phase = self._make_phase()
         phases = {"liquid": phase}
@@ -531,7 +531,7 @@ class TestPhaseWriteback:
 
     def test_second_solve_reads_updated_n_mol(self):
         """A second solve reads totals from the updated n_mol (sum of all species)."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         engine = NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
         phase = self._make_phase()
         phases = {"liquid": phase}
@@ -543,7 +543,7 @@ class TestPhaseWriteback:
 
     def test_algebraic_species_set(self):
         """algebraic_species() must include all species computed by the engine."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         engine = NRChemicalEquilibriumEngine.from_reactions(_make_reactions())
         alg = engine.algebraic_species()
         for sp_id in ("H+", "OH-", "H2O", "CO2", "HCO3-", "CO3--", "NH3", "NH4+"):
@@ -605,7 +605,7 @@ def _make_calcite_reaction():
 
 def _make_calcite_engine(use_activity=True):
     """Build NRChemicalEquilibriumEngine with calcite precipitation reactions."""
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(
         _make_carbonate_reactions(),
         precipitation_reactions=[_make_calcite_reaction()],
@@ -699,7 +699,7 @@ class TestPrecipitationEquilibria:
         from PyOMES.chemistry.common_species import CO3_2minus, H2O, H_plus, OH_minus
         from PyOMES.reactions.equilibrium import EquilibriumReaction
         from PyOMES.reactions.stoichiometry import StoichiometryEntry
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         DummySolid = Species(id="DummySolid", atoms={"C": 1, "O": 3}, charge=0, MW=60.0)
 
@@ -740,7 +740,7 @@ class TestPrecipitationEquilibria:
            (nu = {"CO2": 1, "Ca++": 1, "H+": -1}) → element_stoichiometry = {"CO2": 1, "Ca++": 1}
            (direct struct test; tableau builder defers multi-master support to Phase 2)
         """
-        from PyOMES.chemical_equilibrium.nr_tableau import SecondaryEntry, build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import SecondaryEntry, build_tableau
 
         # Part 1+2: test element_stoichiometry from a real build_tableau call
         tableau = build_tableau(_make_reactions(), T_K=298.15)
@@ -774,7 +774,7 @@ class TestPrecipitationEquilibria:
 
     def test_element_stoichiometry_single_component_unchanged(self):
         """Backward-compatible: single-component secondaries have element_stoichiometry with exactly one non-H+ key."""
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
 
         tableau = build_tableau(_make_reactions(), T_K=298.15)
 

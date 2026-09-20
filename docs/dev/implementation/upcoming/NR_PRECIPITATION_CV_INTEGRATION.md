@@ -141,7 +141,7 @@ simply enables the ODE integrator to track it.
 |---|---|
 | `PyOMES/core/phases.py` | Ensure `SolidPhase` is a fully initialised peer of `LiquidPhase` and `GasPhase` (review any asymmetries) |
 | `PyOMES/core/control_volume.py` | `__init__`: accept `solid_phase` kwarg; validate phase-type consistency; expose in `self.phases["solid"]` |
-| `PyOMES/chemical_equilibrium/nr_engine.py` | `_read_from_phases`: sum solid contribution; `_writeback`: write mineral amounts to `SolidPhase.n_mol` |
+| `PyOMES/chemical_equilibrium/engines/nr/engine.py` | `_read_from_phases`: sum solid contribution; `_writeback`: write mineral amounts to `SolidPhase.n_mol` |
 | `tests/` | New integration test: multi-timestep CV with calcite precipitation; mass conservation check |
 
 ---

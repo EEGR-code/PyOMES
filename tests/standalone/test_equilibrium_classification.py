@@ -169,12 +169,12 @@ class TestClassifyEquilibriumConstraint:
 
 class TestChemicalEquilibriumEngineCrossPhaseExposure:
     def test_default_cross_phase_constraints_empty(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         eng = BisectionChemicalEquilibriumEngine()
         assert eng.cross_phase_constraints == ()
 
     def test_cross_phase_reaction_not_dropped_silently(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         partition_decl = _co2_gas_liquid_declaration()
         eng = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction(), partition_decl], T_K=298.15,
@@ -183,7 +183,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
         assert eng.cross_phase_constraints[0] is partition_decl
 
     def test_henry_equilibrium_exposed_as_cross_phase(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         henry = _henry_co2()
         eng = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction(), henry], T_K=298.15,
@@ -191,7 +191,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
         assert henry in eng.cross_phase_constraints
 
     def test_no_cross_phase_items_gives_empty_tuple(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         eng = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction()], T_K=298.15,
         )
@@ -199,7 +199,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
 
     def test_acid_base_solve_unaffected_by_cross_phase_item_presence(self):
         from PyOMES.core.phases import LiquidPhase
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         eng_plain = BisectionChemicalEquilibriumEngine.from_reactions(
             [_water_reaction(), _co2_acid_reaction()], T_K=298.15,
         )
@@ -214,7 +214,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
         assert out_plain["HCO3-"] == pytest.approx(out_mixed["HCO3-"])
 
     def test_non_conforming_item_raises_value_error(self):
-        from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         with pytest.raises(ValueError):
             BisectionChemicalEquilibriumEngine.from_reactions([_water_reaction(), object()], T_K=298.15)
 
@@ -238,7 +238,7 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
         return [_water_reaction(), _co2_acid_reaction(), co2_second]
 
     def test_auto_classifies_solid_liquid_from_flat_list(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         calcite = _calcite_reaction()
         engine = NRChemicalEquilibriumEngine.from_reactions(
             self._carbonate_reactions() + [calcite],
@@ -249,7 +249,7 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
     def test_solve_matches_deprecated_kwarg_path(self):
         """Same physics whether the mineral arrives via the flat list or the
         deprecated precipitation_reactions= kwarg."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         engine_flat = NRChemicalEquilibriumEngine.from_reactions(
             self._carbonate_reactions() + [_calcite_reaction()],
             use_activity=True, activity_model="davies",
@@ -269,7 +269,7 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
         )
 
     def test_deprecated_kwarg_emits_warning(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         with pytest.warns(DeprecationWarning):
             NRChemicalEquilibriumEngine.from_reactions(
                 self._carbonate_reactions(),
@@ -278,14 +278,14 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
             )
 
     def test_no_solid_liquid_items_gives_no_precipitation_reactions(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         engine = NRChemicalEquilibriumEngine.from_reactions(self._carbonate_reactions())
         assert engine._precipitation_reactions == []
 
     def test_deprecated_kwarg_merges_with_auto_detected(self):
         """A solid-liquid item in the flat list AND the deprecated kwarg both
         end up in _precipitation_reactions."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         calcite = _calcite_reaction()
         other_mineral = _calcite_reaction()
         other_mineral.label = "other_mineral"
@@ -305,7 +305,7 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
 
 class TestBuildTableauSharedClassifierFilter:
     def test_henry_equilibrium_excluded_from_graph(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         tableau = build_tableau([_water_reaction(), _co2_acid_reaction(), _henry_co2()])
         assert "CO2" in tableau.masters
 
@@ -313,7 +313,7 @@ class TestBuildTableauSharedClassifierFilter:
         from PyOMES.chemistry import KspEquilibrium
         from PyOMES.chemistry.species import Species
         from PyOMES.reactions.stoichiometry import StoichiometryEntry
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         MineralX_solid = Species(id="MineralX(s)", atoms={"Mn": 1}, charge=0)
         MineralX_aq = Species(id="MineralX", atoms={"Mn": 1}, charge=0)
         ksp = KspEquilibrium(
@@ -328,13 +328,13 @@ class TestBuildTableauSharedClassifierFilter:
         assert "MineralX" not in [sec.species_id for sec in tableau.secondaries]
 
     def test_cross_phase_equilibrium_reaction_excluded_from_graph(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         tableau = build_tableau(
             [_water_reaction(), _co2_acid_reaction(), _co2_gas_liquid_declaration()]
         )
         assert "CO2" in tableau.masters
 
     def test_non_equilibrium_constraint_item_silently_skipped(self):
-        from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
+        from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         tableau = build_tableau([_water_reaction(), _co2_acid_reaction(), object()])
         assert "CO2" in tableau.masters

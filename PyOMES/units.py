@@ -1,4 +1,4 @@
-"""fermenter.units
+"""PyOMES.units
 
 Central place for **units**, **conversion helpers**, and shared physical constants.
 
@@ -38,17 +38,19 @@ from typing import Final
 
 # --- Physical constants (authoritative definitions) ---
 
-# Ideal gas constant in L·atm/(mol·K). Kept in this unit because the headspace
-# model uses (atm, L, K, mol) throughout.
-R_L_ATM_PER_MOL_K: Final[float] = 0.082057366080960
-
 # Ideal gas constant in J/(mol·K) (CODATA 2018 value). Used by van't Hoff
 # temperature corrections (log_K(T)) and Clausius-Clapeyron partition models.
+# This is the one numeric literal for R; the L·atm value below is derived from it.
 R_J_PER_MOL_K: Final[float] = 8.31446261815324
 
 # Exact definitions for pressure/volume conversions.
 PA_PER_ATM: Final[float] = 101_325.0
 L_PER_M3: Final[float] = 1_000.0
+
+# Ideal gas constant in L·atm/(mol·K). Kept in this unit because the headspace
+# model uses (atm, L, K, mol) throughout. Derived from R_J_PER_MOL_K (1 L·atm =
+# PA_PER_ATM / L_PER_M3 J), so the two can never disagree.
+R_L_ATM_PER_MOL_K: Final[float] = R_J_PER_MOL_K / (PA_PER_ATM / L_PER_M3)
 
 MIN_PER_HR: Final[float] = 60.0
 SEC_PER_MIN: Final[float] = 60.0

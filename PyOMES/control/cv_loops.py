@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from PyOMES.control.actions import ControlAction
 from PyOMES.core.snapshot import CVSnapshot, SimulationSnapshot
+from PyOMES.units import R_J_PER_MOL_K, R_L_ATM_PER_MOL_K
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -908,10 +909,6 @@ class DOCascadeController:
 #  Pressure-relief controllers — Pattern 1 / CV-native
 # ════════════════════════════════════════════════════════════════════════
 
-# R in (L·atm)/(mol·K) for ideal gas.
-_R_L_ATM_PER_MOL_K = 0.08205736608095958
-
-
 def _smooth_vent_fraction(
     excess_atm: float,
     dt_h: float,
@@ -1017,7 +1014,7 @@ class InstantPressureReliefController:
         # Ideal-gas target: n_target = P_set * V / (R * T)
         n_target = (
             float(self.P_set_atm) * float(cv.V_gas_L)
-            / (_R_L_ATM_PER_MOL_K * float(cv.T_K))
+            / (R_L_ATM_PER_MOL_K * float(cv.T_K))
         )
         vent_mol = max(0.0, n_tot - max(0.0, n_target))
         if vent_mol <= 0.0:
@@ -1126,7 +1123,6 @@ class SmoothPressureReliefController:
 #  Nozzle physics helpers (isentropic orifice flow)
 # ════════════════════════════════════════════════════════════════════════
 
-_R_UNIV = 8.31446261815324  # J/mol/K
 _DEFAULT_GAMMA: Dict[str, float] = {
     "O2": 1.40, "N2": 1.40, "CO2": 1.30, "H2O": 1.33, "Air": 1.40,
 }
@@ -1169,12 +1165,12 @@ def mixture_gamma_and_mw(chemicals: Any, y: Dict[str, float]) -> tuple:
         if yi <= 0.0:
             continue
         g = _nozzle_gamma(ID)
-        cp_i = g / (g - 1.0) * _R_UNIV
+        cp_i = g / (g - 1.0) * R_J_PER_MOL_K
         cp_mix += yi * cp_i
         mw_mix += yi * _nozzle_mw(chemicals, ID)
     mw_mix = max(mw_mix, 1e-9)
-    cp_mix = max(cp_mix, _R_UNIV * 1.0001)
-    gamma_mix = cp_mix / (cp_mix - _R_UNIV)
+    cp_mix = max(cp_mix, R_J_PER_MOL_K * 1.0001)
+    gamma_mix = cp_mix / (cp_mix - R_J_PER_MOL_K)
     gamma_mix = _clamp(gamma_mix, 1.05, 1.67)
     return float(gamma_mix), float(mw_mix)
 
@@ -1198,7 +1194,7 @@ def mass_flow_kg_s(
     A = max(float(A_m2), 0.0)
     if Cd == 0.0 or A == 0.0:
         return 0.0
-    R_spec = _R_UNIV / max(float(mw_kg_per_mol), 1e-12)
+    R_spec = R_J_PER_MOL_K / max(float(mw_kg_per_mol), 1e-12)
     pr = _clamp(Pb / P0, 0.0, 1.0)
     pr_crit = _choked_pressure_ratio(g)
     if pr <= pr_crit:

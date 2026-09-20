@@ -14,7 +14,7 @@ Distinctions:
 
 - **Speciation is NOT a PropertyCalculator.** Acid-base equilibria
   are state-completion handled by
-  :class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine` via
+  :class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine` via
   ``cv.reaction_system.engine.solve(phases=...)`` followed by an explicit
   ``result.apply_to_phases(phases)`` commit. The commit writes back to
   ``phase.n_mol``, not to ``phase.properties``.

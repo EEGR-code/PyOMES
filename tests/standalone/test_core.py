@@ -2,7 +2,8 @@
 
 import pytest
 import math
-from PyOMES.core.phases import GasPhase, LiquidPhase, SolidPhase, R_L_ATM_MOL_K, Phase
+from PyOMES.core.phases import GasPhase, LiquidPhase, SolidPhase, Phase
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.interfaces import PhaseInterface, TransferDiagnostics
 from PyOMES.core.control_volume import ControlVolume
 
@@ -25,7 +26,7 @@ class TestGasPhase:
 
     def test_pressure_ideal_gas(self):
         g = GasPhase({"O2": 1.0}, V_L=100.0, T_K=300.0)
-        expected = 1.0 * R_L_ATM_MOL_K * 300.0 / 100.0
+        expected = 1.0 * R_L_ATM_PER_MOL_K * 300.0 / 100.0
         assert g.P_atm == pytest.approx(expected, rel=1e-6)
 
     def test_mole_fractions(self):

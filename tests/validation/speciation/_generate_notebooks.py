@@ -59,7 +59,7 @@ from PyOMES.chemistry.common_species import (
 )
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
 def _e(sp, coeff):
     return StoichiometryEntry(species=sp, phase="liquid", coefficient=coeff)
@@ -426,9 +426,9 @@ discrepancies are expected and grow with the step number:
 # ─── 02_multi_component_systems ──────────────────────────────────────────────
 
 SETUP2 = SETUP.replace(
-    "from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine",
-    "from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine\n"
-    "from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine",
+    "from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine",
+    "from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine\n"
+    "from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine",
 )
 
 multi_nb = nb(
@@ -765,9 +765,9 @@ print(f"pH shift (Davies - ideal) at 500 mmol/L NaCl: {pH_dav[-1] - pH_ideal[-1]
 # ─── 03_saturation_index ─────────────────────────────────────────────────────
 
 SETUP3 = SETUP + """\
-from PyOMES.chemical_equilibrium.activity_models import DaviesActivityModel
+from PyOMES.thermo import DaviesLiquidModel
 
-davies = DaviesActivityModel()
+davies = DaviesLiquidModel()
 Ksp_calcite = 10**(-8.48)   # calcite solubility product at 25 °C
 print("Imports OK")
 """
@@ -1132,13 +1132,13 @@ from PyOMES.chemistry.common_species import (
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
-from PyOMES.chemical_equilibrium.activity_models import DaviesActivityModel
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
+from PyOMES.thermo import DaviesLiquidModel
 
 def _e(sp, phase, coeff):
     return StoichiometryEntry(species=sp, phase=phase, coefficient=coeff)
 
-davies = DaviesActivityModel()
+davies = DaviesLiquidModel()
 
 # Shared carbonate reactions
 water = EquilibriumReaction(
@@ -1478,7 +1478,7 @@ from PyOMES.chemistry.common_species import (
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from phreeqpython import PhreeqPython
 
 def _e(sp, phase, coeff):

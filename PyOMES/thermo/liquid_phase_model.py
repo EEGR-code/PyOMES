@@ -19,7 +19,7 @@ Dual-protocol implementations
 ------------------------------
 ``DaviesLiquidModel`` satisfies both:
 - ``LiquidPhaseModel`` — ``gamma_all(x_mol, T_K, *, charge)``
-- ``ActivityModel`` (PyOMES/speciation/) — ``gamma(z, I_molL, *, T_K)``
+- ``ActivityModel`` (this module) — ``gamma(z, I_molL, *, T_K)``
 
 This allows ThermoFramework to hold a single ``liquid_activity`` object that
 works for both the phase-level LiquidPhaseModel and the per-ion ActivityModel
@@ -50,7 +50,7 @@ class DifferentiableLiquidModel(Protocol):
     a cheap analytic derivative (Davies, SIT). NRTL would need the full
     ``∂γ_i/∂x_j`` matrix, deferred.
 
-    This is standalone groundwork, not yet wired into ``nr_solver.py``'s
+    This is standalone groundwork, not yet wired into ``engines/nr/solver.py``'s
     inner Newton loop: that loop already achieves correct convergence via
     the existing outer (ionic-strength fixed-point) / inner (NR) split,
     which treats γ as frozen within each inner solve rather than
@@ -133,6 +133,14 @@ class LiquidPhaseModel(Protocol):
             dict are treated as γ_i = 1.0 by callers.
         """
         ...
+
+
+class ActivityModel(Protocol):
+    """Protocol for per-ion activity coefficient models (Davies, SIT, ideal)."""
+    name: str
+
+    def gamma(self, z: float, I_molL: float, *, T_K: float) -> float:
+        """Return activity coefficient gamma for an ion with charge z."""
 
 
 def _kg_per_L(T_K: float) -> float:

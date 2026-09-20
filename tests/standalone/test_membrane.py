@@ -2,7 +2,8 @@
 """Tests for MembraneGasBoundary (Stage C)."""
 
 import pytest
-from PyOMES.core.phases import GasPhase, LiquidPhase, R_L_ATM_MOL_K
+from PyOMES.core.phases import GasPhase, LiquidPhase
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.boundaries import MembraneGasBoundary, ExternalBoundary, apply_boundary
 from PyOMES.chemistry import HenryPartition
@@ -25,11 +26,11 @@ def _make_well_plate_cv(boundaries=None, reaction_system=None, kLa=None, deplete
     from PyOMES.core.control_volume import ControlVolume
     from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
     V_gas, V_liq, T_K = 1e-4, 2e-4, 310.15
-    n_N2 = 0.7808 * V_gas / (R_L_ATM_MOL_K * T_K)
+    n_N2 = 0.7808 * V_gas / (R_L_ATM_PER_MOL_K * T_K)
     if depleted_o2:
         n_O2 = 0.0  # depleted headspace
     else:
-        n_O2 = 0.2095 * V_gas / (R_L_ATM_MOL_K * T_K)
+        n_O2 = 0.2095 * V_gas / (R_L_ATM_PER_MOL_K * T_K)
     lkw = dict(gas_cv_key="gas", gas_phase_key="gas", liquid_cv_key="liquid", liquid_phase_key="liquid",
                partition_models={"O2": _hp(1.3e-3), "CO2": _hp(3.4e-2), "N2": _hp(6.5e-4)})
     if kLa: lkw["kLa"] = kLa; lkw["equilibrium_species"] = {"N2"}
@@ -49,20 +50,20 @@ class TestO2Inward:
         assert flux.get("O2", 0.0) > 0.0
     def test_o2_flux_proportional_to_dp(self):
         cv1 = _make_gas_cv({"O2": 0.0, "N2": 1e-5})
-        cv2 = _make_gas_cv({"O2": 0.1*1e-4/(R_L_ATM_MOL_K*310.15), "N2": 1e-5})
+        cv2 = _make_gas_cv({"O2": 0.1*1e-4/(R_L_ATM_PER_MOL_K*310.15), "N2": 1e-5})
         m = _make_membrane()
         assert m.compute_flux(cv1, 0.01)["O2"] > m.compute_flux(cv2, 0.01)["O2"] > 0
 
 class TestCO2Outward:
     def test_co2_permeates_outward(self):
-        cv = _make_gas_cv({"CO2": 0.05*1e-4/(R_L_ATM_MOL_K*310.15), "N2": 1e-5})
+        cv = _make_gas_cv({"CO2": 0.05*1e-4/(R_L_ATM_PER_MOL_K*310.15), "N2": 1e-5})
         assert _make_membrane().compute_flux(cv, 0.01).get("CO2", 0.0) < 0.0
 
 class TestZeroFlux:
     def test_no_flux_at_equilibrium(self):
         V, T = 1e-4, 310.15
         atm = {"O2": 0.2095, "CO2": 0.0004, "N2": 0.7808}
-        n = {s: p*V/(R_L_ATM_MOL_K*T) for s, p in atm.items()}
+        n = {s: p*V/(R_L_ATM_PER_MOL_K*T) for s, p in atm.items()}
         flux = _make_membrane().compute_flux(_make_gas_cv(n, V, T), 0.01)
         for s in atm: assert abs(flux.get(s, 0.0)) < 1e-15
 
@@ -95,7 +96,7 @@ class TestAtmosphere:
         m = MembraneGasBoundary(permeability={"CO2": 0.15}, area_m2=1e-5, external_atmosphere={"CO2": 0.05})
         assert m.external_atmosphere["CO2"] == pytest.approx(0.05)
     def test_co2_incubator_reduces_outflow(self):
-        cv = _make_gas_cv({"CO2": 0.05*1e-4/(R_L_ATM_MOL_K*310.15), "N2": 1e-6})
+        cv = _make_gas_cv({"CO2": 0.05*1e-4/(R_L_ATM_PER_MOL_K*310.15), "N2": 1e-6})
         f_std = MembraneGasBoundary(permeability={"CO2": 0.15}, area_m2=1e-5).compute_flux(cv, 0.01).get("CO2", 0)
         f_inc = MembraneGasBoundary(permeability={"CO2": 0.15}, area_m2=1e-5, external_atmosphere={"CO2": 0.05}).compute_flux(cv, 0.01).get("CO2", 0)
         assert f_std < 0.0
@@ -165,7 +166,7 @@ class TestWellPlateIntegration:
                                StoichiometryEntry(species=CO2, phase="liquid", coefficient=+1.0)],
                               rate_fn=lambda env: 1e-6, balance_elements=("C",))
         V_g, V_l, T = 1e-4, 2e-4, 310.15
-        n_N2 = 0.78*V_g/(R_L_ATM_MOL_K*T)
+        n_N2 = 0.78*V_g/(R_L_ATM_PER_MOL_K*T)
         link = KineticGasLiquidLink(gas_cv_key="gas", gas_phase_key="gas",
                                      liquid_cv_key="liquid", liquid_phase_key="liquid",
                                      partition_models={"CO2": _hp(3.4e-2), "N2": _hp(6.5e-4)}, kLa={"CO2": 500.0},

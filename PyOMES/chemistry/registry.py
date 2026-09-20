@@ -145,7 +145,6 @@ SALT_DISSOCIATION_MAP: Dict[str, List[Tuple[str, float]]] = {
 
     # ---- BioSTEAM chemical-name aliases ----
     # BioSTEAM registers salts by common name rather than formula.
-    # These entries ensure strong_ions_from_feed_molL picks them up.
     "AmmoniumSulfate": [("CT_SO4", 1)],          # = (NH4)2SO4
     "AmmoniumMolybdate": [("CT_Mo7O24", 1)],      # = (NH4)6Mo7O24
     "KH2PO4": [("CT_K", 1)],                      # K+ only; phosphate via CT_P

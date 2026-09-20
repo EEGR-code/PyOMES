@@ -146,7 +146,7 @@ As of this writing, `tests/standalone/` and `tests/validation/` cover:
 | Gas-liquid transfer & boundaries | `test_gas_liquid_link.py`, `test_transfer_models.py`, `test_membrane.py`, `test_boundaries.py`, `test_feed_state.py` |
 | Simulation orchestration | `test_simulation.py` |
 | ODE solvers | `test_system_solver.py`, `test_implicit_transport_solver.py`, `test_monolithic_ode_solver.py`, `test_simultaneous_adaptive_solver_jac.py` |
-| Aqueous chemical equilibrium / speciation | `test_speciation.py`, `test_speciation_protocols.py`, `test_nr_speciation_engine.py`, `test_equilibrium_classification.py`, `test_activity_dispatch.py`, `test_strong_ions.py` |
+| Aqueous chemical equilibrium / speciation | `test_speciation.py`, `test_speciation_protocols.py`, `test_nr_speciation_engine.py`, `test_equilibrium_classification.py` |
 | PHREEQC cross-validation | `test_phreeqc_engine.py`, `tests/validation/speciation/test_phreeqc_nr_agreement.py` |
 | NIST / analytical reference validation | `tests/validation/speciation/test_carbonate_phosphate_benchmarks.py`, `test_iron_oxidation.py`, `test_saturation_index.py` |
 | Chemistry database & species | `test_chemistry_database.py`, `test_compounds.py`, `test_species.py`, `test_partition_model.py`, `test_thermo_framework.py`, `test_liquid_phase_model.py` |

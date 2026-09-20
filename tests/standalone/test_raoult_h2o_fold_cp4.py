@@ -55,7 +55,7 @@ class TestRaoultTableauFold:
     @pytest.fixture(scope="class")
     def engine(self):
         from PyOMES.chemistry import RaoultEquilibrium
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         return NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn(), RaoultEquilibrium()], T_K=298.15,
         )
@@ -88,7 +88,7 @@ class TestRaoultTableauFold:
         """Van't Hoff correction via the tableau must agree with
         RaoultEquilibrium.P_sat() at a non-reference temperature too."""
         from PyOMES.chemistry import RaoultEquilibrium
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         raoult = RaoultEquilibrium()
         engine = NRChemicalEquilibriumEngine.from_reactions(
@@ -115,7 +115,7 @@ class TestRaoultTableauFold:
         from PyOMES.chemistry import RaoultEquilibrium
         from PyOMES.reactions.equilibrium import EquilibriumReaction
         from PyOMES.reactions.stoichiometry import StoichiometryEntry as E
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         co2_first = EquilibriumReaction(
             stoichiometry=[

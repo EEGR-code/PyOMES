@@ -68,7 +68,7 @@ from PyOMES.chemistry.common_species import (
 )
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
 def _e(sp, coeff):
     return StoichiometryEntry(species=sp, phase="liquid", coefficient=coeff)
@@ -313,11 +313,12 @@ reports that and the rest of the notebook is unaffected.\
 
     code("phreeqc-setup", """\
 try:
-    from PyOMES.chemical_equilibrium.phreeqc_engine import PHREEQCChemicalEquilibriumEngine
-    _HAVE_PHREEQC = True
+    import phreeqpython as _phreeqpython  # noqa: F401 - presence check only
+    from PyOMES.chemical_equilibrium.engines.phreeqc import PHREEQCChemicalEquilibriumEngine
+    HAS_PHREEQC = True
     print("phreeqpython available - PHREEQC benchmark cells will run.")
 except ImportError as exc:
-    _HAVE_PHREEQC = False
+    HAS_PHREEQC = False
     print(f"phreeqpython not installed ({exc}); skipping PHREEQC benchmark cells.")
     print("Install with: pip install PyOMES[phreeqc]")
 """),
@@ -346,7 +347,7 @@ already used to prime the engine. See
 """),
 
     code("phreeqc-point-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     engine_davies = NRChemicalEquilibriumEngine.from_reactions(
         [water, p1, p2, p3, nh4], use_activity=True, activity_model="davies",
     )
@@ -386,7 +387,7 @@ pH at matching doses — perfect agreement falls on the dashed 1:1 line).\
 """),
 
     code("phreeqc-sweep-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     pH_P_davies = [engine_davies.solve(totals={"H3PO4": CT, "NH3": 0.0},
                                         strong_ions={"CT_K": CT}).pH
                    for CT in CT_P_vals]
@@ -468,7 +469,7 @@ solver itself.\
 """),
 
     code("phreeqc-ideal-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     import tempfile
     from phreeqpython import PhreeqPython as _RawPhreeqPython
 
@@ -557,7 +558,7 @@ check the earlier sections couldn't isolate.\
 """),
 
     code("phreeqc-ideal-sweep-code", """\
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     pH_P_ideal_pq = np.array([_solve_ideal_pq(ct, 0.0) for ct in CT_P_vals])
 
     fig, ax = plt.subplots(figsize=(5.5, 5))
@@ -673,7 +674,7 @@ with plt.rc_context(PUB_STYLE):
     plt.show()
 
     # -- figure 2: PHREEQC parity, own file, if available ----------------
-    if _HAVE_PHREEQC:
+    if HAS_PHREEQC:
         fig_b, ax_b = plt.subplots(figsize=(PUB_FIG_WIDTH_IN, 3.3), layout="constrained")
 
         # Marker colors sampled from the same viridis colormap as the
@@ -710,7 +711,7 @@ with plt.rc_context(PUB_STYLE):
                           dpi=PUB_DPI, bbox_inches="tight")
         plt.show()
 
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     print(f"Max |ideal series|    (NR ideal  vs. PHREEQC gamma->1) = {np.max(np.abs(pH_P_arr - pH_P_ideal_pq)):.4f} pH units")
     print(f"Max |nonideal series| (NR Davies vs. PHREEQC WATEQ D-H) = {np.max(np.abs(pH_P_davies_arr - pH_P_pq)):.4f} pH units")
     print(f"Saved: {FIG_DIR / 'fig_contour_ph_design_space.pdf'}")
@@ -771,7 +772,7 @@ runtime_results["PyOMES ideal"] = time_replicates(lambda: engine.solve(
     strong_ions={"CT_K": CT_P, "CT_Cl": CT_N},
 ))
 
-if _HAVE_PHREEQC:
+if HAS_PHREEQC:
     runtime_results["PyOMES Davies"] = time_replicates(lambda: engine_davies.solve(
         totals={"H3PO4": CT_P, "NH3": CT_N},
         strong_ions={"CT_K": CT_P, "CT_Cl": CT_N},
@@ -830,7 +831,7 @@ from PyOMES.core import (
     ControlVolume, GasPhase, LiquidPhase, KineticTransferModel, Simulation,
     SimultaneousAdaptiveSolver,
 )
-from PyOMES.core.phases import R_L_ATM_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 # Pure water's tracked H/OH totals are tiny (~1e-8 mol, just the
 # autoionization ions -- bulk solvent water isn't part of the element
@@ -976,7 +977,7 @@ T_K = 298.15    # 25 C
 p_CO2_atm, p_O2_atm, p_N2_atm = 400e-6, 0.20946, 0.78084
 
 def build_cv(kLa, label="pure_water"):
-    n_gas = (1.0 * V_gas) / (R_L_ATM_MOL_K * T_K)   # 1 atm headspace
+    n_gas = (1.0 * V_gas) / (R_L_ATM_PER_MOL_K * T_K)   # 1 atm headspace
     gas_phase = GasPhase(
         n_mol={
             "CO2": n_gas * p_CO2_atm,
@@ -1018,7 +1019,7 @@ _kH = {"CO2": kH_mol_L_atm(co2_henry.H_ref, co2_henry.dlnH, T_K),
        "O2": kH_mol_L_atm(o2_henry.H_ref, o2_henry.dlnH, T_K),
        "N2": kH_mol_L_atm(n2_henry.H_ref, n2_henry.dlnH, T_K)}
 _p = {"CO2": p_CO2_atm, "O2": p_O2_atm, "N2": p_N2_atm}
-_n_gas_total = (1.0 * V_gas) / (R_L_ATM_MOL_K * T_K)
+_n_gas_total = (1.0 * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
 for _sp in ("CO2", "O2", "N2"):
     _needed = _kH[_sp] * _p[_sp] * V_liq
     _available = _n_gas_total * _p[_sp]
@@ -1214,7 +1215,7 @@ from PyOMES.core import (
     KineticTransferModel, EquilibriumTransferModel,
     Simulation, GasFeed, PressureReliefVent, LiquidFeed, LiquidDrain,
 )
-from PyOMES.core.phases import R_L_ATM_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 # Same rationale as usecase 03: the explicit-Euler CV solver clamps a
 # species' removal rate when a step would otherwise drive it negative
@@ -1524,7 +1525,7 @@ def make_transfer_models():
 
 def build_cv(D_per_h, X0_gL=0.05):
     Q_L_per_h = D_per_h * V_liq
-    n_total_gas = (1.0 * V_gas) / (R_L_ATM_MOL_K * T_K)
+    n_total_gas = (1.0 * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
     gas_phase = GasPhase(
         n_mol={
             "O2": n_total_gas * 0.2095, "N2": n_total_gas * 0.7901,

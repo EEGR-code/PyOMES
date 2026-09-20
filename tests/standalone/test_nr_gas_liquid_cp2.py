@@ -39,6 +39,8 @@ import math
 
 import pytest
 
+from PyOMES.units import R_L_ATM_PER_MOL_K
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Shared chemistry builders
@@ -102,7 +104,7 @@ class TestInertGasMatchesPartitionModel:
     def test_o2_matches_equilibrium_a_moles(self):
         from PyOMES.chemistry.species import Species
         from PyOMES.chemistry import HenryEquilibrium
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         O2 = Species(id="O2", atoms={"O": 2}, charge=0)
         henry = HenryEquilibrium(H_ref=1.3e-5, dlnH=1500.0,
@@ -119,7 +121,7 @@ class TestInertGasMatchesPartitionModel:
         n_liq_expected = henry.equilibrium_a_moles(n_total_O2, V_liq, V_gas, T_K)
         C_liq_expected = n_liq_expected / V_liq
         n_gas_expected = n_total_O2 - n_liq_expected
-        p_gas_expected = n_gas_expected * 0.0820574 * T_K / V_gas
+        p_gas_expected = n_gas_expected * R_L_ATM_PER_MOL_K * T_K / V_gas
 
         assert out.species_mol_L["O2"] == pytest.approx(C_liq_expected, rel=1e-8)
         assert out.partial_pressures_atm["O2"] == pytest.approx(p_gas_expected, rel=1e-8)
@@ -132,7 +134,7 @@ class TestInertGasMatchesPartitionModel:
 class TestCoupledMassConservation:
 
     def test_total_carbon_conserved_across_phases(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn()] + _carbonate_ladder() + [_co2_henry()], T_K=298.15,
@@ -149,14 +151,14 @@ class TestCoupledMassConservation:
             + out.species_mol_L["CO3--"]
         )
         n_liq = C_liq_total * V_liq
-        n_gas = out.partial_pressures_atm["CO2"] * V_gas / (0.0820574 * T_K)
+        n_gas = out.partial_pressures_atm["CO2"] * V_gas / (R_L_ATM_PER_MOL_K * T_K)
         assert (n_liq + n_gas) == pytest.approx(n_total_C, abs=1e-9)
 
     def test_pH_in_plausible_range(self):
         """Sanity check: 0.05 mol/L total carbon with no added base should
         give a mildly acidic pH (CO2 is a weak acid), not something
         pathological."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn()] + _carbonate_ladder() + [_co2_henry()], T_K=298.15,
@@ -172,7 +174,7 @@ class TestCoupledMassConservation:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _ab_only_engine(T_K=308.15):
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(
         [_water_rxn()] + _carbonate_ladder(), T_K=T_K,
     )
@@ -247,7 +249,7 @@ class TestSNIAConsistencyAndDivergence:
 
     @pytest.fixture(scope="class")
     def engines(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         ab_engine = _ab_only_engine(T_K=_T_K)
         sim_engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn()] + _carbonate_ladder() + [_co2_henry()], T_K=_T_K,

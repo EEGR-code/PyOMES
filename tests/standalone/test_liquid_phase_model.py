@@ -176,19 +176,15 @@ class TestDaviesLiquidModel:
         expected = model.gamma(1, 0.05, T_K=298.15)
         assert gammas["H+"] == pytest.approx(expected, rel=1e-9)
 
-    # ── Backward compat alias ──────────────────────────────────────────
-
-    def test_davies_activity_model_alias(self):
-        from PyOMES.chemical_equilibrium.activity_models import DaviesActivityModel, DaviesLiquidModel
-        assert DaviesActivityModel is DaviesLiquidModel
+    # ── make_activity_model factory / water helpers ────────────────────
 
     def test_make_activity_model_returns_davies_liquid_model(self):
-        from PyOMES.chemical_equilibrium.activity_models import make_activity_model, DaviesLiquidModel
+        from PyOMES.thermo import make_activity_model, DaviesLiquidModel
         m = make_activity_model(True, "davies")
         assert isinstance(m, DaviesLiquidModel)
 
-    def test_water_helpers_still_importable_from_speciation(self):
-        from PyOMES.chemical_equilibrium.activity_models import (
+    def test_water_helpers_importable_from_thermo(self):
+        from PyOMES.thermo import (
             debye_huckel_A,
             ionic_strength_molal_from_molar,
             water_density_kg_per_m3,
@@ -257,18 +253,13 @@ class TestSITLiquidModel:
         result = model.compute_gammas({"Na+": 0.5, "Cl-": 0.5}, 0.5, 298.15)
         assert all(v > 0.0 for v in result.values())
 
-    def test_sit_activity_model_alias(self):
-        from PyOMES.chemical_equilibrium.sit import SITActivityModel, SITLiquidModel
-        assert SITActivityModel is SITLiquidModel
-
     def test_make_activity_model_returns_sit(self):
-        from PyOMES.chemical_equilibrium.activity_models import make_activity_model
-        from PyOMES.thermo import SITLiquidModel
+        from PyOMES.thermo import make_activity_model, SITLiquidModel
         m = make_activity_model(True, "sit")
         assert isinstance(m, SITLiquidModel)
 
-    def test_sit_epsilon_importable_from_speciation(self):
-        from PyOMES.chemical_equilibrium.sit import SIT_EPSILON, ION_CHARGES
+    def test_sit_epsilon_importable_from_thermo(self):
+        from PyOMES.thermo import SIT_EPSILON, ION_CHARGES
         assert isinstance(SIT_EPSILON, dict)
         assert ("Na+", "Cl-") in SIT_EPSILON
         assert "H+" in ION_CHARGES
