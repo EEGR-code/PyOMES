@@ -117,3 +117,74 @@ unverified. A small cleanup would make one public helper in
 `water_properties.py` (for example `water_kg_per_L(T_K)`), and have all three
 call sites use it. Check the Jacobian tests in
 `tests/standalone/test_liquid_phase_model.py` still pass afterwards.
+
+## A third van 't Hoff copy in `reactions/equilibrium.py` differs from `thermo` in the last bit
+
+Surfaced 2026-09-20 during `chemical-equilibrium-engines-subfolder`
+checkpoint 7, which merged `acid_base._vant_hoff_K` and
+`nr_tableau._vant_hoff_log_K` into `PyOMES/thermo/equilibrium_constants.py`.
+`reactions/equilibrium.py:92` `vant_hoff_log_K(constraint, T_K)` has the same
+maths and the same edge-case rules as `thermo.equilibrium_constants.vant_hoff_log_K`,
+but converts ln K to log10 K with `_LOG10_E = 1.0 / math.log(10.0)`
+(`0.43429448190325176`), while the `nr_tableau` version — now the `thermo` one —
+uses `np.log10(np.e)` (`0.4342944819032518`). They differ by 1 ulp, so folding
+one into the other changes about a fifth of corrected values by up to ~4e-15 in
+log10 K (measured on 20,000 random cases). That is negligible physically but is
+a numerical change, so it was left out of a pure-refactor phase.
+
+To finish the de-duplication: make `reactions.equilibrium.vant_hoff_log_K` a
+thin wrapper that calls `thermo.equilibrium_constants.vant_hoff_log_K(
+constraint.log_K, constraint.dH_J_per_mol, T_K, constraint.T_ref_K)`, accept
+the 1-ulp shift, and re-run the suite (including `test_equilibrium_constraint.py`
+and the BSM2 sentinels) to confirm nothing depends on the last bit. Also rename
+one of the two same-named functions if the wrapper is not kept, to avoid two
+`vant_hoff_log_K` with different signatures.
+
+## Let a simulation set the value of physical constants such as `R`
+
+Raised 2026-09-20 while planning Part D of
+`chemical-equilibrium-engines-subfolder` (one source of truth for the gas
+constant in `PyOMES/units.py`). Part D makes the constant *single*; this entry
+is the follow-up that would make it *choosable per simulation*, from the
+simulation file itself, without editing the package or monkey-patching a
+module global.
+
+**Why someone would want it.** Matching a published benchmark that uses a
+rounded value (the ADM1/BSM2 reference implementations in
+`models/vlmodels/adm1/` carry `_R_J = 8.31446` today, and the ADM1 spec quotes
+`R` in bar·m³/kmol/K); sensitivity studies on the constant; reproducing an older
+run made before Part D shifted `R` by about 4e-7 relative; and comparing against
+another tool (PHREEQC, BioSTEAM) that uses its own value.
+
+**Why it is not a small change.** Every module currently reads `R` by importing
+the float (`from PyOMES.units import R_J_PER_MOL_K`), which binds the value at
+import time. Overriding per simulation means consumers must read the value from
+something they are given, not from a module global. The consumers include hot
+paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
+`core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/nr_solver.py`,
+`equilibria/vle.py`, `chemistry/partition.py`, `thermo/framework.py` and
+`thermo/equilibrium_constants.py`.
+
+**Design sketch (not decided).**
+
+- A small frozen `PhysicalConstants` dataclass in `units.py`, with the current
+  CODATA values as a module-level default. Overriding `R_J_PER_MOL_K` alone must
+  update the L·atm value too, which is trivial once Part D derives one from the
+  other (Decision 12). Exact conversions (`PA_PER_ATM`, `L_PER_M3`) are not
+  overridable.
+- Carry it on the object that already scopes a simulation's thermodynamics
+  (`ThermoFramework` is the obvious candidate) or on `Simulation` /
+  `ControlVolume`, and thread it to the consumers above. Decide whether it is
+  per-simulation or per-control-volume.
+- Record the constants used in the run metadata and in `save_checkpoint`, so a
+  saved run says which `R` produced it.
+- Keep the default path fast: resolve the value once per step or at
+  construction, not per call inside an ODE right-hand side.
+
+**Open questions.** Is the scope `R` only, or a bundle of constants
+(reference temperature `298.15`, `273.15` K offset, `g`)? Is a per-simulation
+override actually needed, or is "one correct value, documented" enough? The
+trigger should be a concrete model that needs a non-default value, which is
+also the point at which the ADM1 rounding question (Part D, Decision 14) gets
+answered for real. **Depends on Part D landing first**, since overriding a
+constant that still has ten copies would only change some of them.

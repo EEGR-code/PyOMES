@@ -11,6 +11,12 @@
 > (see "Part A" below), done *before* the engine move so those imports are
 > not rewritten twice. Also widened the same day to remove the orphaned
 > `strong_ions.py` (see "Part B" below); the `engines/` move is now "Part C".
+>
+> **Scope note (2026-09-20, during checkpoint 7):** widened once more with
+> "Part D" — unify every copy of the gas constant onto the one definition in
+> `PyOMES/units.py`. Unlike Parts A–C, **Part D deliberately changes numbers**
+> (the copies are not all the same value), so it runs last and is isolated in
+> its own commits.
 
 ## Commit discipline for this phase
 
@@ -39,8 +45,16 @@ visible in the directory tree. Three parts, in this order:
   called just `engine.py`, so nothing in a file listing says which files
   belong to which engine. Move the engine-specific files under `engines/`.
 
-**Pure file moves, import rewrites and dead-code removal — no behaviour
-change.**
+- **Part D — one source of truth for the gas constant.** `PyOMES/units.py`
+  already defines it (and says it is the authoritative place), but about ten
+  other definitions and hard-coded literals remain, at three different
+  precisions. Repoint them all at `units.py`, derive the L·atm value from the
+  J value so there is exactly one numeric literal, and add a guard test so
+  new copies fail CI.
+
+**Parts A–C are pure file moves, import rewrites and dead-code removal — no
+behaviour change.** Part D is the one deliberate numerical change (see its
+audit and Decisions 11–15 below).
 
 ## Audit: what is shared vs. engine-specific
 
@@ -121,6 +135,52 @@ needs neutral-salt expansion, it belongs in `PyOMES/stream_adapter.py`, emitting
 species ids rather than `CT_*` keys and warning on unmapped species — not in
 the equilibrium package.
 
+### Gas-constant definitions (Part D)
+
+Audited 2026-09-20 (`.py` and `.ipynb`; `scratch/` excluded). **The root
+exists:** `PyOMES/units.py` defines `R_J_PER_MOL_K = 8.31446261815324` (CODATA
+2018) and `R_L_ATM_PER_MOL_K = 0.08205736608096`, and its docstring says it
+exists because "the codebase historically contained repeated definitions of
+common constants (e.g., the ideal gas constant in L·atm/(mol·K))". A first
+consolidation of the J value was done 2026-07-02
+(`equilibrium-constraint-unification` CP1, BSM2 sentinels re-baselined; see the
+comment in `test_bsm2_reference.py`); it missed the copies below and never
+touched the L·atm value.
+
+| Definition | Value | vs root | Notes |
+|---|---|---|---|
+| `core/phases.py:28` `R_L_ATM_MOL_K` | 0.0820574 | +4.1e-7 | Different *name* and value from the root. The most-imported copy: 25 files (7 notebooks, both generators, ~10 tests, `nr_solver`, `boundaries`, `solvers`, `gas_liquid_link`, `templates/stirred_tank/factory`) |
+| `chemistry/partition.py:51` `_R_L_ATM_MOL_K` | 0.0820574 | +4.1e-7 | Comment says "must match core.phases" — the duplication is acknowledged in the code |
+| `equilibria/peng_robinson.py:38` `R` | 0.0820574 | +4.1e-7 | |
+| `control/cv_loops.py:912` `_R_L_ATM_PER_MOL_K` | 0.08205736608095958 | +5e-15 | A private copy of the precise value |
+| `control/cv_loops.py:1129` `_R_UNIV` | 8.31446261815324 | identical | Bit-identical private copy |
+| `models/vlmodels/adm1/{base:224, bsm2:328, bsm2_direct:272}` `_R_J` | 8.31446 | −3.2e-7 | Van 't Hoff `Ka(T)`; the same rounding the 2026-07-02 re-baseline removed from `thermo_params.py` / `framework.py` |
+| `reactions/plots.py:18` `_R_GAS` | 8.314 | −5.6e-5 | Van 't Hoff plot only |
+| Literals in tests | 0.0820574 (`test_gas_liquid_link:895`, `test_nr_gas_liquid_cp2` ×2, `test_partition_model` ×2, `test_precipitation_gas_liquid_cp5:29`); 8.31446261815324 (`test_equilibrium_constants:22`, added in checkpoint 7 as a frozen reference) | | |
+| `docs/tutorials/D2C_workshop/Example1_mtp_well.ipynb:202` `R_LA` | 0.08205 | −9e-5 | |
+
+Already correct (import from `units`): `thermo/framework.py`,
+`thermo/equilibrium_constants.py`, `chemistry/thermo_params.py`,
+`chemistry/partition.py` (J only), `reactions/equilibrium.py`,
+`equilibria/vle.py`, `models/vlmodels/headspace.py`.
+
+Two findings matter beyond tidiness:
+
+- **Production currently uses two values of R for the same physics.**
+  `equilibria/vle.py` and `models/vlmodels/headspace.py` use the precise
+  0.08205736608096; `core/phases.py` (partial pressure, gas moles, boundaries,
+  solvers) and `partition.py` use 0.0820574, 4.1e-7 higher. Every gas-liquid
+  calculation therefore mixes them.
+- **The root is not itself single-sourced.** `R_L_ATM_PER_MOL_K` is a second
+  literal, not derived from `R_J_PER_MOL_K`. Three "precise" versions exist
+  (root `0.08205736608096`, `R_J / 101.325` = `0.08205736608095968`, and the
+  `cv_loops` copy `0.08205736608095958`); they differ by up to 4e-15.
+
+Other fundamental-looking constants (`273.15`, `101325`, `9.81`, `96485`,
+Boltzmann, Avogadro) were not audited in depth; a quick count found 28
+literal occurrences of them across 16 package files. Out of scope for this phase (only
+`R` is unified), but the Part D guard test is the natural place to extend later.
+
 ## Target layout
 
 ```
@@ -184,6 +244,33 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
 10. **`strong_ions_from_feed_molL` is dropped from the package `__init__.py`**
     and `__all__` along with the module, with no stub or deprecation period.
     Subject to the `.ipynb` search in checkpoint 5.
+11. **`PyOMES/units.py` stays the single source of truth for `R`** (Part D).
+    It already documents itself as that, and 8 modules import from it, so no new
+    `constants.py`. Fix its stale `fermenter.units` docstring name. *Proposed —
+    confirm at kickoff of Part D.*
+12. **Exactly one numeric literal for `R`.** `R_J_PER_MOL_K` stays the literal;
+    `R_L_ATM_PER_MOL_K` becomes `R_J_PER_MOL_K / (PA_PER_ATM / L_PER_M3)`
+    (`0.08205736608095968`, 3.9e-15 from today's root value), so the two can
+    never disagree. A unit test pins the relation. *Proposed.*
+13. **Rename, do not alias, `core.phases.R_L_ATM_MOL_K`.** Importers switch to
+    `PyOMES.units.R_L_ATM_PER_MOL_K` (25 files, including 7 notebooks and both
+    generators). This follows Decision 2 (no shims), and the two names
+    (`..._MOL_K` vs `..._PER_MOL_K`) are themselves part of how the split
+    happened. The alternative — keep `core.phases.R_L_ATM_MOL_K` as a
+    re-export of the `units` value — is single-valued and far smaller, but
+    keeps two names. *Proposed: rename; say so at kickoff if you prefer the
+    smaller alias.*
+14. **The ADM1 / BSM2 `_R_J = 8.31446` copies are unified too**, with the BSM2
+    sentinels re-baselined and the before/after recorded, exactly as the
+    2026-07-02 consolidation did for `thermo_params.py` / `framework.py`.
+    **Needs your call:** these are benchmark-reference implementations, so if the
+    rounded value is deliberate (to match a published ADM1/BSM2 specification),
+    keep it and replace the bare literal with a commented, named constant instead.
+15. **A guard test fails CI on any new `R` literal** outside `units.py`
+    (a source scan of `PyOMES/` and `models/` for the gas-constant literal
+    patterns, with an explicit allowlist). The allowlist is added in
+    checkpoint 13 listing the known remaining copies, and emptied in
+    checkpoint 14.
 
 ## Proposed checkpoints
 
@@ -244,7 +331,30 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     `docs/architecture.md` (lists `activity_models.py`, `sit.py`). Leave
     historical docs under `docs/dev/implementation/shipped/` and
     `docs/dev/ideas/` alone — they record what was true when written.
-13. Full suite green, then ship per the kickoff template.
+
+**Part D — gas-constant unification** (runs after Part C so Parts A–C stay
+bit-identical and verifiable; Part D changes numbers)
+
+13. *Value-preserving.* Re-verify the audit table above with a fresh search.
+    Replace the one bit-identical private copy (`cv_loops._R_UNIV`) with an
+    import from `units`, and make `test_equilibrium_constants.py` import `R`
+    instead of holding a literal. Add the guard test (Decision 15) with an
+    allowlist of every copy that remains. Results must be bit-identical
+    (fingerprint, as in checkpoint 7).
+14. *Numerics-changing, own commit.* Derive `R_L_ATM_PER_MOL_K` from
+    `R_J_PER_MOL_K` (Decision 12); repoint `core/phases.py` (rename per
+    Decision 13, all 25 files), `partition.py`, `peng_robinson.py`,
+    `cv_loops.py`, `plots.py`, and — per Decision 14 — the three ADM1/BSM2
+    files; replace the test literals and the `Example1_mtp_well.ipynb`
+    `R_LA` with imports; empty the guard allowlist. Expect: every
+    `p = nRT/V` shifts by about 4e-7 relative, and the BSM2 sentinels
+    (`RTOL_SENTINEL = 1e-9`) and any test with a tight tolerance on a gas
+    quantity will move. Before changing anything, record a fingerprint of
+    gas-liquid results (partial pressures, gas moles, BSM2 final state); after,
+    record the shift and re-baseline with a dated before/after comment in
+    `test_bsm2_reference.py`, as the 2026-07-02 note does. The shift should
+    match the 4.1e-7 (or 3.2e-7 for ADM1 `Ka(T)`) prediction and nothing else.
+15. Full suite green, then ship per the kickoff template.
 
 Each move checkpoint should be a `git mv` plus import rewrites only, so history
 follows the files.

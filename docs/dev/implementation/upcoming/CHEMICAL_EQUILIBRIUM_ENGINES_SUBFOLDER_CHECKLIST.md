@@ -10,7 +10,9 @@
 **Working rules for this phase**
 
 - Pure refactor: no behaviour or numerical change. Anything that looks like a
-  bug or improvement is noted, not fixed.
+  bug or improvement is noted, not fixed. **Exception: Part D (checkpoint 14)
+  deliberately changes numbers** (unifying the gas constant); it runs last and
+  is verified by a recorded before/after shift, not by bit-identity.
 - The repo owner runs every `git add`, `git commit` and `git push`. At each
   checkpoint: edit, run the checkpoint's tests, report, then stop for review
   and commit.
@@ -127,10 +129,28 @@
 
 **Part C — `engines/` subfolder**
 
-- [ ] 7. De-duplicate `acid_base._vant_hoff_K` / `nr_tableau._vant_hoff_log_K`
+- [x] 7. De-duplicate `acid_base._vant_hoff_K` / `nr_tableau._vant_hoff_log_K`
       into one helper in `PyOMES/thermo/` (Decision 3; filename decided here,
       e.g. `thermo/equilibrium_constants.py`). Own commit, own tests. Repoint
       `acid_base.py` and `nr_tableau.py`.
+      _Notes: new `thermo/equilibrium_constants.py` holds the correction once
+      (`vant_hoff_delta_ln_K`) plus two thin wrappers, `vant_hoff_K` and
+      `vant_hoff_log_K`, each keeping the edge-case rules of the original it
+      replaces (they differ: the K-space one also guards K_ref <= 0 and
+      T_K <= 0). Not exported from `PyOMES.thermo.__init__`. `nr_engine.py`
+      now imports the helper directly (it used to import the private name from
+      `nr_tableau`). Removed as unused: `_R_J_PER_MOLK` (acid_base),
+      `_R_J_MOL_K`, `_LOG10_E` and `import numpy as np` (nr_tableau).
+      **Bit-identical, verified:** an 814-value fingerprint of
+      `solve_acid_base` (all 8 enthalpies, 7 temperatures) and the NR engine
+      (water/carbonate, plus calcite Ksp and a Henry row; 5 temperatures) was
+      byte-identical before and after (same SHA-256). New
+      `tests/standalone/test_equilibrium_constants.py` (23 tests) pins the
+      helpers to verbatim copies of the two originals with exact equality.
+      **Not folded in:** `reactions/equilibrium.py:vant_hoff_log_K` (the third
+      copy) uses a log10(e) constant 1 ulp different from the one `nr_tableau`
+      used, so merging it would change ~20% of corrected values by up to ~4e-15
+      in log10 K; logged in `OPEN_WORK.md` instead._
 - [ ] 8. `git mv` the NR files into `engines/nr/` (`engine.py`, `tableau.py`,
       `solver.py`, `__init__.py`); rewrite relative imports (`..units` →
       `...units`, `..core.phases` → `...core.phases`, ...). Run `test_nr_*`
@@ -150,7 +170,24 @@
       including `OPEN_WORK.md` (cites `activity_models.make_activity_model`) and
       `docs/architecture.md` (lists `activity_models.py`, `sit.py`). Leave
       `shipped/` and `docs/dev/ideas/` alone.
-- [ ] 13. Full suite green, then ship (see below).
+
+**Part D — gas-constant unification** (after Part C; see the plan doc's
+"Gas-constant definitions (Part D)" audit and Decisions 11–15)
+
+- [ ] 13. _Value-preserving._ Re-verify the plan's audit table with a fresh
+      search. Replace `cv_loops._R_UNIV` (bit-identical copy) with an import
+      from `units`; make `test_equilibrium_constants.py` import `R` instead of
+      holding a literal. Add the guard test with an allowlist of every copy that
+      remains (Decision 15). Bit-identical (fingerprint).
+- [ ] 14. _Numerics-changing, own commit._ Derive `R_L_ATM_PER_MOL_K` from
+      `R_J_PER_MOL_K`; repoint `core/phases.py` (rename all 25 files, Decision
+      13), `partition.py`, `peng_robinson.py`, `cv_loops.py`, `plots.py`, the
+      three ADM1/BSM2 files (Decision 14 — **confirm keep-or-unify first**),
+      test literals and `Example1_mtp_well.ipynb` `R_LA`; empty the guard
+      allowlist. Record a gas-liquid + BSM2 fingerprint before, the shift after
+      (expect ~4.1e-7 relative on `nRT/V`, ~3.2e-7 on ADM1 `Ka(T)`), and
+      re-baseline sentinels with a dated before/after comment.
+- [ ] 15. Full suite green, then ship (see below).
 
 ### Checkpoint 1 inventory
 
