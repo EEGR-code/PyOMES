@@ -247,20 +247,23 @@ statements that are now false:
   label. It is a recorded past run, not a live message; it refreshes the next time
   those notebooks are re-run.
 
-## `chemical_equilibrium/activity_dispatch.py` has no production caller
+## `chemical_equilibrium/activity_dispatch.py` was deleted (checkpoint 12c)
 
-Found 2026-09-20 in checkpoint 12b. `activity_for_entry()` is called only by its
-own tests (`tests/standalone/test_activity_dispatch.py`). Its old docstring said
-a later phase "wires this dispatch into `build_tableau()`", but that phase
-(`LAYER1_GAP_CLOSURE`) shipped without doing so: the NR solver folds gas-liquid
-rows into the tableau as gas-phase secondaries and handles solid-liquid
-equilibria in the engine's precipitation loop. The docstring now says this.
+Found 2026-09-20 in checkpoint 12b and deleted the same day in checkpoint 12c of
+`chemical-equilibrium-engines-subfolder`. `activity_for_entry()` was called only
+by its own 12 tests (`tests/standalone/test_activity_dispatch.py`). Its old
+docstring said a later phase "wires this dispatch into `build_tableau()`", but
+that phase (`LAYER1_GAP_CLOSURE`) shipped without doing so: the NR solver folds
+gas-liquid rows into the tableau as gas-phase secondaries and handles
+solid-liquid equilibria in the engine's precipitation loop. Same grounds as
+`api.py` and `factory.py` (checkpoint 9b): no callers, and the package has no
+outside users.
 
-This is the same situation as `api.py` and `factory.py`, which
-`chemical-equilibrium-engines-subfolder` deleted (checkpoint 9b): no callers, and
-the package has no outside users. Options: delete the module and its test
-(restorable from git), or keep it if the dispatch is wanted for a planned use.
-Not decided here.
+Restorable from the last commit before the deletion, `076f6b4`:
+`git show 076f6b4:PyOMES/chemical_equilibrium/activity_dispatch.py`, and likewise
+the test file. If entry-level activity diagnostics are wanted later, a batch
+function designed for that job (γ for the whole liquid composition computed once,
+not once per entry) is a better starting point than reviving this one.
 
 ## Rename `phreeqc_to_vlsim` (and drop the old project name `vlsim`)
 

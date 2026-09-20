@@ -391,7 +391,6 @@ PyOMES/
   chemical_equilibrium/          # Aqueous speciation engines
     protocols.py                 # Engine protocols, EquilibriumResult
     activity.py                  # ionic_strength_from_speciation, high-I warning
-    activity_dispatch.py         # Per-entry activity dispatch helper
     numerical_gradient.py        # NumericalGradientEquilibriumEngine (wraps any engine)
     engines/
       bisection/                 # engine.py (BisectionChemicalEquilibriumEngine), acid_base.py

@@ -488,7 +488,7 @@
       (`chemistry/equilibria.py:510-511`, `core/gas_liquid_link.py:928,958,966`,
       `reactions/reaction_system.py:250`); two saved notebook outputs that
       quote the old warning text; the wider 108-line cleanup.
-- [ ] 12c. _Added during Part C (requested after checkpoint 12b; plan Decision
+- [x] 12c. _Added during Part C (requested after checkpoint 12b; plan Decision
       17)._ **Delete the orphaned `chemical_equilibrium/activity_dispatch.py`
       and its test.**
       **Why.** `activity_for_entry()` has never had a production caller: a
@@ -539,6 +539,32 @@
       likewise the test file. Confirm the hash at the time.
       **Effects outside this phase's scope:** none expected; a fresh search
       found no other current reference. Record any that turn up.
+      _Notes: done 2026-09-20. Deleted `activity_dispatch.py` (124 lines) and
+      `test_activity_dispatch.py` (179 lines, 12 tests, all passing beforehand).
+      Updated the four current files that named the module
+      (`engines/__init__.py` docstring, `README.md` test table,
+      `docs/architecture.md` tree, `OPEN_WORK.md` entry, now headed "was deleted").
+      **Verification:** (1) fresh search of every tracked file type (excluding
+      `shipped/` and `ideas/`) before and after: only plan, checklist and
+      `OPEN_WORK.md` mentions remain, and git history shows the function was
+      only ever added and never called outside its own test. (2) AST import audit
+      over every tracked `.py` and notebook code cell: 70 distinct `PyOMES` /
+      `models` modules, none refers to the deleted one; the single unresolved
+      name is `PyOMES.control.state_builder`, which
+      `test_simulation.py` imports on purpose to assert it is gone (unrelated).
+      `import PyOMES.chemical_equilibrium.activity_dispatch` raises
+      `ModuleNotFoundError`. (3) **Deviation from the plan:** the engine
+      fingerprints were not re-run, because the earlier ones came from throwaway
+      scripts with no saved baseline. In their place, importing every
+      `PyOMES` and `models` module except `activity_dispatch` itself, before
+      deleting, leaves it absent from `sys.modules`, so no engine or downstream
+      code can reach it; with the fresh search this shows the engines are
+      unaffected. (4) Full suite 2068 passed, 0 failed (2080 − 12 as predicted).
+      **Restore point:** `076f6b4` (the 12d planning commit, docs-only, so the file
+      is identical to `9d71cb9`): `git show 076f6b4:PyOMES/chemical_equilibrium/activity_dispatch.py`,
+      and likewise the test file. Observation, not acted on:
+      `models/vlmodels/adm1/bsm2_direct.py` fails to import (`No module named
+      'vlmodels'`), before and after this checkpoint; unrelated._
 - [ ] 12d. _Added during Part C (requested after checkpoint 12c; plan Decision
       18)._ **Dissolve `chemical_equilibrium/activity.py`: move its
       Bisection-only ionic-strength helpers to

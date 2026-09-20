@@ -65,7 +65,7 @@ audit and Decisions 11–15 below).
 | Thermo compatibility layer (Part A: dissolved into `thermo/`) | `activity_models.py`, `sit.py` |
 | Orphaned helper (Part B: deleted) | `strong_ions.py` |
 | Orphaned Bisection-only entry points (checkpoint 9b: deleted) | `api.py`, `factory.py` |
-| Orphaned per-entry activity helper (checkpoint 12c: to be deleted) | `activity_dispatch.py` |
+| Orphaned per-entry activity helper (checkpoint 12c: deleted) | `activity_dispatch.py` |
 | Bisection engine | `engine.py`, `acid_base.py` (~2,040 lines) |
 | NR engine | `nr_engine.py`, `nr_tableau.py`, `nr_solver.py` (~2,520 lines) |
 | PHREEQC engine | `phreeqc_engine.py` (327 lines) |
