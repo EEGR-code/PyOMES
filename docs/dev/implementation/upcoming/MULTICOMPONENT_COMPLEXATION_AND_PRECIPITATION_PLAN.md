@@ -1,5 +1,16 @@
 # Multi-component complexation and precipitation: implementation plan
 
+> **Shelved 2026-09-20.** Deliberately paused, not abandoned. Reason: no
+> current modelling need for it, nothing else in the package depends on the
+> skeleton, and integration is gated on a full acceptance suite that has not
+> been started. The skeleton stays in place (inert and opt-in).
+> **Resume when** a concrete model needs coupled multi-metal / citrate /
+> phosphate speciation that `NRTableau` cannot represent (e.g. the
+> growth-medium chemistry behind notebook 08). Its Phase 3 overlaps
+> [`NR_PRECIPITATION_CV_INTEGRATION.md`](NR_PRECIPITATION_CV_INTEGRATION.md),
+> so design the two together. The status block below records what exists and
+> how to pick it up.
+>
 > **Status: partial skeleton, stalled 2026-06-29.** Commit `23e0cb0`
 > ("feat: MULTICOMPONENT_COMPLEXATION — standalone multi-component
 > speciation pathway") added

@@ -492,16 +492,22 @@ of the NR speciation engine shipped in `nr-speciation-engine`.
   solve), and its file paths use the old `src/` layout — re-check its design
   against the current code first.
 
+## Shelved
+
+Work that was started and then deliberately paused. These are not open
+phases — re-decide before picking any of them up.
+
 - **[MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md](MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md)** —
-  a separate, standalone-by-design track (Fe/Ca/phosphate/citrate networks
-  `NRTableau` can't represent). **Partial skeleton, stalled 2026-06-29** —
-  see the status banner at the top of that doc; committed directly to `main`
-  without a branch or checklist, only one of seven modules tested. Not part
-  of the two-phase NR Precipitation sequence above. **Needs a decision
-  before pickup:** its body still uses the old `src/` paths and `VLsim`
-  name, and its Phase 3 (a persistent solid-phase adapter) overlaps
-  `NR_PRECIPITATION_CV_INTEGRATION` above — settle resume-or-shelve, and how
-  the two fit together, first.
+  **shelved 2026-09-20.** A separate, standalone-by-design engine for
+  coupled multi-metal / citrate / phosphate chemistry that `NRTableau` can't
+  represent. A partial skeleton (7 modules, 353 lines, only `components.py`
+  tested) sits in `PyOMES/chemical_equilibrium/multicomponent/`, committed
+  directly to `main` on 2026-06-29 without a branch or checklist; nothing
+  else in the package uses it. Resume when a concrete model needs this
+  chemistry. Its Phase 3 (a persistent solid-phase adapter) overlaps
+  `NR_PRECIPITATION_CV_INTEGRATION` above, so design the two together. See
+  the banner at the top of that doc for the current status and how to pick
+  it up.
 
 ---
 
