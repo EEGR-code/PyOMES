@@ -19,7 +19,6 @@ its own module docstring with more detail than is repeated here.
 | [`kinetics/`](kinetics/) | `KineticModel` protocol and plug-in kinetics used by reaction models. |
 | [`numerics/`](numerics/) | Spatial discretization schemes (upwind, TVD, dispersion) for spatially resolved models. |
 | [`monitoring/`](monitoring/) | Cheap per-step accuracy and mass-conservation checks that warn when a simulation runs outside the regime its solver/activity model is reliable in. |
-| [`param/`](param/) | Parameter-sweep utilities for running a model across a grid of inputs. |
 | [`templates/stirred_tank/`](templates/stirred_tank/) | `StirredTankBuilder` — the fluent builder used in the top-level Quick Start — plus its factory, presets, and kinetics helpers. |
 | [`thermo/`](thermo/) | `ThermoFramework` and liquid-phase activity models (`IdealLiquidModel`, `DaviesLiquidModel`, `SITLiquidModel`) and water property correlations that back `chemical_equilibrium/`. |
 | [`stream_adapter.py`](stream_adapter.py) | `FeedState` — the canonical feed/broth composition type used throughout PyOMES. |

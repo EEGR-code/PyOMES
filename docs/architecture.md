@@ -413,7 +413,6 @@ PyOMES/
   numerics/                      # Shared numerical methods
     spatial.py                   # Advection (upwind, TVD) + dispersion
   properties/                    # Physical property models (viscosity)
-  param/                         # Parameter sweep utilities
   sim/                           # Legacy types (Ledger, FermenterState) — CUFermenter island
   solvers/                       # Legacy solver dispatch (CoupledSolver) — CUFermenter island
 
