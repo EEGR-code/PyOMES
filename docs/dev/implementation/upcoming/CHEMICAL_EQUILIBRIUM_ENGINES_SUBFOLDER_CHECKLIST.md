@@ -285,11 +285,50 @@
       `.py`/`.ipynb`; full suite 2080 passed (unchanged). The historical
       mention of `_HAVE_PHREEQC` in checkpoint 10's notes above is left as the
       record of what was true then._
-- [ ] 11. Update the package `__init__.py` re-exports, then external callers:
+- [x] 11. Update the package `__init__.py` re-exports, then external callers:
       `PyOMES/reactions/reaction_system.py`, `models/vlmodels/adm1/{base,bsm2}.py`,
       both notebook generators, notebooks, tests. Finish with a repo-wide
       search (`.py`, `.ipynb`, `.md`) for each old module path to confirm
       nothing still points at it.
+      _Notes: the external callers were repointed checkpoint by checkpoint
+      (C8–C10), so this was mainly verification. **Re-exports:** the package
+      `__init__.py` is unchanged from C9b (`BisectionChemicalEquilibriumEngine`,
+      `ChemicalEquilibriumEngine`, `EquilibriumResult`,
+      `ionic_strength_from_speciation`, `warn_if_high_ionic_strength`,
+      `solve_acid_base`, all resolving to the new locations). **Decision:**
+      `engines/__init__.py`, `engines/nr/__init__.py` and
+      `engines/bisection/__init__.py` stay docstring-only — the NR and PHREEQC
+      engines were not exported from the package root before the move either,
+      so re-exporting them would be new API, and it is trivial to add later.
+      (Observation, not acted on: the root exports only the Bisection engine, so
+      NR — the newer engine — needs a deep import; whether the root should
+      export all three is a separate API question.) Fixed a stale docstring I
+      had written in `engines/__init__.py` (it still listed `api` and `factory`,
+      deleted in 9b, and omitted `activity_dispatch`).
+      **Verification:** (1) packaging — `setup.py`'s
+      `find_packages(include=["PyOMES", "PyOMES.*"])` discovers
+      `engines`, `engines.nr` and `engines.bisection`, and their `__init__.py`
+      files are tracked, so CI's `pip install -e .` will see them; (2) sweep of
+      every old module path in every form (dotted, slash, relative, bare
+      filename) over tracked `.py`/`.ipynb`/`.md`: **zero old dotted, slash or
+      relative-import paths in code, notebooks or generators**; the only code
+      hits are 5 prose comments naming `nr_solver.py` / `nr_engine.py`
+      (`engines/nr/engine.py:86`, `engines/nr/tableau.py:113`,
+      `protocols.py:73`, `thermo/liquid_phase_model.py:53`, `adm1/base.py:1048`)
+      — C12; current `.md` docs still to fix in C12: `docs/architecture.md:394`,
+      `OPEN_WORK.md:57,59,164`, `upcoming/README.md:60`,
+      `STRONG_ION_INFERENCE_GENERALIZATION.md` (~20 refs),
+      `NR_PRECIPITATION_CV_INTEGRATION.md:144`; historical docs untouched; (3)
+      **AST import audit** (script, not grep): parsed every tracked `.py` and
+      every notebook code cell, resolved 2,065 `PyOMES`/`models` imports across
+      229 files including lazy in-function and relative ones, and checked that
+      each module exists and each imported name resolves — **no problems
+      attributable to this phase**. It flagged only two pre-existing items:
+      `tests/run_tests.py:107` (`create_standalone_fermenter`, already in
+      `OPEN_WORK.md`) and `test_simulation.py:2186`, a test that asserts a
+      deleted module stays deleted; (4) no dynamic/string imports, `patch()` or
+      `sys.modules` targets mention the old paths; (5) full suite 2080 passed
+      (unchanged)._
 - [ ] 12. Update docstring cross-references (~15 files using
       `PyOMES.chemical_equilibrium.engine...`-style paths) and current docs,
       including `OPEN_WORK.md` (cites `activity_models.make_activity_model`) and
