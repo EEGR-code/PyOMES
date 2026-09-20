@@ -39,7 +39,7 @@ import numpy as np
 from scipy.optimize import brentq
 
 from .activity import ionic_strength_from_speciation
-from .activity_models import ActivityModel
+from ..thermo import ActivityModel
 
 
 # Gas constant (J/mol/K) for van 't Hoff temperature corrections
@@ -246,13 +246,13 @@ def solve_acid_base(
         
     # --- NEW: model-agnostic gamma wrapper (supports gamma(z, I) and gamma(z, I, T_K)) ---
     # Supports:
-    #   gamma(z, I, *, T_K=...)   (your DaviesActivityModel)
+    #   gamma(z, I, *, T_K=...)   (DaviesLiquidModel)
     #   gamma(z, I, T_K)          (positional temperature)
     #   gamma(z, I)              (no temperature)
     def _gamma(z: int, I_val: float) -> float:
         I_val = max(0.0, float(I_val))
         z = int(z)
-        # 1) Preferred: keyword-only temperature (DaviesActivityModel in your codebase)
+        # 1) Preferred: keyword-only temperature (DaviesLiquidModel in your codebase)
         try:
             return float(activity_model.gamma(z, I_val, T_K=float(T_K)))
         except TypeError:
@@ -918,7 +918,7 @@ def solve_from_equilibrium_set(
         species concentrations, ``IonicStrength``, ``logH``, etc.
     """
     from .activity import ionic_strength_from_speciation
-    from .activity_models import make_activity_model as _make_am
+    from ..thermo import make_activity_model as _make_am
 
     if activity_model is None:
         activity_model = _make_am(False, "ideal")

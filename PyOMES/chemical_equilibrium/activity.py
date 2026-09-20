@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 import warnings
-from .activity_models import debye_huckel_A, ionic_strength_molal_from_molar
+from ..thermo.water_properties import debye_huckel_A, ionic_strength_molal_from_molar
 from typing import Any, Dict
 
 

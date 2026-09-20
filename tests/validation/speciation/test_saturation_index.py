@@ -23,7 +23,7 @@ from PyOMES.chemistry.common_species import (
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
 from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
-from PyOMES.chemical_equilibrium.activity_models import DaviesActivityModel
+from PyOMES.thermo import DaviesLiquidModel
 
 T_K = 298.15
 KSP_CALCITE = 10 ** (-8.48)
@@ -58,7 +58,7 @@ def _make_dissolved_only_engine():
 
 class TestDaviesGamma:
     def test_gamma_at_notebook_ionic_strength(self):
-        davies = DaviesActivityModel()
+        davies = DaviesLiquidModel()
         # I = 0.01101 mol/L is the notebook's own solved ionic strength at
         # this recipe -- verified independently below in TestSaturationIndex.
         gamma = davies.gamma(2, 0.01101, T_K=T_K)
@@ -85,7 +85,7 @@ class TestSaturationIndex:
 
     def test_si_davies(self):
         out = self._solve()
-        davies = DaviesActivityModel()
+        davies = DaviesLiquidModel()
         c_co3 = float(out.species_mol_L["CO3--"])
         gamma = davies.gamma(2, float(out.ionic_strength), T_K=T_K)
         iap_davies = (gamma * CT_CA) * (gamma * c_co3)

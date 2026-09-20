@@ -67,12 +67,21 @@
       `test_nr_tableau_gas_liquid`: 116 passed. Left for you:
       `thermo/water_properties.py:6` also has a stale `PyOMES/speciation/`
       mention (outside the plan's scope)._
-- [ ] 3. Repoint importers at `PyOMES.thermo`: `engine.py`, `nr_engine.py`,
+- [x] 3. Repoint importers at `PyOMES.thermo`: `engine.py`, `nr_engine.py`,
       `acid_base.py`, `activity.py` (`thermo.water_properties`),
       `test_nr_tableau_gas_liquid.py`, and the `DaviesActivityModel` users in
       `tests/validation/speciation/` (tests, generator, 3 notebooks →
       `DaviesLiquidModel`). Remove `IdealActivityModel` /
       `DaviesActivityModel` from `__init__.py` and `__all__` (Decision 9).
+      _Notes: package files use the relative form `..thermo` (matches the
+      neighbouring `..units` / `..core` imports). Notebooks 03/04/05 were
+      edited as raw JSON (two lines each; the Edit tool refuses `.ipynb` and
+      `nbformat` is not installed), then their code cells were executed in a
+      scratch dir: all three run and reproduce the saved values. Two comments
+      in `acid_base.py` that said "DaviesActivityModel" now say
+      "DaviesLiquidModel". Still mentioning the old name in prose only, left
+      for C12 (decide then): `06_phreeqc_benchmark.ipynb` (2 places) and
+      generator line 1543._
 - [ ] 4. Delete `sit.py` and `activity_models.py`; delete the two alias tests
       in `test_liquid_phase_model.py`; repoint the factory test there. Delete
       `davies_log10_gamma` / `davies_gamma` and fix `activity.py`'s docstring

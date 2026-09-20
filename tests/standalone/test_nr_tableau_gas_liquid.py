@@ -376,7 +376,7 @@ class TestSolveRequiresVolumes:
     def test_solve_nr_raises_without_volumes(self):
         from PyOMES.chemical_equilibrium.nr_tableau import build_tableau
         from PyOMES.chemical_equilibrium.nr_solver import solve_nr
-        from PyOMES.chemical_equilibrium.activity_models import make_activity_model
+        from PyOMES.thermo import make_activity_model
 
         tableau = build_tableau(_base_reactions() + [_co2_henry()], T_K=298.15)
         am = make_activity_model(False, "ideal")

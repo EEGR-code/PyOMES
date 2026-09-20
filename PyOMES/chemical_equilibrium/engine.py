@@ -41,7 +41,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 from .acid_base import solve_acid_base, solve_from_equilibrium_set
-from .activity_models import make_activity_model
+from ..thermo import make_activity_model
 from .protocols import EquilibriumResult
 
 

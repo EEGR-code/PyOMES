@@ -42,7 +42,7 @@ from .nr_solver import (
     NRSolverCache, _gamma_safe, solve_nr,
     _build_gammas, _compute_concentrations, _residual_and_jacobian,
 )
-from .activity_models import make_activity_model
+from ..thermo import make_activity_model
 from .protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
 
 logger = logging.getLogger(__name__)
