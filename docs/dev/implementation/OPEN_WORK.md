@@ -324,3 +324,66 @@ silently drops out of I (a missed `NH4+` under-counted BSM2's I by about 25%).
 Bisection also ignores `CT_Cu`, `CT_Fe2` and `CT_MoO4`, which NR handles.
 Also open: whether the package root should keep re-exporting
 `ionic_strength_from_speciation`, which has no users in the repo besides tests.
+
+## ADM1 / BSM2 use a rounded gas constant (`_R_J = 8.31446`)
+
+Decided 2026-09-20 during the gas-constant unification in
+`chemical-equilibrium-engines-subfolder` (Decision 14): leave these copies alone
+and flag them here. `models/vlmodels/adm1/base.py:224`, `bsm2.py:328` and
+`bsm2_direct.py:272` each define `_R_J = 8.31446`, 3.2e-7 below
+`PyOMES.units.R_J_PER_MOL_K` (CODATA 8.31446261815324). It is used only for the
+van 't Hoff `Ka(T)` corrections of NH4+ and the acid–base pKa functions.
+
+Nothing in the files or the repo says whether the rounding is deliberate (for
+instance, to reproduce a published ADM1 or BSM2 specification), so it was not
+changed without knowing. What it costs: the ADM1/BSM2 models compute `Ka(T)` with
+a slightly different R from the engines, which take R from `units` via `thermo/`.
+The 2026-07-02 consolidation unified the same rounding in
+`chemistry/thermo_params.py` and `thermo/framework.py`, re-baselining the BSM2
+sentinels by about 1e-9 relative, which is the argument for doing the same here.
+
+To resolve: find out whether the benchmark specification fixes R. If it does, keep
+the value but replace the three bare literals with one commented, named constant.
+If it does not, import `R_J_PER_MOL_K`, re-baseline the BSM2 reference sentinels
+with a dated before/after comment, and remove the three matching entries from
+`_KNOWN_COPIES` in `tests/standalone/test_gas_constant_single_source.py`.
+
+## Sweep the package for each fundamental constant
+
+The gas-constant work (checkpoints 13 and 14 of
+`chemical-equilibrium-engines-subfolder`) established the pattern: one authoritative
+definition in `PyOMES/units.py`, everything else imports it, and a guard test fails
+on a new copy. It covers only R. The same sweep is needed for every other
+fundamental or reference constant, across the whole package and not just
+`core/`; the principle (owner, 2026-09-20) is that all of it should take such
+values from one place. Nothing under `core/` imports `units` today, and `units.py`
+defines only R (two units), `PA_PER_ATM` and the time factors.
+
+Survey of `PyOMES/` and `models/` (2026-09-20, number tokens matched by value, so
+comments and strings are excluded; every hit still needs reading, because a value
+that matches may be a fitted-formula coefficient and not the constant):
+
+| Constant | Literals | Files | In `core/` | Notes |
+|---|---|---|---|---|
+| 273.15 (0 °C in K) | 19 | 12 | 2 | `units.py` has no name for it |
+| 298.15 (25 °C in K, the standard-state reference) | 39 | 26 | 5 | Also appears as a default argument in many signatures; whether to centralise it is a design choice |
+| 101325 (Pa per atm) | 5 | 3 | 0 | `units.PA_PER_ATM` already exists and is not used |
+| 1.01325 (bar per atm) | 2 | 2 | 1 | no name in `units.py` |
+| 1e-14 (Kw at 25 °C) | 3 | 3 | 0 | may be reference data, not a constant |
+| 18.015 (molar mass of water) | 6 | 5 | 0 | overlaps with atomic-weight data in `chemistry/species.py` |
+| 55.5 (mol/L of water) | 2 | 2 | 0 | |
+| 9.81, 96485, k_B, N_A | 0 | 0 | 0 | not used as literals |
+
+Not yet surveyed: water density and other water properties, conversion factors such
+as 1000 L/m3, `ln(10)`, and the temperature-dependence coefficients of vapour
+pressure and Henry constants (these are data, not constants, and belong in
+`thermo/`, but should be checked for a second copy).
+
+Suggested approach, reusing the R guard: for each constant, define it once in
+`units.py` (derive dependent values from one literal, as R does), find copies by
+value with the number-token scan, read each hit, replace the true copies with
+imports, and extend `test_gas_constant_single_source.py` (renamed to cover
+constants generally) with a per-constant allowlist that shrinks to empty. Most of
+these are value-preserving, since every copy holds the same number; anything that
+is not (a copy with a rounded value, as R had) should be its own numerics-changing
+commit with a recorded before/after shift.

@@ -260,26 +260,35 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
 12. **Exactly one numeric literal for `R`.** `R_J_PER_MOL_K` stays the literal;
     `R_L_ATM_PER_MOL_K` becomes `R_J_PER_MOL_K / (PA_PER_ATM / L_PER_M3)`
     (`0.08205736608095968`, 3.9e-15 from today's root value), so the two can
-    never disagree. A unit test pins the relation. *Proposed.*
+    never disagree. A unit test pins the relation. *Confirmed by the owner,
+    2026-09-20.*
 13. **Rename, do not alias, `core.phases.R_L_ATM_MOL_K`.** Importers switch to
     `PyOMES.units.R_L_ATM_PER_MOL_K` (25 files, including 7 notebooks and both
     generators). This follows Decision 2 (no shims), and the two names
     (`..._MOL_K` vs `..._PER_MOL_K`) are themselves part of how the split
     happened. The alternative — keep `core.phases.R_L_ATM_MOL_K` as a
     re-export of the `units` value — is single-valued and far smaller, but
-    keeps two names. *Proposed: rename; say so at kickoff if you prefer the
-    smaller alias.*
-14. **The ADM1 / BSM2 `_R_J = 8.31446` copies are unified too**, with the BSM2
-    sentinels re-baselined and the before/after recorded, exactly as the
-    2026-07-02 consolidation did for `thermo_params.py` / `framework.py`.
-    **Needs your call:** these are benchmark-reference implementations, so if the
-    rounded value is deliberate (to match a published ADM1/BSM2 specification),
-    keep it and replace the bare literal with a commented, named constant instead.
+    keeps two names. *Confirmed by the owner, 2026-09-20: rename.* Nothing under
+    `core/` imported `units` before this, and no comment in `phases.py` explains
+    why it had its own value; the rename makes `core/` a consumer of the shared
+    constant, in line with the owner's principle that the whole package should
+    take fundamental constants from one place.
+14. **The ADM1 / BSM2 `_R_J = 8.31446` copies are left as they are, and flagged
+    in `OPEN_WORK.md`** (owner's decision, 2026-09-20), not unified. They are
+    benchmark-reference implementations, used only for van 't Hoff `Ka(T)`. No
+    comment says whether the rounded value is deliberate and the repo cites no
+    published value, so it is not changed without knowing. Consequences: the
+    three files keep their literal, so three entries stay in the guard test's
+    `_KNOWN_COPIES` with a comment saying why; ADM1 `Ka(T)` does not shift in
+    checkpoint 14; and those models keep computing `Ka(T)` with an R that
+    differs by 3.2e-7 from the one the engines use via `thermo/`. The
+    2026-07-02 consolidation did unify the same rounding in
+    `thermo_params.py` / `framework.py`, which is the argument for revisiting.
 15. **A guard test fails CI on any new `R` literal** outside `units.py`
     (a source scan of `PyOMES/` and `models/` for the gas-constant literal
     patterns, with an explicit allowlist). The allowlist is added in
     checkpoint 13 listing the known remaining copies, and emptied in
-    checkpoint 14.
+    checkpoint 14 except for the three ADM1 / BSM2 entries kept by Decision 14.
 16. **`api.py` and `factory.py` are deleted, not moved or generalised**
     (checkpoint 9b). Neither has any caller in the repo, the package has no
     outside users yet (so the exported names `SpeciationFactory` and
@@ -446,18 +455,19 @@ bit-identical and verifiable; Part D changes numbers)
 14. *Numerics-changing, own commit.* Derive `R_L_ATM_PER_MOL_K` from
     `R_J_PER_MOL_K` (Decision 12); repoint `core/phases.py` (rename per
     Decision 13, all 25 files), `partition.py`, `peng_robinson.py`,
-    `cv_loops.py`, `plots.py`, and — per Decision 14 — the three ADM1/BSM2
-    files; replace the test literals and the notebook literals
-    (`Example1_mtp_well.ipynb` `R_LA`, `Example2_batch_fermenter.ipynb`
-    `R_ATM`, and a code cell in `02_nr_engine_basics.ipynb`) with imports; empty
-    the guard allowlist. Expect: every
+    `cv_loops.py` (its `_R_L_ATM_PER_MOL_K`) and `plots.py`; the three ADM1/BSM2
+    files stay as they are (Decision 14); replace the test literals and the
+    notebook literals (`Example1_mtp_well.ipynb` `R_LA`,
+    `Example2_batch_fermenter.ipynb` `R_ATM`, and a code cell in
+    `02_nr_engine_basics.ipynb`) with imports; empty the guard allowlist except
+    for the three ADM1/BSM2 entries. Expect: every
     `p = nRT/V` shifts by about 4e-7 relative, and the BSM2 sentinels
     (`RTOL_SENTINEL = 1e-9`) and any test with a tight tolerance on a gas
     quantity will move. Before changing anything, record a fingerprint of
     gas-liquid results (partial pressures, gas moles, BSM2 final state); after,
     record the shift and re-baseline with a dated before/after comment in
     `test_bsm2_reference.py`, as the 2026-07-02 note does. The shift should
-    match the 4.1e-7 (or 3.2e-7 for ADM1 `Ka(T)`) prediction and nothing else.
+    match the 4.1e-7 prediction and nothing else. ADM1 `Ka(T)` must not move.
 15. Full suite green, then ship per the kickoff template.
 
 Each move checkpoint should be a `git mv` plus import rewrites only, so history

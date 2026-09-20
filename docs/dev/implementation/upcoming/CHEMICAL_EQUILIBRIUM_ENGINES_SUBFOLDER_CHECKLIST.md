@@ -719,13 +719,17 @@
       wrong when that name goes, so reword it then._
 - [ ] 14. _Numerics-changing, own commit._ Derive `R_L_ATM_PER_MOL_K` from
       `R_J_PER_MOL_K`; repoint `core/phases.py` (rename all 25 files, Decision
-      13), `partition.py`, `peng_robinson.py`, `cv_loops.py`, `plots.py`, the
-      three ADM1/BSM2 files (Decision 14 — **confirm keep-or-unify first**),
+      13), `partition.py`, `peng_robinson.py`, `cv_loops.py`, `plots.py`,
       test literals and the notebook literals (`Example1_mtp_well.ipynb` `R_LA`,
       `Example2_batch_fermenter.ipynb` `R_ATM`, `02_nr_engine_basics.ipynb`
-      cell literal); empty the guard allowlist. Record a gas-liquid + BSM2 fingerprint before, the shift after
-      (expect ~4.1e-7 relative on `nRT/V`, ~3.2e-7 on ADM1 `Ka(T)`), and
+      cell literal); empty the guard allowlist except the three ADM1/BSM2
+      entries. Record a gas-liquid + BSM2 fingerprint before, the shift after
+      (expect ~4.1e-7 relative on `nRT/V`; ADM1 `Ka(T)` must not move), and
       re-baseline sentinels with a dated before/after comment.
+      _Decisions confirmed 2026-09-20: 12 derive `R_L_ATM` from `R_J`; 13 rename
+      (no alias), so `core/` imports from `units`; 14 leave the ADM1/BSM2
+      `_R_J = 8.31446` copies and flag them in `OPEN_WORK.md`, so they are not in
+      this checkpoint's scope._
 - [ ] 15. Full suite green, then ship (see below).
 
 ### Checkpoint 1 inventory
