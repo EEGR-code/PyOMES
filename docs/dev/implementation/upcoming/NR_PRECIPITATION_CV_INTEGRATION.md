@@ -163,7 +163,9 @@ assessment use cases.
 
 ## How to start
 
-1. Confirm Phase 1 tag `nr-precipitation-speciation-shipped` exists on `main`.
+1. Confirm Phase 1 has shipped: [NR_PRECIPITATION_SPECIATION.md](../shipped/NR_PRECIPITATION_SPECIATION.md)
+   is in `shipped/`, and `NRChemicalEquilibriumEngine.solve()` returns a
+   `"minerals"` entry for precipitation problems.
 2. Create branch `nr-precipitation-cv-integration` off `main`.
 3. Work through the files in the order listed in *Files changed*.
 4. Run the full test suite (`pytest`) after each file.
