@@ -47,7 +47,7 @@
 
 ### Checkpoints
 
-- [ ] 1. Inventory every import site (`.py` and `.ipynb`, plus the two
+- [x] 1. Inventory every import site (`.py` and `.ipynb`, plus the two
       notebook generators' string templates and lazy in-function imports) of
       the modules being moved or deleted. Record counts in "Checkpoint 1
       inventory" below. Baseline: full test suite green.
@@ -114,7 +114,140 @@
 
 ### Checkpoint 1 inventory
 
-_Filled in when checkpoint 1 lands._
+Recorded 2026-09-20 from fresh searches over tracked `.py`, `.ipynb` and `.md`
+files (`scratch/` is gitignored and excluded; the plan doc and this checklist
+are excluded from the counts).
+
+**Baseline:** full suite (`python -m pytest -x`, configured `testpaths`,
+including `tests/validation/`) = **2066 passed, 0 failed, 0 skipped, 335
+warnings, 1m43s**. This is the number to compare against at checkpoint 13.
+
+**Absolute-path references** (`chemical_equilibrium.<module>` or `/<module>`),
+by module, excluding historical docs (occurrences / files):
+
+| Module | Occ. | Files | Fate |
+|---|---|---|---|
+| `nr_engine` | 73 | 32 | move (C8) |
+| `engine` | 35 | 22 | move (C9) |
+| `nr_tableau` | 16 | 4 | move (C8) |
+| `activity_models` | 12 | 8 | delete (A4) |
+| `phreeqc_engine` | 8 | 8 | move (C10) |
+| `nr_solver` | 6 | 4 | move (C8) |
+| `acid_base` | 4 | 2 | move (C9) |
+| `sit` | 2 | 1 | delete (A4) |
+| `strong_ions` | 1 | 1 | delete (B5) |
+| **Total** | **157** | | |
+
+By location (all matches, including the 11 in `docs/dev/ideas/`, which are
+left alone; `docs/dev/implementation/shipped/` has none):
+
+| Location | Occ. | Files |
+|---|---|---|
+| `PyOMES/chemical_equilibrium/` (docstrings and lazy imports, absolute form) | 16 | 6 |
+| Other `PyOMES/` packages (`reactions/`, `core/`, `chemistry/types.py`) | 12 | 7 |
+| `models/vlmodels/adm1/{base,bsm2}.py` | 2 | 2 |
+| `tests/standalone/` | 85 | 16 |
+| `tests/validation/**/test_*.py` | 5 | 3 |
+| `tests/validation/speciation/_generate_notebooks.py` (inside string templates) | 8 | 1 |
+| `tests/validation/speciation/*.ipynb` | 14 | 8 |
+| `docs/tutorials/ArXiv_preprint/_generate_notebooks.py` | 2 (string templates) | 1 |
+| `docs/tutorials/**/*.ipynb` | 5 | 4 |
+| Current docs (`OPEN_WORK.md`, `STRONG_ION_INFERENCE_GENERALIZATION.md`, `NR_PRECIPITATION_CV_INTEGRATION.md`) | 8 | 3 |
+| `docs/dev/ideas/` (historical, leave alone) | 11 | 4 |
+
+Location rows sum to 168 (157 non-historical + 11 in `docs/dev/ideas/`).
+
+**Relative imports inside `chemical_equilibrium/` that change:**
+
+- Moving files import staying files: `engine.py`, `nr_engine.py`,
+  `phreeqc_engine.py` → `.protocols`; `acid_base.py` → `.activity`. These gain
+  a dot after the move.
+- Moving files import each other: `engine.py` → `.acid_base`;
+  `nr_engine.py` → `.nr_tableau`, `.nr_solver`; `nr_solver.py` → `.nr_tableau`.
+  The engines do not import each other (only docstrings mention the other
+  engines' paths), confirming the plan's audit.
+- Staying files import moving files: `__init__.py` (`.engine`, `.acid_base`),
+  `api.py` (`.engine`), `factory.py` (`.engine`).
+- Parent-relative imports inside moving files gain a dot (`..` → `...`):
+  `nr_tableau.py:44` (`..units`) and lazy `nr_tableau.py:435`
+  (`..reactions.equilibrium`); `nr_solver.py:49` (`..core.phases`);
+  lazy `engine.py:202-203` (`..chemistry.equilibria`, `..reactions.equilibrium`);
+  lazy `nr_engine.py:238` (`..reactions.equilibrium`).
+- Part A files: `activity.py:13`, `acid_base.py:42,921`, `engine.py:44`,
+  `nr_engine.py:45` import `.activity_models`; `__init__.py:7` re-exports its
+  aliases. Nothing imports `.sit`.
+
+**External lazy / relative imports** (only fail when executed):
+`reactions/reaction_system.py:268` (`..chemical_equilibrium.nr_engine`) and
+`:280` (`..chemical_equilibrium.engine`); `reactions/equilibrium.py:18,281,283`,
+`reactions/_shared.py:173`, `reactions/__init__.py:12`,
+`core/gas_liquid_link.py:928,958` (`acid_base`), `core/property_calculator.py:17`,
+`chemistry/types.py:33` (mostly docstring/comment mentions — check each at C11/C12).
+`core/solvers.py:653` imports `..chemical_equilibrium.protocols`, which stays.
+
+**Package-level imports** (`from PyOMES.chemical_equilibrium import ...`):
+only `ChemicalEquilibriumEngine` and `BisectionChemicalEquilibriumEngine`
+(2 test files). Both stay exported. Nothing imports `IdealActivityModel`,
+`DaviesActivityModel` or `strong_ions_from_feed_molL` from the package root.
+
+**Part A claims re-verified:**
+
+- `davies_log10_gamma` / `davies_gamma`: only the two definitions and one
+  self-call in `activity.py`; zero hits anywhere else in `.py`, `.ipynb`, `.md`.
+- `SITActivityModel`: only `sit.py` and one test. Nothing in the package imports
+  `sit.py`.
+- `DaviesActivityModel` importers: `tests/validation/speciation/_generate_notebooks.py`
+  (lines 768, 1136), `test_saturation_index.py:26`, notebooks `03`, `04`, `05`
+  (import line + usage each), `test_liquid_phase_model.py:182`. Prose-only
+  mentions (no import): notebook `06_phreeqc_benchmark.ipynb` (lines 45 and 130),
+  generator line 1543, `acid_base.py` comments (lines 249, 255).
+- `make_activity_model` users: `engine.py:44,306`, `nr_engine.py:45,366,965`,
+  `acid_base.py:921`, `test_nr_tableau_gas_liquid.py:379`,
+  `test_liquid_phase_model.py:186,265`, `OPEN_WORK.md`. `ActivityModel`
+  protocol: `acid_base.py:42,202,870` (type hints), docstring in `nr_solver.py:374`.
+- Water-property re-exports from `activity_models`: only `activity.py:13` in
+  the package, plus one test (see below).
+
+**Part B claims re-verified:** `strong_ions_from_feed_molL` /
+`chemical_equilibrium.strong_ions` appear in `strong_ions.py`, `__init__.py`
+(import + `__all__`), `test_strong_ions.py` (9 uses), and the comment at
+`chemistry/registry.py:148`. **Zero hits in any `.ipynb`.**
+`SALT_DISSOCIATION_MAP` is used only by `strong_ions.py:16,78`, defined at
+`registry.py:117` and exported from `chemistry/__init__.py` (stays, Decision 8).
+
+**Discrepancies from the plan doc (none block the phase; decisions needed at
+the noted checkpoint):**
+
+1. **`test_liquid_phase_model.py` has four shim-only tests, not two**, plus two
+   factory tests: `test_davies_activity_model_alias` (l.181),
+   `test_water_helpers_still_importable_from_speciation` (l.190),
+   `test_sit_activity_model_alias` (l.260),
+   `test_sit_epsilon_importable_from_speciation` (l.270); factory tests
+   `test_make_activity_model_returns_davies_liquid_model` (l.185) and
+   `test_make_activity_model_returns_sit` (l.264). The plan names only "two
+   alias tests" and "the factory test". Proposal for C4: delete the two alias
+   tests and the water-helpers test (pure re-export checks); repoint the SIT
+   epsilon test to `PyOMES.thermo.sit_liquid_model`; repoint both factory tests.
+2. **`sit.py` also re-exports `SIT_EPSILON`, `ION_CHARGES`, `_get_epsilon`**
+   (the plan mentions only `SITLiquidModel` and the alias). Only the test above
+   uses them; canonical definitions are in `thermo/sit_liquid_model.py`.
+3. **A third van 't Hoff function exists:** `reactions/equilibrium.py:92`
+   `vant_hoff_log_K(constraint, T_K)` (tested in `test_equilibrium_constraint.py`).
+   Decision 3 names only `_vant_hoff_K` (`acid_base.py`, 9 call sites) and
+   `_vant_hoff_log_K` (`nr_tableau.py`, 5 call sites, plus `nr_engine.py:651`).
+   Check at C7 whether the third is the same maths; whether to fold it in is
+   a decision for you.
+4. **Current docs citing moved paths beyond the plan's C12 list:**
+   `STRONG_ION_INFERENCE_GENERALIZATION.md` (~17 `nr_engine.py` / `nr_solver.py` /
+   `engine.py` references with line numbers), `NR_PRECIPITATION_CV_INTEGRATION.md:144`,
+   `upcoming/README.md:60,62`, `adm1/base.py:1048` comment,
+   `protocols.py:72-73`, `thermo/liquid_phase_model.py:53`, `nr_tableau.py:117`,
+   `nr_engine.py:85` comments, `01_bisection_engine_basics.ipynb:130` ("see the
+   list in `engine.py`"), and `docs/architecture.md:391-394` (also lists the stale
+   `speciation/` folder name). Plan cites `OPEN_WORK.md` and `architecture.md` only.
+5. Plan says the lazy import is at `nr_tableau.py:435`; that line is
+   `from ..reactions.equilibrium import`, correct as a lazy relative import
+   that needs `...` after the move (line 410 is a docstring path).
 
 ## Shipping
 
