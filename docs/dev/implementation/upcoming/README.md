@@ -12,6 +12,12 @@ currently being worked on. Each phase lives on its own feature branch (see
 [How to start one](#how-to-start-one)), so list the active ones with
 `git branch -a`.
 
+**History below the design notes.** Most sections after "Design discussions"
+("Recently shipped", the "Recently surfaced" sections, "Priority order")
+record work that has already shipped and are kept for context. The sections
+that still describe open work are "Open phases" and the pending stages in
+"Solver interface refinement".
+
 ## Design discussions (pre-phase, not yet a checklist)
 
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
@@ -110,6 +116,14 @@ currently being worked on. Each phase lives on its own feature branch (see
   (signature, `partition_model` optionality, `KineticGasLiquidLink`'s
   role, `EquilibriumTransferModel` parity, regression scope); no branch,
   no checklist, no code yet.
+- **[DEMO_RECORDERS.md](DEMO_RECORDERS.md)** — planned after `run-history`
+  shipped (2026-06-08). A short demo script comparing the four recorder
+  variants (`BatchRecorder`, `StreamingFileRecorder`, `SparseRecorder`,
+  `SummaryRecorder`) on the same simulation. Small and non-blocking — the
+  trigger is a real model exercising the recorders, or a user asking for an
+  example. Its proposed location, `demos/model_api/recorder_comparison.py`,
+  no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
+  likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 
 ## Recently shipped
 
@@ -290,11 +304,13 @@ branches shipped, followed by the trigger-gated `chemistry-unification-3b`
   Tag `partition-model-shipped`. See
   [../shipped/PARTITION_MODEL.md](../shipped/PARTITION_MODEL.md).
 
-## Priority order
+## Priority order (historical — all shipped)
 
 > All phases listed below have now shipped. The priority list is
 > preserved as a history of scope decisions and trigger rationale.
-> See [OPEN_WORK.md](../OPEN_WORK.md) for currently open items.
+> For work that is still open, see "Design discussions" and "Open phases"
+> in this file, and [OPEN_WORK.md](../OPEN_WORK.md) for smaller follow-up
+> items not yet scoped as phases.
 
 1. **[../shipped/CHEMISTRY_UNIFICATION.md](../shipped/CHEMISTRY_UNIFICATION.md)** (design)
    + **[../shipped/CHEMISTRY_UNIFICATION_PLAN.md](../shipped/CHEMISTRY_UNIFICATION_PLAN.md)**
@@ -414,34 +430,9 @@ design (Phases A–E) — not the SUNDIALS/DAE Phase F/G track.
   decisions (e.g. the checkpoint 4/7b split) relevant to Stages 2–4 still
   to come.
 
-## Upcoming phases
+## Recently surfaced (2026-07-01 Layer 1 gap closure)
 
-### NR Precipitation (two-phase sequence, Phase 1 shipped)
-
-Design discussion 2026-06-23. Active-set precipitation equilibrium built on top
-of the NR speciation engine shipped in `nr-speciation-engine`.
-
-- **[NR_PRECIPITATION_SPECIATION.md](../shipped/NR_PRECIPITATION_SPECIATION.md)** —
-  Phase 1: **shipped 2026-06-23**. Speciation layer only. Outer active-set loop in
-  `NRChemicalEquilibriumEngine.solve()`; `precipitation_equilibria` bucket on
-  `ReactionSystem`; `element_stoichiometry` cross-component mass balance fix;
-  `"minerals"` key in output dict; `Ca_plus_plus` / `Mg_plus_plus` in
-  `common_species`; `05_precipitation_equilibrium.ipynb` demo. No CV changes.
-
-- **[NR_PRECIPITATION_CV_INTEGRATION.md](NR_PRECIPITATION_CV_INTEGRATION.md)** —
-  Phase 2: CV/SolidPhase integration. `_read_from_phases` sums solid
-  contribution; `SolidPhase` writeback; consistent phase-type validation across
-  all three phase types on `ControlVolume`. Phase 1 has shipped, so this is
-  unblocked; not yet started.
-
-- **[MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md](MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md)** —
-  a separate, standalone-by-design track (Fe/Ca/phosphate/citrate networks
-  `NRTableau` can't represent). **Partial skeleton, stalled 2026-06-29** —
-  see the status banner at the top of that doc; committed directly to `main`
-  without a branch or checklist, only one of seven modules tested. Not part
-  of the two-phase NR Precipitation sequence above.
-
-### Layer 1 gap closure (two-phase sequence)
+Both phases shipped 2026-07-02/03; docs moved to `shipped/`.
 
 Design discussion 2026-07-01 (see `MASS_EXCHANGE_ARCHITECTURE.md` §14 and
 `CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md` §3/§18). Folds gas-liquid VLE
@@ -474,6 +465,33 @@ without changing any of their shipped/planned numerics.
   effect); closes with the `SpeciationEngine` → `ChemicalEquilibriumEngine`
   rename, plus the `src/speciation/` → `src/chemical_equilibrium/` module
   rename (§18's own deferred decision, executed at this phase's close).
+
+## Open phases
+
+### NR Precipitation (two-phase sequence, Phase 1 shipped)
+
+Design discussion 2026-06-23. Active-set precipitation equilibrium built on top
+of the NR speciation engine shipped in `nr-speciation-engine`.
+
+- **[NR_PRECIPITATION_SPECIATION.md](../shipped/NR_PRECIPITATION_SPECIATION.md)** —
+  Phase 1: **shipped 2026-06-23**. Speciation layer only. Outer active-set loop in
+  `NRChemicalEquilibriumEngine.solve()`; `precipitation_equilibria` bucket on
+  `ReactionSystem`; `element_stoichiometry` cross-component mass balance fix;
+  `"minerals"` key in output dict; `Ca_plus_plus` / `Mg_plus_plus` in
+  `common_species`; `05_precipitation_equilibrium.ipynb` demo. No CV changes.
+
+- **[NR_PRECIPITATION_CV_INTEGRATION.md](NR_PRECIPITATION_CV_INTEGRATION.md)** —
+  Phase 2: CV/SolidPhase integration. `_read_from_phases` sums solid
+  contribution; `SolidPhase` writeback; consistent phase-type validation across
+  all three phase types on `ControlVolume`. Phase 1 has shipped, so this is
+  unblocked; not yet started.
+
+- **[MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md](MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md)** —
+  a separate, standalone-by-design track (Fe/Ca/phosphate/citrate networks
+  `NRTableau` can't represent). **Partial skeleton, stalled 2026-06-29** —
+  see the status banner at the top of that doc; committed directly to `main`
+  without a branch or checklist, only one of seven modules tested. Not part
+  of the two-phase NR Precipitation sequence above.
 
 ---
 

@@ -2,7 +2,7 @@
 
 Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
-[`upcoming/README.md`](upcoming/README.md)'s "Priority order" section.
+[`upcoming/README.md`](upcoming/README.md).
 
 ## `docs/architecture.md` still describes deleted CUFermenter-era code
 
