@@ -5,7 +5,7 @@
 >
 > **Depends on nothing shipped.** Extends the constraint-family taxonomy
 > already on record in
-> [`MASS_EXCHANGE_ARCHITECTURE.md`](../design/MASS_EXCHANGE_ARCHITECTURE.md)
+> [`MASS_EXCHANGE_ARCHITECTURE.md`](../../ideas/MASS_EXCHANGE_ARCHITECTURE.md)
 > §14.
 >
 > **Followed by:**
@@ -50,7 +50,7 @@ actually determines the solver path rather than crossing it:
 - **`EquilibriumPhenomena` is already substantially real.**
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium` already
   dual-satisfy `EquilibriumConstraint` and `PartitionModel` today
-  ([`partition.py:221-253`](../../src/chemistry/partition.py)), and
+  ([`partition.py:221-253`](../../../../PyOMES/chemistry/partition.py)), and
   `LAYER1_GAP_CLOSURE` already folds gas-liquid equilibrium rows into the
   *same* simultaneous Newton solve as acid-base equilibria — genuine
   solver-level convergence, not just a naming coincidence.
@@ -59,7 +59,7 @@ actually determines the solver path rather than crossing it:
   `SimultaneousEulerSolver`/`SimultaneousAdaptiveSolver` already evaluate
   kinetic reactions and kinetic `PhaseInterface` transfer from one frozen
   snapshot into one combined RHS
-  ([`solvers.py:756-799`](../../src/core/solvers.py)) — the kinetic-side
+  ([`solvers.py:756-799`](../../../../PyOMES/core/solvers.py)) — the kinetic-side
   analog of `LAYER1_GAP_CLOSURE`.
 
 Conclusion: a three-tier `Phenomena → {EquilibriumPhenomena,
@@ -91,7 +91,7 @@ else sensible to live without either duplicating `PhenomenaSystem`'s job on
 
 Today, reaction-like declarations are bucketed by `ReactionSystem` via
 `isinstance` at construction
-([`reaction_system.py:139-143`](../../src/reactions/reaction_system.py)):
+([`reaction_system.py:139-143`](../../../../PyOMES/reactions/reaction_system.py)):
 `KineticReaction`, `BlackBoxReactionModel`, and an `EquilibriumConstraint`-
 satisfying bucket (`EquilibriumReaction` and its
 `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium` siblings). None of
@@ -231,11 +231,11 @@ pass that would benefit from a named, diagrammable taxonomy rather than
 
 ## Cross-references
 
-- [`MASS_EXCHANGE_ARCHITECTURE.md`](../design/MASS_EXCHANGE_ARCHITECTURE.md)
+- [`MASS_EXCHANGE_ARCHITECTURE.md`](../../ideas/MASS_EXCHANGE_ARCHITECTURE.md)
   §14 (constraint-family taxonomy and folding limits — the direct ancestor
   of this note), §14.1 (two constraint families), §14.2 (the litmus test
   this note's admission criterion is restated from).
-- [`SPECIATION_REACTIONMODEL_BOUNDARY.md`](../design/SPECIATION_REACTIONMODEL_BOUNDARY.md)
+- [`SPECIATION_REACTIONMODEL_BOUNDARY.md`](../../ideas/SPECIATION_REACTIONMODEL_BOUNDARY.md)
   — the differential/algebraic split rationale for why `KineticReaction`
   and equilibrium constraints were never unified in the first place.
 - [`../shipped/EQUILIBRIUM_CONSTRAINT_UNIFICATION.md`](../shipped/EQUILIBRIUM_CONSTRAINT_UNIFICATION.md)
@@ -249,16 +249,16 @@ pass that would benefit from a named, diagrammable taxonomy rather than
 - [`RESERVOIR_TYPE.md`](RESERVOIR_TYPE.md) — sibling design discussion,
   same session, same underlying question applied to the transport-topology
   protocols instead.
-- [`src/reactions/equilibrium.py`](../../src/reactions/equilibrium.py) —
+- [`PyOMES/reactions/equilibrium.py`](../../../../PyOMES/reactions/equilibrium.py) —
   `EquilibriumConstraint` protocol.
-- [`src/reactions/kinetic.py`](../../src/reactions/kinetic.py) —
+- [`PyOMES/reactions/kinetic.py`](../../../../PyOMES/reactions/kinetic.py) —
   `KineticReaction`, today's only real `KineticPhenomena`-shaped object.
-- [`src/reactions/reaction_system.py`](../../src/reactions/reaction_system.py)
+- [`PyOMES/reactions/reaction_system.py`](../../../../PyOMES/reactions/reaction_system.py)
   — the `isinstance`-based bucketing this note's taxonomy would sit
   alongside (not necessarily replace).
-- [`src/chemistry/partition.py`](../../src/chemistry/partition.py) —
+- [`PyOMES/chemistry/partition.py`](../../../../PyOMES/chemistry/partition.py) —
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium`'s dual
   `EquilibriumConstraint`/`PartitionModel` satisfaction.
-- [`src/core/solvers.py`](../../src/core/solvers.py) —
+- [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py) —
   `SimultaneousAdaptiveSolver`'s combined-RHS closure, the kinetic-side
   convergence evidence.

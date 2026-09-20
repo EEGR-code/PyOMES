@@ -1,9 +1,20 @@
 # Multi-component complexation and precipitation: implementation plan
 
+> **Shelved 2026-09-20.** Deliberately paused, not abandoned. Reason: no
+> current modelling need for it, nothing else in the package depends on the
+> skeleton, and integration is gated on a full acceptance suite that has not
+> been started. The skeleton stays in place (inert and opt-in).
+> **Resume when** a concrete model needs coupled multi-metal / citrate /
+> phosphate speciation that `NRTableau` cannot represent (e.g. the
+> growth-medium chemistry behind notebook 08). Its Phase 3 overlaps
+> [`NR_PRECIPITATION_CV_INTEGRATION.md`](NR_PRECIPITATION_CV_INTEGRATION.md),
+> so design the two together. The status block below records what exists and
+> how to pick it up.
+>
 > **Status: partial skeleton, stalled 2026-06-29.** Commit `23e0cb0`
 > ("feat: MULTICOMPONENT_COMPLEXATION — standalone multi-component
 > speciation pathway") added
-> [`src/chemical_equilibrium/multicomponent/`](../../src/chemical_equilibrium/multicomponent/)
+> [`PyOMES/chemical_equilibrium/multicomponent/`](../../../../PyOMES/chemical_equilibrium/multicomponent/)
 > — `components.py`, `reactions.py`, `tableau.py`, `network.py`,
 > `inventory.py`, `solver.py`, `residuals.py` (353 lines total) —
 > **directly to `main`**, bypassing this repo's one-branch-per-phase
@@ -13,8 +24,9 @@
 > modules are untested. No `MultiComponentEquilibriumEngine` facade
 > class exists yet (the entry point this plan proposes below). No
 > checklist file was ever written for this work. Notebook 08
-> (`08_iron_oxidation_and_precipitation.ipynb`, referenced throughout
-> this plan as the acceptance target) was not touched by that commit —
+> (`tests/validation/speciation/08_iron_oxidation_and_precipitation.ipynb`,
+> referenced throughout this plan as the acceptance target) was not touched
+> by that commit —
 > `05_precipitation_equilibrium.ipynb` was updated instead.
 >
 > Discovered and documented 2026-07-09 during a scoping review of
@@ -84,7 +96,7 @@ inside a kinetic `ControlVolume` therefore risks apparent mass loss.
 Create a new package, for example:
 
 ```text
-src/chemical_equilibrium/multicomponent/
+PyOMES/chemical_equilibrium/multicomponent/
     __init__.py
     components.py
     tableau.py
@@ -96,7 +108,7 @@ src/chemical_equilibrium/multicomponent/
 Suggested public entry point:
 
 ```python
-from VLsim.chemical_equilibrium.multicomponent import MultiComponentEquilibriumEngine
+from PyOMES.chemical_equilibrium.multicomponent import MultiComponentEquilibriumEngine
 ```
 
 The new engine must not be constructed by `ReactionSystem.engine`.  Notebook 08

@@ -4,7 +4,7 @@
 > on branch `step-solver-interface-refinement`, tag
 > `step-solver-interface-refinement-shipped`. Working checklist for
 > that branch (Stage 1 of
-> [STEP_SOLVER_REFINEMENT_PLAN.md](STEP_SOLVER_REFINEMENT_PLAN.md)).
+> [STEP_SOLVER_REFINEMENT_PLAN.md](../upcoming/STEP_SOLVER_REFINEMENT_PLAN.md)).
 > Conceptual framing is in
 > [`../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md`](../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)
 > (items 1, 2, 3, 4, 6, 7, 8, 9 — item 5 explicitly deferred, item 10
@@ -112,17 +112,17 @@ passes at 1950/0 before any new edits.
 
 ### 1. Reify `SequentialAdvanceSolver`
 
-- [x] [`src/core/solvers.py`](../../src/core/solvers.py) — new class
+- [x] [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py) — new class
       `SequentialAdvanceSolver` implementing `StepSolver`. Moved the
       inline body of `ControlVolume.advance()` (former lines 601–670)
       into `solve_step(self, cv, dt_h, t_h=0.0, external_source_terms=None)`
       verbatim, renaming `self.<attr>` → `cv.<attr>` throughout.
-- [x] [`src/core/control_volume.py`](../../src/core/control_volume.py)
+- [x] [`PyOMES/core/control_volume.py`](../../../../PyOMES/core/control_volume.py)
       `advance()` — replaced the dispatch/inline-body fallback with
       `solver = solver if solver is not None else SequentialAdvanceSolver()`
       followed by one unconditional `solver.solve_step(...)` call.
       Docstring updated to stop describing a separate inline path.
-- [x] [`src/core/__init__.py`](../../src/core/__init__.py) — export
+- [x] [`PyOMES/core/__init__.py`](../../../../PyOMES/core/__init__.py) — export
       `SequentialAdvanceSolver` alongside `SimultaneousEulerSolver` /
       `SimultaneousAdaptiveSolver`. **Correction versus the plan:**
       top-level `src/__init__.py` (the `VLsim` package) does not
@@ -142,7 +142,7 @@ identical `n_mol` state and `reaction_sources`. Full suite:
 
 ### 2. Ownership guard on `cv.advance()` + fix internal call sites — done
 
-- [x] [`src/core/control_volume.py`](../../src/core/control_volume.py)
+- [x] [`PyOMES/core/control_volume.py`](../../../../PyOMES/core/control_volume.py)
       — added `class OrchestrationWarning(UserWarning)` (module level,
       next to `ControlVolume`). Split `advance()` into a thin public
       wrapper (checks `self._context is not None`, warns with
@@ -151,19 +151,19 @@ identical `n_mol` state and `reaction_sources`. Full suite:
       external_source_terms=None, solver=None)` holding the dispatch
       logic from checkpoint 1.
 - [x] Updated all four internal callers to bypass the guard:
-      - [`src/core/simulation.py:859`](../../src/core/simulation.py#L859)
+      - [`PyOMES/core/simulation.py:859`](../../../../PyOMES/core/simulation.py#L859)
         (`Simulation._step_default`)
-      - [`src/core/system_solver.py:245`](../../src/core/system_solver.py#L245)
+      - [`PyOMES/core/system_solver.py:245`](../../../../PyOMES/core/system_solver.py#L245)
         (`StrangSplittingSystemSolver.advance_system`)
-      - [`src/core/system_solver.py:350`](../../src/core/system_solver.py#L350)
+      - [`PyOMES/core/system_solver.py:350`](../../../../PyOMES/core/system_solver.py#L350)
         (`MultirateSystemSolver.advance_system`)
-      - [`src/core/system_solver.py:563`](../../src/core/system_solver.py#L563)
+      - [`PyOMES/core/system_solver.py:563`](../../../../PyOMES/core/system_solver.py#L563)
         (`ImplicitTransportSystemSolver.advance_system`)
 
       All four now call `cv._advance_unchecked(dt_h, t_h, solver=solver)`.
       `MonolithicODESolver` needed no change — confirmed it never calls
       `cv.advance()` at all.
-- [x] [`src/core/__init__.py`](../../src/core/__init__.py) — exported
+- [x] [`PyOMES/core/__init__.py`](../../../../PyOMES/core/__init__.py) — exported
       `OrchestrationWarning`. **Correction versus the plan** (same as
       checkpoint 1): not exported from top-level `src/__init__.py` —
       that package doesn't re-export anything from `core/`.
@@ -180,7 +180,7 @@ Monolithic) on a 2-CV linked simulation emits **zero**
 
 ### 3. `MonolithicODESolver` validates per-CV `solver=` — done
 
-- [x] [`src/core/system_solver.py`](../../src/core/system_solver.py)
+- [x] [`PyOMES/core/system_solver.py`](../../../../PyOMES/core/system_solver.py)
       `MonolithicODESolver.advance_system()` — raises `ValueError` at
       entry if `sim.solver is not None`. **Decision made:** checked at
       `advance_system()` entry, not at construction/setter time —
@@ -202,7 +202,7 @@ Full suite: 1955 → 1959 passed, 27 skipped, 0 failed.
 
 ### 4. Generalize off the gas/liquid assumption — `SimultaneousEulerSolver` done, `SimultaneousAdaptiveSolver` paused (see below)
 
-- [x] [`src/core/solvers.py`](../../src/core/solvers.py)
+- [x] [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py)
       `SimultaneousEulerSolver` — replaced the `raise ValueError` guard
       requiring exactly `{"gas", "liquid"}` with a narrower check that
       only `"liquid"` must be present (speciation/reactions are
@@ -286,7 +286,7 @@ checkpoint 7b below, inserted after checkpoint 7 in this file.
 ### 5. Shared clamp module
 
 - [ ] **Before writing code:** confirm scope against
-      [`src/core/phases.py`](../../src/core/phases.py)'s `apply_flux`
+      [`PyOMES/core/phases.py`](../../../../PyOMES/core/phases.py)'s `apply_flux`
       (lines ~262/419/517 on `GasPhase`/`LiquidPhase`/`SolidPhase`) —
       each already has its own unconditional `max(0.0, current + rate
       * dt)` floor baked into the Phase method itself, used by *every*
@@ -310,7 +310,7 @@ checkpoint 7b below, inserted after checkpoint 7 in this file.
       zero"), so the default configuration is byte-identical to
       pre-checkpoint-5, confirmed by the full suite still passing
       unchanged (see below).
-- [x] New module [`src/core/clamping.py`](../../src/core/clamping.py) —
+- [x] New module [`PyOMES/core/clamping.py`](../../../../PyOMES/core/clamping.py) —
       `proportional_clamp` (moved verbatim from `solvers.py`'s
       `_clamp_deltas`, now deleted), `floor_clamp` (new, with an `eps`
       parameter for reference models that floor at a small epsilon
@@ -386,12 +386,12 @@ design). Full suite: 1973 → 1985 passed, 27 skipped, 0 failed.
 
 ### 7. Unify state-vector packing — `system_solver.py` pair done, `_StateVector` folded into checkpoint 7b
 
-- [x] New module [`src/core/state_vector.py`](../../src/core/state_vector.py)
+- [x] New module [`PyOMES/core/state_vector.py`](../../../../PyOMES/core/state_vector.py)
       — `StateVector` class with `pack()`/`unpack(y, floor=False)`/
       `index_map`. Parameters: `cvs` (dict, scope), `exclude_species`
       (frozenset, default empty), `ctrl_list` (optional controller
       differential-state extension).
-- [x] [`src/core/system_solver.py`](../../src/core/system_solver.py) —
+- [x] [`PyOMES/core/system_solver.py`](../../../../PyOMES/core/system_solver.py) —
       `_pack_state`/`_unpack_state`/`_state_index_map`/
       `_pack_extended_state`/`_unpack_extended_state` are now thin
       wrapper functions delegating to `StateVector` internally, **kept
@@ -438,7 +438,7 @@ Deferred from checkpoint 4 (2026-07-06 decision) to run after
 checkpoint 7 so this uses the unified `state_vector.py` instead of
 hand-rolling a second, throwaway generalization of `_StateVector`.
 
-- [x] [`src/core/solvers.py`](../../src/core/solvers.py)
+- [x] [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py)
       `SimultaneousAdaptiveSolver.solve_step()` — replaced the
       `{"gas", "liquid"}` `ValueError` guard with the same `"liquid"`-only
       requirement `SimultaneousEulerSolver` has.
@@ -512,9 +512,10 @@ new `floor_nonnegative` unit tests in `test_clamping.py`. Full suite:
       convention). **Corrected post-ship** (2026-07-08, at user request)
       to an actual notebook — the checklist item's own title always
       said "notebook" — at
-      [`demos/features/SolverProtocols/01_writing_a_custom_solver.ipynb`](../../demos/features/SolverProtocols/01_writing_a_custom_solver.ipynb),
+      [`docs/tutorials/protocols/SolverProtocols/01_writing_a_custom_solver.ipynb`](../../../tutorials/protocols/SolverProtocols/01_writing_a_custom_solver.ipynb)
+      (moved from `demos/features/` by `tutorials-reorg`),
       generated from
-      [`demos/features/SolverProtocols/_generate_notebooks.py`](../../demos/features/SolverProtocols/_generate_notebooks.py)
+      `demos/features/SolverProtocols/_generate_notebooks.py` (since deleted)
       following the `demos/features/ChemicalEquilibriumProtocol/`
       generation-script convention (`nb()`/`md()`/`code()` helpers,
       executed via `jupyter nbconvert --execute` under the `biosteam`
@@ -523,7 +524,7 @@ new `floor_nonnegative` unit tests in `test_clamping.py`. Full suite:
       duplicate notebook; `docs/solvers.md`'s cross-reference updated
       to point at the notebook. **Expanded further** (same day, second
       user request) with a companion
-      [`0_README.ipynb`](../../demos/features/SolverProtocols/0_README.ipynb)
+      [`0_README.ipynb`](../../../tutorials/protocols/SolverProtocols/0_README.ipynb)
       architecture-overview notebook (pure markdown, condensed from
       `docs/solvers.md`) — matching `ChemicalEquilibriumProtocol`'s
       `0_README.ipynb` + numbered-notebook shape — and the walkthrough
@@ -565,7 +566,7 @@ own precedent (none of them have one either).
 
 ### 9. Documentation + ship
 
-- [x] [`docs/solvers.md`](../../docs/solvers.md) — documented
+- [x] [`docs/solvers.md`](../../../solvers.md) — documented
       `SequentialAdvanceSolver`, `clamp_fn=`, `OrchestrationWarning`,
       the gas/liquid generalization, added the missing Axis-2 section
       this doc had never had, and added a new Clamping section
@@ -590,9 +591,9 @@ own precedent (none of them have one either).
       `SOLVER_ARCHITECTURE.md` (which lives in `docs/design/`, not
       this file's directory, in either its old or new location) while
       touching the file's cross-references for the move.
-- [x] [`docs/upcoming/STEP_SOLVER_REFINEMENT_PLAN.md`](STEP_SOLVER_REFINEMENT_PLAN.md) —
+- [x] [`docs/upcoming/STEP_SOLVER_REFINEMENT_PLAN.md`](../upcoming/STEP_SOLVER_REFINEMENT_PLAN.md) —
       Stage 1 marked shipped; Stages 2–4 left in place (still pending).
-- [x] [`docs/upcoming/README.md`](README.md) — replaced the
+- [x] [`docs/upcoming/README.md`](../upcoming/README.md) — replaced the
       "Recently surfaced" entry with a "Solver interface refinement"
       section reflecting Stage 1 shipped / Stages 2–4 pending; added a
       `step-solver-interface-refinement` entry to "Recently shipped".

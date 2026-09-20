@@ -14,7 +14,7 @@
 >
 > **Depends on nothing shipped.** Extends the open unification question
 > already on record in
-> [`MASS_EXCHANGE_ARCHITECTURE.md`](../design/MASS_EXCHANGE_ARCHITECTURE.md)
+> [`MASS_EXCHANGE_ARCHITECTURE.md`](../../ideas/MASS_EXCHANGE_ARCHITECTURE.md)
 > §7 and §12 Q1.
 >
 > **Explicitly not resolved here:** how `PartitionModel` relates to
@@ -27,15 +27,15 @@
 
 ## 1. Background — the three protocols as they exist today
 
-`VLsim` has three transport-domain protocols, all returning a
+`PyOMES` has three transport-domain protocols, all returning a
 `{species_id: flux_mol_per_h}` dict, differing only in the topology of their
 two endpoints (`MASS_EXCHANGE_ARCHITECTURE.md` §2's Axis 2):
 
 | Protocol | Endpoints | Both sides tracked? | Method | Wired at |
 |---|---|---|---|---|
-| [`PhaseInterface`](../../src/core/interfaces.py) | two phases, same CV | Yes | `compute_flux(state_a: Phase, state_b: Phase, dt_h)` | inside `cv.advance()`, step 4 |
-| [`CVLink`](../../src/core/links.py) | two phases, different CVs | Yes | `compute_flow(cvs: Dict[str, ControlVolume], dt_h)` | `Simulation._apply_links()`, before any CV advances |
-| [`ExternalBoundary`](../../src/core/boundaries.py) | one phase, CV ↔ outside the model | **No** — only one side exists | `compute_flux(cv: ControlVolume, dt_h)` | inside `cv.advance()`, step 2b |
+| [`PhaseInterface`](../../../../PyOMES/core/interfaces.py) | two phases, same CV | Yes | `compute_flux(state_a: Phase, state_b: Phase, dt_h)` | inside `cv.advance()`, step 4 |
+| [`CVLink`](../../../../PyOMES/core/links.py) | two phases, different CVs | Yes | `compute_flow(cvs: Dict[str, ControlVolume], dt_h)` | `Simulation._apply_links()`, before any CV advances |
+| [`ExternalBoundary`](../../../../PyOMES/core/boundaries.py) | one phase, CV ↔ outside the model | **No** — only one side exists | `compute_flux(cv: ControlVolume, dt_h)` | inside `cv.advance()`, step 2b |
 
 `PhaseInterface` and `CVLink` are symmetric and mass-conserving — a source
 loses exactly what a sink gains, and this is checked
@@ -45,7 +45,7 @@ outright:
 
 > "The distinction is physically meaningful: internal transfers conserve the
 > CV's total inventory, while external fluxes intentionally change it."
-> ([`boundaries.py:10-11`](../../src/core/boundaries.py))
+> ([`boundaries.py:10-11`](../../../../PyOMES/core/boundaries.py))
 
 The question that opened this discussion: does it make sense to unify all
 three under one conceptual type (`FlowBoundary` or similar)?
@@ -91,7 +91,7 @@ refined through discussion into a specific, narrow shape:
 having. It holds a running total —
 `reservoir.cumulative_mol[species] += -flux` — updated at the exact point a
 boundary's flux is already applied
-([`solvers.py:171-180`](../../src/core/solvers.py), step 2b). This is
+([`solvers.py:171-180`](../../../../PyOMES/core/solvers.py), step 2b). This is
 *write-only*: nothing reads the accumulator back into `compute_flux`'s
 calculation. The boundary still computes its flux exactly as before (fixed
 composition for a feed, pressure-driven for a vent); the reservoir only
@@ -103,7 +103,7 @@ observers that never feed back into the physics loop. A `Reservoir`
 accumulator is the same pattern applied to the boundary side.
 
 **What this buys:** a genuine capability gap closes. Per
-[`control_volume.py`](../../src/core/control_volume.py)'s own
+[`control_volume.py`](../../../../PyOMES/core/control_volume.py)'s own
 `apply_external_flux` docstring, external fluxes are "not tracked by
 `step_internal_transfer` diagnostics (because external fluxes intentionally
 change the CV's total inventory)" — currently nothing accumulates the total
@@ -152,7 +152,7 @@ type was never about unlocking otherwise-impossible capability on its own:
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium` already
   demonstrates (siblings under `EquilibriumConstraint`, not
   isinstance-checked against each other — see
-  [`equilibrium.py:115-119`](../../src/reactions/equilibrium.py)).
+  [`equilibrium.py:115-119`](../../../../PyOMES/reactions/equilibrium.py)).
 - **Avoided setup cost.** `ControlVolume.__init__` always constructs
   monitors, lifecycle locks, and caches even when unused; a lean
   `Reservoir` skips all of it.
@@ -310,7 +310,7 @@ implementer happens to wrap one, same as today.
    `ControlVolume`, by the `Simulation`, or constructed standalone and
    passed to multiple boundaries?
 5. **Energy accounting.** The original proposal included "material and/or
-   energy." Whether `VLsim` has a general enthalpy/heat-duty balance layer
+   energy." Whether `PyOMES` has a general enthalpy/heat-duty balance layer
    for a `Reservoir` to plug into has **not been verified** — `T_K` is
    tracked on `Phase` and `ThermoFramework` handles activity, but no
    heat-duty/enthalpy-flow computation surfaced in anything read this
@@ -319,7 +319,7 @@ implementer happens to wrap one, same as today.
 6. **Construction/validation parity with `ControlVolume`.** Does a
    `FlowBoundary`-based `Reservoir` need the same phase-key existence
    checks `ControlVolume.__init__` runs for `internal_interfaces`
-   ([`control_volume.py:241-253`](../../src/core/control_volume.py))?
+   ([`control_volume.py:241-253`](../../../../PyOMES/core/control_volume.py))?
 7. **Performance.** Does `source.phases[source_phase_key]` lookup inside
    every `FlowBoundary` implementation (vs. receiving `Phase` objects
    directly, as `PhaseInterface.compute_flux` does today) have a real cost
@@ -339,7 +339,7 @@ dispatch loops into one shared-type loop. Not worth starting speculatively
 
 ## Cross-references
 
-- [`MASS_EXCHANGE_ARCHITECTURE.md`](../design/MASS_EXCHANGE_ARCHITECTURE.md)
+- [`MASS_EXCHANGE_ARCHITECTURE.md`](../../ideas/MASS_EXCHANGE_ARCHITECTURE.md)
   §2 (two-axis taxonomy this note extends), §4 (`CVLink` → `InterzonalFlow`
   rename — proposed, not shipped; now in tension with `FlowBoundary`, see
   Open Question 1), §6.2 (the `WaterVapourBoundary`
@@ -350,13 +350,13 @@ dispatch loops into one shared-type loop. Not worth starting speculatively
 - [`PHENOMENA_PROTOCOL.md`](PHENOMENA_PROTOCOL.md) — sibling design
   discussion, same session; `PartitionModel`'s relationship to both notes
   is the explicitly-open shared thread (§5.5 here, open question there).
-- [`src/core/interfaces.py`](../../src/core/interfaces.py) — `PhaseInterface`
+- [`PyOMES/core/interfaces.py`](../../../../PyOMES/core/interfaces.py) — `PhaseInterface`
   protocol.
-- [`src/core/links.py`](../../src/core/links.py) — `CVLink` protocol.
-- [`src/core/boundaries.py`](../../src/core/boundaries.py) —
+- [`PyOMES/core/links.py`](../../../../PyOMES/core/links.py) — `CVLink` protocol.
+- [`PyOMES/core/boundaries.py`](../../../../PyOMES/core/boundaries.py) —
   `ExternalBoundary` protocol and its six concrete implementers.
-- [`src/core/solvers.py`](../../src/core/solvers.py) —
+- [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py) —
   `SequentialAdvanceSolver.solve_step`, where `ExternalBoundary.compute_flux`
   is actually invoked (step 2b).
-- [`src/core/simulation.py`](../../src/core/simulation.py) — `_apply_links`,
+- [`PyOMES/core/simulation.py`](../../../../PyOMES/core/simulation.py) — `_apply_links`,
   where `CVLink.compute_flow` is actually invoked.

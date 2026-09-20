@@ -1,8 +1,8 @@
 # Phase Kickoff Checklist — &lt;PHASE_NAME&gt;
 
-> Copy this file to `docs/upcoming/<PHASE_NAME>_CHECKLIST.md` at the
+> Copy this file to `docs/dev/implementation/upcoming/<PHASE_NAME>_CHECKLIST.md` at the
 > start of any phase-shaped work — before writing implementation code. See
-> `docs/upcoming/README.md`'s "Branching and tagging convention" for
+> `docs/dev/implementation/upcoming/README.md`'s "Branching and tagging convention" for
 > the full rationale; this is the fill-in-the-boxes version. Modelled on the
 > shape of existing checklists, e.g.
 > [`../shipped/CHEMISTRY_UNIFICATION_4_CHECKLIST.md`](../shipped/CHEMISTRY_UNIFICATION_4_CHECKLIST.md).
@@ -19,7 +19,7 @@
 
 ## During
 
-- [ ] Plan/design doc exists in `docs/upcoming/` (or `docs/design/`)
+- [ ] Plan/design doc exists in `docs/dev/implementation/upcoming/` (or `docs/dev/ideas/`)
       describing scope
 - [ ] Checkpoints tracked below as they land, one commit per checkpoint
 - [ ] **If work stalls or is paused before shipping:** add a status banner
@@ -40,6 +40,6 @@
 - [ ] `git push && git push --tags` (both — tags are not pushed by default)
 - [ ] `git branch -d <phase-branch>` and
       `git push origin --delete <phase-branch>`
-- [ ] Move the plan doc + this checklist to `docs/shipped/`, add a
+- [ ] Move the plan doc + this checklist to `docs/dev/implementation/shipped/`, add a
       "Shipped" banner to both
-- [ ] Update `docs/upcoming/README.md`'s "Recently shipped" list
+- [ ] Update `docs/dev/implementation/upcoming/README.md`'s "Recently shipped" list

@@ -345,8 +345,7 @@ Per this folder's usual convention
 ([README.md](README.md#how-to-start-one)): resolve the open questions
 above, write a checklist file
 (`STRONG_ION_INFERENCE_GENERALIZATION_CHECKLIST.md`), cut a branch off
-`main` (suggested name: `strong-ion-inference-generalization`), and add a
-"Currently in flight" pointer to this folder's `README.md`. Small and
+`main` (suggested name: `strong-ion-inference-generalization`). Small and
 self-contained — no dependency on any other in-flight phase, though it
 touches the same `nr_engine.py`/`nr_solver.py` files as the NR
 Precipitation and `MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md`

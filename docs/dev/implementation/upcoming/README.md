@@ -6,11 +6,17 @@ that would justify picking it up. Notes here are stable —
 implementation only begins when one is moved through to active work
 (i.e. a checklist file is added) and ultimately to
 [../shipped/](../shipped/) once shipped.
++-*
+**Finding work in progress.** This folder does not track which phases are
+currently being worked on. Each phase lives on its own feature branch (see
+[How to start one](#how-to-start-one)), so list the active ones with
+`git branch -a`.
 
-## Currently in flight
-
-*(none — `simulation-class` shipped 2026-05-27 as the third and
-final of the three sequenced phases.)*
+**History below the design notes.** Most sections after "Design discussions"
+("Recently shipped", the "Recently surfaced" sections, "Priority order")
+record work that has already shipped and are kept for context. The sections
+that still describe open work are "Open phases" and the pending stages in
+"Solver interface refinement".
 
 ## Design discussions (pre-phase, not yet a checklist)
 
@@ -61,16 +67,18 @@ final of the three sequenced phases.)*
   charge-lump question (they should be concrete `Species` declarations,
   not a special case) along the way. No branch, no checklist, no code yet.
 - **[NOTEBOOK_GENERATOR_REMOVAL.md](NOTEBOOK_GENERATOR_REMOVAL.md)** —
-  2026-09-15. Retires the 5 `_generate_notebooks.py` scripts (22
-  notebooks across `ChemicalEquilibriumProtocol`, `SolverProtocols`,
-  `speciation`, `usecases`, `docs/tutorials`) in favor of every notebook
+  2026-09-15, re-audited 2026-09-20. Retires the 2 remaining
+  `_generate_notebooks.py` scripts (13 notebooks: `ArXiv_preprint` and
+  `tests/validation/speciation`; 5 scripts at the original audit, the other
+  three have since been deleted by other phases) in favor of every notebook
   being hand-edited and committed with its outputs embedded — the
   biosteam-style convention, chosen over keeping the generators (with a
   CI discipline bolted on) or extracting their duplicated boilerplate
   into a shared module. Confirmed real duplication exists (the
   water/phosphate/ammonium reaction network retyped in 3+ places) and is
   a known, accepted cost of this choice. Adds a CI check for
-  code-cell-has-source-but-no-output drift. No Sphinx/mkdocs/jupyter-book
+  never-executed code cells (drift between source and saved outputs; the
+  exact rule is still an open question). No Sphinx/mkdocs/jupyter-book
   — explicitly out of scope. No branch, no checklist, no code yet.
 - **[RESERVOIR_TYPE.md](RESERVOIR_TYPE.md)** — 2026-07-10, revised
   2026-07-10. Now concludes with `FlowBoundary`, a real unifying protocol
@@ -110,6 +118,14 @@ final of the three sequenced phases.)*
   (signature, `partition_model` optionality, `KineticGasLiquidLink`'s
   role, `EquilibriumTransferModel` parity, regression scope); no branch,
   no checklist, no code yet.
+- **[DEMO_RECORDERS.md](DEMO_RECORDERS.md)** — planned after `run-history`
+  shipped (2026-06-08). A short demo script comparing the four recorder
+  variants (`BatchRecorder`, `StreamingFileRecorder`, `SparseRecorder`,
+  `SummaryRecorder`) on the same simulation. Small and non-blocking — the
+  trigger is a real model exercising the recorders, or a user asking for an
+  example. Its proposed location, `demos/model_api/recorder_comparison.py`,
+  no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
+  likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 
 ## Recently shipped
 
@@ -186,7 +202,7 @@ final of the three sequenced phases.)*
   `step-solver-interface-refinement-shipped`. See
   [../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md](../shipped/STEP_SOLVER_INTERFACE_REFINEMENT.md)
   and
-  [STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md).
+  [../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md).
 
 - `simulation-class` (2026-05-27) — third and final of the three
   sequenced phases. New `Simulation` class as the single
@@ -290,11 +306,13 @@ branches shipped, followed by the trigger-gated `chemistry-unification-3b`
   Tag `partition-model-shipped`. See
   [../shipped/PARTITION_MODEL.md](../shipped/PARTITION_MODEL.md).
 
-## Priority order
+## Priority order (historical — all shipped)
 
 > All phases listed below have now shipped. The priority list is
 > preserved as a history of scope decisions and trigger rationale.
-> See [OPEN_WORK.md](../OPEN_WORK.md) for currently open items.
+> For work that is still open, see "Design discussions" and "Open phases"
+> in this file, and [OPEN_WORK.md](../OPEN_WORK.md) for smaller follow-up
+> items not yet scoped as phases.
 
 1. **[../shipped/CHEMISTRY_UNIFICATION.md](../shipped/CHEMISTRY_UNIFICATION.md)** (design)
    + **[../shipped/CHEMISTRY_UNIFICATION_PLAN.md](../shipped/CHEMISTRY_UNIFICATION_PLAN.md)**
@@ -381,7 +399,7 @@ recorder story.
 
 Six design docs added from the 2026-06-11 solver architecture session.
 Phases A–E all shipped 2026-06-11/12; docs moved to `shipped/`.
-See **[SOLVER_ARCHITECTURE.md](SOLVER_ARCHITECTURE.md)** for the anchor doc
+See **[SOLVER_ARCHITECTURE.md](../../ideas/SOLVER_ARCHITECTURE.md)** for the anchor doc
 and Phase F+G placeholders (SUNDIALS opt-in, no work scheduled).
 
 - **[../shipped/CV_COMPUTE_INTERFACE.md](../shipped/CV_COMPUTE_INTERFACE.md)** — Phase A. *Shipped 2026-06-11.*
@@ -403,44 +421,20 @@ design (Phases A–E) — not the SUNDIALS/DAE Phase F/G track.
   interleaving/multi-CV-aware solver tier discussion is Stages 2–4 of the
   plan, not yet resolved.
 - **[STEP_SOLVER_REFINEMENT_PLAN.md](STEP_SOLVER_REFINEMENT_PLAN.md)** —
-  the 4-stage sequencing plan. Stage 0 (rename) and Stage 1 (the bundle)
-  shipped; Stage 2 (SIA z-staleness design decision, §12 Q7) and Stage 3
-  (reactive D_eff transport) still pending — see the plan doc for current
-  status.
-- **[STEP_SOLVER_REFINEMENT_CHECKLIST.md](STEP_SOLVER_REFINEMENT_CHECKLIST.md)** —
+  the sequencing plan (Stages 0–4). Stage 0 (rename) and Stage 1 (the
+  bundle) shipped; Stage 2 (z-staleness design decision, §12 Q7), Stage 3
+  (reactive D_eff transport) and Stage 4 (SIA, blocked on Stage 2) still
+  pending — see the plan doc for current status.
+- **[../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md](../shipped/STEP_SOLVER_REFINEMENT_CHECKLIST.md)** —
   Stage 1's full checkpoint-by-checkpoint implementation log (10
   checkpoints, all shipped), including several scope corrections found
-  during implementation — kept here rather than archived since it documents
-  decisions (e.g. the checkpoint 4/7b split) relevant to Stages 2–4 still
-  to come.
+  during implementation. Archived in `shipped/` now that Stage 1 has
+  shipped; still worth reading for decisions (e.g. the checkpoint 4/7b
+  split) relevant to Stages 2–4 still to come.
 
-## Upcoming phases
+## Recently surfaced (2026-07-01 Layer 1 gap closure)
 
-### NR Precipitation (two-phase sequence)
-
-Design discussion 2026-06-23. Active-set precipitation equilibrium built on top
-of the NR speciation engine shipped in `nr-speciation-engine`.
-
-- **[NR_PRECIPITATION_SPECIATION.md](NR_PRECIPITATION_SPECIATION.md)** —
-  Phase 1: speciation layer only. Outer active-set loop in
-  `NRChemicalEquilibriumEngine.solve()`; `precipitation_equilibria` bucket on
-  `ReactionSystem`; `element_stoichiometry` cross-component mass balance fix;
-  `"minerals"` key in output dict; `Ca_plus_plus` / `Mg_plus_plus` in
-  `common_species`; `05_precipitation_equilibrium.ipynb` demo. No CV changes.
-
-- **[NR_PRECIPITATION_CV_INTEGRATION.md](NR_PRECIPITATION_CV_INTEGRATION.md)** —
-  Phase 2: CV/SolidPhase integration. `_read_from_phases` sums solid
-  contribution; `SolidPhase` writeback; consistent phase-type validation across
-  all three phase types on `ControlVolume`. Depends on Phase 1 shipping first.
-
-- **[MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md](MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md)** —
-  a separate, standalone-by-design track (Fe/Ca/phosphate/citrate networks
-  `NRTableau` can't represent). **Partial skeleton, stalled 2026-06-29** —
-  see the status banner at the top of that doc; committed directly to `main`
-  without a branch or checklist, only one of seven modules tested. Not part
-  of the two-phase NR Precipitation sequence above.
-
-### Layer 1 gap closure (two-phase sequence)
+Both phases shipped 2026-07-02/03; docs moved to `shipped/`.
 
 Design discussion 2026-07-01 (see `MASS_EXCHANGE_ARCHITECTURE.md` §14 and
 `CHEMICAL_EQUILIBRIUM_ENGINE_ARCHITECTURE.md` §3/§18). Folds gas-liquid VLE
@@ -474,6 +468,47 @@ without changing any of their shipped/planned numerics.
   rename, plus the `src/speciation/` → `src/chemical_equilibrium/` module
   rename (§18's own deferred decision, executed at this phase's close).
 
+## Open phases
+
+### NR Precipitation (two-phase sequence, Phase 1 shipped)
+
+Design discussion 2026-06-23. Active-set precipitation equilibrium built on top
+of the NR speciation engine shipped in `nr-speciation-engine`.
+
+- **[NR_PRECIPITATION_SPECIATION.md](../shipped/NR_PRECIPITATION_SPECIATION.md)** —
+  Phase 1: **shipped 2026-06-23**. Speciation layer only. Outer active-set loop in
+  `NRChemicalEquilibriumEngine.solve()`; `precipitation_equilibria` bucket on
+  `ReactionSystem`; `element_stoichiometry` cross-component mass balance fix;
+  `"minerals"` key in output dict; `Ca_plus_plus` / `Mg_plus_plus` in
+  `common_species`; `05_precipitation_equilibrium.ipynb` demo. No CV changes.
+
+- **[NR_PRECIPITATION_CV_INTEGRATION.md](NR_PRECIPITATION_CV_INTEGRATION.md)** —
+  Phase 2: CV/SolidPhase integration. `_read_from_phases` sums solid
+  contribution; `SolidPhase` writeback; consistent phase-type validation across
+  all three phase types on `ControlVolume`. Phase 1 has shipped, so this is
+  unblocked; not yet started. **Needs re-derivation before pickup:** the note
+  predates `EQUILIBRIUM_CONSTRAINT_UNIFICATION` and `LAYER1_GAP_CLOSURE`
+  (which changed how precipitation is classified and folded into the
+  solve), and its file paths use the old `src/` layout — re-check its design
+  against the current code first.
+
+## Shelved
+
+Work that was started and then deliberately paused. These are not open
+phases — re-decide before picking any of them up.
+
+- **[MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md](MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md)** —
+  **shelved 2026-09-20.** A separate, standalone-by-design engine for
+  coupled multi-metal / citrate / phosphate chemistry that `NRTableau` can't
+  represent. A partial skeleton (7 modules, 353 lines, only `components.py`
+  tested) sits in `PyOMES/chemical_equilibrium/multicomponent/`, committed
+  directly to `main` on 2026-06-29 without a branch or checklist; nothing
+  else in the package uses it. Resume when a concrete model needs this
+  chemistry. Its Phase 3 (a persistent solid-phase adapter) overlaps
+  `NR_PRECIPITATION_CV_INTEGRATION` above, so design the two together. See
+  the banner at the top of that doc for the current status and how to pick
+  it up.
+
 ---
 
 ## How to start one
@@ -486,11 +521,9 @@ without changing any of their shipped/planned numerics.
 3. Create a feature branch off `main` named for the phase
    (e.g. `chemistry-unification`).  All implementation lands on that
    branch.
-4. Update the "Currently in flight" line above with a pointer to the
-   checklist.
-5. Push the branch periodically so the work is backed up to GitHub
+4. Push the branch periodically so the work is backed up to GitHub
    while in progress.
-6. When the work ships, move both the original note and the
+5. When the work ships, move both the original note and the
    checklist to [../shipped/](../shipped/), add a
    "Status: Shipped" banner to each, and update the priority list
    above to remove the entry.  Then follow the branching and tagging

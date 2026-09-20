@@ -152,7 +152,6 @@ it silently produce a 12.089 pH.
 Per this folder's usual convention
 ([README.md](README.md#how-to-start-one)): write a checklist file
 (`PHCONTROLLER_CORRECTOR_VALIDATION_CHECKLIST.md`), cut a branch off
-`main` (suggested name: `phcontroller-corrector-validation`), work the
-checkpoints there, and add a "Currently in flight" pointer to this
-folder's `README.md`. Small and self-contained — no dependency on any
+`main` (suggested name: `phcontroller-corrector-validation`), and work the
+checkpoints there. Small and self-contained — no dependency on any
 other in-flight phase, ready to pick up any time.

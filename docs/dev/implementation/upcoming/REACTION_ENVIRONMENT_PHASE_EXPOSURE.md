@@ -136,7 +136,6 @@ bug) — this is a forward-compatibility note, not a second scoped deliverable.
 Per this folder's usual convention
 ([README.md](README.md#how-to-start-one)): write a checklist file
 (`REACTION_ENVIRONMENT_PHASE_EXPOSURE_CHECKLIST.md`), cut a branch off
-`main` (suggested name: `reaction-environment-phase-exposure`), work the
-checkpoints there, and add a "Currently in flight" pointer to this folder's
-`README.md`. Small and self-contained — no dependency on any other in-flight
-phase.
+`main` (suggested name: `reaction-environment-phase-exposure`), and work the
+checkpoints there. Small and self-contained — no dependency on any other
+in-flight phase.

@@ -139,12 +139,10 @@ simply enables the ODE integrator to track it.
 
 | File | Nature of change |
 |---|---|
-| `src/core/phases.py` | Ensure `SolidPhase` is a fully initialised peer of `LiquidPhase` and `GasPhase` (review any asymmetries) |
-| `src/control_volume.py` | `__init__`: accept `solid_phase` kwarg; validate phase-type consistency; expose in `self.phases["solid"]` |
-| `src/chemical_equilibrium/nr_engine.py` | `_read_from_phases`: sum solid contribution; `_writeback`: write mineral amounts to `SolidPhase.n_mol` |
+| `PyOMES/core/phases.py` | Ensure `SolidPhase` is a fully initialised peer of `LiquidPhase` and `GasPhase` (review any asymmetries) |
+| `PyOMES/core/control_volume.py` | `__init__`: accept `solid_phase` kwarg; validate phase-type consistency; expose in `self.phases["solid"]` |
+| `PyOMES/chemical_equilibrium/nr_engine.py` | `_read_from_phases`: sum solid contribution; `_writeback`: write mineral amounts to `SolidPhase.n_mol` |
 | `tests/` | New integration test: multi-timestep CV with calcite precipitation; mass conservation check |
-| `docs/upcoming/NR_PRECIPITATION_SPECIATION.md` | Add "Shipped" banner |
-| `docs/shipped/NR_PRECIPITATION_SPECIATION.md` | Move on ship |
 
 ---
 
@@ -165,7 +163,9 @@ assessment use cases.
 
 ## How to start
 
-1. Confirm Phase 1 tag `nr-precipitation-speciation-shipped` exists on `main`.
+1. Confirm Phase 1 has shipped: [NR_PRECIPITATION_SPECIATION.md](../shipped/NR_PRECIPITATION_SPECIATION.md)
+   is in `shipped/`, and `NRChemicalEquilibriumEngine.solve()` returns a
+   `"minerals"` entry for precipitation problems.
 2. Create branch `nr-precipitation-cv-integration` off `main`.
 3. Work through the files in the order listed in *Files changed*.
 4. Run the full test suite (`pytest`) after each file.
