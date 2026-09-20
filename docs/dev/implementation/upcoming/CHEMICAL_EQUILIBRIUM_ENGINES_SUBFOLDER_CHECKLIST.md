@@ -98,12 +98,23 @@
 
 **Part B — remove `strong_ions.py`**
 
-- [ ] 5. Search `.ipynb` files (earlier audit covered `.py` and `.md` only)
+- [x] 5. Search `.ipynb` files (earlier audit covered `.py` and `.md` only)
       for `strong_ions_from_feed_molL` / `PyOMES.chemical_equilibrium.strong_ions`.
       If clear: delete `strong_ions.py` and
       `tests/standalone/test_strong_ions.py`; remove the `__init__.py` import
       and `__all__` entry (Decision 10); drop the stale comment in
       `chemistry/registry.py`. `FeedState` and its fixtures stay.
+      _Notes: `.ipynb` search clean (zero hits). Also removed
+      `test_strong_ions.py` from the test-coverage table in the root
+      `README.md` (line 149), which the plan did not list. Suite: 2064 →
+      2057 (the deleted file held 7 tests). The `rich_feed` fixture in
+      `tests/standalone/conftest.py` was used only by the deleted test and is
+      now unused (whole-repo search, all file types, no dynamic lookups); the
+      same goes for the hand-copied `_rich_feed` / `"rich_feed"` entry in
+      `tests/run_tests.py` (a non-pytest runner that is already broken, see
+      `OPEN_WORK.md`). Both left in place per the plan ("fixtures stay") —
+      candidate for a later cleanup. `docs/architecture.md:394` still lists `strong_ions.py`
+      (C12)._
 - [ ] 6. Update the "Adjacent, out of scope" section of
       `STRONG_ION_INFERENCE_GENERALIZATION.md` (`strong_ions.py` removed;
       `SALT_DISSOCIATION_MAP` now has no consumer). Run `test_feed_state.py`
