@@ -416,13 +416,13 @@ design (Phases A–E) — not the SUNDIALS/DAE Phase F/G track.
 
 ## Upcoming phases
 
-### NR Precipitation (two-phase sequence)
+### NR Precipitation (two-phase sequence, Phase 1 shipped)
 
 Design discussion 2026-06-23. Active-set precipitation equilibrium built on top
 of the NR speciation engine shipped in `nr-speciation-engine`.
 
 - **[NR_PRECIPITATION_SPECIATION.md](../shipped/NR_PRECIPITATION_SPECIATION.md)** —
-  Phase 1: speciation layer only. Outer active-set loop in
+  Phase 1: **shipped 2026-06-23**. Speciation layer only. Outer active-set loop in
   `NRChemicalEquilibriumEngine.solve()`; `precipitation_equilibria` bucket on
   `ReactionSystem`; `element_stoichiometry` cross-component mass balance fix;
   `"minerals"` key in output dict; `Ca_plus_plus` / `Mg_plus_plus` in
@@ -431,7 +431,8 @@ of the NR speciation engine shipped in `nr-speciation-engine`.
 - **[NR_PRECIPITATION_CV_INTEGRATION.md](NR_PRECIPITATION_CV_INTEGRATION.md)** —
   Phase 2: CV/SolidPhase integration. `_read_from_phases` sums solid
   contribution; `SolidPhase` writeback; consistent phase-type validation across
-  all three phase types on `ControlVolume`. Depends on Phase 1 shipping first.
+  all three phase types on `ControlVolume`. Phase 1 has shipped, so this is
+  unblocked; not yet started.
 
 - **[MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md](MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md)** —
   a separate, standalone-by-design track (Fe/Ca/phosphate/citrate networks
