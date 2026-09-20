@@ -322,6 +322,20 @@ convenience is worth keeping as a separate hardcoded registry is an open
 question for a *separate* note if ever pursued — not resolved here, and
 not blocking Phase 0/Phase 1 either way.
 
+**Update 2026-09-20 (`chemical-equilibrium-engines-subfolder`, Part B):**
+`chemical_equilibrium/strong_ions.py` — the only consumer of
+`SALT_DISSOCIATION_MAP`, via `strong_ions_from_feed_molL(feed)` — has been
+removed, along with its test and its package-level export. It had no
+production callers (the engines take `strong_ions=` as a plain dict), and it
+silently dropped anything outside its fixed 11-key `CT_*` set. As a result
+`SALT_DISSOCIATION_MAP` (still defined in `chemistry/registry.py` and exported
+from `PyOMES.chemistry`) now has **no consumer in the repo**, so the open
+question above now covers it too, alongside `chem_recipe.py`'s `ChemSpec`
+registry: keep, merge or remove is still undecided and still a separate note.
+If BioSTEAM coupling ever needs neutral-salt expansion again, it belongs in
+`PyOMES/stream_adapter.py`, emitting species ids (not `CT_*` keys) and warning
+on unmapped species — not in the equilibrium package.
+
 ## Trigger conditions
 
 **Phase 0 needs no trigger** — it's a decided, no-risk de-duplication and

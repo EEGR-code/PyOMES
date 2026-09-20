@@ -115,10 +115,15 @@
       `OPEN_WORK.md`). Both left in place per the plan ("fixtures stay") —
       candidate for a later cleanup. `docs/architecture.md:394` still lists `strong_ions.py`
       (C12)._
-- [ ] 6. Update the "Adjacent, out of scope" section of
+- [x] 6. Update the "Adjacent, out of scope" section of
       `STRONG_ION_INFERENCE_GENERALIZATION.md` (`strong_ions.py` removed;
       `SALT_DISSOCIATION_MAP` now has no consumer). Run `test_feed_state.py`
       and the speciation tests.
+      _Notes: docs-only; added a dated update paragraph at the end of that
+      section. `test_feed_state.py`, `test_speciation.py`,
+      `test_speciation_protocols.py`, `tests/validation/speciation/`: 112
+      passed. The same doc's `nr_engine.py` / `nr_solver.py` / `engine.py`
+      path citations are left for C12._
 
 **Part C — `engines/` subfolder**
 
