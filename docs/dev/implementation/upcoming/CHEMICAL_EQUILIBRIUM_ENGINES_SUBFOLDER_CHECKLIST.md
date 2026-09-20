@@ -82,12 +82,19 @@
       "DaviesLiquidModel". Still mentioning the old name in prose only, left
       for C12 (decide then): `06_phreeqc_benchmark.ipynb` (2 places) and
       generator line 1543._
-- [ ] 4. Delete `sit.py` and `activity_models.py`; delete the two alias tests
+- [x] 4. Delete `sit.py` and `activity_models.py`; delete the two alias tests
       in `test_liquid_phase_model.py`; repoint the factory test there. Delete
       `davies_log10_gamma` / `davies_gamma` and fix `activity.py`'s docstring
       (Decision 6). Run `test_liquid_phase_model.py`,
       `test_thermo_framework.py`, `test_speciation.py`,
       `tests/validation/speciation/`.
+      _Notes: of the four shim-only tests in `test_liquid_phase_model.py`, the
+      two alias tests were deleted; the water-helpers test was repointed to
+      `PyOMES.thermo` (not deleted, so the `debye_huckel_A(298.15) ≈ 0.509`
+      assertion keeps a home), as was the SIT-epsilon test; both factory tests
+      repointed to `PyOMES.thermo`. `activity.py` also lost its now-unused
+      `debye_huckel_A` / `ionic_strength_molal_from_molar` import. Suite goes
+      from 2066 to 2064 tests (two alias tests deleted)._
 
 **Part B — remove `strong_ions.py`**
 

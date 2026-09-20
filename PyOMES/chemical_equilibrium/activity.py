@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Activity-related utilities (Davies placeholder + ionic strength + warnings).
+"""Activity-related utilities (ionic strength + warnings).
 
-Davies activity corrections are scaffolded for future use. Current fermenter behavior
+Activity-coefficient models live in :mod:`PyOMES.thermo`. Current fermenter behavior
 uses ideal-solution speciation; the warning function helps users spot when activity
 effects may become important.
 """
@@ -10,43 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 import warnings
-from ..thermo.water_properties import debye_huckel_A, ionic_strength_molal_from_molar
 from typing import Any, Dict
-
-
-def davies_log10_gamma(z: float, I_molL: float, *, A: float = 0.509, T_K: float | None = None) -> float:
-    """Return log10(gamma) using the Davies equation.
-
-    If T_K is provided, A is computed from water properties and ionic strength is converted
-    from mol/L to mol/kg-water (molality basis) for closer fidelity to the classical Davies model.
-
-    Notes
-    -----
-    - Validity typically best for I <= ~0.5 mol/L (molar basis); on molality basis the range is similar.
-    - Neutral species (z=0) => gamma=1 (log10=0).
-    """
-    z = float(z)
-    I_molL = float(I_molL)
-    if z == 0.0 or not np.isfinite(I_molL) or I_molL <= 0.0:
-        return 0.0
-
-    # If temperature is provided, compute A(T) and convert ionic strength to molality basis.
-    if T_K is not None:
-        A = debye_huckel_A(float(T_K))
-        I = ionic_strength_molal_from_molar(I_molL, T_K=float(T_K))
-    else:
-        I = I_molL
-
-    if not np.isfinite(I) or I <= 0.0:
-        return 0.0
-
-    sqrtI = np.sqrt(I)
-    return -A * (z**2) * (sqrtI / (1.0 + sqrtI) - 0.3 * I)
-
-
-def davies_gamma(z: float, I_molL: float, *, A: float = 0.509, T_K: float | None = None) -> float:
-    """Return gamma using the Davies equation."""
-    return 10.0 ** davies_log10_gamma(z, I_molL, A=A, T_K=T_K)
 
 
 # Ions whose ids do not carry a trailing +/- charge token and so
