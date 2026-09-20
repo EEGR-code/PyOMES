@@ -539,6 +539,86 @@
       likewise the test file. Confirm the hash at the time.
       **Effects outside this phase's scope:** none expected; a fresh search
       found no other current reference. Record any that turn up.
+- [ ] 12d. _Added during Part C (requested after checkpoint 12c; plan Decision
+      18)._ **Dissolve `chemical_equilibrium/activity.py`: move its
+      Bisection-only ionic-strength helpers to
+      `engines/bisection/ionic_strength.py` and delete the uncalled
+      `warn_if_high_ionic_strength`.**
+      **Why.** The module's name is misleading: it computes no activity
+      coefficients (those are in `thermo/`) and holds four things. Three of them
+      (`_CHARGE_OVERRIDES`, `_charge_from_suffix`, `ionic_strength_from_speciation`)
+      are used only by `engines/bisection/acid_base.py` (one top-level import, one
+      redundant local import, five calls), the package `__init__.py` re-export,
+      and 9 tests in `tests/standalone/test_speciation.py`
+      (`TestChargeFromSuffix` 4, `TestIonicStrengthFromSpeciation` 5); a search
+      of `.py`, `.ipynb`, `.md`, configs and non-pytest scripts finds nothing
+      else. The suffix rule is the inverse of Bisection's key emitters
+      (`_poly_key`, `_species_key`), so it belongs with them. NR takes charges
+      from declared `Species.charge` and PHREEQC takes ionic strength from the
+      solver, so the module is not engine-agnostic. The fourth thing,
+      `warn_if_high_ionic_strength`, has no callers and no tests, and never had a
+      caller (git history back to the first commit). Its intended successor,
+      `AccuracyMonitor.check_ionic_strength`, is also unwired: only tests call it,
+      and no engine reads `_accuracy_monitor`. Deleting the function therefore
+      removes no live warning. Same grounds as Decisions 16 and 17, and the
+      package has no outside users.
+      **Not done here (recorded, not fixed).** The three ionic-strength
+      implementations are not interchangeable, so unifying them would change
+      numbers and is out of scope: the suffix rule reads IUPAC-style ids such as
+      `Fe2+` as +1 where the declared charge is +2
+      (`tests/validation/speciation/test_iron_oxidation.py:78-80`, NR path);
+      `thermo/` clamps negative concentrations to 0 and NR/Bisection do not; NR's
+      `_STRONG_CHARGES` exists in three copies (`nr/engine.py`, twice in
+      `nr/solver.py`); Bisection's charge-balance residual hard-codes strong-ion
+      charges. Declared charges alone cannot replace the suffix rule, because the
+      deprecated generic `{name}_HA` / `{name}_A-` path (VFA rows in
+      `EquilibriumSet.bsm2_default()`) and `Cation(inert)` / `Anion(inert)` have
+      no `Species` objects.
+      **Steps.** (1) Re-run the fresh search and history check before changing
+      anything. (2) `git mv PyOMES/chemical_equilibrium/activity.py
+      PyOMES/chemical_equilibrium/engines/bisection/ionic_strength.py` (you run
+      it, so history follows the file), then delete `warn_if_high_ionic_strength`
+      and the `numpy` import, and rewrite the module docstring to describe what
+      the module is now (Bisection's suffix-based ionic strength and its
+      convention). The three helpers are otherwise byte-identical. (3) Repoint
+      `acid_base.py` (both imports; the local one at the old line 886 is
+      redundant, noted and left), the package `__init__.py` (drop
+      `warn_if_high_ionic_strength` from the import and `__all__`; the root
+      re-export of `ionic_strength_from_speciation` stays), and the imports and
+      docstring references in `test_speciation.py`. (4) Update current files that
+      name it: `PyOMES/chemical_equilibrium/engines/__init__.py` (its docstring
+      lists the shared modules), `docs/architecture.md:393` (the
+      `chemical_equilibrium/` tree; 12c edits the line below it), the mention at
+      `docs/dev/implementation/upcoming/README.md:276` if it needs a path change,
+      and `OPEN_WORK.md` (log the unwired `check_ionic_strength`, the `Fe2+`
+      suffix-rule limitation, and the duplicated charge tables above; note that
+      dropping the root re-export of `ionic_strength_from_speciation` is a
+      possible follow-up). The plan doc is already updated. (5) Leave alone:
+      mentions in `docs/dev/implementation/shipped/` and `docs/dev/ideas/`
+      (historical), and this checklist's own dated notes.
+      **Expected effect on the suite:** 2068 → **2068** passed (assumes 12c has
+      landed; 2080 → 2080 if 12d is run first), 0 failed. The 9 tests only change
+      import path; none is added or removed. Top level of `chemical_equilibrium/`
+      becomes `__init__`, `protocols`, `numerical_gradient`.
+      **Verification (planned).** Fresh search: only historical, plan and
+      checklist mentions of the old path remain. The AST import audit from
+      checkpoint 11 (every `PyOMES`/`models` import in every `.py` and notebook
+      cell resolves): no new problems. `import
+      PyOMES.chemical_equilibrium.activity` fails with `ModuleNotFoundError`;
+      `from PyOMES.chemical_equilibrium import ionic_strength_from_speciation`
+      still works; `from PyOMES.chemical_equilibrium import
+      warn_if_high_ionic_strength` fails with `ImportError`. The AST of the three
+      moved helpers (minus docstrings) is identical to the pre-move file. Engine
+      fingerprints (NR 814, Bisection 265, PHREEQC 182 values) byte-identical; the
+      Bisection fingerprint exercises the moved function on every solve. The 9
+      relocated tests pass at the new path. Full suite 2068 passed.
+      **Restore point:** the last commit before the change, currently the
+      checkpoint 12c commit if no commit intervenes:
+      `git show <hash>:PyOMES/chemical_equilibrium/activity.py`. Confirm the hash
+      at the time.
+      **Effects outside this phase's scope:** none expected (no outside users);
+      the follow-ups above go to `OPEN_WORK.md`. Record any other reference that
+      turns up.
 
 **Part D — gas-constant unification** (after Part C; see the plan doc's
 "Gas-constant definitions (Part D)" audit and Decisions 11–15)

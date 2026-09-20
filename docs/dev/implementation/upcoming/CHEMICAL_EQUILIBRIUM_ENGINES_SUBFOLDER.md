@@ -60,7 +60,8 @@ audit and Decisions 11–15 below).
 
 | Group | Files |
 |---|---|
-| Shared (stay at top level) | `protocols.py`, `activity.py`, `numerical_gradient.py` |
+| Shared (stay at top level) | `protocols.py`, `numerical_gradient.py` |
+| Bisection-only ionic-strength helpers plus an uncalled warning (checkpoint 12d: helpers move to `engines/bisection/ionic_strength.py`, warning deleted) | `activity.py` |
 | Thermo compatibility layer (Part A: dissolved into `thermo/`) | `activity_models.py`, `sit.py` |
 | Orphaned helper (Part B: deleted) | `strong_ions.py` |
 | Orphaned Bisection-only entry points (checkpoint 9b: deleted) | `api.py`, `factory.py` |
@@ -194,11 +195,10 @@ literal occurrences of them across 16 package files. Out of scope for this phase
 chemical_equilibrium/
     __init__.py            (public re-exports, unchanged)
     protocols.py
-    activity.py
     numerical_gradient.py
     engines/
         __init__.py
-        bisection/   __init__.py, engine.py, acid_base.py
+        bisection/   __init__.py, engine.py, acid_base.py, ionic_strength.py
         nr/          __init__.py, engine.py, tableau.py, solver.py
         phreeqc.py
 
@@ -307,6 +307,29 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     from the last commit before the deletion (`9d71cb9`, checkpoint 12b, if no
     commit intervenes): `git show 9d71cb9:PyOMES/chemical_equilibrium/activity_dispatch.py`,
     and likewise `tests/standalone/test_activity_dispatch.py`.
+18. **`activity.py` is dissolved** (checkpoint 12d). The module computes no
+    activity coefficients (those are in `thermo/`), and once the dead Davies
+    helpers were removed it held four things. Three are Bisection-only:
+    `_CHARGE_OVERRIDES`, `_charge_from_suffix` and `ionic_strength_from_speciation`
+    are called only from `engines/bisection/acid_base.py` (plus the package
+    re-export and 9 tests), and the suffix rule is the inverse of Bisection's key
+    emitters (`_poly_key`, `_species_key`). They move, unchanged, to
+    `engines/bisection/ionic_strength.py` (via `git mv`, so history follows).
+    The fourth, `warn_if_high_ionic_strength`, has no callers, no tests and
+    never had a caller (verified against git history back to the first commit),
+    and the package has no outside users, so it is deleted. Its intended
+    successor `AccuracyMonitor.check_ionic_strength` is also unwired (only tests
+    call it); wiring it is a behaviour change, so it is logged in `OPEN_WORK.md`,
+    not done here. The root re-export of `ionic_strength_from_speciation` stays,
+    keeping this checkpoint bit-identical. **Not unified:** the suffix rule,
+    NR's declared-charge `_ionic_strength` and the `thermo/` `gamma_all` charge
+    dicts can disagree (`Fe2+` reads as +1 under the suffix rule; `thermo/`
+    clamps negative concentrations), and declared charges cannot replace the
+    suffix rule for the generic `{name}_HA` / `{name}_A-` keys or
+    `Cation(inert)` / `Anion(inert)`, which have no `Species` objects.
+    Unifying would change numbers and needs an emitter-side charge map, so it is
+    separate work. Restorable from the last commit before the change:
+    `git show <hash>:PyOMES/chemical_equilibrium/activity.py`.
 
 ## Proposed checkpoints
 
@@ -401,6 +424,13 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
     (12 tests) and remove the mentions in current files. Bit-identical for the
     engines; the suite drops by exactly the 12 deleted tests. Details are in
     the checklist entry.
+12d. *Added during Part C at the owner's request (Decision 18).* Dissolve
+    `activity.py`: `git mv` its three Bisection-only ionic-strength helpers to
+    `engines/bisection/ionic_strength.py` (byte-identical apart from the module
+    docstring), delete the uncalled `warn_if_high_ionic_strength`, and repoint
+    `acid_base.py`, the package `__init__.py`, `test_speciation.py` and the
+    current docs. Bit-identical for the engines; the suite count is unchanged
+    (the 9 tests only change import path). Details are in the checklist entry.
 
 **Part D — gas-constant unification** (runs after Part C so Parts A–C stay
 bit-identical and verifiable; Part D changes numbers)
