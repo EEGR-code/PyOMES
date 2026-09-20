@@ -22,7 +22,7 @@ from PyOMES.chemistry.common_species import (
 )
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from PyOMES.thermo import DaviesLiquidModel
 
 T_K = 298.15

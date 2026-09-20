@@ -70,7 +70,7 @@ def _make_cv_with_nr_engine(retain_jacobian: bool = False):
     """CV with NRChemicalEquilibriumEngine, carbonate + ammonia chemistry."""
     from PyOMES.core import ControlVolume, GasPhase, LiquidPhase
     from PyOMES.reactions import ReactionSystem
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
     reactions = _make_reactions()
     gas = GasPhase(n_mol={"CO2": 0.01, "N2": 0.5}, V_L=0.4, T_K=308.15)

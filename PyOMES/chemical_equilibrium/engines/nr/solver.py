@@ -45,8 +45,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .nr_tableau import NRTableau, SecondaryEntry
-from ..core.phases import R_L_ATM_MOL_K as _R_L_ATM_MOL_K
+from .tableau import NRTableau, SecondaryEntry
+from ....core.phases import R_L_ATM_MOL_K as _R_L_ATM_MOL_K
 
 logger = logging.getLogger(__name__)
 

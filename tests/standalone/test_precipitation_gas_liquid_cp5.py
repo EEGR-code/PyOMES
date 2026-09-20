@@ -74,7 +74,7 @@ def _co2_henry():
 
 
 def _folded_engine_with_precipitation():
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(
         _carbonate_reactions() + [_calcite_reaction(), _co2_henry()],
         use_activity=True, activity_model="davies",
@@ -183,7 +183,7 @@ class TestPrecipitationCoexistsWithGasLiquidFold:
         unfolded engine structurally cannot capture it at all, having no
         gas phase to strip CO2 into. A positive validation of the
         coupling, not a discrepancy to paper over with a loose bound."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         unfolded_engine = NRChemicalEquilibriumEngine.from_reactions(
             _carbonate_reactions() + [_calcite_reaction()],
@@ -211,7 +211,7 @@ class TestPrecipitationCoexistsWithGasLiquidFold:
         must still fire regardless of precipitation reactions also being
         present — the guard checks tableau.secondaries only, independent
         of _precipitation_reactions."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         with pytest.raises(NotImplementedError, match="gas-liquid secondaries"):
             NRChemicalEquilibriumEngine.from_reactions(

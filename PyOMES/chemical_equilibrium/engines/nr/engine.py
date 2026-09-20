@@ -37,14 +37,14 @@ from typing import Any, Dict, FrozenSet, List, Optional
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from .nr_tableau import NRTableau, build_tableau
-from .nr_solver import (
+from .tableau import NRTableau, build_tableau
+from .solver import (
     NRSolverCache, _gamma_safe, solve_nr,
     _build_gammas, _compute_concentrations, _residual_and_jacobian,
 )
-from ..thermo import make_activity_model
-from ..thermo.equilibrium_constants import vant_hoff_log_K
-from .protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
+from ....thermo import make_activity_model
+from ....thermo.equilibrium_constants import vant_hoff_log_K
+from ...protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class NRChemicalEquilibriumEngine:
     """Newton-Raphson aqueous speciation engine.
 
     Construct via :meth:`from_reactions`; subsequent ``solve(**kwargs)``
-    calls use the pre-built :class:`~PyOMES.chemical_equilibrium.nr_tableau.NRTableau`.
+    calls use the pre-built :class:`~PyOMES.chemical_equilibrium.engines.nr.tableau.NRTableau`.
 
     Parameters
     ----------
@@ -226,17 +226,17 @@ class NRChemicalEquilibriumEngine:
         use_warmstart : bool
             Keep a warmstart cache across ``solve()`` calls.
         max_log_activity : float
-            Passed to :func:`~PyOMES.chemical_equilibrium.nr_solver.solve_nr`.
+            Passed to :func:`~PyOMES.chemical_equilibrium.engines.nr.solver.solve_nr`.
             See :meth:`__init__` for details.
         min_component_total : float
-            Passed to :func:`~PyOMES.chemical_equilibrium.nr_solver.solve_nr`.
+            Passed to :func:`~PyOMES.chemical_equilibrium.engines.nr.solver.solve_nr`.
             See :meth:`__init__` for details.
 
         Returns
         -------
         NRChemicalEquilibriumEngine
         """
-        from ..reactions.equilibrium import (
+        from ....reactions.equilibrium import (
             EquilibriumConstraint, classify_equilibrium_constraint,
         )
 

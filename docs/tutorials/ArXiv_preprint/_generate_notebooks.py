@@ -68,7 +68,7 @@ from PyOMES.chemistry.common_species import (
 )
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
 def _e(sp, coeff):
     return StoichiometryEntry(species=sp, phase="liquid", coefficient=coeff)

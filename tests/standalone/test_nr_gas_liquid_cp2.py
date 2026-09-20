@@ -102,7 +102,7 @@ class TestInertGasMatchesPartitionModel:
     def test_o2_matches_equilibrium_a_moles(self):
         from PyOMES.chemistry.species import Species
         from PyOMES.chemistry import HenryEquilibrium
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         O2 = Species(id="O2", atoms={"O": 2}, charge=0)
         henry = HenryEquilibrium(H_ref=1.3e-5, dlnH=1500.0,
@@ -132,7 +132,7 @@ class TestInertGasMatchesPartitionModel:
 class TestCoupledMassConservation:
 
     def test_total_carbon_conserved_across_phases(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn()] + _carbonate_ladder() + [_co2_henry()], T_K=298.15,
@@ -156,7 +156,7 @@ class TestCoupledMassConservation:
         """Sanity check: 0.05 mol/L total carbon with no added base should
         give a mildly acidic pH (CO2 is a weak acid), not something
         pathological."""
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn()] + _carbonate_ladder() + [_co2_henry()], T_K=298.15,
@@ -172,7 +172,7 @@ class TestCoupledMassConservation:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _ab_only_engine(T_K=308.15):
-    from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+    from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(
         [_water_rxn()] + _carbonate_ladder(), T_K=T_K,
     )
@@ -247,7 +247,7 @@ class TestSNIAConsistencyAndDivergence:
 
     @pytest.fixture(scope="class")
     def engines(self):
-        from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+        from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         ab_engine = _ab_only_engine(T_K=_T_K)
         sim_engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn()] + _carbonate_ladder() + [_co2_henry()], T_K=_T_K,

@@ -59,7 +59,7 @@ from PyOMES.chemistry.common_species import (
 )
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
 def _e(sp, coeff):
     return StoichiometryEntry(species=sp, phase="liquid", coefficient=coeff)
@@ -426,8 +426,8 @@ discrepancies are expected and grow with the step number:
 # ─── 02_multi_component_systems ──────────────────────────────────────────────
 
 SETUP2 = SETUP.replace(
-    "from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine",
-    "from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine\n"
+    "from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine",
+    "from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine\n"
     "from PyOMES.chemical_equilibrium.engine import BisectionChemicalEquilibriumEngine",
 )
 
@@ -1132,7 +1132,7 @@ from PyOMES.chemistry.common_species import (
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from PyOMES.thermo import DaviesLiquidModel
 
 def _e(sp, phase, coeff):
@@ -1478,7 +1478,7 @@ from PyOMES.chemistry.common_species import (
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from PyOMES.chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from phreeqpython import PhreeqPython
 
 def _e(sp, phase, coeff):

@@ -265,7 +265,7 @@ class ReactionSystem:
             )
             if not equilibria:
                 return None
-            from ..chemical_equilibrium.nr_engine import NRChemicalEquilibriumEngine
+            from ..chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
             self._engine = NRChemicalEquilibriumEngine.from_reactions(
                 equilibria,
                 use_activity=self._engine_config["use_activity"],

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Bisection speciation engine — one of three ChemicalEquilibriumEngineProtocol
-implementations (the others are :class:`~PyOMES.chemical_equilibrium.nr_engine.NRChemicalEquilibriumEngine`
+implementations (the others are :class:`~PyOMES.chemical_equilibrium.engines.nr.engine.NRChemicalEquilibriumEngine`
 and :class:`~PyOMES.chemical_equilibrium.phreeqc_engine.PHREEQCChemicalEquilibriumEngine`).
 
 :class:`BisectionChemicalEquilibriumEngine` solves aqueous acid-base equilibria from declared

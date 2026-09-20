@@ -313,9 +313,13 @@ grows. The optional `phreeqpython` dependency stays confined to one file.
 7. De-duplicate `_vant_hoff_K` / `_vant_hoff_log_K` into a single helper in
    `PyOMES/thermo/` (Decision 3); own commit, own tests. Repoint `acid_base.py`
    and `nr_tableau.py` at it.
-8. Move the NR files (`engines/nr/`); rewrite relative imports (`..units`
-   becomes `...units`, `..core.phases` becomes `...core.phases`, and so on).
-   Run `test_nr_*` and `test_equilibrium_classification.py`.
+8. Move the NR files (`engines/nr/`); rewrite relative imports. A file in
+   `engines/nr/` (or `engines/bisection/`) is two packages deeper than
+   before, so `..units` becomes `....units` and `..core.phases` becomes
+   `....core.phases` (four dots); a sibling-of-engines import such as
+   `.protocols` becomes `...protocols`. (The flat `engines/phreeqc.py` is
+   only one deeper: `..units` becomes `...units`.) Run `test_nr_*` and
+   `test_equilibrium_classification.py`.
 9. Move the Bisection files (`engines/bisection/`). Run `test_speciation*.py`
    and `test_bisection_chemical_equilibrium_engine_alias.py`.
 10. Move `phreeqc_engine.py` to `engines/phreeqc.py`. Run

@@ -20,7 +20,7 @@ Requires ``2 × n_components`` inner ``solve()`` calls per Jacobian evaluation.
 
 .. note::
     The wrapped engine must accept ``totals={component_id: mol_L, ...}`` as a
-    ``solve()`` kwarg.  :class:`~PyOMES.chemical_equilibrium.nr_engine.NRChemicalEquilibriumEngine`
+    ``solve()`` kwarg.  :class:`~PyOMES.chemical_equilibrium.engines.nr.engine.NRChemicalEquilibriumEngine`
     supports this natively; :class:`~PyOMES.chemical_equilibrium.engine.BisectionChemicalEquilibriumEngine`
     (pKa-ladder) does not.
 

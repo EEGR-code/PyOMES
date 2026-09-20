@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """NRTableau — log-linear tableau for the Newton-Raphson speciation engine.
 
-Builds the data structure consumed by :func:`~PyOMES.chemical_equilibrium.nr_solver.solve_nr`:
+Builds the data structure consumed by :func:`~PyOMES.chemical_equilibrium.engines.nr.solver.solve_nr`:
 for every non-master species ``j``, stores the log-linear expression
 
     log(a_j) = log_K'_j  +  Σ_k  ν_{jk} · x_k
@@ -39,7 +39,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from ..thermo.equilibrium_constants import vant_hoff_log_K
+from ....thermo.equilibrium_constants import vant_hoff_log_K
 
 logger = logging.getLogger(__name__)
 
@@ -380,7 +380,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
         declarations (consumed elsewhere, e.g. by
         ``KineticGasLiquidLink``) and are silently skipped, as before;
         solid-liquid items are always silently skipped — precipitation is
-        folded into :class:`~PyOMES.chemical_equilibrium.nr_engine.NRChemicalEquilibriumEngine`
+        folded into :class:`~PyOMES.chemical_equilibrium.engines.nr.engine.NRChemicalEquilibriumEngine`
         via its own nested active-set loop, not via this graph (see
         ``MASS_EXCHANGE_ARCHITECTURE.md`` §14.3). Must include exactly one
         water-dissociation reaction (H₂O ⇌ H⁺ + OH⁻).
@@ -405,7 +405,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
         it would require merging components, which is out of this phase's
         capability (see ``MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md``).
     """
-    from ..reactions.equilibrium import (
+    from ....reactions.equilibrium import (
         EquilibriumConstraint, classify_equilibrium_constraint,
     )
 

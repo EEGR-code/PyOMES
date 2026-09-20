@@ -151,10 +151,30 @@
       copy) uses a log10(e) constant 1 ulp different from the one `nr_tableau`
       used, so merging it would change ~20% of corrected values by up to ~4e-15
       in log10 K; logged in `OPEN_WORK.md` instead._
-- [ ] 8. `git mv` the NR files into `engines/nr/` (`engine.py`, `tableau.py`,
+- [x] 8. `git mv` the NR files into `engines/nr/` (`engine.py`, `tableau.py`,
       `solver.py`, `__init__.py`); rewrite relative imports (`..units` →
       `...units`, `..core.phases` → `...core.phases`, ...). Run `test_nr_*`
       and `test_equilibrium_classification.py`.
+      _Notes: three `git mv` renames (`nr_engine.py` → `engines/nr/engine.py`,
+      `nr_tableau.py` → `tableau.py`, `nr_solver.py` → `solver.py`); new
+      `engines/__init__.py` and `engines/nr/__init__.py` are docstring-only
+      (no re-exports, so no import side effects; revisit at C11).
+      **Plan correction:** the plan said `..units` → `...units`, but `engines/nr/`
+      is two levels deeper, so it is `....units` (four dots); `.protocols` →
+      `...protocols`. The flat `engines/phreeqc.py` (C10) will be three dots.
+      Plan doc fixed. 10 relative imports rewritten inside the moved files
+      (incl. lazy `engine.py:239`, `tableau.py:408`). Old dotted paths
+      rewritten in 31 tracked `.py`/`.ipynb` files (89 replacements: 69
+      `nr_engine`, 16 `nr_tableau`, 4 `nr_solver`), covering tests, both
+      generators' string templates, 8 validation notebooks, 2 tutorial
+      notebooks, `reactions/reaction_system.py`, and docstring cross-references
+      in the package. Bare filename mentions in prose (`nr_solver.py` in
+      comments, e.g. `engines/nr/engine.py:86`, `tableau.py:113`,
+      `protocols.py:73`, `thermo/liquid_phase_model.py:53`,
+      `adm1/base.py:1048`) and current `.md` docs are left for C12. Verified:
+      814-value fingerprint byte-identical before/after (same SHA-256); old
+      path now raises `ModuleNotFoundError`; 10 changed notebooks run;
+      generators compile; full suite 2080 passed (unchanged)._
 - [ ] 9. `git mv` the Bisection files into `engines/bisection/` (`engine.py`,
       `acid_base.py`, `__init__.py`). Run `test_speciation*.py` and
       `test_bisection_chemical_equilibrium_engine_alias.py`.

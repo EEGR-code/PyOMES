@@ -4,7 +4,7 @@
 Wraps `phreeqpython` (v1.6+) to satisfy
 :class:`~PyOMES.chemical_equilibrium.protocols.ChemicalEquilibriumEngineProtocol` as a black-box
 external engine.  The engine is a drop-in replacement for
-:class:`~PyOMES.chemical_equilibrium.nr_engine.NRChemicalEquilibriumEngine` wherever PHREEQC's
+:class:`~PyOMES.chemical_equilibrium.engines.nr.engine.NRChemicalEquilibriumEngine` wherever PHREEQC's
 thermodynamic database, activity model, or ion-pair library is preferred.
 
 Two translation layers bridge the naming conventions:
