@@ -7,10 +7,10 @@ implementation only begins when one is moved through to active work
 (i.e. a checklist file is added) and ultimately to
 [../shipped/](../shipped/) once shipped.
 
-## Currently in flight
-
-*(none — `simulation-class` shipped 2026-05-27 as the third and
-final of the three sequenced phases.)*
+**Finding work in progress.** This folder does not track which phases are
+currently being worked on. Each phase lives on its own feature branch (see
+[How to start one](#how-to-start-one)), so list the active ones with
+`git branch -a`.
 
 ## Design discussions (pre-phase, not yet a checklist)
 
@@ -486,11 +486,9 @@ without changing any of their shipped/planned numerics.
 3. Create a feature branch off `main` named for the phase
    (e.g. `chemistry-unification`).  All implementation lands on that
    branch.
-4. Update the "Currently in flight" line above with a pointer to the
-   checklist.
-5. Push the branch periodically so the work is backed up to GitHub
+4. Push the branch periodically so the work is backed up to GitHub
    while in progress.
-6. When the work ships, move both the original note and the
+5. When the work ships, move both the original note and the
    checklist to [../shipped/](../shipped/), add a
    "Status: Shipped" banner to each, and update the priority list
    above to remove the entry.  Then follow the branching and tagging

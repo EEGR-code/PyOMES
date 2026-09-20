@@ -164,10 +164,9 @@ one flat ratio for every method.
 Per this folder's usual convention
 ([README.md](README.md#how-to-start-one)): write a checklist file
 (`SCIPY_REJECTION_CHECK_SOLVER_AWARENESS_CHECKLIST.md`), cut a branch off
-`main` (suggested name: `scipy-rejection-check-solver-awareness`), work the
-checkpoints there, and add a "Currently in flight" pointer to this folder's
-`README.md`. Small and self-contained — no dependency on any other in-flight
-phase. Natural to bundle with
+`main` (suggested name: `scipy-rejection-check-solver-awareness`), and work
+the checkpoints there. Small and self-contained — no dependency on any other
+in-flight phase. Natural to bundle with
 [REACTION_ENVIRONMENT_PHASE_EXPOSURE.md](REACTION_ENVIRONMENT_PHASE_EXPOSURE.md)
 and
 [PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)
