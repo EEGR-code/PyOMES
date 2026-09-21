@@ -135,11 +135,12 @@ that still describe open work are "Open phases" and the pending stages in
   `equilibria.py` ↔ `thermo_params.py`), three Monod implementations
   (bit-identical on physical inputs; to become one), and two defects
   (`ChemistryDatabase.extend()` drops the solver; `PHController`'s id validator
-  checks the wrong table). Eight decisions D1-D8 listed with proposed defaults;
-  numerics-changing follow-ups (van 't Hoff, constants) deliberately left to
+  checks the wrong table). Decisions D1-D8 settled 2026-09-21; numerics-changing
+  follow-ups (van 't Hoff, constants) and larger redesigns (gas EOS consistency,
+  multi-species rate-law parameters, package layering) are deliberately left to
   `OPEN_WORK.md`. Checklist:
   [CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md](CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
-  No branch, no code yet.
+  Branch `chemistry-reactions-kinetics-cleanup` created; no code yet.
 
 ## Recently shipped
 
