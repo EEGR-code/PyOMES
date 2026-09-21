@@ -194,8 +194,12 @@ paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 override actually needed, or is "one correct value, documented" enough? The
 trigger should be a concrete model that needs a non-default value, which is
 also the point at which the ADM1 rounding question (Part D, Decision 14) gets
-answered for real. **Depends on Part D landing first**, since overriding a
-constant that still has ten copies would only change some of them.
+answered for real (see the ADM1 / BSM2 entry below). Part D has since landed
+(checkpoints 13–14, 2026-09-20): `R` now has one literal in `units.py`, plus the
+three deliberate ADM1/BSM2 copies. The wider question of which other constants
+would be overridable overlaps with "Sweep the package for each fundamental
+constant" below. Do that sweep first, since overriding a constant that still has
+scattered copies would only change some of them.
 
 ## Development-history references in docstrings and tests outside `chemical_equilibrium/`
 
@@ -387,3 +391,96 @@ constants generally) with a per-constant allowlist that shrinks to empty. Most o
 these are value-preserving, since every copy holds the same number; anything that
 is not (a copy with a rounded value, as R had) should be its own numerics-changing
 commit with a recorded before/after shift.
+
+Scope of the guard: `test_gas_constant_single_source.py` scans only `PyOMES/` and
+`models/`. Tests and tutorial notebooks are outside it, and the R work found three
+copies of R in saved notebook code cells only by a manual re-search
+(`Example1_mtp_well`, `Example2_batch_fermenter`, `02_nr_engine_basics`). A sweep
+should extend the scan to `tests/` and to notebook code cells, or accept a
+periodic manual re-search.
+
+## Two notebooks do not parse, and the notebooks edited for the gas constant were not re-run
+
+Found 2026-09-20 while checking `chemical-equilibrium-engines-subfolder` before
+merging (a parse of every notebook code cell). Both problems predate that phase.
+
+- `docs/tutorials/templates/batch_fermenter.ipynb`, cell 10, fails with
+  "unterminated string literal" on every Python version tried (3.10 and 3.12).
+- `tests/validation/speciation/05_precipitation_equilibrium.ipynb`, cell 6, uses an
+  f-string form that only Python 3.12 accepts (`f-string: unmatched '['` on 3.10),
+  while `pyproject.toml` declares `requires-python = ">=3.10"`.
+
+No test executes a notebook, so CI does not notice either. Separately, the
+gas-constant change edited eight notebooks and one generator by text (the import,
+the identifier, and three literal values) and validated that each parses, but did
+not re-execute them. Their saved outputs still show numbers from before `R`
+moved by 4e-7 relative, which is below what most cells print but not verified. They
+refresh the next time each notebook is re-run; see also "Regenerating tutorial
+notebooks can wipe baked outputs" above.
+
+## Keep the engine fingerprint scripts, or freeze golden values for each engine
+
+Found 2026-09-20 in checkpoints 12c and 12d. Every pure-refactor checkpoint of
+`chemical-equilibrium-engines-subfolder` was verified partly by a "fingerprint": a
+fixed set of engine outputs (NR 814 values, Bisection 265, PHREEQC 182) compared
+before and after. The scripts that produced them were throwaway and are not in the
+repo, so later checkpoints had no baseline to compare against and were verified by
+other means (an import-graph proof, AST identity of the moved code, and a fresh
+purpose-built fingerprint for the gas-constant change).
+
+Only BSM2 has committed golden values (`test_bsm2_reference.py`, which covers the
+Bisection engine and the gas-liquid link end to end). A small module of frozen
+sentinel values per engine, in the same style, would let any future refactor prove
+it is bit-identical with one test run and no scratch scripts.
+
+## Line endings are mixed across the repo
+
+Found 2026-09-20 during `chemical-equilibrium-engines-subfolder`. Among tracked
+`.py`, `.md` and `.ipynb` files, 180 are stored with CRLF line endings in the index,
+137 with LF, and 2 with both. There is no `.gitattributes`, and `core.autocrlf` is
+`true` on the Windows machine used, so git prints "LF will be replaced by CRLF"
+warnings on nearly every edit, and `git diff --check` reports trailing whitespace
+on every CRLF line it touches. The two files that mix both were already mixed
+before that phase, and the phase flipped no file between the two.
+
+A `.gitattributes` (for example `* text=auto eol=lf`) plus one commit that
+renormalises the tree would remove the noise. The renormalisation commit rewrites
+most files' line endings, so it should be its own commit with nothing else in it,
+and `git blame` will need `--ignore-rev` for it.
+
+## CI runs only for `main`, on Linux
+
+`.github/workflows/tests.yml` triggers on pushes to `main` and pull requests to
+`main`, runs `pytest` on Ubuntu with Python 3.10, 3.11 and 3.12, and has no feature-branch trigger. A
+phase branch is therefore only tested locally (here, Windows with Python 3.12)
+until it is merged, and the first Linux and 3.10/3.11 run happens after the merge.
+Opening a draft pull request against `main` before merging, or adding
+`push: branches: ['**']` to the workflow, would surface platform problems before
+they reach `main`.
+
+## `models/vlmodels/adm1/bsm2_direct.py` has no importer and no test
+
+Found 2026-09-20 when a whole-repo import audit could not import it. Nothing in the
+repo imports the module (only `docs/architecture.md` lists it), no test covers it,
+and its docstring example (`from PyOMES.models.adm1_bsm2_direct import
+build_bsm2_direct_model`) points to a module path that does not exist. It also
+imports its neighbour as `from vlmodels.adm1.bsm2 import ...`, which works only
+when `models/` is on `sys.path` (the tests' `conftest.py` puts it there);
+`models/` itself has no `__init__.py`, so `import models.vlmodels.adm1.bsm2_direct`
+fails with "No module named 'vlmodels'". It is one of the three files that keep the
+rounded `_R_J = 8.31446` (see the ADM1 / BSM2 entry above). Decide whether it is a
+supported second BSM2 implementation, in which case it needs a test and a correct
+docstring, or dead code to delete.
+
+## The package root exports only the Bisection engine
+
+Observed 2026-09-20 in checkpoint 11 of `chemical-equilibrium-engines-subfolder`
+and not acted on. `PyOMES/chemical_equilibrium/__init__.py` exports
+`BisectionChemicalEquilibriumEngine` (and the `ChemicalEquilibriumEngine` alias),
+`EquilibriumResult`, `ionic_strength_from_speciation` and `solve_acid_base`, but not
+the newer NR engine or the PHREEQC engine, which need deep imports
+(`PyOMES.chemical_equilibrium.engines.nr.engine`, `...engines.phreeqc`). The engines
+were not exported from the root before the move either, so re-exporting them would
+be new API. Whether the root should export all three, none, or a small engine
+selector is an API decision, and it interacts with "`use_activity` /
+`activity_model` split could be one parameter" above.
