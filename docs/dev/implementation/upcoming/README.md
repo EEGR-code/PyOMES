@@ -126,6 +126,20 @@ that still describe open work are "Open phases" and the pending stages in
   example. Its proposed location, `demos/model_api/recorder_comparison.py`,
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
+- **[CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md)** —
+  2026-09-21. Review of `chemistry/`, `kinetics/` and `reactions/` in the style
+  of `chemical-equilibrium-engines-subfolder`: dead code (`kinetics/`,
+  `thermo_params.py`, the recipe layer, the top-level `equilibria/` package,
+  deprecated `HenryPartition`/`RaoultPartition` aliases), import deferrals that
+  no longer work around anything (the one real cycle is
+  `equilibria.py` ↔ `thermo_params.py`), three Monod implementations
+  (bit-identical on physical inputs; to become one), and two defects
+  (`ChemistryDatabase.extend()` drops the solver; `PHController`'s id validator
+  checks the wrong table). Eight decisions D1-D8 listed with proposed defaults;
+  numerics-changing follow-ups (van 't Hoff, constants) deliberately left to
+  `OPEN_WORK.md`. Checklist:
+  [CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md](CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
+  No branch, no code yet.
 
 ## Recently shipped
 
