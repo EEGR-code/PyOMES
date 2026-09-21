@@ -1,6 +1,11 @@
 
 # Phase Kickoff Checklist — chemical-equilibrium-engines-subfolder
 
+> **Status: Shipped 2026-09-20** — merged into `main` via `git merge --no-ff`
+> as commit `40fdea2`, tagged `chemical-equilibrium-engines-subfolder-shipped`.
+> Full suite green post-merge: 2072 passed, 0 failed. Remote and local
+> feature branch both deleted.
+
 > Checklist for [`CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`](CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md),
 > which is the source of truth for goals, audit, target layout and Decisions
 > 1-10. All open questions there are resolved; do not re-litigate them. See
@@ -33,20 +38,21 @@
       with this checklist as the branch's first commit
 - [x] `git log origin/main..main --oneline` empty (nothing unpushed sitting
       around from earlier work) — verified 2026-09-20
-- [ ] Branch created off current `main`:
+- [x] Branch created off current `main`:
       `git checkout -b chemical-equilibrium-engines-subfolder`
-- [ ] This checklist file (and the plan doc) committed on that branch as the
+- [x] This checklist file (and the plan doc) committed on that branch as the
       first commit — so partial work is never silent
 
 ## During
 
 - [x] Plan/design doc exists in `docs/dev/implementation/upcoming/`
       (`CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`)
-- [ ] Checkpoints tracked below as they land, one commit per checkpoint
-- [ ] **If work stalls or is paused before shipping:** add a status banner
+- [x] Checkpoints tracked below as they land, one commit per checkpoint
+- [x] **If work stalls or is paused before shipping:** add a status banner
       to the top of the plan doc *immediately* — what's built, what's
       tested, why it stopped, which branch/commit it's on. Don't leave this
-      for a future audit to discover.
+      for a future audit to discover. _Not needed: work did not stall; the
+      phase ran checkpoint by checkpoint to shipping._
 
 ### Checkpoints
 
@@ -780,7 +786,8 @@
       saved outputs still show pre-change numbers, differing from a re-run by
       about 4e-7 relative. **Restore point:** `9b16871` (the last commit before
       this checkpoint).
-- [ ] 15. Full suite green, then ship (see below).
+- [x] 15. Full suite green, then ship (see below). _2072 passed, 0 failed
+      pre-merge and post-merge (same commit content); see "Shipping" below._
 
 ### Checkpoint 1 inventory
 
@@ -921,16 +928,31 @@ the noted checkpoint):**
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff chemical-equilibrium-engines-subfolder -m "Merge chemical-equilibrium-engines-subfolder: move engines into engines/ subfolder, retire thermo shims, remove strong_ions"`
-- [ ] `git tag chemical-equilibrium-engines-subfolder-shipped <commit-hash>`
-- [ ] `git push && git push --tags` (both — tags are not pushed by default)
-- [ ] `git branch -d chemical-equilibrium-engines-subfolder` and
-      `git push origin --delete chemical-equilibrium-engines-subfolder`
+- [x] Full test suite green on the branch — 2072 passed, 0 failed (checkpoint 14's count; 15 added no test)
+- [x] `git checkout main`
+- [x] `git merge --no-ff chemical-equilibrium-engines-subfolder -m "..."` —
+      landed as `40fdea2` (message: "Merge chemical-equilibrium-engines-subfolder:
+      engines/ subfolder, thermo shims retired, orphaned modules removed, gas
+      constant unified on PyOMES.units", not the checklist's original draft
+      message, to reflect the final scope)
+- [x] `git tag chemical-equilibrium-engines-subfolder-shipped <commit-hash>` —
+      tagged on `40fdea2`
+- [x] `git push && git push --tags` (both — tags are not pushed by default) —
+      pushed `main` and the tag by name
+- [x] `git branch -d chemical-equilibrium-engines-subfolder` and
+      `git push origin --delete chemical-equilibrium-engines-subfolder` — both
+      done; local and remote branch confirmed gone 2026-09-21
+- [x] Full suite re-run on `main` post-merge — 2072 passed, 0 failed
+      (unchanged from the branch tip, as expected: the merge commit's tree is
+      identical to the branch tip)
 - [ ] Move the plan doc + this checklist to `docs/dev/implementation/shipped/`, add a
-      "Shipped" banner to both
-- [ ] Update `docs/dev/implementation/upcoming/README.md`'s "Recently shipped" list
-- [ ] Note the deliberate breaking changes (old engine module paths,
+      "Shipped" banner to both — banners added; the `git mv` is the repo
+      owner's to run
+- [x] Update `docs/dev/implementation/upcoming/README.md`'s "Recently shipped" list
+- [x] Note the deliberate breaking changes (old engine module paths,
       `IdealActivityModel` / `DaviesActivityModel`, `strong_ions_from_feed_molL`)
-      in release notes / changelog if one is kept
+      in release notes / changelog if one is kept — _no changelog or release-notes
+      file exists in this repo (checked 2026-09-21); nothing to update. If one is
+      added later, the rename of `core.phases.R_L_ATM_MOL_K` to
+      `PyOMES.units.R_L_ATM_PER_MOL_K` (checkpoint 14) is a fifth breaking change
+      to include alongside the three above._

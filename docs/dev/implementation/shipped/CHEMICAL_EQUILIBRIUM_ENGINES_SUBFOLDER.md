@@ -1,7 +1,16 @@
 # chemical_equilibrium engines/ subfolder — design discussion
 
-> Status: pre-phase design discussion, 2026-09-20. No branch, no checklist,
-> no code yet. Written up from a planning conversation that audited
+> **Status: Shipped 2026-09-20** — merged into `main` via `git merge --no-ff`
+> as commit `40fdea2`, tagged `chemical-equilibrium-engines-subfolder-shipped`.
+> All 15 checkpoints (Parts A–D) landed. Full suite green post-merge: 2072
+> passed, 0 failed. See the checklist's dated notes for what each checkpoint
+> did; see `OPEN_WORK.md` for findings surfaced along the way that were
+> logged rather than fixed (ADM1/BSM2's rounded gas constant, the unwired
+> high-ionic-strength warning, duplicated ionic-strength/charge tables, the
+> package root exporting only the Bisection engine, and others).
+>
+> Original status, pre-phase: design discussion, 2026-09-20. No branch, no
+> checklist, no code yet. Written up from a planning conversation that audited
 > `PyOMES/chemical_equilibrium/` (16 flat `.py` files, ~5,970 lines). When this
 > is picked up: follow `README.md`'s "How to start one" — write a checklist
 > file from `PHASE_KICKOFF_TEMPLATE.md`, branch, implement, ship.

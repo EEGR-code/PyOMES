@@ -129,6 +129,31 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Recently shipped
 
+- `chemical-equilibrium-engines-subfolder` (2026-09-20) — moved the three
+  chemical-equilibrium engines (Bisection, NR, PHREEQC) out of a flat 16-file
+  `chemical_equilibrium/` package into `engines/{bisection,nr,phreeqc}/`
+  subpackages, with `protocols.py` and `numerical_gradient.py` staying shared
+  at the top level (Part C). Along the way: retired the
+  `activity_models.py`/`sit.py` compatibility shims in favour of `PyOMES.thermo`
+  (Part A); deleted the orphaned `strong_ions.py` (Part B), `api.py`/`factory.py`
+  (checkpoint 9b), and `activity_dispatch.py` (checkpoint 12c); dissolved
+  `activity.py` into `engines/bisection/ionic_strength.py`, deleting the
+  never-called `warn_if_high_ionic_strength` (checkpoint 12d); rewrote
+  `chemical_equilibrium/`'s docstrings to describe current behaviour rather
+  than development history (checkpoint 12b). Part D unified every copy of the
+  L·atm gas constant onto one value derived in `PyOMES/units.py`, renaming
+  `core.phases.R_L_ATM_MOL_K` to `PyOMES.units.R_L_ATM_PER_MOL_K` with no
+  alias — the one deliberate numerical change in the phase (~4e-7 relative on
+  gas-liquid quantities; BSM2 sentinels re-baselined with a dated note; ADM1's
+  own rounded copy of `R` left alone on purpose, pending word on whether it
+  matches a published spec). Findings logged rather than fixed along the way
+  — the unwired `AccuracyMonitor.check_ionic_strength`, duplicated
+  ionic-strength/charge tables across the three engines, the package root
+  exporting only the Bisection engine, and others — see `OPEN_WORK.md`. Full
+  suite green post-merge: 2072 passed, 0 failed. Tag
+  `chemical-equilibrium-engines-subfolder-shipped`. See
+  [`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md`](../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md).
+
 - `tutorials-followups` (2026-09-17) — five debugging/investigation follow-ups
   split out of `tutorials-reorg` so that phase could ship as one clean unit.
   Fixed `reactions/chemistry_database.py` (`ThermoFramework` now takes
