@@ -37,6 +37,7 @@ from typing import Callable, Mapping, Optional, Sequence
 from .stoichiometry import StoichiometryEntry
 from .kinetic import KineticReaction
 from .environment import ReactionEnvironment
+from .rate_laws import Monod, DualSubstrateMonod
 from ..chemistry.species import Species
 from ..chemistry.common_species import CO2 as _CO2, H2O as _H2O
 
@@ -267,7 +268,9 @@ class ReactionBuilder:
             O₂ half-saturation constant (g/L).  When provided, multiplies
             µ by ``O2_gL / (Ko2_gL + O2_gL)`` where ``O2_gL`` is derived
             from ``env.concentrations["O2"] * 32.0``.  Pass ``None``
-            (default) to omit the O₂ Monod term entirely.
+            (default) to omit the O₂ Monod term entirely.  ``Ko2_gL=0.0``
+            with zero O₂ present returns a rate of 0.0 rather than raising
+            (the 0/0 case is guarded).
         balance : str
             Element set for stoichiometric closure: ``"CHO"`` (default)
             or ``"CHNO"``.
@@ -293,18 +296,22 @@ class ReactionBuilder:
         """
         MW_S = float(substrate.MW)
         MW_X = float(biomass.MW)
-        _MW_O2 = 32.0
 
-        def _rate_fn(env: ReactionEnvironment) -> float:
-            S_gL = env.concentrations.get(substrate.id, 0.0) * MW_S
-            X_gL = env.concentrations.get(biomass.id, 0.0) * MW_X
-            if X_gL <= 1e-30 or S_gL <= 0.0:
-                return 0.0
-            mu = mu_max_per_h * S_gL / (Ks_gL + S_gL)
-            if Ko2_gL is not None:
-                O2_gL = env.concentrations.get("O2", 0.0) * _MW_O2
-                mu *= O2_gL / (Ko2_gL + O2_gL)
-            return mu / yield_gX_gS * X_gL / MW_S * env.V_L
+        if Ko2_gL is None:
+            kin = Monod(mu_max=mu_max_per_h, Ks=Ks_gL)
+        else:
+            kin = DualSubstrateMonod(
+                mu_max=mu_max_per_h, Ks=Ks_gL,
+                secondary_id="O2", Ko=Ko2_gL,
+                secondary_in_mol_L=False, secondary_MW=32.0,
+            )
+        rate_fn = kin.make_rate_fn(
+            organism_id=biomass.id,
+            substrate_id=substrate.id,
+            MW_organism=MW_X,
+            MW_substrate=MW_S,
+            yield_gX_gS=yield_gX_gS,
+        )
 
         return ReactionBuilder.aerobic_growth(
             substrate_id    = substrate.id,
@@ -314,7 +321,7 @@ class ReactionBuilder:
             biomass_atoms   = biomass.atoms,
             MW_biomass      = MW_X,
             yield_gX_gS     = yield_gX_gS,
-            rate_fn         = _rate_fn,
+            rate_fn         = rate_fn,
             balance         = balance,
             label           = label or f"monod_growth_{substrate.id}",
             species_overrides={substrate.id: substrate, biomass.id: biomass},

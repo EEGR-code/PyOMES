@@ -336,9 +336,10 @@ class StirredTankBuilder:
             ``Ks`` are ignored (the kinetics object owns those
             parameters).  If None, default Monod is used.
 
-            Available models::
+            Available models (also re-exported from
+            ``PyOMES.templates.stirred_tank``)::
 
-                from PyOMES.templates.stirred_tank import (
+                from PyOMES.reactions.rate_laws import (
                     Monod, Contois, Andrews, ContoisAndrews,
                     Tessier, Moser, Blackman, DualSubstrateMonod,
                 )

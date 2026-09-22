@@ -538,7 +538,7 @@ the `Multispecies*` classes.
        `test_gas_eos_none_by_default`) and the new `test_gas_eos.py` (6) all
        pass. Full suite **2062 passed**, 0 failed (2056 + 6 new tests, exactly
        as predicted)._
-- [ ] 12. (D5, D6) **Before editing:** freeze the rate-function fingerprints as
+- [x] 12. (D5, D6) **Before editing:** freeze the rate-function fingerprints as
        tests, for the `Monod` path and for the builder's `Ko2_gL` path (measured
        bit-identical to `DualSubstrateMonod(secondary_in_mol_L=False,
        secondary_MW=32.0)`), captured against the current code. Then create
@@ -551,6 +551,66 @@ the `Multispecies*` classes.
        `make_rate_fn` outputs), pinning `Andrews` and `ContoisAndrews`. Sanity:
        fingerprints bit-identical; note the one edge-case change (zero `Ko2_gL` with
        zero O2 returns 0.0); about 2070 tests.
+       _Notes: done 2026-09-22, 7 files (6 edited + 1 new test file). Before any
+       edit, captured a 2000-point grid fingerprint (SHA-256 of packed doubles) of
+       `ReactionBuilder.monod_aerobic_growth`'s rate_fn, both the plain-Monod
+       path and the `Ko2_gL` path, against the pre-refactor code. `git mv
+       templates/stirred_tank/kinetics.py reactions/rate_laws.py` (clean rename;
+       this alone satisfies "delete templates/stirred_tank/kinetics.py" — move
+       and delete are the same operation here). All 8 classes moved unchanged
+       except the header docstring (reworded reactor-agnostic, per D5: "public,
+       reactor-agnostic") and 5 imports (`field`, `asdict`, `Any`, `Dict`,
+       `Optional`) that were already completely unused before this move — a
+       pre-existing issue, not caused by D5/D6, but cheap to fix while already
+       rewriting this exact file's header; verified pre-existing via
+       `git show HEAD:...` before touching. `reactions/__init__.py` now exports
+       all 9 names (the protocol + 8 laws) — a new, natural home alongside
+       `ReactionBuilder`/`ReactionSystem`; `rate_laws.py` has zero internal
+       PyOMES imports (pure stdlib), so no cycle risk either direction.
+       `templates/stirred_tank/__init__.py` re-export kept (still part of that
+       package's public fluent-builder API, not a deprecated shim), repointed to
+       `PyOMES.reactions.rate_laws` (absolute, matching this exact file's own
+       existing style for cross-package refs). `StirredTankBuilder.substrate`'s
+       docstring ("the builder docstring") now shows the canonical import path,
+       noting the templates re-export. Zero notebooks reference any of this
+       (fresh search: only `rate_laws.py`'s own docstring matched).
+       **Delegation:** `ReactionBuilder.monod_aerobic_growth`'s inline `_rate_fn`
+       closure (formerly `builder.py:298`, the audit's third Monod
+       implementation) replaced with `Monod(...)`/`DualSubstrateMonod(
+       secondary_in_mol_L=False, secondary_MW=32.0, ...)` + `.make_rate_fn(...)`,
+       chosen by whether `Ko2_gL is None`; verified against the captured
+       fingerprint: byte-for-byte `==` match (not `approx`) on both paths, and
+       the new edge case (`Ko2_gL=0.0`, O2=0) returns `0.0` where the old
+       closure raised `ZeroDivisionError`, exactly as D5 specifies. The
+       factory's default-Monod fallback closure (`factory.py:288`, the second
+       implementation) replaced with `Monod(...).make_rate_fn(...)` the same
+       way; verified separately (formula comparison plus an empirical 5,000-point
+       check against the pre-edit closure, `==` on every point). **New tests**
+       (`tests/standalone/test_rate_laws.py`, 36 — more than the plan's ~10
+       estimate, since this code had zero coverage before this phase and
+       D5/D6 both ask for thorough pinning): fixed-point `mu()` values for all
+       8 laws (hand-verified by simple arithmetic, e.g. Monod at S=Ks gives
+       μ_max/2); `Andrews`/`ContoisAndrews` checked against a frozen Haldane-form
+       reference function (μ = μ_max·r/(Ks+r+r²/Ki)) across 3-2 parameter sets ×
+       6-7 values each, plus a peak-below-μ_max check and a
+       biomass-independence/scale-invariance check — the explicit "reference for
+       a later composable-inhibition redesign" the D5/D6 note asks for;
+       `make_rate_fn` extensive-rate (mol/h) pins for `Monod` and
+       `DualSubstrateMonod`; the frozen-reference fingerprint (embedded copy of
+       the pre-refactor closure, not just a one-time script) comparing the
+       *current* `ReactionBuilder.monod_aerobic_growth` against it on a 500-point
+       log-uniform grid for both paths, `==` exact, plus the edge-case test
+       (current code returns 0.0; the frozen reference still raises
+       `ZeroDivisionError`, proving the test would catch a regression either
+       way). **Verification:** `python -c "import PyOMES"` succeeds; import
+       guard green; an AST unused-import check across all 6 touched files found
+       nothing left over (`factory.py`'s `SimulationConfig` and
+       `templates/stirred_tank/builder.py`'s `Callable` were flagged too but
+       confirmed pre-existing and unrelated via `git show HEAD:...`, left alone);
+       `test_builder.py`/`test_configs.py` (86, StirredTank templates, exercises
+       the factory's real `create_volume` path) and the new
+       `test_rate_laws.py` (36) all pass. Full suite **2098 passed**, 0 failed
+       (2062 + 36 new tests)._
 - [ ] 13. (D7) Move `chemistry/database.py` and `chemistry/databases/` to
        `PyOMES/databases/` with `git mv` (name provisional; confirm at start).
        Repoint imports in `templates/stirred_tank/factory.py`, `models/vlmodels/adm1`,
