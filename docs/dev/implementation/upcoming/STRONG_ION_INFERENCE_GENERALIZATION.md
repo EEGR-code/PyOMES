@@ -372,6 +372,19 @@ registry, this makes the recipe layer (`chem_recipe.py`, `recipe.py`,
 `registry.py`, `types.py`) a candidate for the separate "keep, merge or remove"
 note described above: most of it now has no consumer inside the repo.
 
+**Update 2026-09-22 (`chemistry-reactions-kinetics-cleanup`, checkpoint 10,
+decision D1): resolved.** `chem_recipe.py`, `recipe.py` and `types.py` are
+deleted, along with the ion/salt maps in `registry.py`
+(`SALT_DISSOCIATION_MAP`, `ION_TO_ENGINE_KEY`, `normalize_ion_label`,
+`ion_to_engine_key`, `map_user_ions_to_engine`, `validate_compound_ids`) — a
+fresh repo-wide search found no consumer of any of it. `registry.py` itself
+stays: `COMPOUND_DB`, `resolve_compound` and `validate_compound_id`
+(singular) are still used (`control/cv_loops.py` and one test), and are left
+for checkpoint 15 to decide on. A species-based replacement (weighed salt →
+species amounts, molar masses from `Species`/`ChemicalRegistry`) is logged in
+`OPEN_WORK.md`, not built here. See decision D1 in
+[`CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md).
+
 ## Trigger conditions
 
 **Phase 0 needs no trigger** — it's a decided, no-risk de-duplication and

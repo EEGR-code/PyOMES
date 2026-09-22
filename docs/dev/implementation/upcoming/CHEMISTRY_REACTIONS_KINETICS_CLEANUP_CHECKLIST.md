@@ -421,11 +421,53 @@ the `Multispecies*` classes.
       wrappers and nothing in the fingerprint ever called them. The 7 migrated
       files: 261 passed, no `DeprecationWarning`s left. Full suite **2056
       passed**, 0 failed, exactly as predicted (2062 − 6)._
-- [ ] 10. (D1) Delete `recipe.py`, `chem_recipe.py`, `types.py` and the ion/salt maps
+- [x] 10. (D1) Delete `recipe.py`, `chem_recipe.py`, `types.py` and the ion/salt maps
        in `registry.py`; update `chemistry/__init__.py`; update the recipe-layer
        section of `STRONG_ION_INFERENCE_GENERALIZATION.md` to "resolved, see the
        cleanup plan". Leave `COMPOUND_DB`/`resolve_compound`/`validate_compound_id`
        for checkpoint 15.
+       _Notes: done 2026-09-22, 8 files, 744 lines removed. Fresh repo-wide search
+       (`.py`, `.ipynb`) before deleting: zero consumers anywhere of
+       `SolutionRecipe`, `AqueousTotals`/`AqueousTotalsUser`/`AqueousEquilibrium`,
+       `SALT_DISSOCIATION_MAP`, `ION_TO_ENGINE_KEY`, `normalize_ion_label`,
+       `ion_to_engine_key`, `map_user_ions_to_engine`, `ChemSpec`, `CHEM_DB`,
+       `recipe_to_totals`, `recipe_g_L_to_mol_L`, outside the files being deleted
+       and `chemistry/__init__.py`'s own import/export lines — matching the audit.
+       Also deleted `validate_compound_ids` (plural): the checkpoint text names
+       only 3 survivors (`COMPOUND_DB`, `resolve_compound`,
+       `validate_compound_id` singular), and the plural form had zero callers,
+       matching its "no consumer" classification in the original W1 audit
+       (distinct from the singular, which `control/cv_loops.py` and one test
+       still use and which stays). `registry.py`'s module docstring described
+       three purposes (strong-ion inference, ion-label normalization, mapping to
+       engine keys) — all three now deleted — so rewrote it to describe what
+       actually remains (the compound → molar-mass/composition lookup); also
+       fixed two runtime message strings (`resolve_compound`'s `KeyError`,
+       `validate_compound_id`'s `UserWarning`) that still said
+       `fermenter.chemistry.registry.COMPOUND_DB` — the pre-rename project name,
+       missed at checkpoint 4 because I'd read `registry.py` as not surviving at
+       all, when only its ion/salt-map portion doesn't; no test asserts the old
+       string. `chemistry/__init__.py`'s own docstring described the package as
+       providing "*typed* inputs/outputs" — `types.py`'s own stated purpose,
+       word for word — so rewrote it to describe the broader surviving scope
+       (species, partition models, equilibrium sets, the compound registry).
+       `STRONG_ION_INFERENCE_GENERALIZATION.md`: appended a dated resolution
+       note to the "Adjacent, out of scope" section (matching that doc's own
+       established pattern of dated update notes; the design-discussion prose
+       above it is left as the historical record). Two further doc fixes flagged
+       at checkpoint 1: `PyOMES/README.md`'s chemistry/ row dropped "solution
+       recipe builders"; the orphaned `tests/data/gas_equilibrated_pH_standards.json`
+       (zero Python readers, confirmed again here) had its "CHEM_DB keys" note
+       reworded to not cite the deleted name. **Left alone:** the same file's
+       mention of `run_test_NIST_buffer_standards_with_recipe.py`, a script that
+       already doesn't exist in the repo — a separate, pre-existing dangling
+       reference, not caused by D1. **Verification:** JSON re-parses;
+       `python -c "import PyOMES"` succeeds; import guard green; an AST
+       unused-import check on `registry.py`/`chemistry/__init__.py` found
+       nothing real (the `__init__.py` "hits" are all names used only via
+       `__all__`, the normal pattern for a package init); `validate_compound_id`/
+       `PHController` tests (21) and the full suite (**2056 passed**, 0 failed)
+       both unchanged — nothing tested the deleted code._
 - [ ] 11. (D4) Move `equilibria/` to `thermo/gas_eos.py` with `git mv`: `GasEOS`,
        `IdealGasEOS`, `PengRobinsonEOS`, `CriticalProperties`, `BIOGAS_SPECIES`,
        `BIOGAS_KIJ`. Drop `HenryIdealVLE` and the `equilibria/` package. Make

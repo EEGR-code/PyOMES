@@ -1,21 +1,11 @@
 """Chemistry-facing data structures.
 
-This subpackage provides *typed* inputs/outputs for chemistry engines that can be
-used both inside the fermenter simulation and as standalone tools.
+This subpackage provides species declarations, phase-partition models,
+acid-base equilibrium sets, and the compound registry used to construct
+feeds and initial conditions.
 """
 
-from .types import AqueousTotals, AqueousTotalsUser, AqueousEquilibrium
-from .registry import (
-    SALT_DISSOCIATION_MAP,
-    ION_TO_ENGINE_KEY,
-    normalize_ion_label,
-    ion_to_engine_key,
-    map_user_ions_to_engine,
-    COMPOUND_DB,
-    resolve_compound,
-)
-
-from .recipe import SolutionRecipe, g, mg, kg, L, mL
+from .registry import COMPOUND_DB, resolve_compound
 from .compounds import Chemical, ChemicalRegistry
 from .equilibria import EquilibriumSet, EquilibriumDef
 from .partition import (
@@ -29,22 +19,8 @@ from .database import ChemistryDatabase
 from . import common_species
 
 __all__ = [
-    "AqueousTotals",
-    "AqueousTotalsUser",
-    "AqueousEquilibrium",
-    "SALT_DISSOCIATION_MAP",
-    "ION_TO_ENGINE_KEY",
-    "normalize_ion_label",
-    "ion_to_engine_key",
-    "map_user_ions_to_engine",
     "COMPOUND_DB",
     "resolve_compound",
-    "SolutionRecipe",
-    "g",
-    "mg",
-    "kg",
-    "L",
-    "mL",
     "Chemical",
     "ChemicalRegistry",
     "EquilibriumSet",

@@ -1,22 +1,11 @@
-"""Unified chemistry registry.
-
-This module centralizes small pieces of "chemistry database" information used
-across the codebase, to avoid duplicating mappings in multiple places.
+"""Compound registry: name -> molar mass, ion composition, and other
+recipe-relevant metadata.
 
 Scope (intentional)
 -------------------
-This is **not** a full thermodynamic database. It only contains the minimal,
-pragmatic mappings needed for:
-
-* strong-ion inference (e.g., NaCl -> Na+ + Cl-)
-* user-facing ion label normalization (e.g., "SO4^2-" -> "SO4--")
-* mapping user-facing ions ("Na+") to engine keyword conventions ("CT_Na")
-
-The goal is to keep these conventions consistent between:
-
-* :mod:`fermenter.speciation.strong_ions`
-* :class:`fermenter.chemistry.types.AqueousTotalsUser`
-* future recipe/builders that translate lab recipes into totals
+This is **not** a full thermodynamic database. It exists to resolve a
+user-provided compound name (e.g. ``"KOH"``, ``"MgSO4·7H2O"``) to its
+molar mass and other dosing-relevant properties.
 
 Notes
 -----
@@ -27,130 +16,7 @@ hooks to those libraries.
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
-
-
-# -----------------------------------------------------------------------------
-# Ion label normalization and mapping to engine keys
-# -----------------------------------------------------------------------------
-
-def normalize_ion_label(label: str) -> str:
-    """Normalize common ion-label formats.
-
-    Accepts user inputs like::
-
-        "SO4--", "SO4^2-", "SO4-2", "Ca2+", "Ca++", "cl-".
-
-    Returns a canonical-ish label used by :func:`ion_to_engine_key`.
-    """
-    s = str(label).strip().replace(" ", "")
-    if not s:
-        return s
-    # Remove caret notation: SO4^2-
-    s = s.replace("^", "")
-    # Normalize charge formatting
-    if s.endswith("-2"):
-        s = s[:-2] + "--"
-    if s.endswith("+2"):
-        s = s[:-2] + "++"
-    if s.endswith("-3"):
-        s = s[:-2] + "---"
-    if s.endswith("+3"):
-        s = s[:-2] + "+++"
-    # Light normalization of case for common ions
-    if len(s) >= 2 and s[0].isalpha():
-        s = s[0].upper() + s[1:]
-    return s
-
-
-# Common ions in typical fermentation electrolytes.
-ION_TO_ENGINE_KEY: Dict[str, str] = {
-    # Monovalent
-    "Na+": "CT_Na",
-    "K+": "CT_K",
-    "Cl-": "CT_Cl",
-    "NO3-": "CT_NO3",
-    # Divalent
-    "Ca++": "CT_Ca",
-    "Mg++": "CT_Mg",
-    "SO4--": "CT_SO4",
-    # Trace
-    "Zn++": "CT_Zn",
-    "Mn++": "CT_Mn",
-    "Co++": "CT_Co",
-    "Mo7O24------": "CT_Mo7O24",
-}
-
-
-def ion_to_engine_key(ion: str) -> str:
-    """Map a user-facing ion label (e.g., 'Na+', 'Cl-', 'Ca++') to engine kwargs."""
-    s = normalize_ion_label(ion)
-    synonyms = {
-        "Ca2+": "Ca++",
-        "Mg2+": "Mg++",
-        "SO4^2-": "SO4--",
-    }
-    s = synonyms.get(s, s)
-    if s in ION_TO_ENGINE_KEY:
-        return ION_TO_ENGINE_KEY[s]
-    # Fallback: strip charge markers and prepend CT_
-    core = "".join(ch for ch in s if ch.isalpha() or ch.isdigit())
-    if not core:
-        raise ValueError(f"Unrecognized ion label: {ion!r}")
-    return f"CT_{core}"
-
-
-def map_user_ions_to_engine(user_ions_mol_L: Dict[str, float]) -> Dict[str, float]:
-    """Convert user-facing ion labels to engine keyword conventions."""
-    out: Dict[str, float] = {}
-    for k, v in (user_ions_mol_L or {}).items():
-        key = ion_to_engine_key(k)
-        out[key] = float(out.get(key, 0.0)) + float(v)
-    return out
-
-
-# -----------------------------------------------------------------------------
-# Salt dissociation map (neutral salts -> strong ion totals)
-# -----------------------------------------------------------------------------
-
-# Values are (engine_ion_key, stoich coefficient)
-SALT_DISSOCIATION_MAP: Dict[str, List[Tuple[str, float]]] = {
-    # Chlorides
-    "NaCl": [("CT_Na", 1), ("CT_Cl", 1)],
-    "KCl": [("CT_K", 1), ("CT_Cl", 1)],
-    "NH4Cl": [("CT_Cl", 1)],
-    "CaCl2": [("CT_Ca", 1), ("CT_Cl", 2)],
-    "MgCl2": [("CT_Mg", 1), ("CT_Cl", 2)],
-
-    # Nitrates
-    "NaNO3": [("CT_Na", 1), ("CT_NO3", 1)],
-    "KNO3": [("CT_K", 1), ("CT_NO3", 1)],
-    "Ca(NO3)2": [("CT_Ca", 1), ("CT_NO3", 2)],
-    "Mg(NO3)2": [("CT_Mg", 1), ("CT_NO3", 2)],
-
-    # Sulfates
-    "Na2SO4": [("CT_Na", 2), ("CT_SO4", 1)],
-    "K2SO4": [("CT_K", 2), ("CT_SO4", 1)],
-    "(NH4)2SO4": [("CT_SO4", 1)],
-    "MgSO4": [("CT_Mg", 1), ("CT_SO4", 1)],
-    "CaSO4": [("CT_Ca", 1), ("CT_SO4", 1)],
-
-    # Trace metal sulfates
-    "ZnSO4": [("CT_Zn", 1), ("CT_SO4", 1)],
-    "MnSO4": [("CT_Mn", 1), ("CT_SO4", 1)],
-    "CoSO4": [("CT_Co", 1), ("CT_SO4", 1)],
-
-    # Molybdate salts (illustrative)
-    "(NH4)6Mo7O24": [("CT_Mo7O24", 1)],
-
-    # ---- BioSTEAM chemical-name aliases ----
-    # BioSTEAM registers salts by common name rather than formula.
-    "AmmoniumSulfate": [("CT_SO4", 1)],          # = (NH4)2SO4
-    "AmmoniumMolybdate": [("CT_Mo7O24", 1)],      # = (NH4)6Mo7O24
-    "KH2PO4": [("CT_K", 1)],                      # K+ only; phosphate via CT_P
-    "MnCl2": [("CT_Mn", 1), ("CT_Cl", 2)],
-    "CoCl2": [("CT_Co", 1), ("CT_Cl", 2)],
-}
+from typing import Dict
 
 
 # -----------------------------------------------------------------------------
@@ -247,7 +113,7 @@ def resolve_compound(name: str) -> dict:
             key = key2
         else:
             raise KeyError(
-                f"Unknown compound {name!r}. Add it to fermenter.chemistry.registry.COMPOUND_DB "
+                f"Unknown compound {name!r}. Add it to PyOMES.chemistry.registry.COMPOUND_DB "
                 f"or use one of: {sorted(COMPOUND_DB.keys())}"
             )
     return COMPOUND_DB[key]
@@ -283,27 +149,10 @@ def validate_compound_id(name: str, *, context: str = "") -> bool:
         warnings.warn(
             f"[Chemistry] Compound {name!r}{ctx} is not in COMPOUND_DB. "
             f"Dosing with this compound will have no effect on speciation. "
-            f"Register it in fermenter.chemistry.registry.COMPOUND_DB or use "
+            f"Register it in PyOMES.chemistry.registry.COMPOUND_DB or use "
             f"one of: {sorted(COMPOUND_DB.keys())}",
             UserWarning,
             stacklevel=2,
         )
         return False
-
-
-def validate_compound_ids(names: Dict[str, str]) -> Dict[str, bool]:
-    """Validate multiple compound IDs and warn for any that are unrecognised.
-
-    Parameters
-    ----------
-    names : dict
-        Mapping of ``{context_label: compound_id}`` pairs, e.g.
-        ``{"pH acid": "H3PO4", "pH base": "KOH"}``.
-
-    Returns
-    -------
-    dict
-        Mapping of ``{context_label: is_valid}`` for each input.
-    """
-    return {ctx: validate_compound_id(cid, context=ctx) for ctx, cid in names.items()}
 
