@@ -41,9 +41,13 @@ from typing import (
     runtime_checkable,
 )
 
+from ..reactions.equilibrium import vant_hoff_log_K
+from ..reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
 from ..units import R_J_PER_MOL_K as _R_J_MOL
 from ..units import R_L_ATM_PER_MOL_K
+from . import common_species
 from .species import Species
+from PyOMES.equilibria.vle import IdealGasEOS  # local import avoids circular
 
 if TYPE_CHECKING:
     from PyOMES.thermo import ThermoFramework
@@ -52,16 +56,15 @@ if TYPE_CHECKING:
 def _resolve_species(species: Union[str, Species, None]) -> Optional[Species]:
     """Resolve a species id string or ``Species`` object to a ``Species``.
 
-    Deferred import of ``PyOMES.reactions.stoichiometry`` avoids a
-    chemistry↔reactions circular import: this module is imported during
-    ``PyOMES.chemistry`` package initialization, and
-    ``PyOMES.reactions.stoichiometry``/``PyOMES.reactions.equilibrium``
-    import back from ``PyOMES.chemistry.species``.
+    Looks the id up in ``PyOMES.chemistry.common_species`` directly — the
+    same source :func:`PyOMES.reactions.stoichiometry._get_common_species`
+    builds its own lookup from, without the extra hop through ``reactions``.
     """
     if species is None or isinstance(species, Species):
         return species
-    from ..reactions.stoichiometry import _get_common_species
-    lookup = _get_common_species()
+    lookup = {
+        v.id: v for v in vars(common_species).values() if isinstance(v, Species)
+    }
     if species not in lookup:
         raise ValueError(
             f"Unknown species id {species!r} — pass a Species object "
@@ -242,7 +245,6 @@ class HenryEquilibrium:
         """
         if self.gas_species is None or self.liquid_species is None:
             return ()
-        from ..reactions.stoichiometry import StoichiometryEntry
         gas = _resolve_species(self.gas_species)
         liq = _resolve_species(self.liquid_species)
         return (
@@ -396,7 +398,6 @@ class RaoultEquilibrium:
         """
         if self.gas_species is None or self.liquid_species is None:
             return ()
-        from ..reactions.stoichiometry import StoichiometryEntry
         gas = _resolve_species(self.gas_species)
         liq = _resolve_species(self.liquid_species)
         return (
@@ -473,7 +474,6 @@ class KspEquilibrium:
         label: str = "",
     ):
         if isinstance(stoichiometry, str):
-            from ..reactions.stoichiometry import _parse_stoichiometry
             stoichiometry = _parse_stoichiometry(
                 stoichiometry, species, reaction_type="equilibrium"
             )
@@ -533,7 +533,6 @@ class KspEquilibrium:
                 "dissolved species); multi-ion Ksp requires the "
                 "active-set NR solver."
             )
-        from ..reactions.equilibrium import vant_hoff_log_K
         Ksp_T = 10.0 ** vant_hoff_log_K(self, T_K)
         return min(n_total, Ksp_T * capacity_a)
 
@@ -651,7 +650,6 @@ class MultispeciesVLEPartition:
 
         Species not in ``kH_ref`` are ignored (returned as absent).
         """
-        from PyOMES.equilibria.vle import IdealGasEOS  # local import avoids circular
         # Only IdealGasEOS path is implemented; non-ideal EOS raises NotImplementedError
         # at point of use (deferred: see THERMODYNAMIC_MODEL_ARCHITECTURE §CP7).
         result = {}

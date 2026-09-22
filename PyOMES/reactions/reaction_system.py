@@ -52,11 +52,13 @@ from __future__ import annotations
 import warnings
 from typing import Dict, List, Optional, Sequence, Union
 
+from ..chemistry.species_check import check_species_consistency
 from .equilibrium import EquilibriumConstraint, classify_equilibrium_constraint
 from .kinetic import KineticReaction
 from .blackbox import BlackBoxReactionModel
 from .environment import ReactionEnvironment
 from ._shared import fmt_stoichiometry_string
+from .plots import plot_speciation
 
 
 ReactionLike = Union[KineticReaction, EquilibriumConstraint, BlackBoxReactionModel]
@@ -168,7 +170,6 @@ class ReactionSystem:
         # atoms/charge/MW across reactions). Soft conflicts (same data,
         # distinct objects — e.g. builder-created vs database instances)
         # are silently accepted here; ControlVolume also ignores them.
-        from ..chemistry.species_check import check_species_consistency
         check_species_consistency(self.reactions, soft_conflicts="ignore")
 
         self._engine = None
@@ -481,7 +482,6 @@ class ReactionSystem:
         fig, ax
             The matplotlib Figure and primary Axes objects.
         """
-        from .plots import plot_speciation
         return plot_speciation(
             self,
             anchor_id,

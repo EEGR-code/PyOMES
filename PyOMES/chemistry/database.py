@@ -23,10 +23,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, Optional, TYPE_CHECKING
 
+from ..reactions.reaction_system import ReactionSystem
+
 if TYPE_CHECKING:
     from .species import Species
     from .partition import PartitionModel
-    from ..reactions.reaction_system import ReactionSystem
     from ..thermo.framework import ThermoFramework
 
 
@@ -82,8 +83,6 @@ class ChemistryDatabase:
         ChemistryDatabase
             New frozen database; this one is unchanged.
         """
-        from ..reactions.reaction_system import ReactionSystem
-
         new_thermo = thermo if thermo is not None else self.thermo
 
         merged_species = dict(self.species)

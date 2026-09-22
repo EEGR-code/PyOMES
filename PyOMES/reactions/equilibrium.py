@@ -50,6 +50,7 @@ from ..chemistry.species import Species
 from ..units import R_J_PER_MOL_K as _R_J_MOL_K
 from .stoichiometry import StoichiometryEntry, _parse_stoichiometry
 from ._shared import (
+    _infer_elements,
     coerce_and_validate,
     fmt_stoichiometry_string,
     is_cross_phase_from_entries,
@@ -57,6 +58,7 @@ from ._shared import (
     show_balance_from_entries,
     species_ids_from_entries,
 )
+from .plots import plot_vant_hoff
 
 _LOG10_E = 1.0 / math.log(10.0)
 
@@ -251,7 +253,6 @@ class EquilibriumReaction:
         self.total_id: Optional[str] = (
             str(total_id) if total_id is not None else None
         )
-        from ._shared import _infer_elements
         self.balance_elements = (
             tuple(_infer_elements(entries))
             if balance_elements is None
@@ -318,7 +319,6 @@ class EquilibriumReaction:
         fig, ax
             The matplotlib Figure and primary Axes.
         """
-        from .plots import plot_vant_hoff
         return plot_vant_hoff(
             self,
             T_range_K=T_range_K,

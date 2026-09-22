@@ -60,6 +60,11 @@ from .thermo_params import (
     _convert_dH_to_J, _convert_dH_tuple,
     _convert_T_to_K, _Ka_to_pKa, _lnKa_to_pKa,
 )
+from .common_species import (
+    CO2, HCO3_minus, CO3_2minus, NH4_plus, NH3,
+    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+    HSO4_minus, SO4_2minus,
+)
 
 _VALID_CATEGORIES = ("acid", "cation_acid", "inorganic_acid", "strong_ion")
 
@@ -490,9 +495,6 @@ class EquilibriumSet:
 
         VFA pKas have no temperature correction.
         """
-        from .common_species import (
-            CO2, HCO3_minus, CO3_2minus, NH4_plus, NH3,
-        )
         eq = EquilibriumSet(T_ref_K=298.15)
         eq.set_water(pKw=14.0, correction="van_t_hoff",
                      dH_J_per_mol=55900.0)
@@ -546,10 +548,6 @@ class EquilibriumSet:
     @staticmethod
     def adm1_full() -> "EquilibriumSet":
         """Full ADM1: BSM2 (diprotic CO₂) + phosphate + bisulfate."""
-        from .common_species import (
-            H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-            HSO4_minus, SO4_2minus,
-        )
         eq = EquilibriumSet.bsm2_diprotic_co2()
         eq.add("phosphate", category="inorganic_acid",
                pKas=(2.15, 7.20, 12.35), correction="none",

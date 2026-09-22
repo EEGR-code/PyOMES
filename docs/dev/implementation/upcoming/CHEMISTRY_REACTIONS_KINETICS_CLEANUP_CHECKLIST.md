@@ -140,12 +140,58 @@ the `Multispecies*` classes.
       3-cycle, one without), so a clean result on `PyOMES/` isn't from an untested
       detector. Sanity: full suite **2073 passed**, 0 failed (2072 + this one test);
       import guard green._
-- [ ] 3. Hoist the deferred imports that are not load-bearing: `partition.py`
+- [x] 3. Hoist the deferred imports that are not load-bearing: `partition.py`
       (six sites; `_resolve_species` reads `chemistry.common_species` directly),
       `database.py:85`, `equilibria.py:493,549`, `reaction_system.py:171,484`,
       `stoichiometry.py:175`, `kinetic.py:102`, `equilibrium.py:254,321`.
       Leave `thermo_params.py` (deleted in 7) and the `chemical_equilibrium`
       engine imports. Sanity: full suite; import guard green.
+      _Notes: done 2026-09-22, 7 files (23 insertions, 28 deletions). Before
+      editing, confirmed by AST scan that `python -c "import PyOMES"` and the
+      checkpoint-2 guard both stay meaningful checks: the only lazy imports left
+      in these 7 files afterwards are `equilibria.py`'s two deferred `import
+      warnings` (stdlib, not in this checkpoint's list) and
+      `reaction_system.py`'s two `chemical_equilibrium.engines.*` imports (the
+      ones explicitly left alone). `partition.py`'s six sites: `_resolve_species`
+      no longer goes through `reactions.stoichiometry._get_common_species` at
+      all — it now builds the same `{v.id: v for v in vars(...) if
+      isinstance(v, Species)}` lookup directly against the hoisted
+      `from . import common_species`, same dict-building logic, same error
+      message, so still bit-identical; the other five (two duplicate
+      `StoichiometryEntry`, `_parse_stoichiometry`, `vant_hoff_log_K`, the
+      already-dead `IdealGasEOS` with its false "avoids circular" comment
+      preserved verbatim, since checkpoint 4 removes it) moved to the top import
+      block unchanged. `database.py:85`: hoisted; the `TYPE_CHECKING`-only copy
+      of the same `ReactionSystem` import (line 29) is now redundant with the
+      real one and was dropped so the name isn't bound twice. `equilibria.py`:
+      the two `.common_species` imports (5 names, 6 names, 1 overlap-free union)
+      merged into one top-level import of all 11 names. `reaction_system.py`:
+      both hoisted (`chemistry.species_check`, `.plots`); confirmed `.plots`
+      doesn't import matplotlib at its own module level (it's deferred inside
+      each plotting function, per its own docstring), so this doesn't force a
+      hard matplotlib dependency onto `reaction_system`. `stoichiometry.py:175`:
+      hoisted (`_get_common_species`'s own lazy import of `.common_species`,
+      separate from partition.py's now-removed use of that function).
+      `kinetic.py:102` / `equilibrium.py:254`: the redundant `_infer_elements`
+      import merged into the existing top-level `._shared` import already in
+      each file, local line deleted. `equilibrium.py:321`: `.plots` hoisted too
+      (same matplotlib-safety reasoning); the module-level `plot_vant_hoff`
+      import doesn't collide with the class's own `plot_vant_hoff` method (a
+      bare name inside the method resolves against the module scope, not the
+      class body).
+      Traced the resulting load order by hand before editing (`PyOMES/__init__.py`
+      reaches `chemistry` before `reactions`, so `chemistry/__init__.py`'s own
+      sequence — pulled through by the newly-top-level imports — is what actually
+      runs first): every module newly reached this way (`reactions.stoichiometry`,
+      `.equilibrium`, `.kinetic`, `.blackbox`, `.environment`, `._shared`,
+      `.protocols`, `.builder`, `.reaction_system`, `.plots`,
+      `chemistry.species_check`, `PyOMES.equilibria.vle`) bottoms out at leaf
+      modules (`chemistry.species`, `chemistry.common_species`, `PyOMES.units`,
+      stdlib) with no edge back into `chemistry.partition`/`.database`/`.equilibria`
+      — matching the plan's own X1 scratch-experiment finding. Verified
+      empirically too: `python -c "import PyOMES"` succeeds, the checkpoint-2
+      guard test passes, and the full suite is unchanged at **2073 passed**,
+      0 failed (pure code motion, no behaviour change)._
 - [ ] 4. Remove unused imports and constants (`_M_WATER`, the `IdealGasEOS` import
       and its false comment in `partition.py`, `_NH3`, `Dict`, `warnings`,
       `field`/`Optional` in `equilibria.py`, `Species` in `databases/aqueous.py`,
