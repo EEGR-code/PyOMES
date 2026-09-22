@@ -20,8 +20,7 @@ its own module docstring with more detail than is repeated here.
 | [`monitoring/`](monitoring/) | Cheap per-step accuracy and mass-conservation checks that warn when a simulation runs outside the regime its solver/activity model is reliable in. |
 | [`templates/stirred_tank/`](templates/stirred_tank/) | `StirredTankBuilder` — the fluent builder used in the top-level Quick Start — plus its factory, presets, and kinetics helpers. |
 | [`thermo/`](thermo/) | `ThermoFramework` and liquid-phase activity models (`IdealLiquidModel`, `DaviesLiquidModel`, `SITLiquidModel`), water property correlations that back `chemical_equilibrium/`, and gas-phase equations of state (`IdealGasEOS`, `PengRobinsonEOS`). |
-| [`stream_adapter.py`](stream_adapter.py) | `FeedState` — the canonical feed/broth composition type used throughout PyOMES. |
-| [`compounds.py`](compounds.py) | `ChemicalRegistry` / `Chemical` — standalone named-compound database (molecular weights, atom compositions), decoupled from `Species`. Backs `FeedState` and the stirred-tank template's default organism/substrate composition lookup. |
+| [`compounds.py`](compounds.py) | `ChemicalRegistry` / `Chemical` — standalone named-compound database (molecular weights, atom compositions), decoupled from `Species`. Backs the stirred-tank template's default organism/substrate composition lookup. |
 | [`units.py`](units.py) | Shared unit conversions and physical constants. |
 | [`config.py`](config.py) | Package-level accuracy-warning thresholds and throttling, configurable via the `VLSIM_WARNINGS` environment variable. |
 

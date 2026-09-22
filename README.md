@@ -124,7 +124,6 @@ Each controller follows a sense → compute → actuate cycle:
 - **Protocol-based extensibility** — `ReactionModel`, `PhaseInterface`, `PropertyCalculator`, `ViscosityModel` are `typing.Protocol` types; no inheritance required.
 - **Immutable snapshots** — `Phase.snapshot()` produces independent copies for logging and diagnostics.
 - **Fail-fast validation** — stoichiometric and configuration errors raise at construction, not at runtime.
-- **Lightweight I/O types** — `FeedState` decouples feed-composition data from any particular process-simulation tool, enabling standalone use.
 
 ---
 

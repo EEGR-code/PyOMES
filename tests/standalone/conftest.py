@@ -26,45 +26,6 @@ def registry():
     return ChemicalRegistry.default()
 
 
-# ── Feed states ────────────────────────────────────────────────────────
-
-@pytest.fixture
-def simple_feed(registry):
-    """Minimal feed: acetate + yeast only."""
-    from PyOMES.stream_adapter import FeedState
-    return FeedState.from_mass_concentrations(
-        mass_g_L={"AceticAcid": 1.0, "Yeast": 0.1},
-        volume_L=1.0,
-        T_K=305.15,
-        registry=registry,
-    )
-
-
-@pytest.fixture
-def rich_feed(registry):
-    """Realistic feed with substrates, N-source, salts, and trace metals."""
-    from PyOMES.stream_adapter import FeedState
-    return FeedState.from_mixed_concentrations(
-        mass_g_L={
-            "AceticAcid": 1.0,
-            "Yeast": 0.1,
-        },
-        molar_mol_L={
-            "NH3": 0.015,
-            "AmmoniumSulfate": 0.015,
-            "KH2PO4": 0.007,
-            "MgSO4": 0.004,
-            "ZnSO4": 1.4e-3,
-            "CaCl2": 5.0e-3,
-            "MnCl2": 4.0e-3,
-            "CoCl2": 7.7e-4,
-        },
-        volume_L=1.0,
-        T_K=305.15,
-        registry=registry,
-    )
-
-
 # ── Controllers ────────────────────────────────────────────────────────
 
 @pytest.fixture

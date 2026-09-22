@@ -351,7 +351,7 @@ PyOMES/
   __init__.py
   units.py                       # Shared constants and unit conversions
   config.py                      # PyOMES.config — WarningConfig, env-var presets
-  stream_adapter.py              # FeedState, FermenterResult (BioSTEAM-flavoured)
+  compounds.py                   # ChemicalRegistry, Chemical — standalone compound database
   chemistry/                     # Compound registry, recipes, Species declarations
     compounds.py, recipe.py, registry.py, species.py, species_check.py,
     common_species.py, equilibria.py, types.py, chem_recipe.py

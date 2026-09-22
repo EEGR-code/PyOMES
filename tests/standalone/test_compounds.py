@@ -48,13 +48,6 @@ class TestChemicalRegistry:
         assert "AceticAcid" in registry
         assert "FakeChemical" not in registry
 
-    def test_ids_property(self, registry):
-        ids = registry.IDs
-        assert isinstance(ids, tuple)
-        assert "AceticAcid" in ids
-        assert "O2" in ids
-        assert "Yeast" in ids
-
     def test_register_custom_compound(self, registry):
         custom = Chemical("MyBug", MW=25.0, atoms={"C": 1, "H": 1.8, "O": 0.5})
         registry.register(custom)
