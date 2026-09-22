@@ -44,6 +44,7 @@ Install optional dependency groups as needed (see [Optional Features](#optional-
 python -m pip install -e ".[test]"
 python -m pip install -e ".[phreeqc]"
 python -m pip install -e ".[export]"
+python -m pip install -e ".[plots]"
 python -m pip install -e ".[all]"
 ```
 
@@ -167,8 +168,9 @@ This table groups ~60 test modules thematically rather than listing all of them 
 |-------|--------------|---------|
 | `phreeqc` | `phreeqpython>=1.6` | PHREEQC-backed chemistry comparisons and validation |
 | `export` | `pandas`, `pyarrow` | Tabular export workflows |
+| `plots` | `matplotlib` | `PyOMES.reactions.plots` — speciation/Van 't Hoff plotting helpers |
 | `test` | `pytest`, `pandas`, `pyarrow`, `phreeqpython>=1.6` | Development and validation suite |
-| `all` | `phreeqpython>=1.6`, `pandas`, `pyarrow` | All optional runtime features |
+| `all` | `phreeqpython>=1.6`, `pandas`, `pyarrow`, `matplotlib` | All optional runtime features |
 
 ---
 

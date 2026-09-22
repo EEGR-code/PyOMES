@@ -759,8 +759,36 @@ the `Multispecies*` classes.
        clean; `chemistry/__init__.py`'s hits are the same `__all__`-only
        false positives as before). `test_simulation.py` (309 tests) passes.
        Full suite **2099 passed**, 0 failed (2101 − 2, exactly as predicted)._
-- [ ] 16. Shrink `chemistry.__all__` to names still used; add a `plots` extra
+- [x] 16. Shrink `chemistry.__all__` to names still used; add a `plots` extra
        (matplotlib) to `pyproject.toml` and to `all`.
+       _Notes: done 2026-09-22, 3 files. Of the 14 names `chemistry/__init__.py`
+       exported (well down from the original 37, since D1/D2/D4/D7 already
+       deleted most of the churn), a fresh check of every real
+       `from PyOMES.chemistry import ...` line in the repo (all file types)
+       found 4 never used that way: `Chemical`, `ChemicalRegistry` (always
+       imported from `.compounds` directly — even `PyOMES/__init__.py` itself
+       does this), `EquilibriumSet` (always from `.equilibria`), and
+       `EquilibriumDef` (never imported at all outside its own definition
+       file; every other hit was a docstring/comment naming the class, not an
+       import). Removed all 4 from both the import statements and `__all__` —
+       dropping only the `__all__` entry would have left a dead, undocumented
+       side door (`from PyOMES.chemistry import Chemical` would still have
+       worked, just not via `__all__`); no `from PyOMES.chemistry import *`
+       exists anywhere to make that distinction matter either way. Left the
+       module docstring's "compound database"/"equilibrium sets" wording
+       alone — it describes what the subpackage's submodules provide, which
+       is still accurate, not specifically the root `__all__`. **`plots`
+       extra:** added `plots = ["matplotlib"]` to `pyproject.toml` and
+       `"matplotlib"` to `all`; left `test` alone (`plots.py` has no pytest
+       coverage per the checkpoint-1 audit, so CI doesn't need it). Also
+       added a `plots` row to root `README.md`'s "Optional Features" table
+       and its `pip install -e ".[plots]"` example line, alongside the
+       `pyproject.toml` change the checkpoint named, for discoverability.
+       **Verification:** `python -c "import PyOMES"` succeeds; import guard
+       green; `from PyOMES.chemistry import Chemical` now raises
+       `ImportError` (confirmed); `pyproject.toml` re-parses as valid TOML
+       with the expected extras. Full suite unchanged at **2099 passed**,
+       0 failed (no tests added, removed, or behaviour-changed)._
 - [ ] 17. Docs sweep and logging: extend the OPEN_WORK van 't Hoff and constants
        entries with this review's counts; add OPEN_WORK entries for every item in the
        plan doc's "Deferred" list. Full suite; record the final count (about 2070).

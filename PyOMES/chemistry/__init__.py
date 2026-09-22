@@ -5,8 +5,6 @@ This subpackage provides species declarations, a compound database
 equilibrium sets used to construct feeds and initial conditions.
 """
 
-from .compounds import Chemical, ChemicalRegistry
-from .equilibria import EquilibriumSet, EquilibriumDef
 from .partition import (
     PartitionModel,
     HenryEquilibrium, RaoultEquilibrium, KspEquilibrium,
@@ -17,10 +15,6 @@ from .species_check import check_species_consistency
 from . import common_species
 
 __all__ = [
-    "Chemical",
-    "ChemicalRegistry",
-    "EquilibriumSet",
-    "EquilibriumDef",
     "PartitionModel",
     "HenryEquilibrium",
     "RaoultEquilibrium",
