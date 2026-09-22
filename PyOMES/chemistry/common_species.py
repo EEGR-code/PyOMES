@@ -20,7 +20,7 @@ atomic weight table in :mod:`~PyOMES.chemistry.species`.
 Usage
 -----
 >>> from PyOMES.chemistry.common_species import H2O, CO2, NH3
->>> from PyOMES.chemistry import StoichiometryEntry
+>>> from PyOMES.reactions.stoichiometry import StoichiometryEntry
 >>> entry = StoichiometryEntry(species=CO2, phase="liquid", coefficient=-1.0)
 
 Organic / model-specific species (acetate, propionate, biomass

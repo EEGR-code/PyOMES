@@ -192,7 +192,7 @@ the `Multispecies*` classes.
       empirically too: `python -c "import PyOMES"` succeeds, the checkpoint-2
       guard test passes, and the full suite is unchanged at **2073 passed**,
       0 failed (pure code motion, no behaviour change)._
-- [ ] 4. Remove unused imports and constants (`_M_WATER`, the `IdealGasEOS` import
+- [x] 4. Remove unused imports and constants (`_M_WATER`, the `IdealGasEOS` import
       and its false comment in `partition.py`, `_NH3`, `Dict`, `warnings`,
       `field`/`Optional` in `equilibria.py`, `Species` in `databases/aqueous.py`,
       `Sequence` in `plots.py`). D8: make the `MultispeciesVLEPartition` docstring
@@ -202,6 +202,56 @@ the `Multispecies*` classes.
       `fermenter.*`, `common_species.py:23`, `equilibria.py:510`,
       `reaction_system.py:42-47`). Sanity: Henry/Raoult/Ksp fingerprint
       byte-identical; the 11 `Multispecies` tests pass.
+      _Notes: done 2026-09-22, 8 files. Each of the 7 unused imports/constants was
+      confirmed genuinely unused first (an AST + word-boundary scan: only its own
+      import/def line, no other reference in that file) before removing it;
+      `_CO2`/`_H2O` in `builder.py` stay (both used), only `_NH3` goes. D8: the
+      `_kH_mol_L_atm_from_ref` module-level helper (already parametrised, used by
+      `MultispeciesVLEPartition`) is now the one implementation;
+      `HenryEquilibrium._kH_mol_L_atm` delegates to it instead of repeating the
+      same formula — same operations in the same order, so bit-identical by
+      inspection, then confirmed by fingerprint (below). The class and method
+      docstrings and the removed "avoids circular"/"§CP7" comments no longer
+      imply an `IdealGasEOS` object is used (there is no EOS parameter on this
+      class at all). **False docstrings:** `ReactionSet` — 4 places, matching the
+      checkpoint-1 audit's count exactly: `database.py`'s two (real, factual
+      errors — the field's type is `ReactionSystem`) fixed by renaming;
+      `reaction_system.py`'s two (historical "replaces the deleted ReactionSet"
+      framing) rewritten to describe current design in the present tense, keeping
+      the reasoning and dropping the label, along with a `checkpoint 3 of the
+      state-unification phase` / `C2` / `C3+` passage that also falsely described
+      the deleted `SpeciationPropertySolver` as still owning the engine, and an
+      `EQUILIBRIUM_CONSTRAINT_UNIFICATION CP3` pointer (that doc is shipped/
+      historical, so dropped per the same test the previous phase used: keep a
+      pointer only if canonical, current, too long to summarise, and at a stable
+      path — this failed all four). `fermenter.*` — searched the surviving files
+      (`chemistry/{species,common_species,species_check,compounds,partition,
+      equilibria,database}.py`, `chemistry/databases/`, all of `reactions/`,
+      `thermo/`, `templates/stirred_tank/`): none found; the 5 the checkpoint-1
+      audit counted are all in `registry.py`/`thermo_params.py`, which don't
+      survive (deleted at checkpoints 15/7), so nothing to do here — they leave
+      with those files.
+      `common_species.py:23`: its doctest imported `StoichiometryEntry` from
+      `PyOMES.chemistry`, which doesn't re-export it (confirmed: absent from
+      `chemistry/__init__.py`'s `__all__`) and would raise `ImportError`;
+      repointed to `PyOMES.reactions.stoichiometry`, which does. `equilibria.py`
+      (VFA entries): dropped the false "removed in the PARTITION_MODEL phase"
+      claim — confirmed live via a repo search (`chemical_equilibrium/engines/
+      bisection/{acid_base,engine}.py` still emit the `{name}_HA`/`{name}_A-`
+      keys for entries without `species_refs`, and `S_ac`/`S_pro`/`S_bu`/`S_va`
+      right below this comment are exactly such entries) — reworded to state
+      what happens now, without inventing a deprecation status nothing tracks.
+      **Verification:** a fingerprint of `HenryEquilibrium` (`_kH_mol_L_atm`,
+      `log_K`, `partition_ratio`, `equilibrium_a_moles`), `RaoultEquilibrium`,
+      `MultispeciesVLEPartition.equilibrium_all_a_moles`, and `KspEquilibrium`
+      (via `vant_hoff_log_K`), 4,880 values over a grid of H_ref/dlnH/T_ref/T_K/
+      capacities/alphas, run against the current code and against the
+      pre-checkpoint-4 `partition.py` (loaded from `git show HEAD:...` as an
+      isolated module, same SHA-256 both times): byte-identical. The 11
+      `Multispecies` tests pass, and so do `test_partition_model.py`,
+      `test_equilibrium_constraint.py`, `test_equilibrium_classification.py`,
+      `test_chemistry_database.py` and `test_bsm2_reference.py` individually.
+      Full suite unchanged at **2073 passed**, 0 failed._
 
 **Part B — deletions, moves and consolidation (bit-identical)**
 

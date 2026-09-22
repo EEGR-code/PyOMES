@@ -32,13 +32,13 @@ Lower-level method for custom rate functions:
 
 from __future__ import annotations
 
-from typing import Callable, Dict, Mapping, Optional, Sequence
+from typing import Callable, Mapping, Optional, Sequence
 
 from .stoichiometry import StoichiometryEntry
 from .kinetic import KineticReaction
 from .environment import ReactionEnvironment
 from ..chemistry.species import Species
-from ..chemistry.common_species import CO2 as _CO2, H2O as _H2O, NH3 as _NH3
+from ..chemistry.common_species import CO2 as _CO2, H2O as _H2O
 
 
 class ReactionBuilder:

@@ -6,7 +6,7 @@ object that a :class:`~PyOMES.core.ControlVolume` accepts.  It bundles:
 
 - a :class:`~PyOMES.thermo.ThermoFramework` (thermodynamic conventions),
 - a species dict (``{species_id: Species}``), and
-- a :class:`~PyOMES.reactions.ReactionSet` of equilibrium declarations.
+- a :class:`~PyOMES.reactions.ReactionSystem` of equilibrium declarations.
 
 Databases are composed by extension, not mutation::
 
@@ -41,7 +41,7 @@ class ChemistryDatabase:
         Activity model and standard-state conventions.
     species : dict
         ``{species_id: Species}`` — species declared in this database.
-    reactions : ReactionSet
+    reactions : ReactionSystem
         Equilibrium reactions (acid-base, partitioning).
     partition_models : dict
         ``{species_id: PartitionModel}`` — phase-partition relationships

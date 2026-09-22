@@ -47,7 +47,6 @@ from ..units import R_J_PER_MOL_K as _R_J_MOL
 from ..units import R_L_ATM_PER_MOL_K
 from . import common_species
 from .species import Species
-from PyOMES.equilibria.vle import IdealGasEOS  # local import avoids circular
 
 if TYPE_CHECKING:
     from PyOMES.thermo import ThermoFramework
@@ -203,8 +202,7 @@ class HenryEquilibrium:
         return r * n_total / (1.0 + r)
 
     def _kH_mol_L_atm(self, T_K: float) -> float:
-        H_ref_mol_L_atm = (self.H_ref / 1000.0) * 101325.0
-        return H_ref_mol_L_atm * math.exp(self.dlnH * (1.0 / T_K - 1.0 / self.T_ref))
+        return _kH_mol_L_atm_from_ref(self.H_ref, self.dlnH, T_K, self.T_ref)
 
     def _gamma(
         self,
@@ -272,7 +270,6 @@ def HenryPartition(*args: Any, **kwargs: Any) -> HenryEquilibrium:
 
 # ── Raoult's law partition for solvent (H₂O) ───────────────────────────────
 
-_M_WATER = 18.015   # g/mol
 _P_SAT_REF = 0.03169  # atm — saturation pressure of pure water at 298.15 K
 _T_REF_WATER = 298.15  # K
 
@@ -596,12 +593,12 @@ def _kH_mol_L_atm_from_ref(H_ref: float, dlnH: float, T_K: float, T_ref: float) 
 
 @dataclass(frozen=True)
 class MultispeciesVLEPartition:
-    """Coupled gas-liquid VLE for multiple volatile species.
+    """Coupled gas-liquid VLE for multiple volatile species, ideal gas only.
 
-    With ``IdealGasEOS``, each species decouples and the solution is
-    analytical (same formula as ``HenryEquilibrium`` without the ``alpha``
-    correction).  Non-ideal EOS (Peng-Robinson) coupling is deferred —
-    passing a non-ideal EOS raises ``NotImplementedError``.
+    Each species decouples and the solution is analytical (same formula
+    as ``HenryEquilibrium`` without the ``alpha`` correction). There is
+    no EOS parameter — non-ideal (Peng-Robinson) coupling is not
+    implemented.
 
     Satisfies ``MultispeciesPartitionModel``:
         ``equilibrium_all_a_moles(n_total_all, V_liq, V_gas, T_K)``
@@ -642,7 +639,7 @@ class MultispeciesVLEPartition:
         capacity_b: float,
         T_K: float,
     ) -> Dict[str, float]:
-        """Solve VLE for all species using IdealGasEOS (analytical, decoupled).
+        """Solve VLE for all species using the ideal gas law (analytical, decoupled).
 
         For each species i with Henry constant kH_i(T):
             r_i = kH_i × R × T × V_liq / V_gas
@@ -650,8 +647,6 @@ class MultispeciesVLEPartition:
 
         Species not in ``kH_ref`` are ignored (returned as absent).
         """
-        # Only IdealGasEOS path is implemented; non-ideal EOS raises NotImplementedError
-        # at point of use (deferred: see THERMODYNAMIC_MODEL_ARCHITECTURE §CP7).
         result = {}
         for species_id, n_total in n_total_all.items():
             if species_id not in self.kH_ref:

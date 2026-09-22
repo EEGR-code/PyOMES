@@ -51,8 +51,8 @@ how it enters the charge balance:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
 
 # Reuse unit conversion helpers from thermo_params
 from .thermo_params import (
@@ -509,8 +509,8 @@ class EquilibriumSet:
                dH_J_per_mol=(51965.0,),
                total_key="CT_NH_T",
                species_refs=(NH4_plus, NH3))
-        # DEPRECATED: string-based VFA entries without species_refs.
-        # The _HA/_A- legacy fallback is removed in the PARTITION_MODEL phase.
+        # String-based VFA entries without species_refs: the engine falls
+        # back to synthesised {name}_HA / {name}_A- keys for these.
         eq.add("S_ac",  category="acid", pKas=(4.76,))
         eq.add("S_pro", category="acid", pKas=(4.88,))
         eq.add("S_bu",  category="acid", pKas=(4.82,))

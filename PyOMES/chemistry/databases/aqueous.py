@@ -18,7 +18,6 @@ from ..common_species import (
     CO2, HCO3_minus, CO3_2minus,
     NH3, NH4_plus,
 )
-from ..species import Species
 from ...reactions.equilibrium import EquilibriumReaction
 from ...reactions.reaction_system import ReactionSystem
 from ...reactions.stoichiometry import StoichiometryEntry

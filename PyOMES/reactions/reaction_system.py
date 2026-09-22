@@ -15,41 +15,34 @@ buckets are internal; consumers read either the unified list
 properties (e.g. ``system.cross_phase_equilibria`` for the gas-liquid
 link).
 
-Replaces the deleted ``ReactionSet`` class. Differences from the
-previous container:
+Design:
 
 - **Single attach point.** ``cv.reaction_system`` is the only reaction
-  attachment on a CV. ``cv.reaction_model`` is gone.
+  attachment on a CV.
 - **Internal pre-bucketing.** Reactions are sorted into
   ``_kinetic_reactions``, ``_single_phase_equilibria``,
   ``_cross_phase_equilibria``, ``_precipitation_equilibria``, and
   ``_blackbox_models`` at ``__init__`` — ``KineticReaction`` and
   ``BlackBoxReactionModel`` by ``isinstance``, everything else via
   :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`
-  (EQUILIBRIUM_CONSTRAINT_UNIFICATION CP3) rather than a hard-coded
-  ``isinstance(rxn, EquilibriumReaction)`` check — so a single
-  ``HenryEquilibrium`` instance can be constructed once and attached
-  here directly, in the same list as a ``KineticGasLiquidLink``'s
-  ``partition_models=`` dict, with no separate declaration to keep in
-  sync. Downstream callers read the bucket directly instead of
-  partitioning on demand.
+  rather than a hard-coded ``isinstance(rxn, EquilibriumReaction)``
+  check — so a single ``HenryEquilibrium`` instance can be constructed
+  once and attached here directly, in the same list as a
+  ``KineticGasLiquidLink``'s ``partition_models=`` dict, with no
+  separate declaration to keep in sync. Downstream callers read the
+  bucket directly instead of partitioning on demand.
 - **No public ``partition()`` or ``has_equilibrium`` API.** Partition
   is internal; mixed-set attach is always correct because the
   ``compute_rates`` path only iterates the kinetic + blackbox buckets.
 - **Immutable post-attach.** No ``add()`` / ``remove()`` methods.
   Mutation requires constructing a new ``ReactionSystem``.
 
-The speciation engine is constructed lazily on first need and cached
-on ``system._engine`` (introduced in checkpoint 3 of the
-``state-unification`` phase, when the engine starts writing derived
-species back to ``n_mol`` directly). In C2 the existing
-``SpeciationPropertySolver`` in ``cv.property_solvers`` still owns the
-user-facing engine; ``system._engine`` is reserved for the C3+ flow.
+The speciation engine is constructed lazily on first need (via the
+:attr:`engine` property) and cached on ``system._engine``.
 """
 
 from __future__ import annotations
 
-import warnings
 from typing import Dict, List, Optional, Sequence, Union
 
 from ..chemistry.species_check import check_species_consistency
@@ -98,10 +91,9 @@ class ReactionSystem:
       :attr:`cross_phase_equilibria` for consumption by
       :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink`.
 
-    Attempting to mix kinds was an error in the old ``ReactionSet``
-    (``compute_rates`` raised on equilibria); the pre-bucketing here
-    makes that impossible — equilibria are simply not in the kinetic
-    iteration path.
+    Mixing kinetic and equilibrium reactions in one list is always
+    safe: the pre-bucketing means equilibria are simply not in the
+    kinetic iteration path, so :meth:`compute_rates` never sees them.
     """
 
     def __init__(
