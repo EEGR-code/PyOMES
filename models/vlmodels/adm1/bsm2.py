@@ -765,7 +765,6 @@ def build_bsm2_cv(
     T_K: float = 308.15,
     k_L_a_per_d: float = 200.0,
     activity_model: str = "davies",
-    thermo: "ThermodynamicConfig" = None,
 ):
     """Build a BSM2-canonical fermenter ControlVolume with gas transfer.
 
@@ -786,16 +785,6 @@ def build_bsm2_cv(
         Volumetric mass transfer coefficient (1/d).
     activity_model : str
         Activity model for speciation (``"ideal"`` or ``"davies"``).
-    thermo : ThermodynamicConfig, optional
-        Single source of truth for all thermodynamic parameters (pKa,
-        dH, n_active).  When provided, speciation corrections on the
-        transfer link are populated exclusively from this config via
-        ``apply_to_cv()``.  **Recommended for all new usage.**
-
-        When not provided, a deprecation warning is emitted and a
-        default ``ThermodynamicConfig`` is created automatically.  This
-        fallback exists for backward compatibility but will be removed
-        in a future version.
 
     Returns
     -------
@@ -859,20 +848,6 @@ def build_bsm2_cv(
     cv.reaction_system.attach_engine(engine)
 
     cv.boundaries.append(PressureReliefVent(P_set_atm=1.013/1.01325, mode="instant"))
-
-    # Attach ThermodynamicConfig as a back-reference for chem_env_fn's
-    # temperature-tracking accessors (T_K_live).  Post-Phase-2 the
-    # gas-liquid link no longer reads pKa data from this config; the
-    # molecular fraction for CO2 transfer is read from
-    # PropertyResult.alphas["CO2aq"], populated by the speciation
-    # engine using the equilibrium reactions declared in
-    # build_bsm2_reactions(). Phase 3 will absorb ThermodynamicConfig
-    # into ChemistryDatabase and the back-reference can move there.
-    if thermo is not None:
-        thermo.apply_to_cv(cv)
-    else:
-        from PyOMES.chemistry.thermo_params import ThermodynamicConfig
-        ThermodynamicConfig.bsm2_default().apply_to_cv(cv)
 
     return cv
 

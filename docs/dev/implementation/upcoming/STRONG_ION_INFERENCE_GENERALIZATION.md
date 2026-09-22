@@ -265,12 +265,15 @@ scoping above. This would:
    equivalent under whatever id it wants), and Phase 1's structural rule
    ("not in any reaction → strong ion, read `.charge`") picks them up
    automatically — no special case needed.
-   `PyOMES/chemistry/thermo_params.py`'s
-   `compute_CT_cation_from_charge_balance` (solving the separate,
-   upstream problem of *how much* generic charge carrier is needed to
-   hit a target pH) is unaffected by this — its output number feeds into
-   `n_mol={"S_cat": ...}` exactly as it feeds `strong_ions=
-   {"CT_cation": ...}` today.
+   The separate, upstream problem this note originally flagged as
+   unaffected — *how much* generic charge carrier is needed to hit a
+   target pH — was solved by `ThermodynamicConfig.
+   compute_CT_cation_from_charge_balance`, in `chemistry/thermo_params.py`.
+   That file (and the whole `ThermodynamicConfig` class) had no caller
+   outside itself and a test fixture, and was deleted in the
+   `chemistry-reactions-kinetics-cleanup` phase (2026-09-22, checkpoint 7,
+   decision D3). No replacement exists yet; a future caller needing this
+   would compute it directly from a declared `EquilibriumSet`.
 3. **Direct call pattern — decided direction, shape still open.** Yes:
    `solve(totals=..., strong_ions=...)` should eventually gain the same
    "just declare what's present" ergonomics as the phase-based path, so a

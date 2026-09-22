@@ -17,10 +17,6 @@ from .registry import (
 
 from .recipe import SolutionRecipe, g, mg, kg, L, mL
 from .compounds import Chemical, ChemicalRegistry
-from .thermo_params import (
-    ThermodynamicConfig, AcidDefinition, WaterDefinition,
-    validate_thermodynamics, collect_thermo_params, ThermoSnapshot,
-)
 from .equilibria import EquilibriumSet, EquilibriumDef
 from .partition import (
     PartitionModel, HenryPartition, RaoultPartition,
@@ -51,10 +47,6 @@ __all__ = [
     "mL",
     "Chemical",
     "ChemicalRegistry",
-    "ThermodynamicConfig",
-    "validate_thermodynamics",
-    "collect_thermo_params",
-    "ThermoSnapshot",
     "EquilibriumSet",
     "EquilibriumDef",
     "PartitionModel",

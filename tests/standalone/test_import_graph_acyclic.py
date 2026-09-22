@@ -4,10 +4,10 @@ Only imports that actually run at import time count: module- and
 class-body-level ``import`` / ``from ... import`` statements. Imports inside a
 function or method body (deferred until the function is called) and imports
 inside ``if TYPE_CHECKING:`` (never executed) are excluded, because neither
-can produce a real ``ImportError`` at import time. The one real cycle in the
-repo, ``chemistry.equilibria`` <-> ``chemistry.thermo_params``, is deliberately
-made of two such lazy imports and is not caught here; see the cleanup plan's
-audit.
+can produce a real ``ImportError`` at import time. Real cycles built entirely
+from such lazy imports do exist in the repo (for example
+``core.control_volume`` <-> ``core.solvers``) and are deliberately not caught
+here.
 
 Relative imports are resolved against each file's own dotted module name.
 ``from pkg import name`` is resolved to the submodule ``pkg.name`` when that

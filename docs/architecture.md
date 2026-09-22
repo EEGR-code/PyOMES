@@ -363,7 +363,7 @@ PyOMES/
   stream_adapter.py              # FeedState, FermenterResult (BioSTEAM-flavoured)
   chemistry/                     # Compound registry, recipes, Species declarations
     compounds.py, recipe.py, registry.py, species.py, species_check.py,
-    common_species.py, equilibria.py, thermo_params.py, types.py, chem_recipe.py
+    common_species.py, equilibria.py, types.py, chem_recipe.py
   core/                          # Framework core: phases, CV, orchestration
     phases.py                    # GasPhase, LiquidPhase, SolidPhase
     interfaces.py                # PhaseInterface, TransferDiagnostics, AdvanceResult

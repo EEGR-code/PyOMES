@@ -298,11 +298,71 @@ the `Multispecies*` classes.
       `tests/legacy` or `tests.legacy` hits outside those. Full suite **2062
       passed**, 0 failed — unchanged, since nothing in `tests/legacy/` was ever
       collected._
-- [ ] 7. (D3) Delete `thermo_params.py`, the unit-conversion arguments of
+- [x] 7. (D3) Delete `thermo_params.py`, the unit-conversion arguments of
       `EquilibriumSet.add`/`set_water`, and `_VALID_*`. Drop `thermo=` and the
       no-op `apply_to_cv` call from `build_bsm2_cv` (and its docstring); edit the
       fixture in `test_bsm2_reference.py`; prune `chemistry/__init__.py`. Sanity:
       BSM2 sentinels unchanged; suite unchanged.
+      _Notes: done 2026-09-22, 8 files. Deleted `chemistry/thermo_params.py`
+      (765 lines) entirely. Before touching `EquilibriumSet`, a fresh repo-wide
+      search (`.py`, `.ipynb`) for `Ka=`, `lnKa=`, `dH_unit=`, `T_unit=`, bare
+      `dH=`/`T_ref=`/`Kw=` confirmed **zero real callers** pass any of the six
+      deleted arguments (`Ka`, `lnKa`, `dH`+`dH_unit`, `T_ref`+`T_unit`, `Kw`) —
+      every match was either inside `equilibria.py` itself, an unrelated local
+      variable of the same name elsewhere (the bisection engine, an HPLC
+      column model), or a different class's constructor
+      (`HenryPartition(..., T_ref=...)`), so removing them is bit-identical for
+      every existing call site, not just narrower. `EquilibriumSet.add` keeps
+      `pKas`, `n_active`, `correction`, `dH_J_per_mol`, `T_ref_K`, `total_key`,
+      `species_refs`; `set_water` keeps `pKw`, `correction`, `dH_J_per_mol`,
+      `T_ref_K` (also dropped its unused `import warnings`, dead even before
+      this edit — never called). `_VALID_K_FORMATS`, `_VALID_DH_UNITS`,
+      `_VALID_T_UNITS` and the `_convert_*`/`_Ka_to_pKa`/`_lnKa_to_pKa` helpers
+      went with the deleted arguments; `_VALID_CORRECTIONS` (unrelated to
+      units — validates `correction`, which stays) and `_R_J` (the van 't Hoff
+      gas constant, used by `EquilibriumDef.pKas_at_T`/`WaterDef.Kw_at_T`,
+      which stay) moved into `equilibria.py` itself — `_R_J` now `from
+      ..units import R_J_PER_MOL_K as _R_J`, the single source, same as
+      `thermo_params.py` already did. Rewrote the module docstring's and
+      `add`'s doctest examples to use `dH_J_per_mol` instead of `dH`+`dH_unit`
+      (same J/mol values, e.g. 7.646/14.9 kJ/mol → 7646.0/14900.0, matching
+      `bsm2_default`'s own CO2 entry). Confirmed `PyOMES.chemical_equilibrium.
+      engines.bisection.engine._add_water`'s two `eq_set.set_water(...)` calls
+      (the only external caller) already use only kept kwargs (`pKw`,
+      `correction`, `dH_J_per_mol`, `T_ref_K`). `chemistry/__init__.py`: removed
+      the `thermo_params` import block and its 4 `__all__` entries
+      (`ThermodynamicConfig`, `validate_thermodynamics`,
+      `collect_thermo_params`, `ThermoSnapshot`; `AcidDefinition`/
+      `WaterDefinition` were imported but never exported, an existing
+      inconsistency that disappears with the file). `models/vlmodels/adm1/
+      bsm2.py`: removed `build_bsm2_cv`'s `thermo=` parameter, its docstring
+      paragraph, and the 13-line no-op `apply_to_cv` block (both branches —
+      confirmed by a fresh search that `cv._thermo_config` has no reader
+      anywhere in the repo, only shipped/historical docs). `test_bsm2_reference.py`:
+      fixture drops the `ThermodynamicConfig` import and `thermo=` kwarg,
+      calling `build_bsm2_cv(rxn_set)` with defaults.
+      **Extra fixes found by the fresh search, not explicitly in this
+      checkpoint's text:** `docs/architecture.md`'s chemistry/ tree line still
+      listed `thermo_params.py` as a live file — removed.
+      `docs/dev/implementation/upcoming/STRONG_ION_INFERENCE_GENERALIZATION.md`
+      (a live open-question doc, not this phase's own) cited
+      `ThermodynamicConfig.compute_CT_cation_from_charge_balance` as
+      "unaffected" by a proposed fix — confirmed zero other callers repo-wide,
+      then reworded to record that it was deleted here, with no replacement
+      yet. `tests/standalone/test_import_graph_acyclic.py`'s own docstring
+      named `chemistry.equilibria <-> chemistry.thermo_params` as "the one
+      real cycle" — a fresh module-graph rescan (top+lazy, all of `PyOMES/`)
+      confirmed that cycle is gone (only the same two out-of-scope cycles from
+      checkpoint 1 remain: `core.control_volume <-> core.solvers` and
+      `control.param_path <-> core <-> core.simulation`), so the docstring now
+      cites the still-current `core.control_volume` example instead.
+      `OPEN_WORK.md:346`'s mention is a dated, past-tense record of the
+      2026-07-02 gas-constant re-baseline and is left as historical.
+      **Verification:** `python -c "import PyOMES"` succeeds; the import guard
+      test passes; `test_bsm2_reference.py` (BSM2 sentinels),
+      `test_equilibrium_constraint.py`, `test_equilibrium_classification.py`,
+      `test_chemistry_database.py` — 103 passed together. Full suite unchanged
+      at **2062 passed**, 0 failed._
 - [ ] 8. Delete the three unused `EquilibriumSet` presets. Sanity: suite unchanged.
 - [ ] 9. Migrate ~50 `HenryPartition`/`RaoultPartition` call sites (7 test files) to
       `HenryEquilibrium`/`RaoultEquilibrium`; delete the aliases and their 6
@@ -350,6 +410,7 @@ the `Multispecies*` classes.
 - [ ] 14. Fix `ChemistryDatabase.extend()` to preserve solver, label and engine
        config; fix the `ReactionSet` docstring. Sanity: +2 tests; stock databases
        unaffected.
+       
 - [ ] 15. (D2) Drop the constructor-time validation in `PHController`; delete
        `registry.py`; remove the two tests in `TestCVPHControllerRegistryValidation`;
        add the documentation warning to `PHController`'s `chemical_id` /
