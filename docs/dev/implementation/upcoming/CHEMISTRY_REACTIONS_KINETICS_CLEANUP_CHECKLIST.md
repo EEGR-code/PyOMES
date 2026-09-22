@@ -283,8 +283,21 @@ the `Multispecies*` classes.
       `PyOMES.kinetics`/`PyOMES/kinetics` found only those left-alone,
       historical/plan-doc hits. Full suite **2062 passed**, 0 failed (2073 − 11,
       exactly as predicted)._
-- [ ] 6. Delete `tests/legacy/` (15 files, not collected). Sanity: grep finds no
+- [x] 6. Delete `tests/legacy/` (15 files, not collected). Sanity: grep finds no
       reference in docs or CI; suite unchanged.
+      _Notes: done 2026-09-22. Fresh repo-wide search first: 15 files, confirmed
+      not in `testpaths` (`pyproject.toml:18`), no `.github/workflows/tests.yml`
+      reference, no `tests/run_tests.py` reference, no notebook-generator
+      reference. Deleted all 15. Fixed the two root `README.md` mentions flagged
+      at checkpoint 1 (`:90`'s repository-layout line dropped `legacy/` from the
+      `tests/` list; `:137`'s sentence about non-default test dirs dropped the
+      `tests/legacy/` clause, keeping the `tests/performance/` one). **Left
+      alone:** `docs/dev/implementation/shipped/EQUILIBRIUM_RESULT.md` (shipped/
+      is off-limits) and this phase's own plan/checklist docs, which correctly
+      describe the audit as it was before deletion. Follow-up search: zero
+      `tests/legacy` or `tests.legacy` hits outside those. Full suite **2062
+      passed**, 0 failed — unchanged, since nothing in `tests/legacy/` was ever
+      collected._
 - [ ] 7. (D3) Delete `thermo_params.py`, the unit-conversion arguments of
       `EquilibriumSet.add`/`set_water`, and `_VALID_*`. Drop `thermo=` and the
       no-op `apply_to_cv` call from `build_bsm2_cv` (and its docstring); edit the

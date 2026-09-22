@@ -87,7 +87,7 @@ See [docs/tutorials/templates/](docs/tutorials/templates/) for more worked examp
 ```
 PyOMES/                 # Core library — see PyOMES/README.md for a subpackage-by-subpackage breakdown
 models/                 # Concrete model implementations, installed separately as `vlmodels` — see models/README.md
-tests/                  # Test suite: standalone/, validation/, legacy/, performance/
+tests/                  # Test suite: standalone/, validation/, performance/
 docs/                   # Tutorials and design/development documentation
 ```
 
@@ -134,7 +134,7 @@ python -m pip install -e ".[test]"
 python -m pytest
 ```
 
-By default (see `pyproject.toml`), `pytest` runs `tests/standalone/` and `tests/validation/`. `tests/legacy/` and `tests/performance/` are not part of the default run — `tests/legacy/` predates the current reaction-driven chemical equilibrium engine, and `tests/performance/` is reserved for future runtime benchmarks.
+By default (see `pyproject.toml`), `pytest` runs `tests/standalone/` and `tests/validation/`. `tests/performance/` is not part of the default run — it is reserved for future runtime benchmarks.
 
 ### Test Coverage
 
