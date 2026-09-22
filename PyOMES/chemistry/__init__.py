@@ -19,7 +19,7 @@ from .recipe import SolutionRecipe, g, mg, kg, L, mL
 from .compounds import Chemical, ChemicalRegistry
 from .equilibria import EquilibriumSet, EquilibriumDef
 from .partition import (
-    PartitionModel, HenryPartition, RaoultPartition,
+    PartitionModel,
     HenryEquilibrium, RaoultEquilibrium, KspEquilibrium,
     MultispeciesPartitionModel, MultispeciesVLEPartition,
 )
@@ -50,8 +50,6 @@ __all__ = [
     "EquilibriumSet",
     "EquilibriumDef",
     "PartitionModel",
-    "HenryPartition",
-    "RaoultPartition",
     "HenryEquilibrium",
     "RaoultEquilibrium",
     "KspEquilibrium",

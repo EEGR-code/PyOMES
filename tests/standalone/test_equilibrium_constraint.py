@@ -7,15 +7,12 @@ Covers:
 - HenryEquilibrium / RaoultEquilibrium / KspEquilibrium: isinstance of both
   PartitionModel and EquilibriumConstraint; log_K / dH_J_per_mol manual
   conversion checks.
-- HenryPartition / RaoultPartition deprecated-alias behavior: DeprecationWarning
-  + construct-identical-object.
 - KspEquilibrium single-ion solubility-cap behavior and multi-ion
   NotImplementedError behavior.
 """
 from __future__ import annotations
 
 import math
-import warnings
 
 import pytest
 
@@ -288,49 +285,3 @@ class TestKspEquilibriumMultiIon:
         ksp = self._ksp()
         with pytest.raises(NotImplementedError):
             ksp.equilibrium_a_moles(1.0, 1.0, 1.0, _T_REF)
-
-
-# ── Deprecated aliases ────────────────────────────────────────────────────────
-
-class TestHenryPartitionAlias:
-    def test_emits_deprecation_warning(self):
-        from PyOMES.chemistry import HenryPartition
-        with pytest.warns(DeprecationWarning):
-            HenryPartition(H_ref=_H2S_H_REF, dlnH=0.0)
-
-    def test_constructs_henry_equilibrium(self):
-        from PyOMES.chemistry import HenryPartition, HenryEquilibrium
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            hp = HenryPartition(H_ref=_H2S_H_REF, dlnH=0.0)
-        assert type(hp) is HenryEquilibrium
-
-    def test_identical_to_direct_construction(self):
-        from PyOMES.chemistry import HenryPartition, HenryEquilibrium
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            via_alias = HenryPartition(H_ref=_H2S_H_REF, dlnH=_H2S_DLN_H)
-        direct = HenryEquilibrium(H_ref=_H2S_H_REF, dlnH=_H2S_DLN_H)
-        assert via_alias == direct
-
-
-class TestRaoultPartitionAlias:
-    def test_emits_deprecation_warning(self):
-        from PyOMES.chemistry import RaoultPartition
-        with pytest.warns(DeprecationWarning):
-            RaoultPartition()
-
-    def test_constructs_raoult_equilibrium(self):
-        from PyOMES.chemistry import RaoultPartition, RaoultEquilibrium
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            rp = RaoultPartition()
-        assert type(rp) is RaoultEquilibrium
-
-    def test_identical_to_direct_construction(self):
-        from PyOMES.chemistry import RaoultPartition, RaoultEquilibrium
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            via_alias = RaoultPartition(dH_vap=45000.0)
-        direct = RaoultEquilibrium(dH_vap=45000.0)
-        assert via_alias == direct

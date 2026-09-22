@@ -34,10 +34,9 @@ more solute dissolved.
 from __future__ import annotations
 
 import math
-import warnings
 from dataclasses import dataclass, field
 from typing import (
-    TYPE_CHECKING, Any, Dict, Optional, Protocol, Sequence, Tuple, Union,
+    TYPE_CHECKING, Dict, Optional, Protocol, Sequence, Tuple, Union,
     runtime_checkable,
 )
 
@@ -251,23 +250,6 @@ class HenryEquilibrium:
         )
 
 
-def HenryPartition(*args: Any, **kwargs: Any) -> HenryEquilibrium:
-    """Deprecated alias for :class:`HenryEquilibrium`.
-
-    Kept for one phase (``EQUILIBRIUM_CONSTRAINT_UNIFICATION`` CP1) so
-    existing call sites/tests continue to work while call sites
-    migrate. Emits ``DeprecationWarning`` and constructs-and-returns a
-    real ``HenryEquilibrium`` (not a subclass), so ``type(x) is
-    HenryEquilibrium`` and equality both hold.
-    """
-    warnings.warn(
-        "HenryPartition is deprecated; use HenryEquilibrium instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return HenryEquilibrium(*args, **kwargs)
-
-
 # ── Raoult's law partition for solvent (H₂O) ───────────────────────────────
 
 _P_SAT_REF = 0.03169  # atm — saturation pressure of pure water at 298.15 K
@@ -401,16 +383,6 @@ class RaoultEquilibrium:
             StoichiometryEntry(species=gas, phase="gas", coefficient=-1.0),
             StoichiometryEntry(species=liq, phase="liquid", coefficient=+1.0),
         )
-
-
-def RaoultPartition(*args: Any, **kwargs: Any) -> RaoultEquilibrium:
-    """Deprecated alias for :class:`RaoultEquilibrium`. See :func:`HenryPartition`."""
-    warnings.warn(
-        "RaoultPartition is deprecated; use RaoultEquilibrium instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return RaoultEquilibrium(*args, **kwargs)
 
 
 # ── Ksp (solubility-product) solid-liquid equilibrium ───────────────────────

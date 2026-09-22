@@ -14,7 +14,7 @@ The CO₂ partition is declared as a single
 (feeding ``ChemicalEquilibriumEngine``/``NRChemicalEquilibriumEngine`` as a gas-liquid
 ``EquilibriumConstraint``) — one declaration, two roles
 (EQUILIBRIUM_CONSTRAINT_UNIFICATION CP3). Previously these were two
-independently-parameterized objects (a ``HenryPartition`` here, a
+independently-parameterized objects (a ``HenryEquilibrium`` here, a
 separate placeholder ``EquilibriumReaction`` with no ``log_K`` in the
 reaction list) that nothing validated agreed with each other.
 

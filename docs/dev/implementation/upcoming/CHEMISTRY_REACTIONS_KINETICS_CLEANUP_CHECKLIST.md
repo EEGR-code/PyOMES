@@ -375,10 +375,52 @@ the `Multispecies*` classes.
       succeeds; import guard green; an AST unused-import check on the file
       found nothing left over. Full suite unchanged at **2062 passed**,
       0 failed._
-- [ ] 9. Migrate ~50 `HenryPartition`/`RaoultPartition` call sites (7 test files) to
+- [x] 9. Migrate ~50 `HenryPartition`/`RaoultPartition` call sites (7 test files) to
       `HenryEquilibrium`/`RaoultEquilibrium`; delete the aliases and their 6
       tests; fix the `anaerobic_digestion.py` docstring that names the old type.
       Sanity: 2056 tests; Henry/Raoult/Ksp fingerprint byte-identical.
+      _Notes: done 2026-09-22, 9 files. Fresh search found 9 test files
+      mentioning the alias names, not 7 — but 2 of them
+      (`test_equilibrium_constraint_dual_role.py`, `test_transfer_models.py`,
+      already flagged at checkpoint 1) are prose-only, no code use, confirmed
+      again here; the 7 with real constructor calls total exactly **51**
+      (matching the checkpoint-1 count), not ~105 raw textual occurrences (most
+      of the difference is this codebase's style of a fresh `from PyOMES.chemistry
+      import HenryPartition` inside every test method, plus the alias tests'
+      own dual imports). Deleted `TestHenryPartitionAlias`/
+      `TestRaoultPartitionAlias` (6 tests) from `test_equilibrium_constraint.py`
+      first — including the module docstring line describing them and the
+      `import warnings`, which nothing else in that file used — so the
+      remaining rename couldn't collide with a test that intentionally imports
+      both names. Then a word-boundary rename (`HenryPartition`→
+      `HenryEquilibrium`, `RaoultPartition`→`RaoultEquilibrium`) across the
+      other 6 files: every `from PyOMES.chemistry import HenryPartition` line,
+      every constructor call, every `-> HenryPartition` return-type annotation
+      on local `_hp()` fixtures, and every docstring/comment describing the
+      test file's own current subject (e.g. "Tests for PartitionModel protocol
+      and HenryPartition (C2)." → "...HenryEquilibrium (C2)."). Checked for
+      duplicate-name imports and re-parsed all 6 files: clean. Deleted the two
+      `HenryPartition`/`RaoultPartition` alias functions from `partition.py`
+      (`Any` and `import warnings` then became unused there too — only used by
+      the deleted functions — removed both); dropped both names from
+      `chemistry/__init__.py`'s import and `__all__`. Fixed
+      `anaerobic_digestion.py`'s docstring per the checkpoint text (the old
+      type name inside an otherwise-historical "Previously these were..."
+      sentence). **Left alone, deliberately:** the same old-name mention in
+      `test_equilibrium_constraint_dual_role.py`/`test_transfer_models.py`
+      (genuinely historical "before this phase"/"previously" framing, not
+      named in this checkpoint's text, unlike `anaerobic_digestion.py`); every
+      `docs/dev/ideas/*.md` and `shipped/*.md` mention (design proposals and
+      shipped history, both off-limits); `upcoming/README.md`'s four dated
+      changelog entries. **Verification:** `python -c "import PyOMES"`
+      succeeds; import guard green; a 4,880-value fingerprint of
+      `HenryEquilibrium`/`RaoultEquilibrium`/`KspEquilibrium`/
+      `MultispeciesVLEPartition` against the pre-checkpoint `partition.py`
+      (from `git show HEAD:...`) is byte-identical (same SHA-256 as
+      checkpoint 4's) — expected, since the aliases were pure pass-through
+      wrappers and nothing in the fingerprint ever called them. The 7 migrated
+      files: 261 passed, no `DeprecationWarning`s left. Full suite **2056
+      passed**, 0 failed, exactly as predicted (2062 − 6)._
 - [ ] 10. (D1) Delete `recipe.py`, `chem_recipe.py`, `types.py` and the ion/salt maps
        in `registry.py`; update `chemistry/__init__.py`; update the recipe-layer
        section of `STRONG_ION_INFERENCE_GENERALIZATION.md` to "resolved, see the

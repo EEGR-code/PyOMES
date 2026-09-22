@@ -6,11 +6,11 @@ from PyOMES.core.phases import GasPhase, LiquidPhase
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.boundaries import MembraneGasBoundary, ExternalBoundary, apply_boundary
-from PyOMES.chemistry import HenryPartition
+from PyOMES.chemistry import HenryEquilibrium
 
 
-def _hp(kH: float, dlnH: float = 0.0) -> HenryPartition:
-    return HenryPartition(H_ref=kH * 1000.0 / 101325.0, dlnH=dlnH)
+def _hp(kH: float, dlnH: float = 0.0) -> HenryEquilibrium:
+    return HenryEquilibrium(H_ref=kH * 1000.0 / 101325.0, dlnH=dlnH)
 
 
 def _make_gas_cv(n_mol, V_L=1e-4, T_K=310.15):
