@@ -16,10 +16,10 @@ is dead and should come out, not just be re-pathed:
 
 - **No longer exist:** `PyOMES/sim/`, `PyOMES/solvers/`,
   `PyOMES/core/gl_equilibrium.py`, `PyOMES/control/{loops.py, system.py,
-  controllers/, actuators/, builders/}`, and everything in
-  `PyOMES/equilibria/` except `vle.py` and `peng_robinson.py` (no
-  `engine.py`, `coupled.py`, `factory.py`, `interfaces.py`). Also
-  `models/vlmodels/fermenter/` (only `adm1/`, `hplc/`, `headspace.py` remain).
+  controllers/, actuators/, builders/}`, and `PyOMES/equilibria/` (deleted
+  entirely 2026-09-22; its two real files moved into `thermo/gas_eos.py`, see
+  below). Also `models/vlmodels/fermenter/` (only `adm1/`, `hplc/`,
+  `headspace.py` remain).
 - **Stale references to those:** the "Equilibrium pathways" section
   (~lines 134–154, which presents `ProcessCoupledEquilibrator` +
   `HenryEquilibriumInterface` as a live second pathway); mentions of `CUFermentationSpeciation`
@@ -30,9 +30,16 @@ is dead and should come out, not just be re-pathed:
   2026-07-03). **Partly fixed 2026-09-20:** `chemical-equilibrium-engines-subfolder`
   (checkpoint 12) replaced that one block with the real
   `chemical_equilibrium/` tree (including the new `engines/` layout) and added
-  a `thermo/` line. The rest of the tree (e.g. the `equilibria/`, `sim/` and
-  `solvers/` "CUFermenter island" entries, and any other package that is
-  missing) still needs the re-derivation described below.
+  a `thermo/` line. **Partly fixed 2026-09-22:** `chemistry-reactions-kinetics-cleanup`
+  (checkpoint 11, decision D4) moved `PyOMES/equilibria/`'s two real files
+  (`vle.py`, `peng_robinson.py`) into `thermo/gas_eos.py` and deleted the
+  package, so the "Equilibrium pathways" section's item 2
+  (`ProcessCoupledEquilibrator` + `HenryEquilibriumInterface`, presented as a
+  live second pathway) is gone rather than re-pathed, and the tree's
+  `equilibria/` line is removed rather than corrected. The rest of the tree
+  (the `sim/` and `solvers/` "CUFermenter island" entries, the
+  `CUFermentationSpeciation` mentions at ~244/344, and any other package that
+  is missing) still needs the re-derivation described below.
 
 Needs a pass that re-derives the Repository Layout and the equilibrium
 section from the actual tree rather than a line-by-line patch.
@@ -170,7 +177,7 @@ import time. Overriding per simulation means consumers must read the value from
 something they are given, not from a module global. The consumers include hot
 paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 `core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
-`equilibria/vle.py`, `chemistry/partition.py`, `thermo/framework.py` and
+`thermo/gas_eos.py`, `chemistry/partition.py`, `thermo/framework.py` and
 `thermo/equilibrium_constants.py`.
 
 **Design sketch (not decided).**

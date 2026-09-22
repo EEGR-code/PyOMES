@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """LiquidPhaseModel protocol and liquid-phase non-ideality implementations.
 
-Liquid-side EOS, symmetric with GasEOS in PyOMES/equilibria/vle.py.
+Liquid-side EOS, symmetric with GasEOS in PyOMES/thermo/gas_eos.py.
 
 Unit convention
 ---------------

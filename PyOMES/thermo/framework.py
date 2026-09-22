@@ -14,13 +14,11 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from ..units import R_J_PER_MOL_K as _R_J
 from .liquid_phase_model import LiquidPhaseModel, IdealLiquidModel, DaviesLiquidModel
-
-if TYPE_CHECKING:
-    from PyOMES.equilibria.vle import GasEOS
+from .gas_eos import GasEOS
 
 
 @dataclass(frozen=True)
@@ -49,7 +47,7 @@ class ThermoFramework:
     """
 
     liquid_activity: LiquidPhaseModel = field(default_factory=IdealLiquidModel)
-    gas_eos: Optional[object] = None  # GasEOS at runtime; annotated via TYPE_CHECKING
+    gas_eos: Optional[GasEOS] = None
     standard_T_K: float = 298.15
     standard_P_atm: float = 1.0
 

@@ -387,7 +387,8 @@ the `Multispecies*` classes.
       (matching the checkpoint-1 count), not ~105 raw textual occurrences (most
       of the difference is this codebase's style of a fresh `from PyOMES.chemistry
       import HenryPartition` inside every test method, plus the alias tests'
-      own dual imports). Deleted `TestHenryPartitionAlias`/
+      own dual imports). Deleted `TestHen
+      ryPartitionAlias`/
       `TestRaoultPartitionAlias` (6 tests) from `test_equilibrium_constraint.py`
       first — including the module docstring line describing them and the
       `import warnings`, which nothing else in that file used — so the
@@ -468,7 +469,7 @@ the `Multispecies*` classes.
        `__all__`, the normal pattern for a package init); `validate_compound_id`/
        `PHController` tests (21) and the full suite (**2056 passed**, 0 failed)
        both unchanged — nothing tested the deleted code._
-- [ ] 11. (D4) Move `equilibria/` to `thermo/gas_eos.py` with `git mv`: `GasEOS`,
+- [x] 11. (D4) Move `equilibria/` to `thermo/gas_eos.py` with `git mv`: `GasEOS`,
        `IdealGasEOS`, `PengRobinsonEOS`, `CriticalProperties`, `BIOGAS_SPECIES`,
        `BIOGAS_KIJ`. Drop `HenryIdealVLE` and the `equilibria/` package. Make
        `ThermoFramework.gas_eos` a typed `Optional[GasEOS]` (real import, no
@@ -479,6 +480,64 @@ the `Multispecies*` classes.
        stale `fermenter.equilibria.vle` docstring, `thermo/liquid_phase_model.py`'s
        reference, the `PyOMES/README.md` row and the `docs/architecture.md` lines.
        Sanity: `test_gas_eos_none_by_default` still passes; about 2060 tests.
+       _Notes: done 2026-09-22. `git mv PyOMES/equilibria/vle.py
+       PyOMES/thermo/gas_eos.py` (clean rename, git tracked it); `GasEOS` and
+       `IdealGasEOS` moved as-is, `HenryIdealVLE` dropped (fresh search first:
+       zero consumers anywhere, confirming the audit). `peng_robinson.py`'s
+       content (`CriticalProperties`, `BIOGAS_SPECIES`, `BIOGAS_KIJ`,
+       `PengRobinsonEOS` and its helpers) merged into the same file by hand
+       (two files into one has no single `git mv` target, so this half loses
+       rename tracking; `vle.py`'s larger content keeps it) — code unchanged
+       except one shared `_R_L_ATM_PER_MOL_K` import (`as R`) replacing the
+       two files' separate aliases of the same constant, and a merged module
+       docstring. Then `git rm` the two-file remainder (`peng_robinson.py`,
+       `__init__.py`); the package directory carries no tracked files now.
+       `ThermoFramework.gas_eos` is `Optional[GasEOS]` with a real top-level
+       import (`gas_eos.py` only depends on `..units`, a leaf, so no cycle);
+       the now-empty `if TYPE_CHECKING:` block and its now-unused
+       `TYPE_CHECKING` import removed. `thermo/__init__.py` exports all six
+       names. **New tests** (`tests/standalone/test_gas_eos.py`, 6 — this
+       module had zero test coverage before, per the checkpoint-1 audit):
+       4 Z-factor pins at fixed, reproducible `(n, V, T=308.15 K)` inputs
+       (chosen by bisection to hit the stated pressures exactly), each
+       asserting both the precise computed value (`rel=1e-9`, a regression
+       pin) and the checkpoint's approximate figure (`abs=0.01`, confirming
+       the pin is in the right ballpark) — CO2 20 atm: Z=0.8946 (target
+       ≈0.897); N2 50 atm: Z=0.9898 (≈0.987); CH4 50 atm: Z=0.9111 (≈0.910);
+       a 60/40 CH4/CO2 mix at 1 atm: Z=0.9971 (≈1, the ideal-gas limit) — all
+       close to, not exactly, the audit's approximate figures (a different
+       plausibility script, most likely a different exact molar quantity for
+       the same target pressure); 2 tests contrasting
+       `PengRobinsonEOS.partial_pressures_atm` (fugacities) against
+       `IdealGasEOS.partial_pressures_atm` (partial pressures): at ~50 atm
+       CH4 they differ by ~17% (fugacity 45.50 vs partial pressure 54.88);
+       at ~1 atm (the same mixture) they agree to within 1%, the expected
+       φ→1 low-pressure convergence. **Docs fixed:** `peng_robinson.py`'s two
+       `fermenter.equilibria.vle.GasEOS`-style docstring cross-references
+       (old project name and path) resolved by merging into one file (no
+       cross-reference needed); `thermo/liquid_phase_model.py:4`'s path
+       reference; `PyOMES/README.md` (dropped the `equilibria/` row, folded
+       gas EOS into the `thermo/` row); `docs/architecture.md` (the
+       "Equilibrium pathways" section's item 2, presenting
+       `ProcessCoupledEquilibrator`/`HenryEquilibriumInterface` as a live
+       second pathway, was already false before this checkpoint — that
+       package was CUFermenter-era dead code, per `equilibria/__init__.py`'s
+       own docstring — removed rather than re-pathed; the tree's `equilibria/`
+       entry removed, `thermo/` entry gains a `gas_eos.py` line).
+       **`OPEN_WORK.md` updated too** (not explicitly in this checkpoint's
+       text, but its own tracked "`docs/architecture.md` still describes
+       deleted CUFermenter-era code" entry cites exactly these two spots by
+       line number): added a dated partial-fix note, and corrected the "No
+       longer exist" bullet's now-stale carve-out ("except `vle.py` and
+       `peng_robinson.py`" — both are gone too now) and the gas-constant
+       entry's `equilibria/vle.py` path mention. **Verification:**
+       `python -c "import PyOMES"` succeeds; import guard green; an AST
+       unused-import check on all four touched `thermo/` files found nothing
+       real (the `__init__.py` "hits" are names used only via `__all__`, as
+       in earlier checkpoints); `test_thermo_framework.py` (16, including
+       `test_gas_eos_none_by_default`) and the new `test_gas_eos.py` (6) all
+       pass. Full suite **2062 passed**, 0 failed (2056 + 6 new tests, exactly
+       as predicted)._
 - [ ] 12. (D5, D6) **Before editing:** freeze the rate-function fingerprints as
        tests, for the `Monod` path and for the builder's `Ko2_gL` path (measured
        bit-identical to `DualSubstrateMonod(secondary_in_mol_L=False,

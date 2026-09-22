@@ -13,6 +13,14 @@ from .water_properties import (
     debye_huckel_A,
     ionic_strength_molal_from_molar,
 )
+from .gas_eos import (
+    GasEOS,
+    IdealGasEOS,
+    PengRobinsonEOS,
+    CriticalProperties,
+    BIOGAS_SPECIES,
+    BIOGAS_KIJ,
+)
 
 __all__ = [
     "ThermoFramework",
@@ -28,4 +36,10 @@ __all__ = [
     "water_density_kg_per_m3",
     "debye_huckel_A",
     "ionic_strength_molal_from_molar",
+    "GasEOS",
+    "IdealGasEOS",
+    "PengRobinsonEOS",
+    "CriticalProperties",
+    "BIOGAS_SPECIES",
+    "BIOGAS_KIJ",
 ]

@@ -131,27 +131,18 @@ Property calculators are registered via
 top of every `advance()` step (before the speciation solve and
 reaction integration).
 
-### Equilibrium pathways
+### Equilibrium pathway
 
-Two parallel equilibrium pathways exist in the codebase:
-
-1. **`BisectionChemicalEquilibriumEngine` + `KineticGasLiquidLink`** — the canonical
-   pathway used by every CV-based model (ADM1, BSM2, any
-   `Simulation`-orchestrated CV). Acid-base equilibria are declared
-   as `EquilibriumReaction` objects on the `ReactionSystem` and
-   solved by the engine in step 1 of `cv.advance()`; the engine
-   writes derived molecular species back to `phase.n_mol` via the
-   privileged `_refresh_derived(values)` hook. Gas-liquid
-   partitioning is kLa-driven through `KineticGasLiquidLink`, with
-   alpha-correction read inline from `phase.n_mol` against the
-   reaction system's `cross_phase_equilibria` bucket.
-
-2. **`ProcessCoupledEquilibrator` + `HenryEquilibriumInterface`**
-   (`PyOMES/equilibria/`, `PyOMES/core/gl_equilibrium.py`) — a parallel
-   single-shot CO₂/O₂/N₂ partition solver used **only** by the
-   legacy `CUFermentationSpeciation` class in
-   `models/vlmodels/fermenter/unit.py`. Slated for removal in the
-   `CUFERMENTER_SUNSET` phase. Do not use for new work.
+**`BisectionChemicalEquilibriumEngine` + `KineticGasLiquidLink`** is the
+canonical pathway used by every CV-based model (ADM1, BSM2, any
+`Simulation`-orchestrated CV). Acid-base equilibria are declared
+as `EquilibriumReaction` objects on the `ReactionSystem` and
+solved by the engine in step 1 of `cv.advance()`; the engine
+writes derived molecular species back to `phase.n_mol` via the
+privileged `_refresh_derived(values)` hook. Gas-liquid
+partitioning is kLa-driven through `KineticGasLiquidLink`, with
+alpha-correction read inline from `phase.n_mol` against the
+reaction system's `cross_phase_equilibria` bucket.
 
 ## Reaction Framework (`PyOMES/reactions/`)
 
@@ -397,10 +388,8 @@ PyOMES/
       nr/                        # engine.py (NRChemicalEquilibriumEngine), tableau.py, solver.py
       phreeqc.py                 # PHREEQCChemicalEquilibriumEngine (optional phreeqpython)
   thermo/                        # Activity models (Ideal/Davies/SIT), ThermoFramework, water properties,
-                                 # make_activity_model, van 't Hoff helpers (equilibrium_constants.py)
-  equilibria/                    # Legacy CO₂/O₂/N₂ partition (CUFermenter island)
-    engine.py                    # ProcessCoupledEquilibrator
-    coupled.py, factory.py, interfaces.py, vle.py, peng_robinson.py
+                                 # make_activity_model, van 't Hoff helpers (equilibrium_constants.py),
+                                 # gas_eos.py (IdealGasEOS, PengRobinsonEOS)
   control/                       # Controllers and profiles
     actions.py                   # ControlAction, ProfileRecord (new framework)
     cv_loops.py                  # CV-native PHController, DO controllers, pressure-relief
