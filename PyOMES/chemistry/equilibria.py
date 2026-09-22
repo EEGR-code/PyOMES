@@ -55,11 +55,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
 from ..units import R_J_PER_MOL_K as _R_J
-from .common_species import (
-    CO2, HCO3_minus, CO3_2minus, NH4_plus, NH3,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-    HSO4_minus, SO4_2minus,
-)
+from .common_species import CO2, HCO3_minus, CO3_2minus, NH4_plus, NH3
 
 _VALID_CATEGORIES = ("acid", "cation_acid", "inorganic_acid", "strong_ion")
 _VALID_CORRECTIONS = ("none", "van_t_hoff")
@@ -464,48 +460,6 @@ class EquilibriumSet:
         eq.add("S_pro", category="acid", pKas=(4.88,))
         eq.add("S_bu",  category="acid", pKas=(4.82,))
         eq.add("S_va",  category="acid", pKas=(4.86,))
-        return eq
-
-    @staticmethod
-    def bsm2_diprotic_co2() -> "EquilibriumSet":
-        """BSM2 with full diprotic CO₂ (both dissociations active).
-
-        Identical to :meth:`bsm2_default` except ``n_active=2`` for CO₂,
-        so CO₃²⁻ participates in the charge balance.
-        """
-        eq = EquilibriumSet.bsm2_default()
-        # Replace CO2 with n_active=2, preserving species_refs.
-        co2 = eq.get("CO2")
-        eq.add("CO2", category=co2.category,
-               pKas=co2.pKas, n_active=2,
-               correction=co2.correction,
-               dH_J_per_mol=co2.dH_J_per_mol,
-               T_ref_K=co2.T_ref_K,
-               total_key=co2.total_key,
-               species_refs=co2.species_refs)
-        return eq
-
-    @staticmethod
-    def bsm2_with_sulfide() -> "EquilibriumSet":
-        """BSM2 + H₂S/HS⁻ equilibrium."""
-        eq = EquilibriumSet.bsm2_default()
-        eq.add("H2S", category="acid", pKas=(7.0,),
-               correction="van_t_hoff",
-               dH_J_per_mol=(20000.0,))
-        return eq
-
-    @staticmethod
-    def adm1_full() -> "EquilibriumSet":
-        """Full ADM1: BSM2 (diprotic CO₂) + phosphate + bisulfate."""
-        eq = EquilibriumSet.bsm2_diprotic_co2()
-        eq.add("phosphate", category="inorganic_acid",
-               pKas=(2.15, 7.20, 12.35), correction="none",
-               total_key="CT_P",
-               species_refs=(H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus))
-        eq.add("bisulfate", category="inorganic_acid",
-               pKas=(1.99,), correction="none",
-               total_key="CT_SO4",
-               species_refs=(HSO4_minus, SO4_2minus))
         return eq
 
     # ── Repr ──────────────────────────────────────────────────────────

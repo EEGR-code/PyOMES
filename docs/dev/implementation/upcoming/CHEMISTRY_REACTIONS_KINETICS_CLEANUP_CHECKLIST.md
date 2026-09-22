@@ -363,7 +363,18 @@ the `Multispecies*` classes.
       `test_equilibrium_constraint.py`, `test_equilibrium_classification.py`,
       `test_chemistry_database.py` — 103 passed together. Full suite unchanged
       at **2062 passed**, 0 failed._
-- [ ] 8. Delete the three unused `EquilibriumSet` presets. Sanity: suite unchanged.
+- [x] 8. Delete the three unused `EquilibriumSet` presets. Sanity: suite unchanged.
+      _Notes: done 2026-09-22. Fresh search confirmed zero external callers of
+      `bsm2_diprotic_co2`, `bsm2_with_sulfide`, `adm1_full` (only `adm1_full`'s
+      own now-deleted call to `bsm2_diprotic_co2`, and `shipped/`/plan-doc
+      mentions). Deleted all three (43 lines). Their deletion left
+      `H3PO4`, `H2PO4_minus`, `HPO4_2minus`, `PO4_3minus`, `HSO4_minus`,
+      `SO4_2minus` unused in this file (only `adm1_full` referenced them), so
+      trimmed the `common_species` import to the five names `bsm2_default`
+      still uses. One file changed. Verified: `python -c "import PyOMES"`
+      succeeds; import guard green; an AST unused-import check on the file
+      found nothing left over. Full suite unchanged at **2062 passed**,
+      0 failed._
 - [ ] 9. Migrate ~50 `HenryPartition`/`RaoultPartition` call sites (7 test files) to
       `HenryEquilibrium`/`RaoultEquilibrium`; delete the aliases and their 6
       tests; fix the `anaerobic_digestion.py` docstring that names the old type.
