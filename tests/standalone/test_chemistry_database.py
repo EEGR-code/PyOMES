@@ -93,6 +93,60 @@ class TestChemistryDatabaseExtend:
         assert len(rxns) == 1
 
 
+class TestChemistryDatabaseExtendPreservesReactionSystemConfig:
+    """checkpoint 14: extend() used to build a plain ReactionSystem(rxns),
+    silently dropping the source system's label, solver and engine config
+    (checkpoint-1 audit W5: a solver="newton_raphson" system extended came
+    back "charge_balance"). Latent, no production caller, until now untested."""
+
+    def _rxn(self, label):
+        from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
+        from PyOMES.chemistry.common_species import CO2, HCO3_minus, H_plus, H2O
+        return EquilibriumReaction(
+            stoichiometry=[
+                StoichiometryEntry(species=CO2,        phase="liquid", coefficient=-1.0),
+                StoichiometryEntry(species=H2O,        phase="liquid", coefficient=-1.0),
+                StoichiometryEntry(species=HCO3_minus, phase="liquid", coefficient=+1.0),
+                StoichiometryEntry(species=H_plus,     phase="liquid", coefficient=+1.0),
+            ],
+            log_K=-6.35, total_id="CO2",
+            balance_elements=("C", "H", "O"),
+            label=label,
+        )
+
+    def _base_with_configured_reactions(self):
+        from PyOMES.databases.database import ChemistryDatabase
+        from PyOMES.reactions import ReactionSystem
+        from PyOMES.thermo import ThermoFramework
+        rs = ReactionSystem(
+            [self._rxn("eq_CO2")], label="my_system", solver="newton_raphson",
+        )
+        rs.configure_engine(use_activity=True, activity_model="sit")
+        return ChemistryDatabase(thermo=ThermoFramework(), reactions=rs)
+
+    def test_extend_preserves_solver_and_label(self):
+        base = self._base_with_configured_reactions()
+        extended = base.extend(reactions=[self._rxn("eq_NH4")])
+        assert extended.reactions.label == "my_system"
+        assert extended.reactions._solver == "newton_raphson"
+
+    def test_extend_preserves_engine_config(self):
+        base = self._base_with_configured_reactions()
+        extended = base.extend(reactions=[self._rxn("eq_NH4")])
+        assert extended.reactions._engine_config == {
+            "use_activity": True,
+            "activity_model": "sit",
+        }
+
+    def test_extend_with_no_existing_reactions_uses_defaults(self):
+        from PyOMES.databases.database import ChemistryDatabase
+        from PyOMES.thermo import ThermoFramework
+        base = ChemistryDatabase(thermo=ThermoFramework())  # reactions=None
+        extended = base.extend(reactions=[self._rxn("eq_CO2")])
+        assert extended.reactions.label == ""
+        assert extended.reactions._solver == "charge_balance"
+
+
 class TestStockDatabases:
     def test_aqueous_default_imports(self):
         from PyOMES.databases.aqueous import AQUEOUS_DEFAULT

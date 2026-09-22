@@ -679,9 +679,43 @@ the `Multispecies*` classes.
 
 **Part C — behaviour (isolated commits)**
 
-- [ ] 14. Fix `ChemistryDatabase.extend()` to preserve solver, label and engine
+- [x] 14. Fix `ChemistryDatabase.extend()` to preserve solver, label and engine
        config; fix the `ReactionSet` docstring. Sanity: +2 tests; stock databases
        unaffected.
+       _Notes: done 2026-09-22, 2 files. `extend()` now reads the existing
+       system's `label`, `._solver` and `._engine_config` (there is no public
+       `solver` accessor; `tests/standalone/test_nr_speciation_engine.py`
+       already reads `._solver` directly, so this matches existing
+       within-repo practice) and passes them to the merged
+       `ReactionSystem` — `label=`/`solver=` at construction (the only
+       place `solver` can be set), then `.configure_engine(**engine_config)`
+       for `use_activity`/`activity_model`. When this database has no
+       existing reactions (`self.reactions is None`), the merged system
+       falls back to `ReactionSystem`'s own defaults, since there is nothing
+       to inherit — documented in the docstring and covered by its own test.
+       `ReactionSet` docstring: already fixed at checkpoint 4 (both mentions
+       in this file were renamed to `ReactionSystem` then); a fresh check
+       found none left, so nothing to do here — the checkpoint text
+       restates a completed item. **New tests** (3, not the estimated 2):
+       `test_extend_preserves_solver_and_label`,
+       `test_extend_preserves_engine_config`, and
+       `test_extend_with_no_existing_reactions_uses_defaults` (the fallback
+       path, worth pinning since I added it to the docstring). **Stock
+       databases unaffected, verified two ways:** all 36 tests in
+       `test_chemistry_database.py` pass unchanged, including every
+       `TestStockDatabases`/`TestStockDatabasePartitionModels` test; and
+       directly inspecting `AQUEOUS_DEFAULT`/`BIOPROCESS_BASIC`/`AD_BASIC`
+       (built via a real `.extend()` chain) after the fix shows all three
+       still carry the plain defaults (`label=""`, `solver="charge_balance"`,
+       `engine_config={"use_activity": False, "activity_model": "davies"}`)
+       — expected, since nothing in the aqueous → bioprocess_basic → AD_BASIC
+       chain ever sets `label=`/`solver=`/`configure_engine()` to anything
+       else, so the fix has nothing non-default to propagate for them; the
+       audit's reproduction case (`solver="newton_raphson"` dropped to
+       `"charge_balance"`) had no current caller. **Verification:**
+       `python -c "import PyOMES"` succeeds; import guard green; no real
+       unused imports (same TYPE_CHECKING-only false positives as
+       checkpoint 13). Full suite **2101 passed**, 0 failed (2098 + 3)._
        
 - [ ] 15. (D2) Drop the constructor-time validation in `PHController`; delete
        `registry.py`; remove the two tests in `TestCVPHControllerRegistryValidation`;

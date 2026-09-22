@@ -70,6 +70,11 @@ class ChemistryDatabase:
             existing species; new entries override on key collision.
         reactions : iterable, optional
             Additional reactions.  Appended to existing reaction set.
+            The merged :class:`~PyOMES.reactions.ReactionSystem` keeps
+            this database's existing ``label``, ``solver`` and engine
+            configuration (``configure_engine()`` settings); when this
+            database has no existing reactions, the new
+            ``ReactionSystem`` is built with its own defaults.
         thermo : ThermoFramework, optional
             Override the thermodynamic framework.  If omitted, inherits
             from this database.
@@ -91,7 +96,17 @@ class ChemistryDatabase:
 
         existing_rxns = list(self.reactions) if self.reactions is not None else []
         new_rxns = list(reactions) if reactions is not None else []
-        merged_rxns = ReactionSystem(existing_rxns + new_rxns) if (existing_rxns or new_rxns) else None
+        merged_rxns = None
+        if existing_rxns or new_rxns:
+            if self.reactions is not None:
+                merged_rxns = ReactionSystem(
+                    existing_rxns + new_rxns,
+                    label=self.reactions.label,
+                    solver=self.reactions._solver,
+                )
+                merged_rxns.configure_engine(**self.reactions._engine_config)
+            else:
+                merged_rxns = ReactionSystem(existing_rxns + new_rxns)
 
         merged_pm = dict(self.partition_models)
         if partition_models:
