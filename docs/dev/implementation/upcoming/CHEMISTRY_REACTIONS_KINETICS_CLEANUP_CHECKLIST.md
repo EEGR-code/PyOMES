@@ -34,20 +34,112 @@
 - [ ] Checkpoints tracked below, one commit each
 - [ ] **If work stalls:** add a status banner to the top of the plan doc at once
 
-### Checkpoint 1 inventory (record here)
+### Checkpoint 1 inventory
 
-- [ ] Suite baseline (expected 2072 passed); line counts (chemistry 3,893, kinetics
+- [x] Suite baseline (expected 2072 passed); line counts (chemistry 3,893, kinetics
       308, reactions 2,806, equilibria 555); import-graph and consumer scripts rerun
       and results pasted; searches repeated at branch start.
+
+Recorded 2026-09-21 at `9896752` (working tree clean; branch level with
+`origin/chemistry-reactions-kinetics-cleanup`). Searches ran over every tracked
+file: 196 `.py`, 32 `.ipynb`, 96 `.md`, 3 `.yml`, 2 `.toml`, 2 `.json`, `.cff`. That
+covers `tests/`, `models/`, `.github/` and both notebook generators' string templates.
+The gitignored `scratch/` and `notes/` are excluded, and so are the plan doc and this
+checklist. The only dynamic import is `tests/run_tests.py:209`, over test module
+names; it does not name any candidate. **No decision D1-D8 is affected.**
+
+**Baseline:** `python -m pytest` (configured `testpaths`) = **2072 passed**, 0 failed,
+0 skipped, 334 warnings, 2m08s. Line counts (tracked `.py`) all match the plan:
+chemistry 3,893, kinetics 308, reactions 2,806, equilibria 555; also
+`thermo_params.py` 765 and `chem_recipe.py` 274.
+
+**Import graph** (AST, 196 files, 2,652 imports, tagged top / lazy / `TYPE_CHECKING`):
+
+| Graph | Cycles |
+|---|---|
+| Module level, top-level imports only, all of `PyOMES/` | **none** |
+| Module level, plus lazy imports | 3: `chemistry.equilibria` <-> `chemistry.thermo_params` (lazy at `thermo_params.py:205,290`; the one the plan expects); and two outside these packages, see below |
+| Module level, plus `TYPE_CHECKING` | adds one 11-module group (the engines, `reaction_system`, `plots`, `partition`, ...) that closes only through `plots.py:17-18`; not a runtime cycle |
+| Package level, top-level imports only | `chemistry` <-> `reactions` (the nine top-level `reactions` imports in the three `databases/` files), and `control` <-> `core` |
+
+Not in the plan and outside these packages, left alone: lazy cycles
+`core.control_volume` <-> `core.solvers` (`solvers.py:345`) and `control.param_path`
+<-> `core` <-> `core.simulation` (`param_path.py:177`; three in `simulation.py`), and
+the package-level `control` <-> `core`. None affects the import guard (checkpoint 2).
+
+**Consumers** (word-boundary counts over the same corpus, 166 top-level names):
+
+| Package | Names | Not used outside own file | Used only inside own package | Used only by tests | Used elsewhere |
+|---|---|---|---|---|---|
+| chemistry | 124 | 33 | 31 | 17 | 43 |
+| kinetics | 8 | 1 | 1 | 4 | 2 (false matches) |
+| reactions | 34 | 5 | 8 | 2 | 19 |
+
+The two kinetics "used elsewhere" are false matches: `Environment` (a generic word in
+`reactions/__init__.py` and one notebook; nothing imports it from `PyOMES.kinetics`)
+and `KineticModel` (only the `PyOMES/README.md` sentence). Tests-only in chemistry
+includes the two aliases, `CHEM_DB`, `recipe_to_totals`, `recipe_g_L_to_mol_L` and
+the `Multispecies*` classes.
+
+**Delete-candidate searches** (all confirm the plan):
+
+- **`kinetics/`:** only `tests/standalone/test_kinetics.py` (3 import lines, 11 tests)
+  imports `PyOMES.kinetics`. `templates/stirred_tank/__init__.py:30` `from .kinetics`
+  is the template's own module. Non-code mentions: `PyOMES/README.md:19`,
+  `docs/architecture.md:413`, `README.md:153`, `upcoming/README.md:213`.
+- **`thermo_params`:** `ThermodynamicConfig` is used only at `bsm2.py:768,872,874-875`
+  and `test_bsm2_reference.py:100,103`; nothing reads `_thermo_config`. No caller
+  passes `Ka`, `lnKa`, `dH`, `dH_unit`, `T_ref`, `T_unit` or `Kw` to `EquilibriumSet`
+  except `ThermodynamicConfig.add_acid`/`set_water` in `thermo_params.py` itself
+  (`equilibria.py:291` names it in a docstring). The three presets have no caller;
+  `bsm2_diprotic_co2` is referenced only by `adm1_full`.
+- **Recipe layer (`recipe.py`, `chem_recipe.py`, `types.py`, `registry.py`):** every
+  name appears only in `chemistry/`, `tests/legacy/` and docs, except
+  `validate_compound_id` (`control/cv_loops.py:110-118` and one test,
+  `test_simulation.py:3070`). `CHEM_DB` has 47 literal keys, 39 unique.
+- **`HenryPartition`/`RaoultPartition`:** 51 call sites (37 + 14) in 7 test files; 6
+  alias tests (3 + 3 in `test_equilibrium_constraint.py`).
+- **`equilibria/`:** imported only by `partition.py:654` (lazy, unused) and
+  `thermo/framework.py:23` (`TYPE_CHECKING`); no test imports it.
+  `thermo/gas_eos.py` does not exist and the names do not clash.
+- **`tests/legacy/`:** 15 files; `testpaths` excludes it; no CI reference.
+- **Monod:** `reactions/builder.py:298`, `templates/stirred_tank/factory.py:288` and
+  `kinetics.py:167` are where the plan says; `-k Multispecies` selects 11 tests.
+
+**Additions for later checkpoints** (nothing blocks a decision):
+
+- **Checkpoint 5:** `README.md:153` lists `test_kinetics.py` as one item in a table
+  cell, not a row. `upcoming/README.md:213` is a dated prose line naming
+  `PyOMES/kinetics/`.
+- **Checkpoint 6:** root `README.md:90` and `:137` name `tests/legacy/`, so "no
+  reference in docs" needs those two lines edited. No CI reference.
+- **Checkpoint 9:** `test_equilibrium_constraint_dual_role.py` and
+  `test_transfer_models.py` mention the aliases in prose only (no code use).
+- **Checkpoint 10:** `PyOMES/README.md:13` advertises "solution recipe builders";
+  `tests/data/gas_equilibrated_pH_standards.json:8` mentions "CHEM_DB keys" in a
+  prose note.
 
 ### Checkpoints
 
 **Part A — hygiene (bit-identical)**
 
-- [ ] 1. Baseline and inventory (above).
-- [ ] 2. Add the import guard test: top-level module graph of `PyOMES/` acyclic
+- [x] 1. Baseline and inventory (above).
+- [x] 2. Add the import guard test: top-level module graph of `PyOMES/` acyclic
       (function-level and `TYPE_CHECKING` imports excluded). It passes today.
       Sanity: 2073 tests.
+      _Notes: done 2026-09-22. New `tests/standalone/test_import_graph_acyclic.py`,
+      one test (`test_top_level_import_graph_is_acyclic`). Its own AST walker mirrors
+      the checkpoint-1 scratch script: an `ast.NodeVisitor` skips `FunctionDef`/
+      `AsyncFunctionDef` bodies (depth-tracked) and `if TYPE_CHECKING:` bodies (the
+      `else` branch is kept, since it runs), so only edges that execute at import
+      time are collected; relative imports are resolved against each file's own
+      dotted module name, and `from pkg import name` resolves to the submodule
+      `pkg.name` when one exists, else to `pkg`. A DFS cycle finder (white/gray/black
+      colouring) walks the resulting graph. Before asserting on the real graph, the
+      test checks the finder itself against two tiny synthetic graphs (one with a
+      3-cycle, one without), so a clean result on `PyOMES/` isn't from an untested
+      detector. Sanity: full suite **2073 passed**, 0 failed (2072 + this one test);
+      import guard green._
 - [ ] 3. Hoist the deferred imports that are not load-bearing: `partition.py`
       (six sites; `_resolve_species` reads `chemistry.common_species` directly),
       `database.py:85`, `equilibria.py:493,549`, `reaction_system.py:171,484`,
