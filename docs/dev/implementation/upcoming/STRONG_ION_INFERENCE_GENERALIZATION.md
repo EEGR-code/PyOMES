@@ -385,6 +385,16 @@ species amounts, molar masses from `Species`/`ChemicalRegistry`) is logged in
 `OPEN_WORK.md`, not built here. See decision D1 in
 [`CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md).
 
+**Update 2026-09-22 (same phase, checkpoint 15, decision D2): `registry.py`
+deleted entirely.** Its last consumer, `PHController.__post_init__`'s
+`validate_compound_id` call, was itself wrong (checked ids against the
+deleted recipe-layer compound table, not species) and is removed with no
+replacement in this phase — see
+[`PHCONTROLLER_CORRECTOR_VALIDATION.md`](PHCONTROLLER_CORRECTOR_VALIDATION.md)
+for the proper check, still not yet built. The recipe layer named above
+(`chem_recipe.py`, `recipe.py`, `registry.py`, `types.py`) is now gone in
+full.
+
 ## Trigger conditions
 
 **Phase 0 needs no trigger** — it's a decided, no-risk de-duplication and

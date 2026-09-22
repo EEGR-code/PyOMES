@@ -717,7 +717,7 @@ the `Multispecies*` classes.
        unused imports (same TYPE_CHECKING-only false positives as
        checkpoint 13). Full suite **2101 passed**, 0 failed (2098 + 3)._
        
-- [ ] 15. (D2) Drop the constructor-time validation in `PHController`; delete
+- [x] 15. (D2) Drop the constructor-time validation in `PHController`; delete
        `registry.py`; remove the two tests in `TestCVPHControllerRegistryValidation`;
        add the documentation warning to `PHController`'s `chemical_id` /
        `base_chemical_id` parameters (ids are not validated; must be a
@@ -725,6 +725,40 @@ the `Multispecies*` classes.
        accumulates as inert); add one line to
        `PHCONTROLLER_CORRECTOR_VALIDATION.md` saying the old check was removed and
        that note is now the replacement. Sanity: −2 tests.
+       _Notes: done 2026-09-22, 6 files. Deleted `PHController.__post_init__`
+       entirely — its whole body was the two `validate_compound_id` calls, so
+       nothing else was lost. Documentation warning added to both
+       `chemical_id` and `base_chemical_id` in the class's Attributes
+       docstring, naming the real failure mode (silent inert dose) and
+       pointing at `PHCONTROLLER_CORRECTOR_VALIDATION.md` for the proper
+       check. Fresh repo-wide search (all file types) before deleting
+       `registry.py`: its only consumer was the just-removed
+       `__post_init__` call and `chemistry/__init__.py`'s export — `COMPOUND_DB`,
+       `resolve_compound`, `_COMPOUND_ALIASES` had zero other callers anywhere,
+       confirming the whole file (not just `validate_compound_id`) was safe to
+       delete, exactly as checkpoint 1's inventory anticipated ("Leave
+       COMPOUND_DB/resolve_compound/validate_compound_id for checkpoint 15").
+       `chemistry/__init__.py`: dropped the import/exports; its module
+       docstring said "the compound registry" ambiguously (registry.py's
+       deleted `COMPOUND_DB` vs. `compounds.py`'s still-live
+       `ChemicalRegistry`) — reworded to name `ChemicalRegistry` explicitly
+       so the still-true half of that sentence doesn't read as newly false.
+       Removed `TestCVPHControllerRegistryValidation` (2 tests) from
+       `test_simulation.py`; a repo-wide check found no other test asserting
+       a construction-time warning from `PHController`. Added the one line
+       to `PHCONTROLLER_CORRECTOR_VALIDATION.md` (as a dated update note
+       under its existing Status callout, matching that doc's own style) —
+       and, since `STRONG_ION_INFERENCE_GENERALIZATION.md`'s checkpoint-10
+       note explicitly said `COMPOUND_DB`/`resolve_compound`/
+       `validate_compound_id` were "left for checkpoint 15 to decide on,"
+       added a matching follow-up note there too, closing that loop.
+       **Verified:** `python -c "import PyOMES"` succeeds; import guard
+       green; constructing `PHController(chemical_id="NotARealCompound_XYZ")`
+       under `warnings.simplefilter("error")` no longer raises (previously
+       would have, on the old code path); no real unused imports (`cv_loops.py`
+       clean; `chemistry/__init__.py`'s hits are the same `__all__`-only
+       false positives as before). `test_simulation.py` (309 tests) passes.
+       Full suite **2099 passed**, 0 failed (2101 − 2, exactly as predicted)._
 - [ ] 16. Shrink `chemistry.__all__` to names still used; add a `plots` extra
        (matplotlib) to `pyproject.toml` and to `all`.
 - [ ] 17. Docs sweep and logging: extend the OPEN_WORK van 't Hoff and constants
