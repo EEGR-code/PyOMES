@@ -16,22 +16,22 @@ strong-corrector map, which adds ``Na+`` to the charge balance.
 
 Usage::
 
-    from PyOMES.chemistry.databases.bioprocess_basic import BIOPROCESS_BASIC
-    from PyOMES.chemistry.databases.bioprocess_basic import NH4Cl, KH2PO4, NaOH
+    from PyOMES.databases.bioprocess_basic import BIOPROCESS_BASIC
+    from PyOMES.databases.bioprocess_basic import NH4Cl, KH2PO4, NaOH
 """
 from __future__ import annotations
 
-from ..common_species import (
+from ..chemistry.common_species import (
     H_plus,
     H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
     HSO4_minus, SO4_2minus,
     K_plus, Cl_minus, Na_plus,
 )
-from ..species import Species
-from ..partition import HenryEquilibrium
-from ...reactions.equilibrium import EquilibriumReaction
-from ...reactions.reaction_system import ReactionSystem
-from ...reactions.stoichiometry import StoichiometryEntry
+from ..chemistry.species import Species
+from ..chemistry.partition import HenryEquilibrium
+from ..reactions.equilibrium import EquilibriumReaction
+from ..reactions.reaction_system import ReactionSystem
+from ..reactions.stoichiometry import StoichiometryEntry
 from .aqueous import AQUEOUS_DEFAULT
 
 _T_REF_K = 298.15

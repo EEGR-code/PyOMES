@@ -173,7 +173,7 @@ def make_phosphate_ladder() -> list:
     in the CV's own reaction_system. Without it, dosed H3PO4
     accumulates as inert neutral acid and never releases H+, silently
     disabling the acid half of the pH loop. Same log_K values as
-    ``PyOMES.chemistry.databases.bioprocess_basic``'s ``eq_phosphate_*``
+    ``PyOMES.databases.bioprocess_basic``'s ``eq_phosphate_*``
     (by-value copy, not an import -- see the module docstring).
     """
     return [

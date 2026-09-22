@@ -611,13 +611,71 @@ the `Multispecies*` classes.
        the factory's real `create_volume` path) and the new
        `test_rate_laws.py` (36) all pass. Full suite **2098 passed**, 0 failed
        (2062 + 36 new tests)._
-- [ ] 13. (D7) Move `chemistry/database.py` and `chemistry/databases/` to
+- [x] 13. (D7) Move `chemistry/database.py` and `chemistry/databases/` to
        `PyOMES/databases/` with `git mv` (name provisional; confirm at start).
        Repoint imports in `templates/stirred_tank/factory.py`, `models/vlmodels/adm1`,
        four test files, 8 notebooks (cell sources), `raw_construction.py`, the
        tutorials' READMEs; drop the `ChemistryDatabase` export from
        `chemistry/__init__.py`; add the row to `PyOMES/README.md`. Sanity: suite
        green; import guard green.
+       _Notes: done 2026-09-22, 20 files (5 renamed, 15 edited). Name confirmed:
+       `PyOMES/databases/` — no conflict (fresh check: the path didn't exist),
+       matches the plan's target layout, no reason to deviate. `git mv`
+       `chemistry/database.py` and the 4 files under `chemistry/databases/`
+       (clean renames); `chemistry/databases/`'s own directory is now empty of
+       tracked files. Internal imports fixed for the new depth: `database.py`'s
+       `..reactions.reaction_system` import is unchanged (same depth, `chemistry/`
+       and `databases/` are both direct `PyOMES/` children), but its
+       `TYPE_CHECKING` imports of `.species`/`.partition` become
+       `..chemistry.species`/`..chemistry.partition` (now cross-package); the
+       three stock-database files' `..common_species`/`..species`/`..partition`
+       become `..chemistry.*` and their `...reactions.*`/`...thermo.*` (three
+       dots, from the old depth-2 `chemistry.databases.X`) become `..reactions.*`/
+       `..thermo.*` (two dots, from the new depth-1 `databases.X`); their
+       sibling imports (`.database`, `.aqueous`, `.bioprocess_basic`) are
+       unchanged. Docstring usage examples in all 5 files updated to the new
+       import path. `chemistry/__init__.py`: dropped `from .database import
+       ChemistryDatabase` and its `__all__` entry.
+       **External consumers** (fresh search first, all file types):
+       `templates/stirred_tank/factory.py`'s two import lines and one docstring
+       cross-reference; the 4 test files (`test_chemistry_database.py` — by far
+       the most, including 2 combined `from PyOMES.chemistry import
+       ChemistryDatabase, Species`-style lines split into two clean imports each
+       — `test_cv_advance.py`, `test_equilibrium_constraint_dual_role.py`,
+       `test_nr_tableau_gas_liquid.py`); all 8 notebooks (2 each in
+       `Example1_mtp_well.ipynb` and `chemistry_database.ipynb`, 1 each in the
+       other 6, matching the plan's count exactly) — edited as raw bytes (not
+       text-mode) after a first attempt corrupted line endings across three
+       CRLF-normalized notebooks (a text-mode read translates CRLF→LF, and
+       writing back non-translating produced 300+ line diffs instead of the
+       expected 1-2; caught by reviewing `git diff --stat` before it went
+       further, reverted with `git checkout --`, redone in binary mode: exactly
+       9 changed lines across all 8 notebooks, verified JSON-valid and
+       source-only, no saved output touched); `raw_construction.py`'s one
+       docstring path mention (not an import — the file imports nothing from
+       this package). **`docs/tutorials/reactions/README.md`** (the one
+       tutorials' README that mentions the topic) only names the `ChemistryDatabase`
+       class, no module path — needed no change. **`models/vlmodels/adm1`**:
+       fresh search (whole directory, all files) found no real import at all —
+       only a path-free comment in `base.py` mentioning "ChemistryDatabase
+       rollout" in prose; the plan's expectation of an import to repoint didn't
+       hold here, noted rather than treated as a blocker (everything else about
+       D7 and the target layout is unaffected). Added the `databases/` row to
+       `PyOMES/README.md`, and, since already editing the adjacent `reactions/`
+       row, folded in its own missing mention of `rate_laws.py` (added in
+       checkpoint 12, never documented there). `docs/architecture.md` has no
+       `chemistry.database`/`ChemistryDatabase` mention at all — nothing to fix.
+       **Verification:** `python -c "import PyOMES"` and direct imports of all
+       4 `databases.*` modules succeed; import guard green; an AST unused-import
+       check found nothing real (TYPE_CHECKING-only annotation imports in
+       `database.py`, and `factory.py`'s pre-existing, already-confirmed-unrelated
+       `SimulationConfig`, both false positives). The specifically affected
+       files — `test_chemistry_database.py`, `test_cv_advance.py`,
+       `test_equilibrium_constraint_dual_role.py`, `test_nr_tableau_gas_liquid.py`,
+       `test_builder.py`, `test_configs.py` — 218 passed. Notebooks were not
+       executed (not asked for by this checkpoint's sanity check), only verified
+       structurally: JSON-valid, source-only diff, correct new paths. Full suite
+       unchanged at **2098 passed**, 0 failed._
 
 **Part C — behaviour (isolated commits)**
 

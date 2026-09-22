@@ -45,8 +45,8 @@ from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.transfer_models import KineticTransferModel, EquilibriumTransferModel
 from PyOMES.core.boundaries import GasFeed
 from PyOMES.chemistry.partition import HenryEquilibrium, PartitionModel
-from PyOMES.chemistry.database import ChemistryDatabase
-from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+from PyOMES.databases.database import ChemistryDatabase
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -106,7 +106,7 @@ class StirredTankFactory:
             Database supplying :class:`~PyOMES.chemistry.partition.PartitionModel`
             objects for species whose ``henry_mol_L_atm`` is not set in
             ``TransferConfig``.  Defaults to
-            :data:`~PyOMES.chemistry.databases.anaerobic_digestion.AD_BASIC`.
+            :data:`~PyOMES.databases.anaerobic_digestion.AD_BASIC`.
         label : str
             Human-readable label.
 

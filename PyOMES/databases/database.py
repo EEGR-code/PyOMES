@@ -10,7 +10,7 @@ object that a :class:`~PyOMES.core.ControlVolume` accepts.  It bundles:
 
 Databases are composed by extension, not mutation::
 
-    from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
+    from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
 
     MY_DB = AQUEOUS_DEFAULT.extend(
         species={"ButyricAcid": Species(id="ButyricAcid",
@@ -26,8 +26,8 @@ from typing import Dict, Iterable, Optional, TYPE_CHECKING
 from ..reactions.reaction_system import ReactionSystem
 
 if TYPE_CHECKING:
-    from .species import Species
-    from .partition import PartitionModel
+    from ..chemistry.species import Species
+    from ..chemistry.partition import PartitionModel
     from ..thermo.framework import ThermoFramework
 
 

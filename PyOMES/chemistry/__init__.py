@@ -15,7 +15,6 @@ from .partition import (
 )
 from .species import Species, SpeciesConflictError
 from .species_check import check_species_consistency
-from .database import ChemistryDatabase
 from . import common_species
 
 __all__ = [
@@ -34,6 +33,5 @@ __all__ = [
     "Species",
     "SpeciesConflictError",
     "check_species_consistency",
-    "ChemistryDatabase",
     "common_species",
 ]

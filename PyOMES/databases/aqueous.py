@@ -7,21 +7,21 @@ and ammonium/ammonia.
 
 Usage::
 
-    from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
+    from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
     db = AQUEOUS_DEFAULT.extend(species={"MyAcid": ...}, reactions=[...])
 """
 from __future__ import annotations
 
-from ..database import ChemistryDatabase
-from ..common_species import (
+from .database import ChemistryDatabase
+from ..chemistry.common_species import (
     H_plus, OH_minus, H2O,
     CO2, HCO3_minus, CO3_2minus,
     NH3, NH4_plus,
 )
-from ...reactions.equilibrium import EquilibriumReaction
-from ...reactions.reaction_system import ReactionSystem
-from ...reactions.stoichiometry import StoichiometryEntry
-from ...thermo.framework import ThermoFramework
+from ..reactions.equilibrium import EquilibriumReaction
+from ..reactions.reaction_system import ReactionSystem
+from ..reactions.stoichiometry import StoichiometryEntry
+from ..thermo.framework import ThermoFramework
 
 # BSM2-canonical pKa and dH values (Rosen & Jeppsson 2006)
 _PKW = 14.0

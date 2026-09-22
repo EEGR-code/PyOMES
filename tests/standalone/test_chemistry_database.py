@@ -7,7 +7,7 @@ import pytest
 
 class TestChemistryDatabaseConstruction:
     def test_minimal_construction(self):
-        from PyOMES.chemistry import ChemistryDatabase
+        from PyOMES.databases.database import ChemistryDatabase
         from PyOMES.thermo import ThermoFramework
         db = ChemistryDatabase(thermo=ThermoFramework())
         assert db.thermo is not None
@@ -15,7 +15,8 @@ class TestChemistryDatabaseConstruction:
         assert db.reactions is None
 
     def test_with_species(self):
-        from PyOMES.chemistry import ChemistryDatabase, Species
+        from PyOMES.databases.database import ChemistryDatabase
+        from PyOMES.chemistry import Species
         from PyOMES.thermo import ThermoFramework
         sp = Species(id="A", atoms={"C": 1}, charge=0, MW=12.0)
         db = ChemistryDatabase(
@@ -27,7 +28,7 @@ class TestChemistryDatabaseConstruction:
 
     def test_frozen(self):
         import dataclasses
-        from PyOMES.chemistry import ChemistryDatabase
+        from PyOMES.databases.database import ChemistryDatabase
         from PyOMES.thermo import ThermoFramework
         db = ChemistryDatabase(thermo=ThermoFramework())
         with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
@@ -36,7 +37,8 @@ class TestChemistryDatabaseConstruction:
 
 class TestChemistryDatabaseExtend:
     def _base(self):
-        from PyOMES.chemistry import ChemistryDatabase, Species
+        from PyOMES.databases.database import ChemistryDatabase
+        from PyOMES.chemistry import Species
         from PyOMES.thermo import ThermoFramework
         sp = Species(id="A", atoms={"C": 1}, charge=0, MW=12.0)
         return ChemistryDatabase(
@@ -93,14 +95,14 @@ class TestChemistryDatabaseExtend:
 
 class TestStockDatabases:
     def test_aqueous_default_imports(self):
-        from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
+        from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
         assert AQUEOUS_DEFAULT is not None
         assert "CO2" in AQUEOUS_DEFAULT.species
         assert "HCO3-" in AQUEOUS_DEFAULT.species
         assert "NH4+" in AQUEOUS_DEFAULT.species
 
     def test_aqueous_has_reactions(self):
-        from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
+        from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
         assert AQUEOUS_DEFAULT.reactions is not None
         labels = [r.label for r in AQUEOUS_DEFAULT.reactions]
         assert "eq_water" in labels
@@ -108,29 +110,29 @@ class TestStockDatabases:
         assert "eq_NH4" in labels
 
     def test_bioprocess_basic_imports(self):
-        from PyOMES.chemistry.databases.bioprocess_basic import BIOPROCESS_BASIC
+        from PyOMES.databases.bioprocess_basic import BIOPROCESS_BASIC
         assert "H3PO4" in BIOPROCESS_BASIC.species
         assert "SO4--" in BIOPROCESS_BASIC.species
         # still has aqueous species
         assert "CO2" in BIOPROCESS_BASIC.species
 
     def test_bioprocess_basic_has_phosphate_reactions(self):
-        from PyOMES.chemistry.databases.bioprocess_basic import BIOPROCESS_BASIC
+        from PyOMES.databases.bioprocess_basic import BIOPROCESS_BASIC
         labels = {r.label for r in BIOPROCESS_BASIC.reactions}
         assert "eq_phosphate_1" in labels
         assert "eq_bisulfate" in labels
 
     def test_ad_basic_imports(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         assert AD_BASIC is not None
         labels = {r.label for r in AD_BASIC.reactions}
         assert "partition_CO2" in labels
 
     def test_composition_chain(self):
         """AQUEOUS ⊂ BIOPROCESS_BASIC ⊂ AD_BASIC."""
-        from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
-        from PyOMES.chemistry.databases.bioprocess_basic import BIOPROCESS_BASIC
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
+        from PyOMES.databases.bioprocess_basic import BIOPROCESS_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         aqueous_rxn_labels = {r.label for r in AQUEOUS_DEFAULT.reactions}
         bp_rxn_labels = {r.label for r in BIOPROCESS_BASIC.reactions}
         ad_rxn_labels = {r.label for r in AD_BASIC.reactions}
@@ -138,12 +140,12 @@ class TestStockDatabases:
         assert bp_rxn_labels.issubset(ad_rxn_labels)
 
     def test_thermo_inherited(self):
-        from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         assert AD_BASIC.thermo == AQUEOUS_DEFAULT.thermo
 
     def test_ad_basic_h2s_equilibrium(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         from PyOMES.chemistry.common_species import H2S, HS_minus
         from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
@@ -163,13 +165,13 @@ class TestStockDatabases:
         assert eq_def.species_refs == (H2S, HS_minus)
 
     def test_ad_basic_hs_minus_in_species(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         assert "HS-" in AD_BASIC.species
 
 
 class TestChemistryDatabasePartitionModels:
     def _base(self):
-        from PyOMES.chemistry import ChemistryDatabase
+        from PyOMES.databases.database import ChemistryDatabase
         from PyOMES.thermo import ThermoFramework
         return ChemistryDatabase(thermo=ThermoFramework())
 
@@ -194,7 +196,7 @@ class TestChemistryDatabasePartitionModels:
         assert db.partition_models == {}
 
     def test_extend_merges_parent_and_child(self):
-        from PyOMES.chemistry import ChemistryDatabase
+        from PyOMES.databases.database import ChemistryDatabase
         from PyOMES.thermo import ThermoFramework
         hp_co2 = self._hp(h_ref=3.3e-4)
         hp_h2s = self._hp(h_ref=9.9e-4)
@@ -207,7 +209,7 @@ class TestChemistryDatabasePartitionModels:
         assert "H2S" in child.partition_models
 
     def test_child_overrides_parent_on_collision(self):
-        from PyOMES.chemistry import ChemistryDatabase
+        from PyOMES.databases.database import ChemistryDatabase
         from PyOMES.thermo import ThermoFramework
         hp_parent = self._hp(h_ref=1e-4)
         hp_child  = self._hp(h_ref=9e-4)
@@ -220,7 +222,7 @@ class TestChemistryDatabasePartitionModels:
         assert parent.partition_models["CO2"] is hp_parent
 
     def test_extend_without_partition_models_copies(self):
-        from PyOMES.chemistry import ChemistryDatabase
+        from PyOMES.databases.database import ChemistryDatabase
         from PyOMES.thermo import ThermoFramework
         hp = self._hp()
         db = ChemistryDatabase(thermo=ThermoFramework(), partition_models={"CO2": hp})
@@ -230,41 +232,41 @@ class TestChemistryDatabasePartitionModels:
 
 class TestStockDatabasePartitionModels:
     def test_bioprocess_basic_has_o2_n2(self):
-        from PyOMES.chemistry.databases.bioprocess_basic import BIOPROCESS_BASIC
+        from PyOMES.databases.bioprocess_basic import BIOPROCESS_BASIC
         assert "O2" in BIOPROCESS_BASIC.partition_models
         assert "N2" in BIOPROCESS_BASIC.partition_models
 
     def test_ad_basic_has_co2_ch4_h2_nh3_h2s(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         for key in ("CO2", "CH4", "H2", "NH3", "H2S"):
             assert key in AD_BASIC.partition_models, f"missing {key!r} in AD_BASIC.partition_models"
 
     def test_ad_basic_inherits_o2_n2_from_bioprocess(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         assert "O2" in AD_BASIC.partition_models
         assert "N2" in AD_BASIC.partition_models
 
     def test_bioprocess_basic_does_not_have_ad_species(self):
-        from PyOMES.chemistry.databases.bioprocess_basic import BIOPROCESS_BASIC
+        from PyOMES.databases.bioprocess_basic import BIOPROCESS_BASIC
         for key in ("CO2", "CH4", "H2", "NH3", "H2S"):
             assert key not in BIOPROCESS_BASIC.partition_models
 
     def test_co2_kH_at_298_matches_sander(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         hp = AD_BASIC.partition_models["CO2"]
         kH = hp._kH_mol_L_atm(298.15)
         # Sander 2015: kH(CO2) ≈ 3.4e-2 mol/(L·atm) at 25°C
         assert kH == pytest.approx(0.034, rel=0.05)
 
     def test_h2s_kH_at_298_matches_sander(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         hp = AD_BASIC.partition_models["H2S"]
         kH = hp._kH_mol_L_atm(298.15)
         # Sander 2015: kH(H2S) ≈ 0.10 mol/(L·atm) at 25°C
         assert kH == pytest.approx(0.10, rel=0.05)
 
     def test_o2_kH_at_298_matches_sander(self):
-        from PyOMES.chemistry.databases.bioprocess_basic import BIOPROCESS_BASIC
+        from PyOMES.databases.bioprocess_basic import BIOPROCESS_BASIC
         hp = BIOPROCESS_BASIC.partition_models["O2"]
         kH = hp._kH_mol_L_atm(298.15)
         # Sander 2015: kH(O2) ≈ 1.3e-3 mol/(L·atm) at 25°C
@@ -275,7 +277,7 @@ class TestThermoMismatchWarning:
     def _make_cv(self, thermo=None):
         from PyOMES.core.control_volume import ControlVolume
         from PyOMES.core.phases import LiquidPhase
-        from PyOMES.chemistry import ChemistryDatabase
+        from PyOMES.databases.database import ChemistryDatabase
         from PyOMES.thermo import ThermoFramework
         liq = LiquidPhase(n_mol={}, V_L=1.0, T_K=298.15)
         db = ChemistryDatabase(thermo=thermo or ThermoFramework()) if thermo is not None \
@@ -328,7 +330,7 @@ class TestControlVolumeChemistryDb:
     def test_cv_accepts_chemistry_db(self):
         from PyOMES.core.control_volume import ControlVolume
         from PyOMES.core.phases import LiquidPhase
-        from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
+        from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
         liq = LiquidPhase(n_mol={"CO2": 0.01}, V_L=1.0, T_K=298.15)
         cv = ControlVolume(
             phases={"liquid": liq},
