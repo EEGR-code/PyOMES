@@ -150,7 +150,7 @@ As of this writing, `tests/standalone/` and `tests/validation/` cover:
 | PHREEQC cross-validation | `test_phreeqc_engine.py`, `tests/validation/speciation/test_phreeqc_nr_agreement.py` |
 | NIST / analytical reference validation | `tests/validation/speciation/test_carbonate_phosphate_benchmarks.py`, `test_iron_oxidation.py`, `test_saturation_index.py` |
 | Chemistry database & species | `test_chemistry_database.py`, `test_compounds.py`, `test_species.py`, `test_partition_model.py`, `test_thermo_framework.py`, `test_liquid_phase_model.py` |
-| Reaction stoichiometry & kinetics | `test_reactions.py`, `test_stoichiometry.py`, `test_equilibrium_constraint.py`, `test_kinetics.py` |
+| Reaction stoichiometry & kinetics | `test_reactions.py`, `test_stoichiometry.py`, `test_equilibrium_constraint.py` |
 | Control loops | `test_controller_state_protocol.py`, `test_descriptors.py`, `test_param_path.py` |
 | StirredTank templates | `test_builder.py`, `test_configs.py` |
 | Physical properties & numerics | `test_viscosity.py`, `test_spatial_schemes.py` |

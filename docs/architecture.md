@@ -410,8 +410,6 @@ PyOMES/
     system.py                    # Legacy ControlSystem (CUFermenter island)
     controllers/, actuators/, builders/   # Legacy support (CUFermenter island)
   monitoring/                    # AccuracyMonitor, ConservationMonitor
-  kinetics/                      # Plug-in kinetic model protocol + worked models
-    core.py, mapping.py, models/yeast_acetate_v1.py, …
   numerics/                      # Shared numerical methods
     spatial.py                   # Advection (upwind, TVD) + dispersion
   properties/                    # Physical property models (viscosity)

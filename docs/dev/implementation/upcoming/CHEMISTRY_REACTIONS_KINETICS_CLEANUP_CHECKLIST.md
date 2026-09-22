@@ -255,10 +255,34 @@ the `Multispecies*` classes.
 
 **Part B — deletions, moves and consolidation (bit-identical)**
 
-- [ ] 5. Delete `PyOMES/kinetics/` and `tests/standalone/test_kinetics.py`; remove
+- [x] 5. Delete `PyOMES/kinetics/` and `tests/standalone/test_kinetics.py`; remove
       the `kinetics/` row in `PyOMES/README.md`, the row in the root `README.md`
       test table, and the `kinetics/` line in `docs/architecture.md`. Sanity:
       2062 tests.
+      _Notes: done 2026-09-22. Fresh repo-wide search first (all tracked file
+      types): the only live references were `PyOMES/README.md`'s row,
+      `README.md`'s test-table cell, and `docs/architecture.md`'s two-line tree
+      entry (row + its `core.py, mapping.py, ...` continuation, removed
+      together). Deleted the 6 files under `PyOMES/kinetics/` and
+      `tests/standalone/test_kinetics.py` (7 files, matching the checkpoint-1
+      inventory exactly). **Plan correction to the checkpoint text:** the root
+      `README.md` test table has no separate `kinetics` row — `test_kinetics.py`
+      was one of four items in the "Reaction stoichiometry & kinetics" cell (the
+      row's other three tests stay; the row's own name is a generic category
+      label, not a reference to the deleted package, so it stays too) — flagged
+      in the checkpoint-1 note, handled as a cell edit, not a row deletion.
+      **Left alone (checked, not an oversight):** `docs/dev/implementation/
+      shipped/STIRRED_TANK_TEMPLATE_MIGRATION.md` (shipped/ is off-limits per
+      the working rules); this phase's own plan and checklist docs, which
+      correctly describe the audit as it was before deletion; `tests/legacy/`'s
+      unrelated `v8_split_11.kinetics.core` path (a different, fictional
+      package, deleted itself at checkpoint 6); `upcoming/README.md:213`, a
+      dated 2026-09-15 changelog entry explaining a past decision, not a
+      current-behaviour claim. Verified: `python -c "import PyOMES"` succeeds;
+      the import guard test passes; a follow-up search for
+      `PyOMES.kinetics`/`PyOMES/kinetics` found only those left-alone,
+      historical/plan-doc hits. Full suite **2062 passed**, 0 failed (2073 − 11,
+      exactly as predicted)._
 - [ ] 6. Delete `tests/legacy/` (15 files, not collected). Sanity: grep finds no
       reference in docs or CI; suite unchanged.
 - [ ] 7. (D3) Delete `thermo_params.py`, the unit-conversion arguments of

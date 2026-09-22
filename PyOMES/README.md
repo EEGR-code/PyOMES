@@ -16,7 +16,6 @@ its own module docstring with more detail than is repeated here.
 | [`reactions/`](reactions/) | `ReactionBuilder` constructs stoichiometrically validated `KineticReaction` / `EquilibriumReaction` objects from an organism formula and balance mode; elemental-balance errors (`StoichiometryError`) raise at construction. `ReactionSystem` aggregates reactions for a `ControlVolume`; `BlackBoxReactionModel` wraps external kinetic functions behind the `ReactionModel` protocol. |
 | [`control/`](control/) | Feedback control loops: `PHController`, `DOAgitationController`, `DOCascadeController`, and pressure-relief controllers (`PressureReliefController` and its instant/smooth variants). |
 | [`properties/`](properties/) | Physical property models — currently viscosity correlations behind the `ViscosityModel` protocol. |
-| [`kinetics/`](kinetics/) | `KineticModel` protocol and plug-in kinetics used by reaction models. |
 | [`numerics/`](numerics/) | Spatial discretization schemes (upwind, TVD, dispersion) for spatially resolved models. |
 | [`monitoring/`](monitoring/) | Cheap per-step accuracy and mass-conservation checks that warn when a simulation runs outside the regime its solver/activity model is reliable in. |
 | [`templates/stirred_tank/`](templates/stirred_tank/) | `StirredTankBuilder` — the fluent builder used in the top-level Quick Start — plus its factory, presets, and kinetics helpers. |
