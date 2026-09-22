@@ -789,9 +789,53 @@ the `Multispecies*` classes.
        `ImportError` (confirmed); `pyproject.toml` re-parses as valid TOML
        with the expected extras. Full suite unchanged at **2099 passed**,
        0 failed (no tests added, removed, or behaviour-changed)._
-- [ ] 17. Docs sweep and logging: extend the OPEN_WORK van 't Hoff and constants
+- [x] 17. Docs sweep and logging: extend the OPEN_WORK van 't Hoff and constants
        entries with this review's counts; add OPEN_WORK entries for every item in the
        plan doc's "Deferred" list. Full suite; record the final count (about 2070).
+       _Notes: done 2026-09-22, `OPEN_WORK.md` only, no code changes. Extended
+       3 existing entries: the van 't Hoff copy entry now reports the plan's
+       "at least nine down to seven" estimate alongside what this review could
+       concretely verify (thermo_params.py deletion removed 2 at checkpoint 7;
+       partition.py's D8 delegation collapsed one pair into one implementation
+       at checkpoint 4) and an independent recount of 8 distinct
+       `math.exp`-shaped temperature-correction implementations across
+       `chemistry/`, `reactions/`, `thermo/` — close to, not exactly matching,
+       the plan's "seven", left unreconciled rather than forced to agree; the
+       constants-sweep entry notes which files the 2026-09-20 survey counted
+       literals in have since moved or been deleted (thermo_params.py,
+       recipe.py/chem_recipe.py, kinetics.py→rate_laws.py,
+       equilibria/→gas_eos.py, database.py/databases/→PyOMES/databases/), that
+       this phase was pure-refactor for those literals so aggregate totals
+       should be roughly unchanged, plus a spot-check of 18 occurrences of
+       `101325`/`298.15` across the moved/new files; the monitor-plumbing
+       entry notes `ReactionSystem._conservation_monitor` is also write-only
+       (confirmed via `grep -n "_conservation_monitor\." reaction_system.py`
+       returning empty), with `core/control_volume.py` both setting it via
+       `attach_conservation_monitor()` and separately reading its own
+       `cv._conservation_monitor` directly — the actual source of the
+       `ConservationWarning`s seen throughout this phase's test runs. Added
+       6 new entries, one per remaining "Deferred" bullet (the plan's own
+       last bullet — molar-mass unification, `EquilibriumSet` location,
+       `plot_vant_hoff` — kept bundled as one entry, matching how the plan
+       groups them): a species-based replacement for the deleted recipe
+       layer (D1), superseding the recipe-layer question in
+       `STRONG_ION_INFERENCE_GENERALIZATION.md`; the `partial_pressures_atm`
+       ideal-vs-fugacity split and `ThermoFramework.gas_eos` being read by
+       nothing in production, with the 7 hard-coded ideal-gas-law call sites
+       named (D4); mapping-based parameters and composable inhibition for
+       the rate laws, including why the Haldane form (`Andrews`,
+       `ContoisAndrews`) can't be a plain multiplicative wrapper (D5/D6);
+       the remaining package-level `chemistry`<->`reactions` cycle via
+       `partition.py`'s three `*Equilibrium` classes needing
+       `StoichiometryEntry`/`vant_hoff_log_K` (D7, module-level graph still
+       proven acyclic by `test_import_graph_acyclic.py`); the W10
+       yield-achievability gap in `ReactionBuilder.aerobic_growth`; and the
+       three bundled loose ends. **Verification:** full suite re-run in the
+       background, **2099 passed**, 0 failed, 166 warnings, 116.64s —
+       unchanged from checkpoint 16 as expected (docs-only checkpoint); the
+       plan's "about 2070" was an estimate made before the exact
+       checkpoint-16 count (2099) was known, so 2099 stands as the final
+       count for this phase, not 2070._
 
 ## Shipping
 
