@@ -256,7 +256,7 @@ class StirredTankFactory:
             ReactionSystem if multiple.
         """
         from PyOMES.reactions import ReactionSystem, ReactionBuilder, Monod
-        from PyOMES.chemistry.compounds import ChemicalRegistry
+        from PyOMES.compounds import ChemicalRegistry
 
         registry = ChemicalRegistry.default()
 

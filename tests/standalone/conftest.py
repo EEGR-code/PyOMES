@@ -22,7 +22,7 @@ for p in (_ROOT, _MODELS):
 @pytest.fixture
 def registry():
     """Default ChemicalRegistry with all built-in compounds."""
-    from PyOMES.chemistry.compounds import ChemicalRegistry
+    from PyOMES.compounds import ChemicalRegistry
     return ChemicalRegistry.default()
 
 

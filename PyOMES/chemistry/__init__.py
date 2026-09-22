@@ -1,8 +1,10 @@
 """Chemistry-facing data structures.
 
-This subpackage provides species declarations, a compound database
-(``ChemicalRegistry``), phase-partition models, and acid-base
-equilibrium sets used to construct feeds and initial conditions.
+This subpackage provides species declarations, phase-partition models,
+and acid-base equilibrium sets used to construct feeds and initial
+conditions. The standalone compound database (``ChemicalRegistry``)
+lives at :mod:`PyOMES.compounds` — it has no dependency on ``Species``
+or anything else here.
 """
 
 from .partition import (

@@ -2,7 +2,7 @@
 
 import pytest
 from PyOMES.stream_adapter import FeedState
-from PyOMES.chemistry.compounds import ChemicalRegistry
+from PyOMES.compounds import ChemicalRegistry
 
 
 class TestFeedStateConstruction:

@@ -1,7 +1,7 @@
-"""Tests for fermenter.chemistry.compounds — standalone chemical registry."""
+"""Tests for PyOMES.compounds — standalone chemical registry."""
 
 import pytest
-from PyOMES.chemistry.compounds import Chemical, ChemicalRegistry
+from PyOMES.compounds import Chemical, ChemicalRegistry
 
 
 class TestChemical:

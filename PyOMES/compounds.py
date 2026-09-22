@@ -7,7 +7,7 @@ or thermosteam.
 
 Usage
 -----
->>> from PyOMES.chemistry.compounds import ChemicalRegistry, Chemical
+>>> from PyOMES.compounds import ChemicalRegistry, Chemical
 >>> reg = ChemicalRegistry.default()
 >>> reg["AceticAcid"].MW
 60.052

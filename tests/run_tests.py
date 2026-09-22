@@ -102,7 +102,7 @@ except ImportError:
 
 # ── Fixture helper (replaces pytest fixtures for unittest) ─────────────
 
-from PyOMES.chemistry.compounds import ChemicalRegistry
+from PyOMES.compounds import ChemicalRegistry
 from PyOMES.stream_adapter import FeedState
 from PyOMES import PressureReliefController, PHController, create_standalone_fermenter
 

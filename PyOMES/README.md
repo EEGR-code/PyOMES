@@ -10,7 +10,7 @@ its own module docstring with more detail than is repeated here.
 | Subpackage | Contents |
 |---|---|
 | [`core/`](core/) | Foundational types: `Phase` (`GasPhase`, `LiquidPhase`, `SolidPhase`), `PhaseInterface`, `ControlVolume`, boundaries (`GasFeed`, `LiquidFeed`, `LiquidDrain`, `PressureReliefVent`, `MembraneGasBoundary`), CV-to-CV links (`AdvectiveLink`, `DiffusiveLink`), ODE step solvers (`SequentialAdvanceSolver`, `SimultaneousEulerSolver`, `SimultaneousAdaptiveSolver`), the `Simulation` orchestrator, and result/recorder types (`BatchResult`, `SummaryResult`). |
-| [`chemistry/`](chemistry/) | `ChemicalRegistry` / compound database and species definitions used to construct feeds and initial conditions. |
+| [`chemistry/`](chemistry/) | Species definitions, phase-partition models, and acid-base equilibrium sets used to construct feeds and initial conditions. |
 | [`chemical_equilibrium/`](chemical_equilibrium/) | Aqueous acid-base speciation: `BisectionChemicalEquilibriumEngine` (and Newton-Raphson engine variants) solve equilibrium from a set of declared reactions rather than a fixed tier of hardcoded chemistry. Includes activity-coefficient models (ideal, Davies, SIT) and an optional PHREEQC bridge (`phreeqc` extra). |
 | [`reactions/`](reactions/) | `ReactionBuilder` constructs stoichiometrically validated `KineticReaction` / `EquilibriumReaction` objects from an organism formula and balance mode; elemental-balance errors (`StoichiometryError`) raise at construction. `ReactionSystem` aggregates reactions for a `ControlVolume`; `BlackBoxReactionModel` wraps external kinetic functions behind the `ReactionModel` protocol. Growth rate laws (`Monod`, `Contois`, `Andrews`, and five others) live in `rate_laws.py`. |
 | [`databases/`](databases/) | `ChemistryDatabase` — a frozen bundle of `ThermoFramework` + species + `ReactionSystem` + partition models that a `ControlVolume` accepts. Stock databases (`AQUEOUS_DEFAULT`, `BIOPROCESS_BASIC`, `AD_BASIC`) compose by `.extend()`, not mutation. |
@@ -21,6 +21,7 @@ its own module docstring with more detail than is repeated here.
 | [`templates/stirred_tank/`](templates/stirred_tank/) | `StirredTankBuilder` — the fluent builder used in the top-level Quick Start — plus its factory, presets, and kinetics helpers. |
 | [`thermo/`](thermo/) | `ThermoFramework` and liquid-phase activity models (`IdealLiquidModel`, `DaviesLiquidModel`, `SITLiquidModel`), water property correlations that back `chemical_equilibrium/`, and gas-phase equations of state (`IdealGasEOS`, `PengRobinsonEOS`). |
 | [`stream_adapter.py`](stream_adapter.py) | `FeedState` — the canonical feed/broth composition type used throughout PyOMES. |
+| [`compounds.py`](compounds.py) | `ChemicalRegistry` / `Chemical` — standalone named-compound database (molecular weights, atom compositions), decoupled from `Species`. Backs `FeedState` and the stirred-tank template's default organism/substrate composition lookup. |
 | [`units.py`](units.py) | Shared unit conversions and physical constants. |
 | [`config.py`](config.py) | Package-level accuracy-warning thresholds and throttling, configurable via the `VLSIM_WARNINGS` environment variable. |
 

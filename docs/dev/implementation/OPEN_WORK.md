@@ -565,7 +565,7 @@ nothing downstream would have worked with it even if it had been kept.
 
 If a "weighed salt → initial condition" convenience is wanted again, it
 should be species-based rather than pooled-total-based: given a compound name
-(resolved via `chemistry.compounds.ChemicalRegistry`, which already carries
+(resolved via `PyOMES.compounds.ChemicalRegistry`, which already carries
 molar masses) and a mass or stock-solution dose, emit species amounts
 directly (`{"Na+": n_mol, "Cl-": n_mol, ...}`), not `CT_Na`/`CT_Cl`-style
 pooled totals. This also supersedes the recipe-layer open question in
@@ -669,7 +669,9 @@ achievable by aerobic respiration.
 Logged 2026-09-21/22, not built — grouped here because each is small and
 independent, not because they are related to each other.
 
-- **Molar-mass unification.** `chemistry/compounds.py`'s `Chemical` (BioSTEAM-shaped)
+- **Molar-mass unification.** `PyOMES/compounds.py`'s `Chemical` (BioSTEAM-shaped,
+  moved out of `chemistry/` during this phase since it has no dependency on
+  `Species` or anything else in `chemistry/`)
   and `chemistry/species.py`'s `Species` (the framework's own) both carry
   molecular weights for overlapping compound sets, maintained independently.
   A candidate for unification, or at least a documented invariant that they

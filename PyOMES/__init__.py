@@ -5,7 +5,7 @@ from __future__ import annotations
 __version__ = "0.12.5"
 
 from .stream_adapter import FeedState
-from .chemistry.compounds import ChemicalRegistry, Chemical
+from .compounds import ChemicalRegistry, Chemical
 
 from .control import (
     PressureReliefController,

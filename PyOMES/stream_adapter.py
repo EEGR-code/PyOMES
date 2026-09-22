@@ -2,7 +2,7 @@
 """Lightweight feed composition type for the fermenter framework.
 
 :class:`FeedState` stores species concentrations and provides g/L accessors
-via :class:`~PyOMES.chemistry.compounds.ChemicalRegistry`.  It is the
+via :class:`~PyOMES.compounds.ChemicalRegistry`.  It is the
 canonical input type for feed-composition data throughout PyOMES.
 
 Quick start
@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
-from PyOMES.chemistry.compounds import ChemicalRegistry
+from PyOMES.compounds import ChemicalRegistry
 
 
 @dataclass
