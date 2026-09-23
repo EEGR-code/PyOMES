@@ -1,7 +1,19 @@
 # EquilibriumSet Relocation — Design Note
 
-> Status: design note, not yet started. No branch, no checklist, no code
-> yet. Surfaced 2026-09-23 during a conversational investigation of
+> **Status: Shipped 2026-09-23** — merged into `main` via `git merge --no-ff`
+> as commit `852bff2`, tagged `equilibrium-set-relocation-shipped`. Two
+> checkpoints: the move of `EquilibriumSet`/`EquilibriumDef`/`WaterDef` to
+> `chemical_equilibrium/engines/bisection/equilibria.py`, then the deletion of
+> `EquilibriumSet.bsm2_default()`. All three open questions were settled as the
+> note leaned (no re-export, the `from_reactions()` import stays lazy, one
+> checklist with two checkpoints). The note below is the audit as originally
+> written; where it disagrees with the checklist's "Re-verification" section
+> (it listed three consumer files, and missed comment and docstring references
+> in `acid_base.py`, `bsm2.py`, `test_speciation.py` and `OPEN_WORK.md`), the
+> checklist is correct. Full suite green post-merge: 2086 passed, 0 failed. See
+> [`EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md`](EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md).
+
+> Written before implementation, from a conversational audit. Surfaced 2026-09-23 during a conversational investigation of
 > `chemistry/species_check.py`'s package placement (a separate, already
 > resolved question — see that conversation's conclusion: stays in
 > `chemistry/`, merges into `species.py`). While auditing `chemistry/`'s
@@ -250,7 +262,7 @@ carry both.
 ## How to start one
 
 Per this folder's usual convention
-([README.md](README.md#how-to-start-one)): write a checklist file
+([README.md](../upcoming/README.md#how-to-start-one)): write a checklist file
 (`EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md`), cut a branch off `main`
 (suggested name: `equilibrium-set-relocation`). Single-phase — no
 sequencing, no open API decision blocking a start (Open questions 1-3

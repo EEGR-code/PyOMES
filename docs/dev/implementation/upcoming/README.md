@@ -40,25 +40,6 @@ that still describe open work are "Open phases" and the pending stages in
   original relocation question is downstream of this note, not
   parallel — see its own "Relationship to the relocation question"
   section. No branch, no checklist, no code yet.
-- **[EQUILIBRIUM_SET_RELOCATION.md](EQUILIBRIUM_SET_RELOCATION.md)** —
-  2026-09-23. Develops `OPEN_WORK.md`'s "Three small loose ends" entry
-  (`EquilibriumSet` location) into a concrete plan: `chemistry/
-  equilibria.py`'s `EquilibriumSet`/`EquilibriumDef` (the acid-base
-  charge-balance declaration format) is consumed only by the Bisection
-  engine (`chemical_equilibrium/engines/bisection/`) — confirmed via a
-  repo-wide audit, exactly 3 files reference it, none in `engines/nr/`
-  or `protocols.py`. Proposes moving the file next to its one real
-  consumer. No interaction with the separate `chemistry`<->`reactions`
-  package cycle (`partition.py`'s `*Equilibrium` classes) — checked
-  both directions, this thread is independent. Second finding folded
-  in: `EquilibriumSet.bsm2_default()` is vestigial — `models/vlmodels/
-  adm1/bsm2.py` independently re-declares the identical constants
-  ("matches ... bit-for-bit"), its three sibling presets were already
-  deleted for zero callers, and `bsm2_default()`'s only two real
-  callers (`test_cv_compute_interface.py`) don't need real BSM2 numbers
-  — proposes deleting it too. Three open polish/scoping questions
-  (re-export? keep the sibling import lazy? bundle the two findings in
-  one checklist?), none blocking. No branch, no checklist, no code yet.
 - **[PARTITION_CONSTRAINT_RELOCATION.md](PARTITION_CONSTRAINT_RELOCATION.md)** —
   2026-09-23. Develops `OPEN_WORK.md`'s "Package-level layering" entry (the
   remaining `chemistry` <-> `reactions` package cycle) into a concrete plan.
@@ -183,6 +164,25 @@ that still describe open work are "Open phases" and the pending stages in
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
+
+- `equilibrium-set-relocation` (2026-09-23) — moved `EquilibriumSet`/
+  `EquilibriumDef`/`WaterDef` (the acid-base charge-balance declaration
+  format) from `chemistry/equilibria.py` to
+  `chemical_equilibrium/engines/bisection/equilibria.py`, next to the one
+  engine that consumes it, and deleted `EquilibriumSet.bsm2_default()` (a
+  vestigial preset that duplicated constants `models/vlmodels/adm1/bsm2.py`
+  already declares; its only two callers were tests, which now build a small
+  synthetic set). Two checkpoints, no behaviour change. The design note's
+  consumer audit undercounted: re-verifying it found comment and docstring
+  references in `acid_base.py`, `bsm2.py`, `test_speciation.py` and
+  `OPEN_WORK.md` that would have gone stale, all updated. Also found and
+  logged in `OPEN_WORK.md`: the deprecated `{name}_HA` fallback in
+  `_compute_species_eq` is unreachable from repo code (BSM2 does not use it,
+  contrary to an earlier entry), and the package mixes three-dot relative
+  imports (`engines/bisection/`, `engines/nr/`) with absolute ones elsewhere.
+  Full suite green post-merge: 2086 passed, 0 failed. Tag
+  `equilibrium-set-relocation-shipped`. See
+  [`../shipped/EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md`](../shipped/EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md).
 
 - `chemistry-reactions-kinetics-cleanup` (2026-09-23) — review of `chemistry/`,
   `kinetics/` and `reactions/` in the style of

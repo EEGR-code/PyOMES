@@ -1,12 +1,16 @@
 # Phase Kickoff Checklist — equilibrium-set-relocation
 
+> **Status: Shipped 2026-09-23** — merged into `main` via `git merge --no-ff`
+> as commit `852bff2`, tagged `equilibrium-set-relocation-shipped`. Full suite
+> green post-merge: 2086 passed, 0 failed. Remote and local feature branch both deleted.
+
 > Checklist for [`EQUILIBRIUM_SET_RELOCATION.md`](EQUILIBRIUM_SET_RELOCATION.md),
 > the source of truth for motivation and design; do not restate it here. Where
 > this checklist and the note disagree, this checklist wins: the note was written
 > from a conversational audit and the "Re-verification" section below corrects
-> it. See [`README.md`](README.md)'s "Branching and tagging convention". Modelled
+> it. See [`../upcoming/README.md`](../upcoming/README.md)'s "Branching and tagging convention". Modelled
 > on
-> [`../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md`](../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
+> [`CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md`](CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
 
 **Working rules**
 
@@ -39,14 +43,14 @@
       2026-09-23)
 - [x] Full-suite baseline on `main`: **2086 passed**, 0 failed, 166 warnings,
       4m19s (`python -m pytest -p no:cacheprovider`)
-- [ ] Branch created off `main`: `equilibrium-set-relocation`
-- [ ] This checklist committed on that branch as the first commit
+- [x] Branch created off `main`: `equilibrium-set-relocation`
+- [x] This checklist committed on that branch as the first commit (`a6484a7`)
 
 ## During
 
 - [x] Plan doc exists in `docs/dev/implementation/upcoming/`
       ([`EQUILIBRIUM_SET_RELOCATION.md`](EQUILIBRIUM_SET_RELOCATION.md))
-- [ ] Checkpoints tracked below, one commit each
+- [x] Checkpoints tracked below, one commit each (`101ac97`, `00686da`)
 - [ ] **If work stalls:** add a status banner to the top of the plan doc at once
 
 ### Re-verification of the design note (2026-09-23, on `main`)
@@ -188,14 +192,21 @@ nothing to edit there. The install is editable, so the move needs no reinstall.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch (expected 2086 passed)
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff equilibrium-set-relocation -m "Merge equilibrium-set-relocation: <summary>"`
-- [ ] `git tag equilibrium-set-relocation-shipped <commit-hash>`
-- [ ] `git push && git push --tags`
-- [ ] `git branch -d equilibrium-set-relocation` and
+- [x] Full test suite green on the branch — **2086 passed** (checkpoint 2's
+      number above), and again on `main` after the merge: **2086 passed**,
+      0 failed, 166 warnings, 3m43s
+- [x] `git checkout main`
+- [x] `git merge --no-ff equilibrium-set-relocation -m "Merge equilibrium-set-relocation: <summary>"`
+      (merge commit `852bff2`)
+- [x] `git tag equilibrium-set-relocation-shipped` on the merge commit
+      (confirmed on `origin`)
+- [x] `git push && git push --tags`
+- [x] `git branch -d equilibrium-set-relocation` and
       `git push origin --delete equilibrium-set-relocation`
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`;
+- [x] Move the design note and this checklist to `docs/dev/implementation/shipped/`;
       add "Shipped" banners
-- [ ] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
+- [x] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
       "Recently shipped" entry
+- [x] Repoint the one live link to the design note
+      (`upcoming/PARTITION_CONSTRAINT_RELOCATION.md`, first paragraph) at
+      `../shipped/`

@@ -3,7 +3,7 @@
 > Status: design note, not yet started. No branch, no checklist, no code
 > yet. Surfaced 2026-09-23 in a conversational review of `chemistry/`
 > (the same one that produced
-> [`EQUILIBRIUM_SET_RELOCATION.md`](EQUILIBRIUM_SET_RELOCATION.md)). It
+> [`EQUILIBRIUM_SET_RELOCATION.md`](../shipped/EQUILIBRIUM_SET_RELOCATION.md)). It
 > develops the second, still-open cause of the package-level
 > `chemistry` <-> `reactions` cycle logged in `OPEN_WORK.md`'s
 > "Package-level layering" entry (logged 2026-09-22,
