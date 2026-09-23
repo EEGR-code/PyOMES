@@ -31,7 +31,7 @@
 ## During
 
 - [x] Plan doc exists in `docs/dev/implementation/upcoming/`
-- [ ] Checkpoints tracked below, one commit each
+- [x] Checkpoints tracked below, one commit each
 - [ ] **If work stalls:** add a status banner to the top of the plan doc at once
 
 ### Checkpoint 1 inventory
@@ -836,10 +836,89 @@ the `Multispecies*` classes.
        plan's "about 2070" was an estimate made before the exact
        checkpoint-16 count (2099) was known, so 2099 stands as the final
        count for this phase, not 2070._
+- [x] 18. Move `_ATOMIC_WEIGHTS` from `chemistry/species.py` to `PyOMES/units.py`;
+       add a design note for three ambient species-resolution fallbacks found
+       along the way.
+       _Notes: done 2026-09-22 at `21ff78d`. Surfaced during an exploratory,
+       conversational review of whether `common_species.py`/`compounds.py`/
+       `_ATOMIC_WEIGHTS` belong in `PyOMES/databases/` instead of `chemistry/`
+       (not part of the original D1-D8 audit; additive scope). `_ATOMIC_WEIGHTS`
+       is a fixed IUPAC 2021 physical-constants table (18 entries), not
+       domain-specific reaction/species data — `units.py`'s own docstring
+       already states its purpose as "the single, authoritative definition of
+       shared constants," matching `R_J_PER_MOL_K` etc. Moved as
+       `ATOMIC_WEIGHTS` (public, no leading underscore, matching `units.py`'s
+       naming convention); `species.py`'s `__post_init__` and two docstring
+       pointers updated to match; `common_species.py`'s docstring pointer fixed
+       too (it named `species.py` as the table's home). Confirmed zero other
+       consumers repo-wide before moving. Separately, the same review found
+       `reactions/stoichiometry.py`, `chemistry/partition.py` and
+       `core/control_volume.py` all resolve unrecognized species ids by
+       scanning `common_species.py`'s entire module namespace via `vars()`,
+       not from anything the model itself declared — logged as
+       [`EXPLICIT_SPECIES_RESOLUTION.md`](EXPLICIT_SPECIES_RESOLUTION.md)
+       (design note only, no code change; not part of this phase).
+       **Verification:** `test_species.py` + `test_species_check.py`
+       (25 passed); `test_import_graph_acyclic.py` green;
+       `Species(id="CO2", atoms={"C":1,"O":2}).MW == 44.009` confirmed by hand.
+       Full-suite confirmation folded into checkpoint 19 below (no tests
+       added/removed/changed by this checkpoint on its own)._
+- [x] 19. Move `chemistry/compounds.py` to `PyOMES/compounds.py`.
+       _Notes: done 2026-09-22 at `444e651`. Same review: `ChemicalRegistry`/
+       `Chemical` have zero imports of `Species` or anything else in
+       `chemistry/` (confirmed by reading the file), aren't exported from
+       `chemistry/__init__.py`, and their real consumers —
+       `stream_adapter.py`'s `FeedState` and the stirred-tank template's
+       default organism/substrate composition lookup
+       (`OrganismConfig.resolve()`/`SubstrateConfig.resolve()`, confirmed
+       load-bearing via `test_configs.py:258-259`) — already reached past
+       `chemistry/` directly, the same way `PyOMES/__init__.py` does. Moved
+       via `git mv` to sit alongside `units.py`/`config.py`/`stream_adapter.py`;
+       updated all 9 import sites (`PyOMES/__init__.py`, `stream_adapter.py`,
+       `templates/stirred_tank/{factory,configs}.py` ×4,
+       `tests/run_tests.py`, `tests/standalone/{conftest,test_compounds,
+       test_feed_state}.py`) plus doc references (`chemistry/__init__.py`
+       docstring, `PyOMES/README.md` table, `OPEN_WORK.md`'s
+       molar-mass-unification entry). Does not affect the D7
+       `chemistry`<->`reactions` cycle discussion — `compounds.py` has no
+       edge into either package. **Verification:** full standalone suite,
+       **2064 passed**, 0 failed (covers checkpoint 18 above too; neither
+       checkpoint added/removed a test)._
+- [x] 20. Remove `ChemicalRegistry.IDs` and `FeedState`/`stream_adapter.py`
+       (no consumers found anywhere in the repo).
+       _Notes: done 2026-09-22/23 at `74dcba5` + `856e507` (landed as two
+       commits — the first `git add` only staged the two file deletions and
+       missed the other 8 edited files; caught by re-checking `git status`
+       and `git show --stat` after push, finished in the follow-up commit).
+       `ChemicalRegistry.IDs` existed only for bioSTEAM-shape compatibility
+       (`self.chemicals.IDs`); a repo-wide search found exactly one caller,
+       its own test. `FeedState` had no consumer anywhere outside its own
+       test file and fixtures — not in `templates/`, `models/`, or any
+       tutorial notebook; its one prior justification in
+       `docs/dev/implementation/shipped/CUFERMENTER_SUNSET.md` (a
+       `strong_ions.py` caller) no longer holds, since `strong_ions.py` was
+       deleted in the `chemical-equilibrium-engines-subfolder` phase. Deleted
+       `stream_adapter.py` and `test_feed_state.py` outright (`git rm`);
+       removed the now-unused `simple_feed`/`rich_feed` conftest fixtures,
+       the `.IDs` property and its test, the `FeedState` import/export in
+       `PyOMES/__init__.py`, the dead `_simple_feed`/`_rich_feed` helpers in
+       `tests/run_tests.py`, and stale doc references (`PyOMES/README.md`,
+       root `README.md`, `docs/architecture.md`). Left
+       `tests/run_tests.py`'s separate, pre-existing
+       `create_standalone_fermenter` import failure alone — logged in
+       `OPEN_WORK.md` since 2026-09-18, unrelated to this checkpoint, not
+       part of this phase. **Verification:** full standalone suite,
+       **2051 passed** (2064 − 13: the 12 `test_feed_state.py` tests plus
+       `test_ids_property`), 0 failed. Full configured suite (`testpaths` =
+       standalone + validation) re-confirmed 2026-09-23: **2086 passed**,
+       0 failed, 166 warnings, 163.76s — this phase's final count._
 
 ## Shipping
 
-- [ ] Full test suite green on the branch (about 2070; see the plan doc)
+- [x] Full test suite green on the branch — **2086 passed**, 0 failed,
+      confirmed 2026-09-23 (checkpoint 20's number above; supersedes the
+      "about 2070" estimate from checkpoint 17, same reconciliation as that
+      checkpoint already did once for its own estimate)
 - [ ] `git checkout main`
 - [ ] `git merge --no-ff chemistry-reactions-kinetics-cleanup -m "Merge chemistry-reactions-kinetics-cleanup: <summary>"`
 - [ ] `git tag chemistry-reactions-kinetics-cleanup-shipped <commit-hash>`
