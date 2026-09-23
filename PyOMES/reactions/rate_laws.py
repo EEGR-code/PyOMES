@@ -2,17 +2,21 @@
 """Pluggable growth kinetics models for substrate-biomass systems.
 
 Each kinetics class encapsulates a specific growth rate law (μ as a
-function of substrate and biomass concentrations).  The factory and
-builder use these to construct rate functions for
-:meth:`ReactionBuilder.aerobic_growth`.
+function of substrate and biomass concentrations). Reactor-agnostic:
+any caller building a :class:`~PyOMES.reactions.kinetic.KineticReaction`
+can use these to construct rate functions for
+:meth:`ReactionBuilder.aerobic_growth`, including
+:class:`~PyOMES.templates.stirred_tank.StirredTankBuilder`'s
+``substrate(kinetics=...)`` and
+:meth:`ReactionBuilder.monod_aerobic_growth`.
 
 The kinetics object computes only the specific growth rate μ (1/h).
-The factory handles the conversion to substrate consumption rate
+``make_rate_fn`` handles the conversion to substrate consumption rate
 (mol/h), yield, and molecular weight bookkeeping.
 
-Usage with the builder
-----------------------
->>> from PyOMES.templates.stirred_tank import Monod, Contois, Andrews
+Usage with the stirred-tank builder
+------------------------------------
+>>> from PyOMES.reactions.rate_laws import Monod, Contois, Andrews
 >>>
 >>> StirredTankBuilder()
 ...     .substrate("Glucose", mu_max=0.8, Ks=0.02, yield_gX_gS=0.5,
@@ -33,8 +37,8 @@ Usage standalone
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
+from dataclasses import dataclass
+from typing import Callable, Protocol, runtime_checkable
 
 
 # ════════════════════════════════════════════════════════════════════════

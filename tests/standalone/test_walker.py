@@ -12,11 +12,11 @@ Validates:
 
 import pytest
 
-from PyOMES.chemistry import HenryPartition
+from PyOMES.chemistry import HenryEquilibrium
 
 
-def _hp(kH: float, dlnH: float = 0.0) -> HenryPartition:
-    return HenryPartition(H_ref=kH * 1000.0 / 101325.0, dlnH=dlnH)
+def _hp(kH: float, dlnH: float = 0.0) -> HenryEquilibrium:
+    return HenryEquilibrium(H_ref=kH * 1000.0 / 101325.0, dlnH=dlnH)
 
 
 # ══════════════════════════════════════════════════════════════════════

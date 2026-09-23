@@ -16,7 +16,6 @@ Usage (from project root):
 
 The test suite has NO bioSTEAM dependency.  It validates:
   - Chemical registry and compound data
-  - FeedState construction and accessors
   - Strong-ion inference
   - Speciation engine (pH chemistry)
   - Headspace ideal-gas helpers
@@ -102,27 +101,12 @@ except ImportError:
 
 # ── Fixture helper (replaces pytest fixtures for unittest) ─────────────
 
-from PyOMES.chemistry.compounds import ChemicalRegistry
-from PyOMES.stream_adapter import FeedState
+from PyOMES.compounds import ChemicalRegistry
 from PyOMES import PressureReliefController, PHController, create_standalone_fermenter
 
 
 def _registry():
     return ChemicalRegistry.default()
-
-def _simple_feed():
-    return FeedState.from_mass_concentrations(
-        {"AceticAcid": 1.0, "Yeast": 0.1}, registry=_registry(),
-    )
-
-def _rich_feed():
-    return FeedState.from_mixed_concentrations(
-        mass_g_L={"AceticAcid": 1.0, "Yeast": 0.1},
-        molar_mol_L={"NH3": 0.015, "AmmoniumSulfate": 0.015, "KH2PO4": 0.007,
-                      "MgSO4": 4e-3, "ZnSO4": 1.4e-3, "CaCl2": 5e-3,
-                      "MnCl2": 4e-3, "CoCl2": 7.7e-4},
-        registry=_registry(),
-    )
 
 def _pressure_ctrl():
     return PressureReliefController(P_set_atm=1.10, diameter_m=5e-2, sample_period_s=1)
@@ -153,8 +137,6 @@ def _fermenter_full():
 
 _FIXTURE_MAP = {
     "registry":          _registry,
-    "simple_feed":       _simple_feed,
-    "rich_feed":         _rich_feed,
     "pressure_ctrl":     _pressure_ctrl,
     "ph_ctrl":           _ph_ctrl,
     "fermenter_minimal": _fermenter_minimal,

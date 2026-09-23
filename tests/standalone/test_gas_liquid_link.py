@@ -25,12 +25,12 @@ from PyOMES.core.phases import GasPhase, LiquidPhase
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
-from PyOMES.chemistry import HenryPartition
+from PyOMES.chemistry import HenryEquilibrium
 
 
-def _hp(kH_mol_L_atm: float, dlnH: float = 0.0) -> HenryPartition:
-    """Build a HenryPartition from a mol/L/atm kH for test fixtures."""
-    return HenryPartition(H_ref=kH_mol_L_atm * 1000.0 / 101325.0, dlnH=dlnH)
+def _hp(kH_mol_L_atm: float, dlnH: float = 0.0) -> HenryEquilibrium:
+    """Build a HenryEquilibrium from a mol/L/atm kH for test fixtures."""
+    return HenryEquilibrium(H_ref=kH_mol_L_atm * 1000.0 / 101325.0, dlnH=dlnH)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -882,7 +882,7 @@ class TestH2SAlphaCorrection:
         link = KineticGasLiquidLink(
             gas_cv_key="gas", gas_phase_key="gas",
             liquid_cv_key="liquid", liquid_phase_key="liquid",
-            partition_models={"H2S": HenryPartition(
+            partition_models={"H2S": HenryEquilibrium(
                 H_ref=kH * 1000.0 / 101325.0, dlnH=0.0,
             )},
             equilibrium_species={"H2S"},
@@ -916,7 +916,7 @@ class TestH2SAlphaCorrection:
         n_total = 1.0
 
         # Without correction (no speciation ladder → alpha=1)
-        hp = HenryPartition(H_ref=self._kH_H2S * 1000.0 / 101325.0, dlnH=0.0)
+        hp = HenryEquilibrium(H_ref=self._kH_H2S * 1000.0 / 101325.0, dlnH=0.0)
         n_liq_alpha1 = hp.equilibrium_a_moles(n_total, V_liq, V_gas, T_K, alpha=1.0)
 
         # With correction (pH=pKa → alpha=0.5)

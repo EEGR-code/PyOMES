@@ -45,8 +45,8 @@ from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.transfer_models import KineticTransferModel, EquilibriumTransferModel
 from PyOMES.core.boundaries import GasFeed
 from PyOMES.chemistry.partition import HenryEquilibrium, PartitionModel
-from PyOMES.chemistry.database import ChemistryDatabase
-from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+from PyOMES.databases.database import ChemistryDatabase
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -106,7 +106,7 @@ class StirredTankFactory:
             Database supplying :class:`~PyOMES.chemistry.partition.PartitionModel`
             objects for species whose ``henry_mol_L_atm`` is not set in
             ``TransferConfig``.  Defaults to
-            :data:`~PyOMES.chemistry.databases.anaerobic_digestion.AD_BASIC`.
+            :data:`~PyOMES.databases.anaerobic_digestion.AD_BASIC`.
         label : str
             Human-readable label.
 
@@ -255,8 +255,8 @@ class StirredTankFactory:
             A single KineticReaction if one substrate, or a
             ReactionSystem if multiple.
         """
-        from PyOMES.reactions import ReactionSystem, ReactionBuilder
-        from PyOMES.chemistry.compounds import ChemicalRegistry
+        from PyOMES.reactions import ReactionSystem, ReactionBuilder, Monod
+        from PyOMES.compounds import ChemicalRegistry
 
         registry = ChemicalRegistry.default()
 
@@ -284,26 +284,12 @@ class StirredTankFactory:
                 )
             else:
                 # Default Monod kinetics (backward compatible)
-                mu_max = float(sub.mu_max)
-                Ks = float(sub.Ks)
-                MW_s = sub_MW
-
-                def _make_rate_fn(mu_m, ks, mw_s, mw_x, org_id, sub_id, Y):
-                    """Create a Monod rate closure with captured parameters."""
-                    def rate_fn(env):
-                        C_S = env.concentrations.get(sub_id, 0.0)  # mol/L
-                        C_X = env.concentrations.get(org_id, 0.0)  # mol/L
-                        S_gL = C_S * mw_s  # g/L
-                        X_gL = C_X * mw_x  # g/L
-                        if X_gL <= 1e-30 or S_gL <= 0.0:
-                            return 0.0
-                        mu = mu_m * S_gL / (ks + S_gL) if (ks + S_gL) > 0 else 0.0
-                        return (mu / Y) * X_gL / mw_s * env.V_L
-                    return rate_fn
-
-                rate_fn = _make_rate_fn(
-                    mu_max, Ks, sub_MW, org_MW,
-                    organism_id, substrate_id, float(sub.yield_gX_gS),
+                rate_fn = Monod(mu_max=float(sub.mu_max), Ks=float(sub.Ks)).make_rate_fn(
+                    organism_id=organism_id,
+                    substrate_id=substrate_id,
+                    MW_organism=org_MW,
+                    MW_substrate=sub_MW,
+                    yield_gX_gS=float(sub.yield_gX_gS),
                 )
 
             # N source atoms (for CHNO mode)

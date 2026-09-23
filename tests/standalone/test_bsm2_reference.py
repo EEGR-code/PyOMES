@@ -97,10 +97,9 @@ def bsm2_trajectory():
     from vlmodels.adm1.bsm2 import (
         build_bsm2_reactions, build_bsm2_cv,
     )
-    from PyOMES.chemistry.thermo_params import ThermodynamicConfig
 
     rxn_set = build_bsm2_reactions(verbose=False)
-    cv = build_bsm2_cv(rxn_set, thermo=ThermodynamicConfig.bsm2_default())
+    cv = build_bsm2_cv(rxn_set)
 
     # Seed liquid substrates — builder leaves the liquid phase empty.
     # state-unification C4e: INITIAL_LIQUID_CONC now also carries

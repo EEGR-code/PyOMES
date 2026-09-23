@@ -5,7 +5,7 @@
       "This file adds 'gas_equilibration' and 'references'.",
       "If pH_ref is omitted, the runner will compute and report pH but will not PASS/FAIL.",
       "Pressure-based CO2-saturated-water/brine benchmarks use literature values measured under pure-CO2 headspace at the stated total pressure (i.e., pCO2 ~= P_total).",
-      "Some hydrate names use the Unicode middle dot '·' to match CHEM_DB keys (e.g., MgSO4·7H2O). If your CHEM_DB uses ASCII '.', adjust accordingly."
+      "Some hydrate names use the Unicode middle dot '·' (e.g., MgSO4·7H2O). If your data source uses ASCII '.', adjust accordingly."
     ]
   },
   "CASES": [

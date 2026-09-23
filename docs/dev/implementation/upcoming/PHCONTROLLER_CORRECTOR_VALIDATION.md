@@ -4,6 +4,19 @@
 > yet. Written on `main` (independently of the `tutorials-followups` phase
 > that surfaced the motivating bug) so it doesn't get bundled into that
 > phase's diff — see "How to start one" below when picked up.
+>
+> **Update 2026-09-22 (`chemistry-reactions-kinetics-cleanup`, checkpoint 15,
+> decision D2):** the old constructor-time check this note's Motivation
+> section refers to (`PHController.__post_init__` calling
+> `chemistry.registry.validate_compound_id`) validated `chemical_id`/
+> `base_chemical_id` against the deleted recipe-layer compound table, so it
+> warned on real species (e.g. `NH3`) and passed non-species compound names
+> (e.g. `HCl`) — the wrong check on the wrong table. It has been removed,
+> with no replacement in this phase; `PHController`'s docstring now carries
+> an interim warning that these ids are unvalidated. This note's own
+> `validate_against_cv` design (checking against strong-corrector aliases and
+> declared equilibria, not `COMPOUND_DB`) is the actual replacement, still
+> not yet implemented.
 
 ## Motivation
 

@@ -265,12 +265,15 @@ scoping above. This would:
    equivalent under whatever id it wants), and Phase 1's structural rule
    ("not in any reaction → strong ion, read `.charge`") picks them up
    automatically — no special case needed.
-   `PyOMES/chemistry/thermo_params.py`'s
-   `compute_CT_cation_from_charge_balance` (solving the separate,
-   upstream problem of *how much* generic charge carrier is needed to
-   hit a target pH) is unaffected by this — its output number feeds into
-   `n_mol={"S_cat": ...}` exactly as it feeds `strong_ions=
-   {"CT_cation": ...}` today.
+   The separate, upstream problem this note originally flagged as
+   unaffected — *how much* generic charge carrier is needed to hit a
+   target pH — was solved by `ThermodynamicConfig.
+   compute_CT_cation_from_charge_balance`, in `chemistry/thermo_params.py`.
+   That file (and the whole `ThermodynamicConfig` class) had no caller
+   outside itself and a test fixture, and was deleted in the
+   `chemistry-reactions-kinetics-cleanup` phase (2026-09-22, checkpoint 7,
+   decision D3). No replacement exists yet; a future caller needing this
+   would compute it directly from a declared `EquilibriumSet`.
 3. **Direct call pattern — decided direction, shape still open.** Yes:
    `solve(totals=..., strong_ions=...)` should eventually gain the same
    "just declare what's present" ergonomics as the phase-based path, so a
@@ -368,6 +371,29 @@ Together with `SALT_DISSOCIATION_MAP` and `chem_recipe.py`'s `ChemSpec`
 registry, this makes the recipe layer (`chem_recipe.py`, `recipe.py`,
 `registry.py`, `types.py`) a candidate for the separate "keep, merge or remove"
 note described above: most of it now has no consumer inside the repo.
+
+**Update 2026-09-22 (`chemistry-reactions-kinetics-cleanup`, checkpoint 10,
+decision D1): resolved.** `chem_recipe.py`, `recipe.py` and `types.py` are
+deleted, along with the ion/salt maps in `registry.py`
+(`SALT_DISSOCIATION_MAP`, `ION_TO_ENGINE_KEY`, `normalize_ion_label`,
+`ion_to_engine_key`, `map_user_ions_to_engine`, `validate_compound_ids`) — a
+fresh repo-wide search found no consumer of any of it. `registry.py` itself
+stays: `COMPOUND_DB`, `resolve_compound` and `validate_compound_id`
+(singular) are still used (`control/cv_loops.py` and one test), and are left
+for checkpoint 15 to decide on. A species-based replacement (weighed salt →
+species amounts, molar masses from `Species`/`ChemicalRegistry`) is logged in
+`OPEN_WORK.md`, not built here. See decision D1 in
+[`CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md).
+
+**Update 2026-09-22 (same phase, checkpoint 15, decision D2): `registry.py`
+deleted entirely.** Its last consumer, `PHController.__post_init__`'s
+`validate_compound_id` call, was itself wrong (checked ids against the
+deleted recipe-layer compound table, not species) and is removed with no
+replacement in this phase — see
+[`PHCONTROLLER_CORRECTOR_VALIDATION.md`](PHCONTROLLER_CORRECTOR_VALIDATION.md)
+for the proper check, still not yet built. The recipe layer named above
+(`chem_recipe.py`, `recipe.py`, `registry.py`, `types.py`) is now gone in
+full.
 
 ## Trigger conditions
 

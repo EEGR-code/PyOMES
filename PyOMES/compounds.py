@@ -7,7 +7,7 @@ or thermosteam.
 
 Usage
 -----
->>> from PyOMES.chemistry.compounds import ChemicalRegistry, Chemical
+>>> from PyOMES.compounds import ChemicalRegistry, Chemical
 >>> reg = ChemicalRegistry.default()
 >>> reg["AceticAcid"].MW
 60.052
@@ -44,8 +44,7 @@ class Chemical:
 class ChemicalRegistry:
     """Registry of :class:`Chemical` objects, keyed by ID.
 
-    Acts like a dict but also exposes a ``.IDs`` property for compatibility
-    with code that used ``self.chemicals.IDs`` from bioSTEAM.
+    Acts like a dict: ``registry[id]``, ``id in registry``, ``len(registry)``.
     """
 
     def __init__(self, chemicals: Optional[Dict[str, Chemical]] = None):
@@ -67,11 +66,6 @@ class ChemicalRegistry:
 
     def __len__(self):
         return len(self._chems)
-
-    @property
-    def IDs(self):
-        """Return tuple of registered chemical IDs (bioSTEAM compatibility)."""
-        return tuple(self._chems.keys())
 
     def register(self, chem: Chemical) -> None:
         """Add or replace a chemical in the registry."""

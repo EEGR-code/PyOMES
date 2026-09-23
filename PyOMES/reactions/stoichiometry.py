@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
+from ..chemistry import common_species as _cs_mod
 from ..chemistry.species import Species
 
 
@@ -172,7 +173,6 @@ _COEFF_RE = re.compile(r"^(\d+(?:\.\d*)?|\.\d+)\s+")
 
 def _get_common_species() -> Dict[str, Species]:
     """Return all Species objects from chemistry.common_species keyed by id."""
-    from ..chemistry import common_species as _cs_mod
     return {
         v.id: v
         for v in vars(_cs_mod).values()

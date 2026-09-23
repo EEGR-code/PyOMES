@@ -36,6 +36,7 @@ from ..chemistry.species import Species
 from .stoichiometry import StoichiometryEntry, _parse_stoichiometry
 from .environment import ReactionEnvironment
 from ._shared import (
+    _infer_elements,
     coerce_and_validate,
     fmt_stoichiometry_string,
     is_cross_phase_from_entries,
@@ -99,7 +100,6 @@ class KineticReaction:
             stoichiometry, balance_elements, balance_atol
         )
         self.rate_fn = rate_fn
-        from ._shared import _infer_elements
         self.balance_elements = (
             tuple(_infer_elements(self.stoichiometry))
             if balance_elements is None

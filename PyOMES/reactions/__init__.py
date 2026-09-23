@@ -46,6 +46,19 @@ from .blackbox import BlackBoxReactionModel, FluxEntry, MassBalanceWarning, Mass
 from .reaction_system import ReactionSystem
 from .builder import ReactionBuilder
 
+# Growth rate laws
+from .rate_laws import (
+    GrowthKinetics,
+    Monod,
+    Contois,
+    Andrews,
+    ContoisAndrews,
+    Tessier,
+    Moser,
+    Blackman,
+    DualSubstrateMonod,
+)
+
 __all__ = [
     # Stoichiometry
     "StoichiometryEntry",
@@ -66,4 +79,14 @@ __all__ = [
     "FluxEntry",
     "MassBalanceWarning",
     "MassBalanceError",
+    # Growth rate laws
+    "GrowthKinetics",
+    "Monod",
+    "Contois",
+    "Andrews",
+    "ContoisAndrews",
+    "Tessier",
+    "Moser",
+    "Blackman",
+    "DualSubstrateMonod",
 ]

@@ -23,7 +23,7 @@ Load a preset and modify (approach 2 — defaults + tweak):
 >>> eq = EquilibriumSet.bsm2_default()
 >>> eq.remove("S_va")
 >>> eq.add("H2S", category="acid", pKas=(7.0,),
-...        correction="van_t_hoff", dH=(20.0,), dH_unit="kJ/mol")
+...        correction="van_t_hoff", dH_J_per_mol=(20000.0,))
 
 Categories
 ----------
@@ -51,17 +51,14 @@ how it enters the charge balance:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
 
-# Reuse unit conversion helpers from thermo_params
-from .thermo_params import (
-    _R_J, _VALID_CORRECTIONS,
-    _convert_dH_to_J, _convert_dH_tuple,
-    _convert_T_to_K, _Ka_to_pKa, _lnKa_to_pKa,
-)
+from ..units import R_J_PER_MOL_K as _R_J
+from .common_species import CO2, HCO3_minus, CO3_2minus, NH4_plus, NH3
 
 _VALID_CATEGORIES = ("acid", "cation_acid", "inorganic_acid", "strong_ion")
+_VALID_CORRECTIONS = ("none", "van_t_hoff")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -209,39 +206,18 @@ class EquilibriumSet:
 
     # ── Water ─────────────────────────────────────────────────────────
 
-    def set_water(self, *, pKw=None, Kw=None, correction="none",
-                  dH=None, dH_unit="J/mol", dH_J_per_mol=None,
-                  T_ref=None, T_unit="K", T_ref_K=None):
+    def set_water(self, *, pKw=None, correction="none",
+                  dH_J_per_mol=None, T_ref_K=None):
         """Define water autoionisation.
-
-        Accepts the same unit flexibility as :meth:`add`.
 
         Returns self for method chaining.
         """
-        import warnings
-
-        if pKw is not None and Kw is not None:
-            raise ValueError("set_water: provide only one of pKw or Kw")
-        if Kw is not None:
-            if Kw <= 0:
-                raise ValueError(f"Kw must be positive, got {Kw}")
-            pKw = -math.log10(Kw)
-        elif pKw is None:
+        if pKw is None:
             pKw = 14.0
 
-        if T_ref_K is not None:
-            t_ref = float(T_ref_K)
-        elif T_ref is not None:
-            t_ref = _convert_T_to_K(T_ref, T_unit)
-        else:
-            t_ref = self.T_ref_K
+        t_ref = float(T_ref_K) if T_ref_K is not None else self.T_ref_K
 
-        if dH_J_per_mol is not None:
-            dH_internal = float(dH_J_per_mol)
-        elif dH is not None:
-            dH_internal = _convert_dH_to_J(dH, dH_unit)
-        else:
-            dH_internal = 0.0
+        dH_internal = float(dH_J_per_mol) if dH_J_per_mol is not None else 0.0
 
         correction = correction.lower().strip()
         if correction not in _VALID_CORRECTIONS:
@@ -264,10 +240,9 @@ class EquilibriumSet:
 
     # ── Add / remove / query ──────────────────────────────────────────
 
-    def add(self, name, *, category, pKas=None, Ka=None, lnKa=None,
+    def add(self, name, *, category, pKas=None,
             n_active=None, correction="none",
-            dH=None, dH_unit="J/mol", dH_J_per_mol=None,
-            T_ref=None, T_unit="K", T_ref_K=None,
+            dH_J_per_mol=None, T_ref_K=None,
             total_key=None, species_refs=()):
         """Add or replace an equilibrium definition.
 
@@ -278,8 +253,8 @@ class EquilibriumSet:
         category : str
             ``"acid"``, ``"cation_acid"``, ``"inorganic_acid"``,
             or ``"strong_ion"``.
-        pKas, Ka, lnKa : tuple of float
-            Dissociation constant(s).  Provide exactly one format.
+        pKas : tuple of float
+            Dissociation constant(s), as pKa.
         n_active : int, optional
             Number of dissociation steps active in the charge balance.
             Defaults to ``len(pKas)``.  Set lower to store inactive
@@ -287,14 +262,11 @@ class EquilibriumSet:
             CO₂ while storing both pKa₁ and pKa₂).
         correction : str
             ``"none"`` or ``"van_t_hoff"``.
-        dH, dH_unit : tuple + str
-            Enthalpy values with unit.  See :meth:`ThermodynamicConfig.add_acid`.
         dH_J_per_mol : tuple of float
-            Enthalpy in J/mol (takes precedence over dH + dH_unit).
-        T_ref, T_unit : float + str
-            Reference temperature with unit.
-        T_ref_K : float
-            Reference temperature in K (takes precedence).
+            Van 't Hoff enthalpy (J/mol) per dissociation step.
+        T_ref_K : float, optional
+            Reference temperature (K).  Defaults to the set's own
+            ``T_ref_K``.
         total_key : str, optional
             Context dict key for total concentration.  Defaults to
             ``"CT_{name}"`` (e.g. ``"CT_CO2"``, ``"CT_S_ac"``).
@@ -308,11 +280,10 @@ class EquilibriumSet:
         >>> eq.add("CO2", category="inorganic_acid",
         ...        pKas=(6.35, 10.33), n_active=1,
         ...        correction="van_t_hoff",
-        ...        dH=(7.646, 14.9), dH_unit="kJ/mol")
-        >>> eq.add("H2S", category="acid",
-        ...        Ka=(1.07e-7,), correction="van_t_hoff",
-        ...        dH=(20.0,), dH_unit="kJ/mol",
-        ...        T_ref=20, T_unit="C")
+        ...        dH_J_per_mol=(7646.0, 14900.0))
+        >>> eq.add("H2S", category="acid", pKas=(7.0,),
+        ...        correction="van_t_hoff",
+        ...        dH_J_per_mol=(20000.0,), T_ref_K=293.15)
         >>> eq.add("S_ac", category="acid", pKas=(4.76,))
         """
         import warnings
@@ -324,30 +295,15 @@ class EquilibriumSet:
                 f"Unknown category {category!r} for '{name}'. "
                 f"Options: {_VALID_CATEGORIES}")
 
-        # ── Convert dissociation constants to pKa ─────────────────
+        # ── pKas ────────────────────────────────────────────────────
         if category == "strong_ion":
             pKas_internal = ()
         else:
-            n_provided = sum(x is not None for x in (pKas, Ka, lnKa))
-            if n_provided == 0:
-                raise ValueError(
-                    f"add('{name}'): must provide one of pKas, Ka, or lnKa")
-            if n_provided > 1:
-                raise ValueError(
-                    f"add('{name}'): provide only one of pKas, Ka, or lnKa")
-
-            if Ka is not None:
-                if not isinstance(Ka, (tuple, list)):
-                    Ka = (Ka,)
-                pKas_internal = tuple(_Ka_to_pKa(k) for k in Ka)
-            elif lnKa is not None:
-                if not isinstance(lnKa, (tuple, list)):
-                    lnKa = (lnKa,)
-                pKas_internal = tuple(_lnKa_to_pKa(lk) for lk in lnKa)
-            else:
-                if not isinstance(pKas, (tuple, list)):
-                    pKas = (pKas,)
-                pKas_internal = tuple(float(p) for p in pKas)
+            if pKas is None:
+                raise ValueError(f"add('{name}'): must provide pKas")
+            if not isinstance(pKas, (tuple, list)):
+                pKas = (pKas,)
+            pKas_internal = tuple(float(p) for p in pKas)
 
         # ── n_active ──────────────────────────────────────────────
         if n_active is None:
@@ -362,23 +318,16 @@ class EquilibriumSet:
                     f"n_active ({n_active}) cannot exceed number of pKas "
                     f"({len(pKas_internal)}) for '{name}'")
 
-        # ── Convert temperature ───────────────────────────────────
-        if T_ref_K is not None:
-            t_ref = float(T_ref_K)
-        elif T_ref is not None:
-            t_ref = _convert_T_to_K(T_ref, T_unit)
-        else:
-            t_ref = self.T_ref_K
+        # ── Reference temperature ─────────────────────────────────
+        t_ref = float(T_ref_K) if T_ref_K is not None else self.T_ref_K
 
-        # ── Convert enthalpy ──────────────────────────────────────
+        # ── Enthalpy ────────────────────────────────────────────────
         if category == "strong_ion":
             dH_internal = ()
         elif dH_J_per_mol is not None:
             if not isinstance(dH_J_per_mol, (tuple, list)):
                 dH_J_per_mol = (dH_J_per_mol,)
             dH_internal = tuple(float(d) for d in dH_J_per_mol)
-        elif dH is not None:
-            dH_internal = _convert_dH_tuple(dH, dH_unit)
         else:
             dH_internal = None
 
@@ -393,7 +342,8 @@ class EquilibriumSet:
             if correction == "van_t_hoff":
                 if dH_internal is None:
                     raise ValueError(
-                        f"correction='van_t_hoff' for '{name}' requires dH")
+                        f"correction='van_t_hoff' for '{name}' requires "
+                        f"dH_J_per_mol")
                 if len(dH_internal) != len(pKas_internal):
                     raise ValueError(
                         f"dH length ({len(dH_internal)}) must match pKas "
@@ -402,8 +352,8 @@ class EquilibriumSet:
                 if dH_internal is not None and any(
                         abs(d) > 1e-10 for d in dH_internal):
                     warnings.warn(
-                        f"add('{name}'): dH provided but correction='none' "
-                        f"— values will be ignored.",
+                        f"add('{name}'): dH_J_per_mol provided but "
+                        f"correction='none' — values will be ignored.",
                         UserWarning, stacklevel=2)
                 dH_internal = (0.0,) * len(pKas_internal)
 
@@ -490,9 +440,6 @@ class EquilibriumSet:
 
         VFA pKas have no temperature correction.
         """
-        from .common_species import (
-            CO2, HCO3_minus, CO3_2minus, NH4_plus, NH3,
-        )
         eq = EquilibriumSet(T_ref_K=298.15)
         eq.set_water(pKw=14.0, correction="van_t_hoff",
                      dH_J_per_mol=55900.0)
@@ -507,58 +454,12 @@ class EquilibriumSet:
                dH_J_per_mol=(51965.0,),
                total_key="CT_NH_T",
                species_refs=(NH4_plus, NH3))
-        # DEPRECATED: string-based VFA entries without species_refs.
-        # The _HA/_A- legacy fallback is removed in the PARTITION_MODEL phase.
+        # String-based VFA entries without species_refs: the engine falls
+        # back to synthesised {name}_HA / {name}_A- keys for these.
         eq.add("S_ac",  category="acid", pKas=(4.76,))
         eq.add("S_pro", category="acid", pKas=(4.88,))
         eq.add("S_bu",  category="acid", pKas=(4.82,))
         eq.add("S_va",  category="acid", pKas=(4.86,))
-        return eq
-
-    @staticmethod
-    def bsm2_diprotic_co2() -> "EquilibriumSet":
-        """BSM2 with full diprotic CO₂ (both dissociations active).
-
-        Identical to :meth:`bsm2_default` except ``n_active=2`` for CO₂,
-        so CO₃²⁻ participates in the charge balance.
-        """
-        eq = EquilibriumSet.bsm2_default()
-        # Replace CO2 with n_active=2, preserving species_refs.
-        co2 = eq.get("CO2")
-        eq.add("CO2", category=co2.category,
-               pKas=co2.pKas, n_active=2,
-               correction=co2.correction,
-               dH_J_per_mol=co2.dH_J_per_mol,
-               T_ref_K=co2.T_ref_K,
-               total_key=co2.total_key,
-               species_refs=co2.species_refs)
-        return eq
-
-    @staticmethod
-    def bsm2_with_sulfide() -> "EquilibriumSet":
-        """BSM2 + H₂S/HS⁻ equilibrium."""
-        eq = EquilibriumSet.bsm2_default()
-        eq.add("H2S", category="acid", pKas=(7.0,),
-               correction="van_t_hoff",
-               dH_J_per_mol=(20000.0,))
-        return eq
-
-    @staticmethod
-    def adm1_full() -> "EquilibriumSet":
-        """Full ADM1: BSM2 (diprotic CO₂) + phosphate + bisulfate."""
-        from .common_species import (
-            H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-            HSO4_minus, SO4_2minus,
-        )
-        eq = EquilibriumSet.bsm2_diprotic_co2()
-        eq.add("phosphate", category="inorganic_acid",
-               pKas=(2.15, 7.20, 12.35), correction="none",
-               total_key="CT_P",
-               species_refs=(H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus))
-        eq.add("bisulfate", category="inorganic_acid",
-               pKas=(1.99,), correction="none",
-               total_key="CT_SO4",
-               species_refs=(HSO4_minus, SO4_2minus))
         return eq
 
     # ── Repr ──────────────────────────────────────────────────────────

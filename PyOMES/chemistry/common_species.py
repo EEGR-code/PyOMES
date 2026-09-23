@@ -15,12 +15,12 @@ consumers already use (``"H+"``, ``"OH-"``, ``"HCO3-"``, ``"CO3--"``,
 ``"NH4+"``) so engine output keys do not change.
 
 MW values are computed automatically from ``atoms`` via the IUPAC 2021
-atomic weight table in :mod:`~PyOMES.chemistry.species`.
+atomic weight table in :mod:`~PyOMES.units`.
 
 Usage
 -----
 >>> from PyOMES.chemistry.common_species import H2O, CO2, NH3
->>> from PyOMES.chemistry import StoichiometryEntry
+>>> from PyOMES.reactions.stoichiometry import StoichiometryEntry
 >>> entry = StoichiometryEntry(species=CO2, phase="liquid", coefficient=-1.0)
 
 Organic / model-specific species (acetate, propionate, biomass

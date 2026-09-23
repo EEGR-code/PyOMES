@@ -305,7 +305,7 @@ class OrganismConfig:
     """Organism identity and composition.
 
     If ``atoms`` and ``MW`` are ``None``, the factory will look them up
-    from the :class:`~PyOMES.chemistry.compounds.ChemicalRegistry`.
+    from the :class:`~PyOMES.compounds.ChemicalRegistry`.
 
     Parameters
     ----------
@@ -359,7 +359,7 @@ class OrganismConfig:
             return copy.copy(self)
 
         if registry is None:
-            from PyOMES.chemistry.compounds import ChemicalRegistry
+            from PyOMES.compounds import ChemicalRegistry
             registry = ChemicalRegistry.default()
 
         chem = registry[self.organism_id]
@@ -394,7 +394,7 @@ class SubstrateConfig:
     """Substrate identity, kinetic parameters, and yield.
 
     If ``atoms`` and ``MW`` are ``None``, the factory will look them up
-    from the :class:`~PyOMES.chemistry.compounds.ChemicalRegistry`.
+    from the :class:`~PyOMES.compounds.ChemicalRegistry`.
 
     Parameters
     ----------
@@ -454,7 +454,7 @@ class SubstrateConfig:
             return copy.copy(self)
 
         if registry is None:
-            from PyOMES.chemistry.compounds import ChemicalRegistry
+            from PyOMES.compounds import ChemicalRegistry
             registry = ChemicalRegistry.default()
 
         chem = registry[self.substrate_id]

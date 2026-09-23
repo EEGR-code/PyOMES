@@ -33,7 +33,7 @@ compatibility, but new code should prefer the suffix style above.
 
 from __future__ import annotations
 
-from typing import Final
+from typing import Dict, Final
 
 
 # --- Physical constants (authoritative definitions) ---
@@ -55,6 +55,30 @@ R_L_ATM_PER_MOL_K: Final[float] = R_J_PER_MOL_K / (PA_PER_ATM / L_PER_M3)
 MIN_PER_HR: Final[float] = 60.0
 SEC_PER_MIN: Final[float] = 60.0
 SEC_PER_HR: Final[float] = MIN_PER_HR * SEC_PER_MIN
+
+# IUPAC 2021 standard atomic weights (g/mol). Used by
+# `PyOMES.chemistry.species.Species` to auto-compute MW from atoms when
+# not supplied explicitly.
+ATOMIC_WEIGHTS: Final[Dict[str, float]] = {
+    "H":  1.008,
+    "C":  12.011,
+    "N":  14.007,
+    "O":  15.999,
+    "P":  30.974,
+    "S":  32.065,
+    "Na": 22.990,
+    "Mg": 24.305,
+    "Cl": 35.45,
+    "K":  39.098,
+    "Ca": 40.078,
+    "Mn": 54.938,
+    "Fe": 55.845,
+    "Co": 58.933,
+    "Ni": 58.693,
+    "Cu": 63.546,
+    "Zn": 65.38,
+    "Mo": 95.96,
+}
 
 
 # --- Simple conversion helpers ---

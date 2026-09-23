@@ -16,10 +16,10 @@ is dead and should come out, not just be re-pathed:
 
 - **No longer exist:** `PyOMES/sim/`, `PyOMES/solvers/`,
   `PyOMES/core/gl_equilibrium.py`, `PyOMES/control/{loops.py, system.py,
-  controllers/, actuators/, builders/}`, and everything in
-  `PyOMES/equilibria/` except `vle.py` and `peng_robinson.py` (no
-  `engine.py`, `coupled.py`, `factory.py`, `interfaces.py`). Also
-  `models/vlmodels/fermenter/` (only `adm1/`, `hplc/`, `headspace.py` remain).
+  controllers/, actuators/, builders/}`, and `PyOMES/equilibria/` (deleted
+  entirely 2026-09-22; its two real files moved into `thermo/gas_eos.py`, see
+  below). Also `models/vlmodels/fermenter/` (only `adm1/`, `hplc/`,
+  `headspace.py` remain).
 - **Stale references to those:** the "Equilibrium pathways" section
   (~lines 134–154, which presents `ProcessCoupledEquilibrator` +
   `HenryEquilibriumInterface` as a live second pathway); mentions of `CUFermentationSpeciation`
@@ -30,9 +30,16 @@ is dead and should come out, not just be re-pathed:
   2026-07-03). **Partly fixed 2026-09-20:** `chemical-equilibrium-engines-subfolder`
   (checkpoint 12) replaced that one block with the real
   `chemical_equilibrium/` tree (including the new `engines/` layout) and added
-  a `thermo/` line. The rest of the tree (e.g. the `equilibria/`, `sim/` and
-  `solvers/` "CUFermenter island" entries, and any other package that is
-  missing) still needs the re-derivation described below.
+  a `thermo/` line. **Partly fixed 2026-09-22:** `chemistry-reactions-kinetics-cleanup`
+  (checkpoint 11, decision D4) moved `PyOMES/equilibria/`'s two real files
+  (`vle.py`, `peng_robinson.py`) into `thermo/gas_eos.py` and deleted the
+  package, so the "Equilibrium pathways" section's item 2
+  (`ProcessCoupledEquilibrator` + `HenryEquilibriumInterface`, presented as a
+  live second pathway) is gone rather than re-pathed, and the tree's
+  `equilibria/` line is removed rather than corrected. The rest of the tree
+  (the `sim/` and `solvers/` "CUFermenter island" entries, the
+  `CUFermentationSpeciation` mentions at ~244/344, and any other package that
+  is missing) still needs the re-derivation described below.
 
 Needs a pass that re-derives the Repository Layout and the equilibrium
 section from the actual tree rather than a line-by-line patch.
@@ -148,6 +155,32 @@ and the BSM2 sentinels) to confirm nothing depends on the last bit. Also rename
 one of the two same-named functions if the wrapper is not kept, to avoid two
 `vant_hoff_log_K` with different signatures.
 
+**Update 2026-09-22 (`chemistry-reactions-kinetics-cleanup` audit, 2026-09-21):**
+that phase's audit counted at least nine mass-action/van 't Hoff correction
+copies across `chemistry/`, `reactions/`, `thermo/` (this entry and the
+ADM1/BSM2 one below already covered some of them) plus four more in `models/`,
+estimating seven left in the package after the phase — an estimate, not a
+re-checked invariant. What did happen, checked directly: deleting
+`chemistry/thermo_params.py` at checkpoint 7 (2026-09-22, decision D3 — its
+`AcidDefinition.pKas_at_T`/`WaterDefinition.Kw_at_T` had no consumer) removed
+two copies outright; `chemistry/equilibria.py`'s own
+`EquilibriumDef.pKas_at_T`/`WaterDef.Kw_at_T` (same formula, real consumer)
+survived unmerged, just repointed to import `R_J_PER_MOL_K` from `units.py`
+directly; checkpoint 4's D8 fix separately collapsed a duplicate inside
+`chemistry/partition.py` (`HenryEquilibrium._kH_mol_L_atm` now delegates to
+the module-level `_kH_mol_L_atm_from_ref` instead of repeating it, so that
+pair counts as one implementation, not two — though it is a Henry-constant
+correction, not a pKa/Kw one, so whether the original count included it isn't
+clear from the audit text). A quick recount by function (not by line) after
+the phase, restricted to distinct `math.exp(-dH/R * (1/T - 1/T_ref))`-shaped
+implementations, finds eight in `chemistry/`+`reactions/`+`thermo/`
+(`equilibria.py` ×2, `partition.py` ×2, `reactions/equilibrium.py` ×1,
+`thermo/equilibrium_constants.py` ×1 canonical, `thermo/framework.py` ×2) —
+close to, not exactly, the audit's "seven" estimate; not reconciled further
+here. Not fixed in that phase either way (Part A/B were pure-refactor,
+numerics-changing consolidation was explicitly out of scope) — the
+de-duplication described above is still the fix.
+
 ## Let a simulation set the value of physical constants such as `R`
 
 Raised 2026-09-20 while planning Part D of
@@ -170,7 +203,7 @@ import time. Overriding per simulation means consumers must read the value from
 something they are given, not from a module global. The consumers include hot
 paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 `core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
-`equilibria/vle.py`, `chemistry/partition.py`, `thermo/framework.py` and
+`thermo/gas_eos.py`, `chemistry/partition.py`, `thermo/framework.py` and
 `thermo/equilibrium_constants.py`.
 
 **Design sketch (not decided).**
@@ -297,6 +330,24 @@ warnings, so it is a behaviour change and was not done there. Both the Bisection
 and NR engines already return `ionic_strength` in `EquilibriumResult`, so the call
 could sit in `ReactionSystem` rather than in each engine.
 
+**Update 2026-09-22 (`chemistry-reactions-kinetics-cleanup` audit, 2026-09-21):**
+a companion write-only attribute, checked directly against the current code.
+`ReactionSystem._conservation_monitor` (`reactions/reaction_system.py`) is set
+by `attach_conservation_monitor()`, called from `ControlVolume.__init__`
+(`core/control_volume.py:304-312`) with the CV's own `ConservationMonitor`
+instance — but `reaction_system.py` never calls anything on it afterward. The
+CV keeps a second reference to the *same* monitor object on `cv._conservation_monitor`
+and invokes `.check_step(cv.phases)` on that one directly from its own
+`advance()` body — confirmed live: it is the source of the
+`ConservationWarning`s the test suite already prints. So
+`reaction_system._conservation_monitor` is not dead in the sense of doing
+nothing (the object it points to is genuinely used), but the attribute on
+`ReactionSystem` specifically is: nothing reads it through that name. Not
+changed here (Part A/B pure-refactor scope) — logged alongside the
+`_accuracy_monitor` case above since both are the same shape of problem
+(`ReactionSystem` provides an attachment point an engine or the CV's own
+code never reads back through).
+
 ## Ionic strength and ion charges are defined in several places
 
 Found 2026-09-20 in checkpoint 12d, not changed there because unifying them
@@ -399,6 +450,20 @@ copies of R in saved notebook code cells only by a manual re-search
 should extend the scan to `tests/` and to notebook code cells, or accept a
 periodic manual re-search.
 
+**Update 2026-09-22 (`chemistry-reactions-kinetics-cleanup`):** this phase moved
+or deleted several files the 2026-09-20 survey table counted literals in —
+`chemistry/thermo_params.py` (deleted, checkpoint 7), `chemistry/recipe.py` /
+`chem_recipe.py` (deleted, checkpoint 10), `templates/stirred_tank/kinetics.py`
+→ `reactions/rate_laws.py` (checkpoint 12), `PyOMES/equilibria/` →
+`thermo/gas_eos.py` (checkpoint 11), `chemistry/database.py` /
+`chemistry/databases/` → `PyOMES/databases/` (checkpoint 13) — so the table's
+per-file counts are stale, though the phase was pure-refactor for these
+literals (moved, not edited), so the aggregate totals per constant should be
+close to unchanged. Spot check: `101325`/`298.15` alone still appear 18 times
+across just `chemistry/partition.py`, `thermo/gas_eos.py`, `chemistry/equilibria.py`,
+`reactions/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
+survey against the new layout is part of picking this sweep up, not done here.
+
 ## Two notebooks do not parse, and the notebooks edited for the gas constant were not re-run
 
 Found 2026-09-20 while checking `chemical-equilibrium-engines-subfolder` before
@@ -484,3 +549,143 @@ were not exported from the root before the move either, so re-exporting them wou
 be new API. Whether the root should export all three, none, or a small engine
 selector is an API decision, and it interacts with "`use_activity` /
 `activity_model` split could be one parameter" above.
+
+## A species-based replacement for the deleted recipe layer
+
+Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 10
+(decision D1). `chemistry/recipe.py` (`SolutionRecipe`), `chem_recipe.py`
+(`ChemSpec`/`CHEM_DB`), `types.py` (`AqueousTotals`/`AqueousTotalsUser`), and
+the ion/salt maps in `registry.py` (`SALT_DISSOCIATION_MAP`,
+`ION_TO_ENGINE_KEY`, `normalize_ion_label`, `map_user_ions_to_engine`) were
+deleted outright: a fresh repo-wide search found no consumer of any of it.
+Two things made that possible rather than just tempting: no outside user
+depended on the API, and its actual output shape — pooled `CT_*` totals — was
+never what the current framework consumes (species amounts in `n_mol`), so
+nothing downstream would have worked with it even if it had been kept.
+
+If a "weighed salt → initial condition" convenience is wanted again, it
+should be species-based rather than pooled-total-based: given a compound name
+(resolved via `PyOMES.compounds.ChemicalRegistry`, which already carries
+molar masses) and a mass or stock-solution dose, emit species amounts
+directly (`{"Na+": n_mol, "Cl-": n_mol, ...}`), not `CT_Na`/`CT_Cl`-style
+pooled totals. This also supersedes the recipe-layer open question in
+`docs/dev/implementation/upcoming/STRONG_ION_INFERENCE_GENERALIZATION.md`.
+
+## Gas EOS: `partial_pressures_atm` returns two different quantities, and `ThermoFramework.gas_eos` is read by nothing
+
+Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 11
+(decision D4), moved but not fixed. `IdealGasEOS.partial_pressures_atm`
+(`thermo/gas_eos.py`) returns partial pressures (`y_i × P`);
+`PengRobinsonEOS.partial_pressures_atm` returns fugacities
+(`f_i = y_i × φ_i × P`) — same method name on the shared `GasEOS` interface,
+different physical quantity. `test_gas_eos.py` (added the same checkpoint)
+pins this distinction, so it won't drift silently, but it is still a real
+API smell.
+
+Separately: the ideal-gas law is hard-coded independently in at least seven
+places (`core/phases.py`, `core/boundaries.py`,
+`chemical_equilibrium/engines/nr/solver.py`, `chemistry/partition.py`,
+`control/cv_loops.py`, `templates/stirred_tank/factory.py`,
+`models/vlmodels/headspace.py`) instead of going through
+`ThermoFramework.gas_eos`, which is read by nothing in production despite
+being a real typed `Optional[GasEOS]` field since that checkpoint. A later
+change should split the method into `partial_pressures_atm` (ideal) and
+`fugacities_atm` (non-ideal), and route both gas pressure and fugacity
+through `ThermoFramework.gas_eos` so the seven hard-coded call sites have
+one thing to switch on. Overlaps "Sweep the package for each fundamental
+constant" above, since `R` is one of the things duplicated across those
+same seven files.
+
+## Mapping-based parameters for several limiting/inhibiting species; composable inhibition for the growth rate laws
+
+Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 12
+(decisions D5/D6). `reactions/rate_laws.py`'s `DualSubstrateMonod` takes
+exactly one secondary species through four scalar arguments (`secondary_id`,
+`Ko`, `secondary_in_mol_L`, `secondary_MW`), and
+`ReactionBuilder.monod_aerobic_growth` exposes only an O2 term (`Ko2_gL`)
+with the id `"O2"` fixed. Neither extends to a second or third limiting
+species (e.g. NH3 or a phosphate source) without a new class or a new
+argument.
+
+It would be good to take a mapping instead — e.g.
+`{species_id: <half-saturation, units/molar mass, limits-or-inhibits>}` —
+applied by the rate law to any number of species, with inhibition as a
+feature attached to a growth model rather than a separate class per
+growth-law × inhibition-law pair. The maths constrains the design: `Andrews`
+and `ContoisAndrews` use the Haldane form,
+`μ = μmax · r / (Ks + r + r²/Ki)`, where the inhibition term sits inside the
+denominator — not a plain multiplier on the base law (as a factor it would be
+`(Ks + r) / (Ks + r + r²/Ki)`, which needs the base law's own `Ks`), so a
+composable design must treat Haldane specially (e.g. an optional `Ki` on the
+base law), while multiplicative forms (non-competitive `1/(1 + I/Ki)`,
+exponential `exp(-I/Ki)`) compose freely with any base law. Inhibition is
+also often by a *different* species (product inhibition), which a
+species-keyed mapping covers naturally. Open questions: the shape of the
+per-species parameters; whether species come from `Species` objects so molar
+masses are looked up instead of re-entered; which of the eight laws have a
+meaningful inhibition companion (`Tessier`, `Moser` and `Blackman` have no
+standard one).
+
+Not blocking: `tests/standalone/test_rate_laws.py` pins `Andrews` and
+`ContoisAndrews` against a frozen Haldane-form reference and the other six
+laws at fixed points, specifically so a later composable-inhibition redesign
+can be checked against these values rather than against vibes.
+
+## Package-level layering: `chemistry` still cycles with `reactions`
+
+Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 13
+(decision D7). Moving `chemistry/database.py` and `chemistry/databases/` to
+`PyOMES/databases/` fixed one cause of the package-level `chemistry` <->
+`reactions` cycle. A second cause remains: `chemistry/partition.py`'s
+`HenryEquilibrium`, `RaoultEquilibrium` and `KspEquilibrium` are equilibrium
+constraints — a `reactions/` concept (they need `StoichiometryEntry` and
+`vant_hoff_log_K`) — yet live in `chemistry/`. The *module*-level import
+graph is still acyclic (`tests/standalone/test_import_graph_acyclic.py`,
+added checkpoint 2 of the same phase, checks this), so nothing is currently
+broken; the *package*-level graph is not.
+
+A later layering phase would fix this either by moving `StoichiometryEntry`
+and its helpers into `chemistry/`, or by moving the three `*Equilibrium`
+constraint classes into `reactions/` and leaving the `PartitionModel`
+protocol (which `core/` imports) in `chemistry/`. Touches many imports
+(tests, notebooks) and is its own phase.
+
+## `ReactionBuilder.aerobic_growth` doesn't check the derived yield is achievable
+
+Logged 2026-09-21 during the `chemistry-reactions-kinetics-cleanup` audit
+(checkpoint 1), not fixed (Part A/B pure-refactor scope).
+`reactions/builder.py`'s `aerobic_growth()` derives O2/CO2/H2O stoichiometry
+from elemental balance for whatever `yield_gX_gS` it is given, with no check
+that the result is physically sensible. Example found during the audit:
+acetate at a 0.9 g/g yield returns without error, with CO2 *consumed* and O2
+*produced* — the elements still balance (balance validation only checks mass
+closure per element, not reaction direction), but the stoichiometry is
+non-physical. A fix would check the sign of the derived `nO2`/`nCO2` (or a
+thermodynamic yield bound) and raise or warn when the requested yield isn't
+achievable by aerobic respiration.
+
+## Three small loose ends from the `chemistry-reactions-kinetics-cleanup` audit
+
+Logged 2026-09-21/22, not built — grouped here because each is small and
+independent, not because they are related to each other.
+
+- **Molar-mass unification.** `PyOMES/compounds.py`'s `Chemical` (BioSTEAM-shaped,
+  moved out of `chemistry/` during this phase since it has no dependency on
+  `Species` or anything else in `chemistry/`)
+  and `chemistry/species.py`'s `Species` (the framework's own) both carry
+  molecular weights for overlapping compound sets, maintained independently.
+  A candidate for unification, or at least a documented invariant that they
+  agree, if the divergence ever causes a real bug (audit found up to sixteen
+  compounds with disagreeing molar masses between `Chemical` and other tables
+  before this phase's deletions removed most of those tables).
+- **`EquilibriumSet` location.** `chemistry/equilibria.py`'s `EquilibriumSet`
+  is consumed only by the Bisection engine
+  (`chemical_equilibrium/engines/bisection/`), not by NR or PHREEQC. Arguably
+  belongs closer to its one real consumer than in `chemistry/`.
+- **`plot_vant_hoff` has no caller.** `reactions/plots.py`'s `plot_vant_hoff`
+  (and `reactions/equilibrium.py`'s `EquilibriumReaction.plot_vant_hoff`
+  wrapper) has no caller anywhere in the repo — no pytest coverage, no
+  notebook use. A candidate for deletion in a future pass; left alone here
+  since trimming plotting helpers wasn't this phase's scope. `plots.py` now
+  has its own `plots` extra (`pyproject.toml`, checkpoint 16 of the same
+  phase) if it is kept.

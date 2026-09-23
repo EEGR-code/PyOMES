@@ -20,6 +20,26 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
+  2026-09-22. Surfaced while investigating whether `chemistry/
+  common_species.py` should move to `PyOMES/databases/`: three internal
+  call sites (`reactions/stoichiometry.py`'s string-stoichiometry
+  parser, `chemistry/partition.py`'s `HenryEquilibrium`/
+  `RaoultEquilibrium` species fields, `core/control_volume.py`'s
+  charge-conservation registry) resolve unrecognized species ids by
+  scanning `common_species.py`'s entire module namespace via `vars()`,
+  not from anything the model itself declared — so a model can silently
+  pick up (or silently drop, depending on name collision) species the
+  user never wrote. Proposes removing all three ambient fallbacks in
+  favor of explicit resolution only. Phase 0 (stoichiometry.py) is
+  cheap and decided; Phase 1 (control_volume.py) found `ControlVolume`
+  already accepts `chemistry_db=` but doesn't consult
+  `chemistry_db.species`, so it's mostly wiring; Phase 2 (partition.py)
+  needs an API decision (`RaoultEquilibrium.liquid_species` currently
+  defaults to the bare string `"H2O"`, resolved ambiently). The
+  original relocation question is downstream of this note, not
+  parallel — see its own "Relationship to the relocation question"
+  section. No branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
@@ -126,6 +146,21 @@ that still describe open work are "Open phases" and the pending stages in
   example. Its proposed location, `demos/model_api/recorder_comparison.py`,
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
+- **[CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md)** —
+  2026-09-21. Review of `chemistry/`, `kinetics/` and `reactions/` in the style
+  of `chemical-equilibrium-engines-subfolder`: dead code (`kinetics/`,
+  `thermo_params.py`, the recipe layer, the top-level `equilibria/` package,
+  deprecated `HenryPartition`/`RaoultPartition` aliases), import deferrals that
+  no longer work around anything (the one real cycle is
+  `equilibria.py` ↔ `thermo_params.py`), three Monod implementations
+  (bit-identical on physical inputs; to become one), and two defects
+  (`ChemistryDatabase.extend()` drops the solver; `PHController`'s id validator
+  checks the wrong table). Decisions D1-D8 settled 2026-09-21; numerics-changing
+  follow-ups (van 't Hoff, constants) and larger redesigns (gas EOS consistency,
+  multi-species rate-law parameters, package layering) are deliberately left to
+  `OPEN_WORK.md`. Checklist:
+  [CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md](CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
+  Branch `chemistry-reactions-kinetics-cleanup` created; no code yet.
 
 ## Recently shipped
 

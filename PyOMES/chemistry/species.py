@@ -36,30 +36,9 @@ from __future__ import annotations
 
 import types
 from dataclasses import dataclass, field
-from typing import Dict, Mapping, Optional
+from typing import Mapping, Optional
 
-# IUPAC 2021 standard atomic weights (g/mol).
-# Used to compute MW automatically when not supplied explicitly.
-_ATOMIC_WEIGHTS: Dict[str, float] = {
-    "H":  1.008,
-    "C":  12.011,
-    "N":  14.007,
-    "O":  15.999,
-    "P":  30.974,
-    "S":  32.065,
-    "Na": 22.990,
-    "Mg": 24.305,
-    "Cl": 35.45,
-    "K":  39.098,
-    "Ca": 40.078,
-    "Mn": 54.938,
-    "Fe": 55.845,
-    "Co": 58.933,
-    "Ni": 58.693,
-    "Cu": 63.546,
-    "Zn": 65.38,
-    "Mo": 95.96,
-}
+from ..units import ATOMIC_WEIGHTS
 
 
 class SpeciesConflictError(ValueError):
@@ -101,13 +80,13 @@ class Species:
     MW : float or None
         Molecular weight (g/mol).  When omitted (the default), MW is
         computed automatically from ``atoms`` using the IUPAC 2021
-        standard atomic weights in :data:`_ATOMIC_WEIGHTS`.  Provide
-        an explicit value to override — useful when the formula unit
-        does not match the true stoichiometry (e.g. empirical biomass
-        formulas) or for virtual charge-carrier species with no atoms.
-        Raises :class:`ValueError` if ``atoms`` contains an element
-        not present in :data:`_ATOMIC_WEIGHTS` and no explicit ``MW``
-        is given.
+        standard atomic weights in :data:`~PyOMES.units.ATOMIC_WEIGHTS`.
+        Provide an explicit value to override — useful when the formula
+        unit does not match the true stoichiometry (e.g. empirical
+        biomass formulas) or for virtual charge-carrier species with no
+        atoms. Raises :class:`ValueError` if ``atoms`` contains an
+        element not present in :data:`~PyOMES.units.ATOMIC_WEIGHTS` and
+        no explicit ``MW`` is given.
     """
 
     id: str
@@ -126,14 +105,14 @@ class Species:
             )
         # Auto-compute MW from atoms when not supplied.
         if self.MW is None:
-            unknown = set(self.atoms) - _ATOMIC_WEIGHTS.keys()
+            unknown = set(self.atoms) - ATOMIC_WEIGHTS.keys()
             if unknown:
                 raise ValueError(
                     f"Species {self.id!r}: cannot compute MW — no atomic weight "
                     f"for element(s) {unknown}. Supply MW explicitly."
                 )
             computed = sum(
-                _ATOMIC_WEIGHTS[el] * float(n) for el, n in self.atoms.items()
+                ATOMIC_WEIGHTS[el] * float(n) for el, n in self.atoms.items()
             )
             object.__setattr__(self, "MW", computed)
         else:

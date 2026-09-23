@@ -425,7 +425,7 @@ class TestSolveRequiresVolumes:
         topology change folds it — this confirms solving it without
         volumes is refused rather than silently producing a contaminated
         result."""
-        from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+        from PyOMES.databases.anaerobic_digestion import AD_BASIC
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         # AD_BASIC.reactions already includes a water-dissociation reaction

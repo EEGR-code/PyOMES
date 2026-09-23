@@ -18,11 +18,11 @@ Validates:
 import numpy as np
 import pytest
 
-from PyOMES.chemistry import HenryPartition
+from PyOMES.chemistry import HenryEquilibrium
 
 
-def _hp(kH: float, dlnH: float = 0.0) -> HenryPartition:
-    return HenryPartition(H_ref=kH * 1000.0 / 101325.0, dlnH=dlnH)
+def _hp(kH: float, dlnH: float = 0.0) -> HenryEquilibrium:
+    return HenryEquilibrium(H_ref=kH * 1000.0 / 101325.0, dlnH=dlnH)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -983,7 +983,7 @@ class TestEquilibrateToPH:
             NH4_plus, Cl_minus, K_plus, H2PO4_minus, HPO4_2minus, PO4_3minus,
             H3PO4, Na_plus,
         )
-        from PyOMES.chemistry.databases.bioprocess_basic import (
+        from PyOMES.databases.bioprocess_basic import (
             BIOPROCESS_BASIC, NH4Cl, KH2PO4,
         )
         from PyOMES.reactions import ReactionSystem

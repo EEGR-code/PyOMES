@@ -34,15 +34,17 @@ more solute dissolved.
 from __future__ import annotations
 
 import math
-import warnings
 from dataclasses import dataclass, field
 from typing import (
-    TYPE_CHECKING, Any, Dict, Optional, Protocol, Sequence, Tuple, Union,
+    TYPE_CHECKING, Dict, Optional, Protocol, Sequence, Tuple, Union,
     runtime_checkable,
 )
 
+from ..reactions.equilibrium import vant_hoff_log_K
+from ..reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
 from ..units import R_J_PER_MOL_K as _R_J_MOL
 from ..units import R_L_ATM_PER_MOL_K
+from . import common_species
 from .species import Species
 
 if TYPE_CHECKING:
@@ -52,16 +54,15 @@ if TYPE_CHECKING:
 def _resolve_species(species: Union[str, Species, None]) -> Optional[Species]:
     """Resolve a species id string or ``Species`` object to a ``Species``.
 
-    Deferred import of ``PyOMES.reactions.stoichiometry`` avoids a
-    chemistry↔reactions circular import: this module is imported during
-    ``PyOMES.chemistry`` package initialization, and
-    ``PyOMES.reactions.stoichiometry``/``PyOMES.reactions.equilibrium``
-    import back from ``PyOMES.chemistry.species``.
+    Looks the id up in ``PyOMES.chemistry.common_species`` directly — the
+    same source :func:`PyOMES.reactions.stoichiometry._get_common_species`
+    builds its own lookup from, without the extra hop through ``reactions``.
     """
     if species is None or isinstance(species, Species):
         return species
-    from ..reactions.stoichiometry import _get_common_species
-    lookup = _get_common_species()
+    lookup = {
+        v.id: v for v in vars(common_species).values() if isinstance(v, Species)
+    }
     if species not in lookup:
         raise ValueError(
             f"Unknown species id {species!r} — pass a Species object "
@@ -200,8 +201,7 @@ class HenryEquilibrium:
         return r * n_total / (1.0 + r)
 
     def _kH_mol_L_atm(self, T_K: float) -> float:
-        H_ref_mol_L_atm = (self.H_ref / 1000.0) * 101325.0
-        return H_ref_mol_L_atm * math.exp(self.dlnH * (1.0 / T_K - 1.0 / self.T_ref))
+        return _kH_mol_L_atm_from_ref(self.H_ref, self.dlnH, T_K, self.T_ref)
 
     def _gamma(
         self,
@@ -242,7 +242,6 @@ class HenryEquilibrium:
         """
         if self.gas_species is None or self.liquid_species is None:
             return ()
-        from ..reactions.stoichiometry import StoichiometryEntry
         gas = _resolve_species(self.gas_species)
         liq = _resolve_species(self.liquid_species)
         return (
@@ -251,26 +250,8 @@ class HenryEquilibrium:
         )
 
 
-def HenryPartition(*args: Any, **kwargs: Any) -> HenryEquilibrium:
-    """Deprecated alias for :class:`HenryEquilibrium`.
-
-    Kept for one phase (``EQUILIBRIUM_CONSTRAINT_UNIFICATION`` CP1) so
-    existing call sites/tests continue to work while call sites
-    migrate. Emits ``DeprecationWarning`` and constructs-and-returns a
-    real ``HenryEquilibrium`` (not a subclass), so ``type(x) is
-    HenryEquilibrium`` and equality both hold.
-    """
-    warnings.warn(
-        "HenryPartition is deprecated; use HenryEquilibrium instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return HenryEquilibrium(*args, **kwargs)
-
-
 # ── Raoult's law partition for solvent (H₂O) ───────────────────────────────
 
-_M_WATER = 18.015   # g/mol
 _P_SAT_REF = 0.03169  # atm — saturation pressure of pure water at 298.15 K
 _T_REF_WATER = 298.15  # K
 
@@ -396,23 +377,12 @@ class RaoultEquilibrium:
         """
         if self.gas_species is None or self.liquid_species is None:
             return ()
-        from ..reactions.stoichiometry import StoichiometryEntry
         gas = _resolve_species(self.gas_species)
         liq = _resolve_species(self.liquid_species)
         return (
             StoichiometryEntry(species=gas, phase="gas", coefficient=-1.0),
             StoichiometryEntry(species=liq, phase="liquid", coefficient=+1.0),
         )
-
-
-def RaoultPartition(*args: Any, **kwargs: Any) -> RaoultEquilibrium:
-    """Deprecated alias for :class:`RaoultEquilibrium`. See :func:`HenryPartition`."""
-    warnings.warn(
-        "RaoultPartition is deprecated; use RaoultEquilibrium instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return RaoultEquilibrium(*args, **kwargs)
 
 
 # ── Ksp (solubility-product) solid-liquid equilibrium ───────────────────────
@@ -473,7 +443,6 @@ class KspEquilibrium:
         label: str = "",
     ):
         if isinstance(stoichiometry, str):
-            from ..reactions.stoichiometry import _parse_stoichiometry
             stoichiometry = _parse_stoichiometry(
                 stoichiometry, species, reaction_type="equilibrium"
             )
@@ -533,7 +502,6 @@ class KspEquilibrium:
                 "dissolved species); multi-ion Ksp requires the "
                 "active-set NR solver."
             )
-        from ..reactions.equilibrium import vant_hoff_log_K
         Ksp_T = 10.0 ** vant_hoff_log_K(self, T_K)
         return min(n_total, Ksp_T * capacity_a)
 
@@ -597,12 +565,12 @@ def _kH_mol_L_atm_from_ref(H_ref: float, dlnH: float, T_K: float, T_ref: float) 
 
 @dataclass(frozen=True)
 class MultispeciesVLEPartition:
-    """Coupled gas-liquid VLE for multiple volatile species.
+    """Coupled gas-liquid VLE for multiple volatile species, ideal gas only.
 
-    With ``IdealGasEOS``, each species decouples and the solution is
-    analytical (same formula as ``HenryEquilibrium`` without the ``alpha``
-    correction).  Non-ideal EOS (Peng-Robinson) coupling is deferred —
-    passing a non-ideal EOS raises ``NotImplementedError``.
+    Each species decouples and the solution is analytical (same formula
+    as ``HenryEquilibrium`` without the ``alpha`` correction). There is
+    no EOS parameter — non-ideal (Peng-Robinson) coupling is not
+    implemented.
 
     Satisfies ``MultispeciesPartitionModel``:
         ``equilibrium_all_a_moles(n_total_all, V_liq, V_gas, T_K)``
@@ -643,7 +611,7 @@ class MultispeciesVLEPartition:
         capacity_b: float,
         T_K: float,
     ) -> Dict[str, float]:
-        """Solve VLE for all species using IdealGasEOS (analytical, decoupled).
+        """Solve VLE for all species using the ideal gas law (analytical, decoupled).
 
         For each species i with Henry constant kH_i(T):
             r_i = kH_i × R × T × V_liq / V_gas
@@ -651,9 +619,6 @@ class MultispeciesVLEPartition:
 
         Species not in ``kH_ref`` are ignored (returned as absent).
         """
-        from PyOMES.equilibria.vle import IdealGasEOS  # local import avoids circular
-        # Only IdealGasEOS path is implemented; non-ideal EOS raises NotImplementedError
-        # at point of use (deferred: see THERMODYNAMIC_MODEL_ARCHITECTURE §CP7).
         result = {}
         for species_id, n_total in n_total_all.items():
             if species_id not in self.kH_ref:

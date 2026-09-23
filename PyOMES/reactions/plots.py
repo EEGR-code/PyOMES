@@ -9,7 +9,7 @@ installation.
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from ..units import R_J_PER_MOL_K as _R_GAS  # J / (mol · K)
 

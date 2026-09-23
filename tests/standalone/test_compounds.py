@@ -1,7 +1,7 @@
-"""Tests for fermenter.chemistry.compounds — standalone chemical registry."""
+"""Tests for PyOMES.compounds — standalone chemical registry."""
 
 import pytest
-from PyOMES.chemistry.compounds import Chemical, ChemicalRegistry
+from PyOMES.compounds import Chemical, ChemicalRegistry
 
 
 class TestChemical:
@@ -47,13 +47,6 @@ class TestChemicalRegistry:
     def test_contains(self, registry):
         assert "AceticAcid" in registry
         assert "FakeChemical" not in registry
-
-    def test_ids_property(self, registry):
-        ids = registry.IDs
-        assert isinstance(ids, tuple)
-        assert "AceticAcid" in ids
-        assert "O2" in ids
-        assert "Yeast" in ids
 
     def test_register_custom_compound(self, registry):
         custom = Chemical("MyBug", MW=25.0, atoms={"C": 1, "H": 1.8, "O": 0.5})

@@ -6,11 +6,11 @@ object that a :class:`~PyOMES.core.ControlVolume` accepts.  It bundles:
 
 - a :class:`~PyOMES.thermo.ThermoFramework` (thermodynamic conventions),
 - a species dict (``{species_id: Species}``), and
-- a :class:`~PyOMES.reactions.ReactionSet` of equilibrium declarations.
+- a :class:`~PyOMES.reactions.ReactionSystem` of equilibrium declarations.
 
 Databases are composed by extension, not mutation::
 
-    from PyOMES.chemistry.databases.aqueous import AQUEOUS_DEFAULT
+    from PyOMES.databases.aqueous import AQUEOUS_DEFAULT
 
     MY_DB = AQUEOUS_DEFAULT.extend(
         species={"ButyricAcid": Species(id="ButyricAcid",
@@ -23,10 +23,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, Optional, TYPE_CHECKING
 
+from ..reactions.reaction_system import ReactionSystem
+
 if TYPE_CHECKING:
-    from .species import Species
-    from .partition import PartitionModel
-    from ..reactions.reaction_system import ReactionSystem
+    from ..chemistry.species import Species
+    from ..chemistry.partition import PartitionModel
     from ..thermo.framework import ThermoFramework
 
 
@@ -40,7 +41,7 @@ class ChemistryDatabase:
         Activity model and standard-state conventions.
     species : dict
         ``{species_id: Species}`` — species declared in this database.
-    reactions : ReactionSet
+    reactions : ReactionSystem
         Equilibrium reactions (acid-base, partitioning).
     partition_models : dict
         ``{species_id: PartitionModel}`` — phase-partition relationships
@@ -69,6 +70,11 @@ class ChemistryDatabase:
             existing species; new entries override on key collision.
         reactions : iterable, optional
             Additional reactions.  Appended to existing reaction set.
+            The merged :class:`~PyOMES.reactions.ReactionSystem` keeps
+            this database's existing ``label``, ``solver`` and engine
+            configuration (``configure_engine()`` settings); when this
+            database has no existing reactions, the new
+            ``ReactionSystem`` is built with its own defaults.
         thermo : ThermoFramework, optional
             Override the thermodynamic framework.  If omitted, inherits
             from this database.
@@ -82,8 +88,6 @@ class ChemistryDatabase:
         ChemistryDatabase
             New frozen database; this one is unchanged.
         """
-        from ..reactions.reaction_system import ReactionSystem
-
         new_thermo = thermo if thermo is not None else self.thermo
 
         merged_species = dict(self.species)
@@ -92,7 +96,17 @@ class ChemistryDatabase:
 
         existing_rxns = list(self.reactions) if self.reactions is not None else []
         new_rxns = list(reactions) if reactions is not None else []
-        merged_rxns = ReactionSystem(existing_rxns + new_rxns) if (existing_rxns or new_rxns) else None
+        merged_rxns = None
+        if existing_rxns or new_rxns:
+            if self.reactions is not None:
+                merged_rxns = ReactionSystem(
+                    existing_rxns + new_rxns,
+                    label=self.reactions.label,
+                    solver=self.reactions._solver,
+                )
+                merged_rxns.configure_engine(**self.reactions._engine_config)
+            else:
+                merged_rxns = ReactionSystem(existing_rxns + new_rxns)
 
         merged_pm = dict(self.partition_models)
         if partition_models:

@@ -3064,25 +3064,6 @@ class TestCVPressureReliefControllerValve:
         assert ctrl._is_open is False
 
 
-class TestCVPHControllerRegistryValidation:
-
-    def test_invalid_acid_id_warns_at_construction(self):
-        """validate_compound_id emits a UserWarning for unknown IDs
-        (matching the legacy controller's behavior — it's a soft
-        check, not a hard error)."""
-        from PyOMES.control.cv_loops import PHController
-        with pytest.warns(UserWarning, match="NotARealCompound_XYZ"):
-            PHController(setpoint=6.5, chemical_id="NotARealCompound_XYZ")
-
-    def test_invalid_base_id_warns_at_construction(self):
-        from PyOMES.control.cv_loops import PHController
-        with pytest.warns(UserWarning, match="NotARealCompound_XYZ"):
-            PHController(
-                setpoint=6.5, chemical_id="H3PO4",
-                base_chemical_id="NotARealCompound_XYZ",
-            )
-
-
 # ═══════════════════════════════════════════════════════════════════════
 #  Controller integration with Simulation.run (C9)
 # ═══════════════════════════════════════════════════════════════════════

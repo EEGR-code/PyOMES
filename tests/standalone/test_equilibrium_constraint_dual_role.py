@@ -192,13 +192,13 @@ class TestAnaerobicDigestionDatabaseFixed:
     in the reaction list). CP3 collapses these into one shared instance."""
 
     def test_co2_partition_model_and_reaction_are_the_same_object(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import (
+        from PyOMES.databases.anaerobic_digestion import (
             AD_BASIC, _CO2_HENRY,
         )
         assert AD_BASIC.partition_models["CO2"] is _CO2_HENRY
         assert _CO2_HENRY in AD_BASIC.reactions.reactions
 
     def test_co2_classified_as_gas_liquid(self):
-        from PyOMES.chemistry.databases.anaerobic_digestion import _CO2_HENRY
+        from PyOMES.databases.anaerobic_digestion import _CO2_HENRY
         from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(_CO2_HENRY) == "gas_liquid"

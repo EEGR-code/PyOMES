@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """AD_BASIC: aqueous chemistry for anaerobic digestion gas-liquid systems.
 
-Extends :data:`~PyOMES.chemistry.databases.bioprocess_basic.BIOPROCESS_BASIC`
+Extends :data:`~PyOMES.databases.bioprocess_basic.BIOPROCESS_BASIC`
 with a CO₂ gas ⇌ liquid Henry declaration and the H₂S ⇌ HS⁻ acid-base
 equilibrium, enabling correct alpha computation in
 :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink` for dissolved
@@ -14,7 +14,7 @@ The CO₂ partition is declared as a single
 (feeding ``ChemicalEquilibriumEngine``/``NRChemicalEquilibriumEngine`` as a gas-liquid
 ``EquilibriumConstraint``) — one declaration, two roles
 (EQUILIBRIUM_CONSTRAINT_UNIFICATION CP3). Previously these were two
-independently-parameterized objects (a ``HenryPartition`` here, a
+independently-parameterized objects (a ``HenryEquilibrium`` here, a
 separate placeholder ``EquilibriumReaction`` with no ``log_K`` in the
 reaction list) that nothing validated agreed with each other.
 
@@ -25,15 +25,15 @@ has no material effect on model predictions.
 
 Usage::
 
-    from PyOMES.chemistry.databases.anaerobic_digestion import AD_BASIC
+    from PyOMES.databases.anaerobic_digestion import AD_BASIC
 """
 from __future__ import annotations
 
-from ..common_species import H_plus, H2S, HS_minus
-from ..partition import HenryEquilibrium
-from ...reactions.equilibrium import EquilibriumReaction
-from ...reactions.reaction_system import ReactionSystem
-from ...reactions.stoichiometry import StoichiometryEntry
+from ..chemistry.common_species import H_plus, H2S, HS_minus
+from ..chemistry.partition import HenryEquilibrium
+from ..reactions.equilibrium import EquilibriumReaction
+from ..reactions.reaction_system import ReactionSystem
+from ..reactions.stoichiometry import StoichiometryEntry
 from .bioprocess_basic import BIOPROCESS_BASIC
 
 _T_REF_K = 298.15

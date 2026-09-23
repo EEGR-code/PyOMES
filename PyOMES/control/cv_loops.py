@@ -60,11 +60,17 @@ class PHController:
         Dead-band around the setpoint. ``|err| <= deadband`` → no
         dosing.
     chemical_id : str
-        Acid compound id (must validate against
-        :mod:`PyOMES.chemistry.registry`).
+        Acid compound id. Not validated: must be a strong-corrector
+        alias (see ``ControlVolume._STRONG_CORRECTOR_ION``) or a
+        species that appears in a declared equilibrium reaction on the
+        target CV, or dosing it has no effect — the dose accumulates
+        as inert and silently never corrects the pH (see
+        ``PHCONTROLLER_CORRECTOR_VALIDATION.md`` for the motivating bug
+        and the design for a proper check).
     base_chemical_id : Optional[str]
         Base compound id. If ``None``, base dosing is disabled
-        (acid-only legacy mode).
+        (acid-only legacy mode). Same validity requirement and same
+        silent-inert-dose risk as ``chemical_id`` if it isn't met.
     sample_period_h, sample_period_s : Optional[float]
         Optional sampling period. When set, the orchestrator only
         invokes ``compute()`` at sampling instants; between
@@ -104,24 +110,6 @@ class PHController:
     diag: Dict[str, List[float]] = field(
         default_factory=dict, init=False, repr=False,
     )
-
-    def __post_init__(self):
-        try:
-            from ..chemistry.registry import validate_compound_id
-        except ImportError:
-            return  # registry not available; skip validation
-        validate_compound_id(
-            self.chemical_id,
-            context=f"PHController acid (chemical_id={self.chemical_id!r})",
-        )
-        if self.base_chemical_id is not None:
-            validate_compound_id(
-                self.base_chemical_id,
-                context=(
-                    f"PHController base "
-                    f"(base_chemical_id={self.base_chemical_id!r})"
-                ),
-            )
 
     def reset(self) -> None:
         """Clear integral state and diagnostics.

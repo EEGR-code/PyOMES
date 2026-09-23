@@ -44,6 +44,7 @@ Install optional dependency groups as needed (see [Optional Features](#optional-
 python -m pip install -e ".[test]"
 python -m pip install -e ".[phreeqc]"
 python -m pip install -e ".[export]"
+python -m pip install -e ".[plots]"
 python -m pip install -e ".[all]"
 ```
 
@@ -87,7 +88,7 @@ See [docs/tutorials/templates/](docs/tutorials/templates/) for more worked examp
 ```
 PyOMES/                 # Core library — see PyOMES/README.md for a subpackage-by-subpackage breakdown
 models/                 # Concrete model implementations, installed separately as `vlmodels` — see models/README.md
-tests/                  # Test suite: standalone/, validation/, legacy/, performance/
+tests/                  # Test suite: standalone/, validation/, performance/
 docs/                   # Tutorials and design/development documentation
 ```
 
@@ -123,7 +124,6 @@ Each controller follows a sense → compute → actuate cycle:
 - **Protocol-based extensibility** — `ReactionModel`, `PhaseInterface`, `PropertyCalculator`, `ViscosityModel` are `typing.Protocol` types; no inheritance required.
 - **Immutable snapshots** — `Phase.snapshot()` produces independent copies for logging and diagnostics.
 - **Fail-fast validation** — stoichiometric and configuration errors raise at construction, not at runtime.
-- **Lightweight I/O types** — `FeedState` decouples feed-composition data from any particular process-simulation tool, enabling standalone use.
 
 ---
 
@@ -134,7 +134,7 @@ python -m pip install -e ".[test]"
 python -m pytest
 ```
 
-By default (see `pyproject.toml`), `pytest` runs `tests/standalone/` and `tests/validation/`. `tests/legacy/` and `tests/performance/` are not part of the default run — `tests/legacy/` predates the current reaction-driven chemical equilibrium engine, and `tests/performance/` is reserved for future runtime benchmarks.
+By default (see `pyproject.toml`), `pytest` runs `tests/standalone/` and `tests/validation/`. `tests/performance/` is not part of the default run — it is reserved for future runtime benchmarks.
 
 ### Test Coverage
 
@@ -150,7 +150,7 @@ As of this writing, `tests/standalone/` and `tests/validation/` cover:
 | PHREEQC cross-validation | `test_phreeqc_engine.py`, `tests/validation/speciation/test_phreeqc_nr_agreement.py` |
 | NIST / analytical reference validation | `tests/validation/speciation/test_carbonate_phosphate_benchmarks.py`, `test_iron_oxidation.py`, `test_saturation_index.py` |
 | Chemistry database & species | `test_chemistry_database.py`, `test_compounds.py`, `test_species.py`, `test_partition_model.py`, `test_thermo_framework.py`, `test_liquid_phase_model.py` |
-| Reaction stoichiometry & kinetics | `test_reactions.py`, `test_stoichiometry.py`, `test_equilibrium_constraint.py`, `test_kinetics.py` |
+| Reaction stoichiometry & kinetics | `test_reactions.py`, `test_stoichiometry.py`, `test_equilibrium_constraint.py` |
 | Control loops | `test_controller_state_protocol.py`, `test_descriptors.py`, `test_param_path.py` |
 | StirredTank templates | `test_builder.py`, `test_configs.py` |
 | Physical properties & numerics | `test_viscosity.py`, `test_spatial_schemes.py` |
@@ -167,8 +167,9 @@ This table groups ~60 test modules thematically rather than listing all of them 
 |-------|--------------|---------|
 | `phreeqc` | `phreeqpython>=1.6` | PHREEQC-backed chemistry comparisons and validation |
 | `export` | `pandas`, `pyarrow` | Tabular export workflows |
+| `plots` | `matplotlib` | `PyOMES.reactions.plots` — speciation/Van 't Hoff plotting helpers |
 | `test` | `pytest`, `pandas`, `pyarrow`, `phreeqpython>=1.6` | Development and validation suite |
-| `all` | `phreeqpython>=1.6`, `pandas`, `pyarrow` | All optional runtime features |
+| `all` | `phreeqpython>=1.6`, `pandas`, `pyarrow`, `matplotlib` | All optional runtime features |
 
 ---
 
