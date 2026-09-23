@@ -12,7 +12,9 @@
 
 - Checkpoint 1 is a pure move: no behaviour change beyond the import path.
   Checkpoints 2-4 change only docstrings, comments, notebooks, scripts and
-  prose. Checkpoint 5 adds one test and edits `OPEN_WORK.md`.
+  prose. Checkpoint 5 adds one test and edits `OPEN_WORK.md`. Checkpoint 6 adds
+  tests for `RaoultEquilibrium`'s custom parameters and one more `OPEN_WORK.md`
+  entry; it changes no code.
 - The repo owner runs every `git` command (branch, add, commit, push). At each
   checkpoint: run the full suite first, edit, run the sanity check, report,
   stop, and hand over the commands (two `-m` flags, no attribution lines).
@@ -60,6 +62,13 @@
    has no outbound dependency except `units`. `EXPLICIT_SPECIES_RESOLUTION.md`
    Phase 2 is independent; if it lands later, its edits happen in
    `phase_equilibria.py`, where `_resolve_species` moves unchanged.
+9. `RaoultEquilibrium`'s water values (`P_sat_ref`, `dH_vap`, `T_ref`,
+   `C_water_mol_L`) are already constructor arguments, so no API change is made.
+   Its defaults stay as they are (a private constant for two, inline literals for
+   two). This phase adds tests that custom values work (checkpoint 6) and logs the
+   lack of one source for water properties in `OPEN_WORK.md`. Making the defaults
+   public named constants, or consolidating the copies of the water values, are
+   separate changes and are out of scope here.
 
 ## Pre-flight
 
@@ -175,6 +184,14 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
   sets", a leftover from `equilibrium-set-relocation`; fixed in checkpoint 4
   because this phase changes what `chemistry/` holds again.
 - `equilibrium.py` after a merge would be about 770 lines, not the note's ~700.
+- **Found while working (checkpoint 1):** `RaoultEquilibrium` can already be
+  built with custom `P_sat_ref`, `dH_vap`, `T_ref` and `C_water_mol_L`
+  (`RaoultEquilibrium(P_sat_ref=0.0313, dH_vap=43990.0).P_sat(310.15)` differs
+  from the default), but no test does so. The water values also exist in three
+  places with no shared source: `phase_equilibria.py` (`_P_SAT_REF`, and inline
+  44011.0 and 55.51), `chemical_equilibrium/engines/nr/engine.py:55`
+  (`_C_WATER_MOL_L`, derived from density and molar mass, about 55.51) and
+  `models/vlmodels/adm1/base.py:1050` (a literal 55.51).
 - Unrelated, left alone: `upcoming/README.md:9` has a stray `+-*` line.
 
 ### Checkpoints
@@ -277,6 +294,19 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       `reactions`), unfixed.
       Sanity: the new test passes; full suite **2087 passed** (or one more per
       test function added).
+- [ ] 6. Tests for `RaoultEquilibrium`'s custom parameters (decision 9), added to
+      the Raoult section of `tests/standalone/test_partition_model.py`. No source
+      change. Cases: `P_sat(T_ref)` equals a custom `P_sat_ref`; `P_sat` at another
+      temperature follows Clausius-Clapeyron with a custom `dH_vap` and `T_ref`;
+      `partition_ratio` scales with `C_water_mol_L` and inversely with `P_sat`;
+      `log_K`, `dH_J_per_mol` and `T_ref_K` report the custom values; default
+      construction is unchanged. If a case exposes a defect, it is logged in
+      `OPEN_WORK.md`, not fixed here.
+      `OPEN_WORK.md`: add an entry for the missing single source of truth for
+      water properties (the three locations under Re-verification), including the
+      option of public named constants for the defaults, unfixed.
+      Sanity: the new tests pass; full suite passes with the count up by the number
+      of test functions added.
 
 ## Shipping
 
