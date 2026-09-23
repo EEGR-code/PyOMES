@@ -90,6 +90,22 @@ def _make_speciation_reactions():
     ]
 
 
+def _make_synthetic_equilibrium_set():
+    """Small EquilibriumSet: carbonate and ammonium ladders that carry
+    ``species_refs``, plus two acids that do not."""
+    from PyOMES.chemical_equilibrium.engines.bisection.equilibria import EquilibriumSet
+    from PyOMES.chemistry.common_species import CO2, HCO3_minus, NH4_plus, NH3
+    eq_set = EquilibriumSet(T_ref_K=298.15)
+    eq_set.set_water(pKw=14.0)
+    eq_set.add("CO2", category="inorganic_acid", pKas=(6.35,),
+               species_refs=(CO2, HCO3_minus))
+    eq_set.add("NH4", category="cation_acid", pKas=(9.25,),
+               species_refs=(NH4_plus, NH3))
+    eq_set.add("acetate", category="acid", pKas=(4.76,))
+    eq_set.add("propionate", category="acid", pKas=(4.88,))
+    return eq_set
+
+
 def _make_cv_with_speciation_and_reaction():
     """CV: liquid, acetate equilibria + A→B kinetic reaction."""
     from PyOMES.core import ControlVolume, LiquidPhase
@@ -272,31 +288,32 @@ class TestAlgebraicSpecies:
         assert "AceticAcid" in alg
         assert "AceticAcid-" in alg
 
-    def test_bsm2_equilibrium_set_includes_carbonate_and_nh(self):
-        """EquilibriumSet.bsm2_default() species_refs are all in algebraic_species."""
+    def test_equilibrium_set_species_refs_in_algebraic_species(self):
+        """Every species in an entry's species_refs is in algebraic_species."""
         from PyOMES.chemical_equilibrium import BisectionChemicalEquilibriumEngine
-        from PyOMES.chemistry.equilibria import EquilibriumSet
-        eq_set = EquilibriumSet.bsm2_default()
+        eq_set = _make_synthetic_equilibrium_set()
         engine = BisectionChemicalEquilibriumEngine()
         engine._equilibrium_set = eq_set
         alg = engine.algebraic_species()
 
         assert "H+" in alg
         assert "OH-" in alg
+        for species_id in ("CO2", "HCO3-", "NH4+", "NH3"):
+            assert species_id in alg
 
         for eq_def in eq_set:
             for sp in eq_def.species_refs:
                 assert sp.id in alg, f"expected {sp.id!r} in algebraic_species"
 
-    def test_bsm2_vfa_entries_not_included(self):
-        """BSM2 VFA entries have no species_refs and must NOT be in the frozenset."""
+    def test_entries_without_species_refs_not_included(self):
+        """Entries with no species_refs must NOT appear in the frozenset."""
         from PyOMES.chemical_equilibrium import BisectionChemicalEquilibriumEngine
-        from PyOMES.chemistry.equilibria import EquilibriumSet
-        eq_set = EquilibriumSet.bsm2_default()
+        eq_set = _make_synthetic_equilibrium_set()
         engine = BisectionChemicalEquilibriumEngine()
         engine._equilibrium_set = eq_set
         alg = engine.algebraic_species()
-        for name in ("S_ac", "S_pro", "S_bu", "S_va"):
+        for name in ("acetate", "propionate"):
+            assert name in eq_set and not eq_set[name].species_refs
             assert name not in alg
 
     def test_returns_frozenset_type(self):

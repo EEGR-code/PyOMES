@@ -354,7 +354,7 @@ PyOMES/
   compounds.py                   # ChemicalRegistry, Chemical — standalone compound database
   chemistry/                     # Compound registry, recipes, Species declarations
     compounds.py, recipe.py, registry.py, species.py, species_check.py,
-    common_species.py, equilibria.py, types.py, chem_recipe.py
+    common_species.py, types.py, chem_recipe.py
   core/                          # Framework core: phases, CV, orchestration
     phases.py                    # GasPhase, LiquidPhase, SolidPhase
     interfaces.py                # PhaseInterface, TransferDiagnostics, AdvanceResult
@@ -385,6 +385,7 @@ PyOMES/
     numerical_gradient.py        # NumericalGradientEquilibriumEngine (wraps any engine)
     engines/
       bisection/                 # engine.py (BisectionChemicalEquilibriumEngine), acid_base.py,
+                                 # equilibria.py (EquilibriumSet/EquilibriumDef charge-balance format),
                                  # ionic_strength.py (suffix-based ionic strength)
       nr/                        # engine.py (NRChemicalEquilibriumEngine), tableau.py, solver.py
       phreeqc.py                 # PHREEQCChemicalEquilibriumEngine (optional phreeqpython)

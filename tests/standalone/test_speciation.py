@@ -488,10 +488,10 @@ class TestIonicStrengthFromSpeciation:
 
 class TestCanonicalEmission:
     """Validate that ``_compute_species_eq`` emits using declared ``Species.id``
-    when ``EquilibriumDef.species_refs`` is set (chemistry-unification-3b), and
-    falls back to the legacy ``_HA``/``_A-`` generic path for string-based
-    ``EquilibriumDef`` entries without ``species_refs`` (deprecated VFA rows in
-    ``EquilibriumSet.bsm2_default()``).
+    when ``EquilibriumDef.species_refs`` is set, and falls back to the legacy
+    ``_HA``/``_A-`` generic path for string-based ``EquilibriumDef`` entries
+    without ``species_refs`` (only reachable from a hand-built
+    ``EquilibriumSet``).
     """
 
     def test_co2_emits_species_ids(self):

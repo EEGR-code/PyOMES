@@ -468,8 +468,8 @@ def _make_entries(coeff_tuples):
 #  Equilibrium reactions (Phase 1 — chemistry-unification-1)
 # ════════════════════════════════════════════════════════════════════════
 
-# pKa / Van 't Hoff dH values per Rosen & Jeppsson (2006), matching
-# EquilibriumSet.bsm2_default(). The pKa references are at 25°C (298.15 K);
+# pKa / Van 't Hoff dH values per Rosen & Jeppsson (2006). The pKa
+# references are at 25°C (298.15 K);
 # the engine applies Van 't Hoff to reach the operating T at solve time.
 _BSM2_PKW   = 14.0
 _BSM2_DH_W  = 55900.0
@@ -731,10 +731,8 @@ def build_bsm2_reactions(
 
     # ── Equilibrium reactions (chemistry-unification-1) ──────────────
     # BSM2 pKa values at 25°C reference; Van 't Hoff dH carries the
-    # 35°C correction at solve time. Matches EquilibriumSet.bsm2_default
-    # bit-for-bit. CO2 is monoprotic (n_active=1 in legacy form) — the
-    # second dissociation (pKa2≈10.33) is not part of the charge
-    # balance. The molecular CO2 fraction used for gas transfer is read
+    # 35°C correction at solve time. CO2 is monoprotic — the second
+    # dissociation (pKa2≈10.33) is not part of the charge balance. The molecular CO2 fraction used for gas transfer is read
     # from PropertyResult.alphas["CO2aq"] (chemistry-unification-2).
     reactions.extend(_build_bsm2_equilibrium_reactions())
 
