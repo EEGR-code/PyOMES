@@ -40,6 +40,25 @@ that still describe open work are "Open phases" and the pending stages in
   original relocation question is downstream of this note, not
   parallel — see its own "Relationship to the relocation question"
   section. No branch, no checklist, no code yet.
+- **[EQUILIBRIUM_SET_RELOCATION.md](EQUILIBRIUM_SET_RELOCATION.md)** —
+  2026-09-23. Develops `OPEN_WORK.md`'s "Three small loose ends" entry
+  (`EquilibriumSet` location) into a concrete plan: `chemistry/
+  equilibria.py`'s `EquilibriumSet`/`EquilibriumDef` (the acid-base
+  charge-balance declaration format) is consumed only by the Bisection
+  engine (`chemical_equilibrium/engines/bisection/`) — confirmed via a
+  repo-wide audit, exactly 3 files reference it, none in `engines/nr/`
+  or `protocols.py`. Proposes moving the file next to its one real
+  consumer. No interaction with the separate `chemistry`<->`reactions`
+  package cycle (`partition.py`'s `*Equilibrium` classes) — checked
+  both directions, this thread is independent. Second finding folded
+  in: `EquilibriumSet.bsm2_default()` is vestigial — `models/vlmodels/
+  adm1/bsm2.py` independently re-declares the identical constants
+  ("matches ... bit-for-bit"), its three sibling presets were already
+  deleted for zero callers, and `bsm2_default()`'s only two real
+  callers (`test_cv_compute_interface.py`) don't need real BSM2 numbers
+  — proposes deleting it too. Three open polish/scoping questions
+  (re-export? keep the sibling import lazy? bundle the two findings in
+  one checklist?), none blocking. No branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
