@@ -379,7 +379,8 @@ PyOMES/
     environment.py               # ReactionEnvironment
     protocols.py                 # ReactionModel protocol
     _shared.py                   # Shared validation helpers
-  chemical_equilibrium/          # Aqueous speciation engines
+  chemical_equilibrium/          # Aqueous equilibrium solvers (acid-base, complexation, folded gas-liquid
+                                 # and precipitation rows) built on thermo/'s activity models
     protocols.py                 # Engine protocols, EquilibriumResult
     numerical_gradient.py        # NumericalGradientEquilibriumEngine (wraps any engine)
     engines/
@@ -387,7 +388,8 @@ PyOMES/
                                  # ionic_strength.py (suffix-based ionic strength)
       nr/                        # engine.py (NRChemicalEquilibriumEngine), tableau.py, solver.py
       phreeqc.py                 # PHREEQCChemicalEquilibriumEngine (optional phreeqpython)
-  thermo/                        # Activity models (Ideal/Davies/SIT), ThermoFramework, water properties,
+  thermo/                        # Stateless models and conventions (no solvers; depends only on units.py):
+                                 # activity models (Ideal/Davies/SIT), ThermoFramework, water properties,
                                  # make_activity_model, van 't Hoff helpers (equilibrium_constants.py),
                                  # gas_eos.py (IdealGasEOS, PengRobinsonEOS)
   control/                       # Controllers and profiles
