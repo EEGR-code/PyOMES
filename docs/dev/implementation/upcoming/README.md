@@ -59,6 +59,23 @@ that still describe open work are "Open phases" and the pending stages in
   — proposes deleting it too. Three open polish/scoping questions
   (re-export? keep the sibling import lazy? bundle the two findings in
   one checklist?), none blocking. No branch, no checklist, no code yet.
+- **[PARTITION_CONSTRAINT_RELOCATION.md](PARTITION_CONSTRAINT_RELOCATION.md)** —
+  2026-09-23. Develops `OPEN_WORK.md`'s "Package-level layering" entry (the
+  remaining `chemistry` <-> `reactions` package cycle) into a concrete plan.
+  `chemistry/partition.py`'s `HenryEquilibrium`/`RaoultEquilibrium`/
+  `KspEquilibrium` also satisfy `reactions`' `EquilibriumConstraint` and are
+  the only pieces importing `reactions/`; the protocols
+  (`PartitionModel`, `MultispeciesPartitionModel`) and
+  `MultispeciesVLEPartition` need nothing from it. Picks OPEN_WORK's option
+  (b): move the three classes (plus `_resolve_species`) into `reactions/`,
+  leave the protocols in `chemistry/` — which fully removes the
+  `chemistry -> reactions` edge. Consumer inventory: 3 production files
+  with real imports plus `models/vlmodels/adm1/base.py`, docstring-only
+  references elsewhere in `PyOMES/`, and 31 external files (17 tests,
+  notebooks, scripts, docs). No re-export shim (would recreate the cycle).
+  Ends with a package-level layering test. Open questions: new file vs merge
+  into `reactions/equilibrium.py`, `reactions/__init__.py` exports. No
+  branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
