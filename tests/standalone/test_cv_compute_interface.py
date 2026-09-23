@@ -275,7 +275,7 @@ class TestAlgebraicSpecies:
     def test_bsm2_equilibrium_set_includes_carbonate_and_nh(self):
         """EquilibriumSet.bsm2_default() species_refs are all in algebraic_species."""
         from PyOMES.chemical_equilibrium import BisectionChemicalEquilibriumEngine
-        from PyOMES.chemistry.equilibria import EquilibriumSet
+        from PyOMES.chemical_equilibrium.engines.bisection.equilibria import EquilibriumSet
         eq_set = EquilibriumSet.bsm2_default()
         engine = BisectionChemicalEquilibriumEngine()
         engine._equilibrium_set = eq_set
@@ -291,7 +291,7 @@ class TestAlgebraicSpecies:
     def test_bsm2_vfa_entries_not_included(self):
         """BSM2 VFA entries have no species_refs and must NOT be in the frozenset."""
         from PyOMES.chemical_equilibrium import BisectionChemicalEquilibriumEngine
-        from PyOMES.chemistry.equilibria import EquilibriumSet
+        from PyOMES.chemical_equilibrium.engines.bisection.equilibria import EquilibriumSet
         eq_set = EquilibriumSet.bsm2_default()
         engine = BisectionChemicalEquilibriumEngine()
         engine._equilibrium_set = eq_set

@@ -16,7 +16,7 @@
   checkpoint: edit, run its sanity check, report, stop, and hand over the
   commands.
 - No shims, aliases or re-exports (decision 1 below).
-- Use `git mv` for the move. Leave `docs/dev/implementation/shipped/` untouched,
+- Move the file with a plain filesystem move (no git commands from Claude). Leave `docs/dev/implementation/shipped/` untouched,
   and do not edit `docs/dev/ideas/` or the historical comment in
   `tests/standalone/test_bsm2_reference.py:190`; they describe past states.
 - Docs and docstrings describe current behaviour only: no phase or checkpoint
@@ -107,8 +107,10 @@ nothing to edit there. The install is editable, so the move needs no reinstall.
 
 ### Checkpoints
 
-- [ ] 1. Move the module. `git mv PyOMES/chemistry/equilibria.py
-      PyOMES/chemical_equilibrium/engines/bisection/equilibria.py`; rewrite its
+- [x] 1. Move the module (a plain filesystem move, since the owner runs git;
+      `git add` records it as a rename)
+      `PyOMES/chemistry/equilibria.py` ->
+      `PyOMES/chemical_equilibrium/engines/bisection/equilibria.py`; rewrite its
       two imports to `from ....units import R_J_PER_MOL_K as _R_J` and
       `from ....chemistry.common_species import CO2, HCO3_minus, CO3_2minus,
       NH4_plus, NH3`. `engine.py`: lazy import becomes
@@ -125,6 +127,19 @@ nothing to edit there. The install is editable, so the move needs no reinstall.
       `test_bsm2_reference.py` pass; full suite **2086 passed**; repo-wide
       search finds no remaining `chemistry.equilibria` outside shipped docs,
       `docs/dev/ideas/`, the design note and `OPEN_WORK.md`.
+      _Notes: done 2026-09-23. Sanity: `import PyOMES` and the new deep import
+      work; the four files `test_import_graph_acyclic.py`,
+      `test_cv_compute_interface.py`, `test_bsm2_reference.py` and
+      `test_speciation.py` give 75 passed; full suite **2086 passed**, 0 failed,
+      166 warnings, 3m04s (unchanged from the baseline). No `.py`, `.ipynb`,
+      `.toml`, `.yml` or `.json` file outside `docs/dev/` still names
+      `chemistry.equilibria`. The moved file keeps the `....` relative-import
+      style its neighbours (`engine.py`, `acid_base.py`) already use, even
+      though the package also uses absolute `from PyOMES...` imports elsewhere
+      (`control/`, `templates/`, `chemistry/partition.py`); the mixed style is
+      logged in checkpoint 2's `OPEN_WORK.md` edits, not changed here. A stale
+      `chemistry/__pycache__/equilibria.cpython-312.pyc` is left behind
+      (gitignored, and never imported without its source)._
 - [ ] 2. Delete `EquilibriumSet.bsm2_default()`.
       `equilibria.py`: remove the method and its "Factory presets" header, the
       "Load a preset and modify (approach 2)" block from the module docstring
@@ -141,7 +156,10 @@ nothing to edit there. The install is editable, so the move needs no reinstall.
       Jeppsson 2006 values; drop the claim of matching a preset that no longer
       exists). `OPEN_WORK.md`: correct the bullets at ~273-277 and ~374 (fallback
       is not reached by BSM2 and there is no preset), add a short entry for the
-      now-unreachable-from-repo-code fallback, close out the `EquilibriumSet`
+      now-unreachable-from-repo-code fallback, add one for the mixed
+      relative/absolute import style (15 lines of 3+ dot imports, all in
+      `engines/bisection/` and `engines/nr/`; absolute `from PyOMES...` used in
+      `control/`, `templates/`, `chemistry/partition.py`), close out the `EquilibriumSet`
       location bullet (~681-684) and fix the "Three small loose ends" heading
       count.
       Sanity: repo-wide search for `bsm2_default` finds only historical docs

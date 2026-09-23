@@ -15,7 +15,7 @@ default chemistry of its own.
 Two solve paths are available inside :meth:`BisectionChemicalEquilibriumEngine.solve`:
 
 - **Declared-reaction path** (primary): when the engine carries an
-  :class:`~PyOMES.chemistry.equilibria.EquilibriumSet` (built by
+  :class:`~PyOMES.chemical_equilibrium.engines.bisection.equilibria.EquilibriumSet` (built by
   :meth:`~BisectionChemicalEquilibriumEngine.from_reactions`), concentrations are read
   from the phase state and the charge balance is solved via
   :func:`~PyOMES.chemical_equilibrium.engines.bisection.acid_base.solve_from_equilibrium_set`.
@@ -89,7 +89,7 @@ class BisectionChemicalEquilibriumEngine:
     for the supplied totals.  No chemistry is hardcoded.
 
     Construct via :meth:`from_reactions` to bind a pre-built
-    :class:`~PyOMES.chemistry.equilibria.EquilibriumSet`.
+    :class:`~PyOMES.chemical_equilibrium.engines.bisection.equilibria.EquilibriumSet`.
     """
 
     def __init__(
@@ -153,7 +153,7 @@ class BisectionChemicalEquilibriumEngine:
         (``"acid_base"``) items are further classified into
         ``"water"``, ``"acid"``, or ``"cation_acid"`` from the charge
         convention, and folded into an
-        :class:`~PyOMES.chemistry.equilibria.EquilibriumSet` carrying
+        :class:`~PyOMES.chemical_equilibrium.engines.bisection.equilibria.EquilibriumSet` carrying
         the pKa values and Van 't Hoff temperature parameters. The
         engine is constructed pre-loaded with this set; subsequent
         ``solve(**kwargs)`` calls without an explicit
@@ -199,7 +199,7 @@ class BisectionChemicalEquilibriumEngine:
             solid-liquid items live on ``engine.cross_phase_constraints``.
         """
         from collections import defaultdict
-        from ....chemistry.equilibria import EquilibriumSet
+        from .equilibria import EquilibriumSet
         from ....reactions.equilibrium import (
             EquilibriumConstraint, EquilibriumReaction,
             classify_equilibrium_constraint,
