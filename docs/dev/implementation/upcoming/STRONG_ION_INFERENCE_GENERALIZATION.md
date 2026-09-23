@@ -383,7 +383,8 @@ stays: `COMPOUND_DB`, `resolve_compound` and `validate_compound_id`
 for checkpoint 15 to decide on. A species-based replacement (weighed salt →
 species amounts, molar masses from `Species`/`ChemicalRegistry`) is logged in
 `OPEN_WORK.md`, not built here. See decision D1 in
-[`CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md).
+[`../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`](../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md)
+(shipped 2026-09-23).
 
 **Update 2026-09-22 (same phase, checkpoint 15, decision D2): `registry.py`
 deleted entirely.** Its last consumer, `PHController.__post_init__`'s

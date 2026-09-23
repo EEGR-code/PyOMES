@@ -3,9 +3,11 @@
 > Status: design note, not yet started. No branch, no checklist, no code
 > yet. Surfaced 2026-09-22 during a conversational investigation of
 > whether `chemistry/common_species.py` should move to `PyOMES/databases/`
-> (see `CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`'s package-layering
-> thread and `OPEN_WORK.md`'s "Package-level layering" entry for that
-> original question). The relocation question turned out to be secondary
+> (see
+> [`../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`](../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md)'s
+> package-layering thread and `OPEN_WORK.md`'s "Package-level layering"
+> entry for that original question — that phase shipped 2026-09-23; this
+> note was not part of its scope). The relocation question turned out to be secondary
 > to a more important finding made along the way: species-id resolution
 > in three internal call sites is not model-scoped at all — it falls
 > back to scanning `common_species.py`'s module namespace, silently, for

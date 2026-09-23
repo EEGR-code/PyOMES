@@ -146,23 +146,37 @@ that still describe open work are "Open phases" and the pending stages in
   example. Its proposed location, `demos/model_api/recorder_comparison.py`,
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
-- **[CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md)** —
-  2026-09-21. Review of `chemistry/`, `kinetics/` and `reactions/` in the style
-  of `chemical-equilibrium-engines-subfolder`: dead code (`kinetics/`,
-  `thermo_params.py`, the recipe layer, the top-level `equilibria/` package,
-  deprecated `HenryPartition`/`RaoultPartition` aliases), import deferrals that
-  no longer work around anything (the one real cycle is
-  `equilibria.py` ↔ `thermo_params.py`), three Monod implementations
-  (bit-identical on physical inputs; to become one), and two defects
-  (`ChemistryDatabase.extend()` drops the solver; `PHController`'s id validator
-  checks the wrong table). Decisions D1-D8 settled 2026-09-21; numerics-changing
-  follow-ups (van 't Hoff, constants) and larger redesigns (gas EOS consistency,
-  multi-species rate-law parameters, package layering) are deliberately left to
-  `OPEN_WORK.md`. Checklist:
-  [CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md](CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
-  Branch `chemistry-reactions-kinetics-cleanup` created; no code yet.
-
 ## Recently shipped
+
+- `chemistry-reactions-kinetics-cleanup` (2026-09-23) — review of `chemistry/`,
+  `kinetics/` and `reactions/` in the style of
+  `chemical-equilibrium-engines-subfolder`. 20 checkpoints: dead code deleted
+  (`kinetics/`, `thermo_params.py`, the recipe layer — `chem_recipe.py`,
+  `recipe.py`, `types.py`, `registry.py` — the top-level `equilibria/`
+  package, deprecated `HenryPartition`/`RaoultPartition` aliases, the three
+  unused `EquilibriumSet` presets, `tests/legacy/`); import deferrals hoisted
+  that no longer worked around anything; three Monod implementations
+  unified into one; two defects fixed (`ChemistryDatabase.extend()` was
+  dropping the solver/label/engine config; `PHController`'s constructor-time
+  id validator checked the wrong, since-deleted table — dropped rather than
+  fixed, no replacement built); `chemistry/database.py`/`chemistry/databases/`
+  moved to `PyOMES/databases/` (D7); `chemistry.__all__` shrunk to names
+  still used, plus a new `plots` extra. Three checkpoints added after the
+  original D1-D8 audit closed, from a conversational review that also
+  produced [`EXPLICIT_SPECIES_RESOLUTION.md`](EXPLICIT_SPECIES_RESOLUTION.md)
+  (logged separately, not part of this phase): `_ATOMIC_WEIGHTS` moved from
+  `chemistry/species.py` to `PyOMES/units.py` (a physical-constants table,
+  not domain data); `chemistry/compounds.py` moved to `PyOMES/compounds.py`
+  (no dependency on `Species` or anything else in `chemistry/`); and
+  `ChemicalRegistry.IDs`/`FeedState`/`stream_adapter.py` deleted outright
+  (confirmed zero consumers anywhere in the repo outside their own tests).
+  Findings logged rather than fixed along the way — see `OPEN_WORK.md` for
+  van 't Hoff/constants duplication, gas EOS consistency, multi-species
+  rate-law parameters, the remaining `chemistry`<->`reactions` package-level
+  cycle via `partition.py`, and molar-mass unification between `Chemical`
+  and `Species`. Full suite green post-merge: 2086 passed, 0 failed. Tag
+  `chemistry-reactions-kinetics-cleanup-shipped`. See
+  [`../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md`](../shipped/CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
 
 - `chemical-equilibrium-engines-subfolder` (2026-09-20) — moved the three
   chemical-equilibrium engines (Bisection, NR, PHREEQC) out of a flat 16-file

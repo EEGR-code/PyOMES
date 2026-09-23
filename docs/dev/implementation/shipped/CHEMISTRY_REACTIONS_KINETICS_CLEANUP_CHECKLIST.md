@@ -1,10 +1,16 @@
 # Phase Kickoff Checklist — chemistry-reactions-kinetics-cleanup
 
+> **Status: Shipped 2026-09-23** — merged into `main` via `git merge --no-ff`
+> as commit `c41995d`, tagged `chemistry-reactions-kinetics-cleanup-shipped`.
+> Full suite green post-merge: 2086 passed, 0 failed. Remote and local
+> feature branch both deleted.
+
 > Checklist for [`CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md`](CHEMISTRY_REACTIONS_KINETICS_CLEANUP.md),
 > the source of truth for goals, audit and decisions D1-D8 (all settled
-> 2026-09-21); do not restate them here. See `README.md`'s "Branching and tagging
+> 2026-09-21); do not restate them here. See
+> [`../upcoming/README.md`](../upcoming/README.md)'s "Branching and tagging
 > convention". Modelled on
-> [`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md`](../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md).
+> [`CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md`](CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md).
 
 **Working rules**
 

@@ -1,11 +1,27 @@
 # chemistry / kinetics / reactions cleanup — design discussion
 
-> **Status: decisions D1-D8 settled 2026-09-21.** Branch
-> `chemistry-reactions-kinetics-cleanup` exists with this doc and its checklist;
-> no code yet. Written from a review of `PyOMES/chemistry/` (3,893 lines),
-> `PyOMES/kinetics/` (308) and `PyOMES/reactions/` (2,806), plus the packages they
-> touch (`thermo/`, the top-level `equilibria/`, `chemical_equilibrium/`, `core/`,
-> `templates/`, `models/`). Checklist:
+> **Status: Shipped 2026-09-23** — merged into `main` via `git merge --no-ff`
+> as commit `c41995d`, tagged `chemistry-reactions-kinetics-cleanup-shipped`.
+> 20 checkpoints landed (17 from the original D1-D8 audit below, plus 3 more
+> — `_ATOMIC_WEIGHTS` relocation, the `compounds.py` move, and the
+> `ChemicalRegistry.IDs`/`FeedState` removal — that surfaced from a
+> conversational review after checkpoint 17 and were folded into this same
+> phase rather than split out). Full suite green post-merge: 2086 passed,
+> 0 failed. See the checklist's dated notes for what each checkpoint did;
+> see `OPEN_WORK.md` for findings surfaced along the way that were logged
+> rather than fixed (van 't Hoff/constants duplication, gas EOS consistency,
+> multi-species rate-law parameters, the remaining `chemistry`<->`reactions`
+> package-level cycle via `partition.py`, molar-mass unification between
+> `Chemical` and `Species`, and others). The species-resolution ambient-
+> fallback finding from the same late review is tracked separately, not
+> part of this phase: see
+> [`../upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](../upcoming/EXPLICIT_SPECIES_RESOLUTION.md).
+>
+> Original status, pre-ship: decisions D1-D8 settled 2026-09-21. Written from
+> a review of `PyOMES/chemistry/` (3,893 lines), `PyOMES/kinetics/` (308) and
+> `PyOMES/reactions/` (2,806), plus the packages they touch (`thermo/`, the
+> top-level `equilibria/`, `chemical_equilibrium/`, `core/`, `templates/`,
+> `models/`). Checklist:
 > [`CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md`](CHEMISTRY_REACTIONS_KINETICS_CLEANUP_CHECKLIST.md).
 
 ## Commit discipline for this phase
