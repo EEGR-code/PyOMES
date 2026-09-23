@@ -67,8 +67,8 @@
       2026-09-23)
 - [x] Full-suite baseline on `main`: **2086 passed**, 0 failed, 166 warnings,
       2m41s (`python -m pytest -p no:cacheprovider -q`)
-- [ ] Branch created off `main`: `partition-constraint-relocation`
-- [ ] This checklist committed on that branch as the first commit
+- [x] Branch created off `main`: `partition-constraint-relocation`
+- [x] This checklist committed on that branch as the first commit (`5af2cc0`)
 
 ## During
 
@@ -179,7 +179,7 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
 
 ### Checkpoints
 
-- [ ] 1. Move the classes. Steps 1 and 2 of the note land together, since there is
+- [x] 1. Move the classes. Steps 1 and 2 of the note land together, since there is
       no shim.
       Create `PyOMES/reactions/phase_equilibria.py` holding `_resolve_species`,
       `_P_SAT_REF`, `_T_REF_WATER`, `HenryEquilibrium`, `RaoultEquilibrium` and
@@ -211,6 +211,28 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       `test_hpc_checkpointing.py` and `test_bsm2_reference.py` pass; full suite
       **2086 passed**; `chemistry/partition.py` contains no `reactions`; no
       `.py` outside `docs/` still imports the classes from `PyOMES.chemistry`.
+      _Notes: done 2026-09-23. Suite before: **2086 passed** (3m33s); after:
+      **2086 passed**, 0 failed, 166 warnings, 4m02s. The six targeted files give
+      147 passed. Every entry point imports in a fresh interpreter, including
+      `phase_equilibria` first and `partition` before `reactions`;
+      `chemistry/` code has no `reactions` import (only a `>>>` example in
+      `common_species.py:23`, which is a docstring, not an import). Neither
+      `partition.py` nor `phase_equilibria.py` has an unused import. The moved code
+      is verbatim except the module docstring, the `_resolve_species` docstring
+      (it claimed to skip "the extra hop through `reactions`", no longer true in
+      `reactions/`), the reworded design-note pointers (decision 5), and the dropped
+      `TYPE_CHECKING` block. One correction while rewriting: the old module
+      docstring said only "single-ion" `KspEquilibrium` satisfies
+      `EquilibriumConstraint`; the class satisfies it for any stoichiometry, and
+      only its `PartitionModel` role is single-ion, so the new docstring says that.
+      Production imports follow their neighbours: deep
+      `..reactions.phase_equilibria` in `databases/` and `factory.py`, package-level
+      `PyOMES.reactions` in `adm1/base.py`. The 17 test files were rewritten by a
+      script (77 import lines, 5 of them split into two lines) because they use CRLF
+      line endings and the Edit tool would have risked bare LFs; the diff shows no
+      other change and no LF-only lines. Remaining old-path references, all for
+      later checkpoints: the docstring paths listed in checkpoint 2, 7 notebooks
+      plus the gitignored `scratch/` copies, and the two `docs/tutorials` scripts._
 - [ ] 2. Repoint docstring and comment paths in `PyOMES/`: `~PyOMES.chemistry.
       partition.X` and `~PyOMES.chemistry.HenryEquilibrium` become
       `~PyOMES.reactions.phase_equilibria.X` in `bisection/engine.py:147-149`,

@@ -30,8 +30,8 @@ Usage::
 from __future__ import annotations
 
 from ..chemistry.common_species import H_plus, H2S, HS_minus
-from ..chemistry.partition import HenryEquilibrium
 from ..reactions.equilibrium import EquilibriumReaction
+from ..reactions.phase_equilibria import HenryEquilibrium
 from ..reactions.reaction_system import ReactionSystem
 from ..reactions.stoichiometry import StoichiometryEntry
 from .bioprocess_basic import BIOPROCESS_BASIC

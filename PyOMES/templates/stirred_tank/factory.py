@@ -44,7 +44,8 @@ from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.transfer_models import KineticTransferModel, EquilibriumTransferModel
 from PyOMES.core.boundaries import GasFeed
-from PyOMES.chemistry.partition import HenryEquilibrium, PartitionModel
+from PyOMES.chemistry.partition import PartitionModel
+from PyOMES.reactions.phase_equilibria import HenryEquilibrium
 from PyOMES.databases.database import ChemistryDatabase
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
 

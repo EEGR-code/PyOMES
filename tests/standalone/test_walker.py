@@ -12,7 +12,7 @@ Validates:
 
 import pytest
 
-from PyOMES.chemistry import HenryEquilibrium
+from PyOMES.reactions import HenryEquilibrium
 
 
 def _hp(kH: float, dlnH: float = 0.0) -> HenryEquilibrium:

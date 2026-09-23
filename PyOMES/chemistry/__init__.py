@@ -8,7 +8,6 @@ or anything else here.
 
 from .partition import (
     PartitionModel,
-    HenryEquilibrium, RaoultEquilibrium, KspEquilibrium,
     MultispeciesPartitionModel, MultispeciesVLEPartition,
 )
 from .species import Species, SpeciesConflictError
@@ -17,9 +16,6 @@ from . import common_species
 
 __all__ = [
     "PartitionModel",
-    "HenryEquilibrium",
-    "RaoultEquilibrium",
-    "KspEquilibrium",
     "MultispeciesPartitionModel",
     "MultispeciesVLEPartition",
     "Species",

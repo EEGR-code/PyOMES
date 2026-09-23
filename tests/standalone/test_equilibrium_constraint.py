@@ -82,7 +82,7 @@ _H2S_DLN_H = 2100.0
 
 class TestHenryEquilibriumConformance:
     def _henry(self, **kwargs):
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         return HenryEquilibrium(
             H_ref=_H2S_H_REF, dlnH=_H2S_DLN_H,
             gas_species="H2S", liquid_species="H2S",
@@ -128,7 +128,7 @@ class TestHenryEquilibriumConformance:
         assert liq_entry.species.id == "H2S"
 
     def test_stoichiometry_empty_when_species_unset(self):
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         hp = HenryEquilibrium(H_ref=_H2S_H_REF, dlnH=0.0)
         assert hp.stoichiometry == ()
 
@@ -145,37 +145,38 @@ class TestHenryEquilibriumConformance:
 
 class TestRaoultEquilibriumConformance:
     def test_isinstance_partition_model(self):
-        from PyOMES.chemistry import RaoultEquilibrium, PartitionModel
+        from PyOMES.chemistry import PartitionModel
+        from PyOMES.reactions import RaoultEquilibrium
         assert isinstance(RaoultEquilibrium(), PartitionModel)
 
     def test_isinstance_equilibrium_constraint(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.reactions.equilibrium import EquilibriumConstraint
         assert isinstance(RaoultEquilibrium(), EquilibriumConstraint)
 
     def test_default_species_are_water(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         rp = RaoultEquilibrium()
         assert rp.gas_species == "H2O"
         assert rp.liquid_species == "H2O"
 
     def test_T_ref_K_matches_T_ref(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         rp = RaoultEquilibrium()
         assert rp.T_ref_K == pytest.approx(rp.T_ref)
 
     def test_log_K_matches_manual_conversion(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         rp = RaoultEquilibrium()
         assert rp.log_K == pytest.approx(-math.log10(rp.P_sat_ref), rel=1e-12)
 
     def test_dH_J_per_mol_matches_manual_conversion(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         rp = RaoultEquilibrium()
         assert rp.dH_J_per_mol == pytest.approx(-rp.dH_vap, rel=1e-12)
 
     def test_stoichiometry_gas_liquid_water(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         rp = RaoultEquilibrium()
         entries = rp.stoichiometry
         assert len(entries) == 2
@@ -187,7 +188,7 @@ class TestRaoultEquilibriumConformance:
         assert liq_entry.coefficient == pytest.approx(+1.0)
 
     def test_stoichiometry_empty_when_species_unset(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         rp = RaoultEquilibrium(gas_species=None, liquid_species=None)
         assert rp.stoichiometry == ()
 
@@ -196,7 +197,7 @@ class TestRaoultEquilibriumConformance:
 
 class TestKspEquilibriumSingleIon:
     def _ksp(self, **kwargs):
-        from PyOMES.chemistry import KspEquilibrium
+        from PyOMES.reactions import KspEquilibrium
         from PyOMES.chemistry.species import Species
         MineralX_solid = Species(id="MineralX(s)", atoms={"Mn": 1, "O": 1}, charge=0)
         MineralX_aq = Species(id="MineralX", atoms={"Mn": 1, "O": 1}, charge=0)
@@ -251,7 +252,7 @@ class TestKspEquilibriumSingleIon:
 
 class TestKspEquilibriumMultiIon:
     def _ksp(self):
-        from PyOMES.chemistry import KspEquilibrium
+        from PyOMES.reactions import KspEquilibrium
         from PyOMES.chemistry.common_species import Ca_plus_plus, CO3_2minus
         from PyOMES.chemistry.species import Species
         from PyOMES.reactions.stoichiometry import StoichiometryEntry

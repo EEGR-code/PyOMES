@@ -54,7 +54,8 @@ from __future__ import annotations
 
 import pytest
 
-from PyOMES.chemistry import Species, HenryEquilibrium
+from PyOMES.chemistry import Species
+from PyOMES.reactions import HenryEquilibrium
 from PyOMES.chemistry.common_species import (
     H2O, H_plus, OH_minus,
     H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,

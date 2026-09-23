@@ -230,7 +230,7 @@ class TestChemistryDatabasePartitionModels:
         return ChemistryDatabase(thermo=ThermoFramework())
 
     def _hp(self, h_ref=1e-4, dln_h=0.0):
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         return HenryEquilibrium(H_ref=h_ref, dlnH=dln_h)
 
     def test_default_partition_models_empty(self):

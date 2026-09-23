@@ -3800,7 +3800,7 @@ class TestADM1Simulation:
         from vlmodels.adm1.base import (
             build_adm1_reactions, build_adm1_cv, seed_adm1_strong_ions,
         )
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.core import Simulation
 
         rxn_set = build_adm1_reactions()

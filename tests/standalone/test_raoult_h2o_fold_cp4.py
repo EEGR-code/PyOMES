@@ -54,7 +54,7 @@ class TestRaoultTableauFold:
 
     @pytest.fixture(scope="class")
     def engine(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         return NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn(), RaoultEquilibrium()], T_K=298.15,
@@ -77,7 +77,7 @@ class TestRaoultTableauFold:
     def test_partial_pressure_matches_raoult_P_sat(self, engine):
         """The fold's value must exactly match RaoultEquilibrium's own
         P_sat(T) — the whole point of the constant-relation design."""
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         raoult = RaoultEquilibrium()
         out = engine.solve(totals={}, strong_ions={}, V_liq_L=1.0, V_gas_L=0.2)
         assert out.partial_pressures_atm["H2O"] == pytest.approx(
@@ -87,7 +87,7 @@ class TestRaoultTableauFold:
     def test_partial_pressure_temperature_dependence_matches_raoult(self):
         """Van't Hoff correction via the tableau must agree with
         RaoultEquilibrium.P_sat() at a non-reference temperature too."""
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         raoult = RaoultEquilibrium()
@@ -112,7 +112,7 @@ class TestRaoultTableauFold:
         from PyOMES.chemistry.common_species import (
             H2O, H_plus, CO2, HCO3_minus, CO3_2minus,
         )
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.reactions.equilibrium import EquilibriumReaction
         from PyOMES.reactions.stoichiometry import StoichiometryEntry as E
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -177,7 +177,7 @@ class TestWaterVapourBoundaryRetirement:
     BisectionChemicalEquilibriumEngine)."""
 
     def _make_cv(self, *, liq_h2o_mol, gas_h2o_mol=0.0, V_liq=1.6, V_gas=0.4, T_K=308.15):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.core.control_volume import ControlVolume
         from PyOMES.core.transfer_models import EquilibriumTransferModel
@@ -220,7 +220,7 @@ class TestWaterVapourBoundaryRetirement:
         WaterVapourBoundary's own stated behaviour (it targeted the same
         physical saturation state, just via a different, non-conserving
         mechanism)."""
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         cv = self._make_cv(liq_h2o_mol=88.8, gas_h2o_mol=0.0, T_K=308.15)
         for _ in range(50):
             cv.step_internal_transfer(dt_h=0.05)
