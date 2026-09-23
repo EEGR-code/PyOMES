@@ -140,7 +140,7 @@ nothing to edit there. The install is editable, so the move needs no reinstall.
       logged in checkpoint 2's `OPEN_WORK.md` edits, not changed here. A stale
       `chemistry/__pycache__/equilibria.cpython-312.pyc` is left behind
       (gitignored, and never imported without its source)._
-- [ ] 2. Delete `EquilibriumSet.bsm2_default()`.
+- [x] 2. Delete `EquilibriumSet.bsm2_default()`.
       `equilibria.py`: remove the method and its "Factory presets" header, the
       "Load a preset and modify (approach 2)" block from the module docstring
       (relabel the remaining example), and the now-unused `common_species`
@@ -167,6 +167,24 @@ nothing to edit there. The install is editable, so the move needs no reinstall.
       checklist and the design note); both named test files pass; full suite
       **2086 passed** (two tests replaced by two); `equilibria.py` ~465 lines
       with no import from `chemistry/`.
+      _Notes: done 2026-09-23. Sanity: the four targeted test files give 75
+      passed; full suite **2086 passed**, 0 failed, 166 warnings, 3m53s.
+      `equilibria.py` is 459 lines and imports only `....units` (no import from
+      `chemistry/`). Repo-wide search for `bsm2_default` now finds only this
+      checklist, the design note, `upcoming/README.md`, the two new
+      `OPEN_WORK.md` entries, and `test_bsm2_reference.py:190` (a historical
+      narrative, left alone). Beyond the plan: the two docstrings in
+      `equilibria.py` that said "BSM2 defines CO₂ as diprotic" / "BSM2
+      monoprotic CO₂" described the deleted preset, so they were made generic;
+      `test_speciation.py`'s class docstring lost its `chemistry-unification-3b`
+      label along with its `bsm2_default()` reference; `OPEN_WORK.md` paths that
+      named `chemistry/equilibria.py` (~166, ~463) were repointed. The module
+      docstring's examples were never valid doctests (`set_water()`/`add()`
+      return `self`, which doctest would print), so the new `remove()` example
+      matches them rather than fixing that; doctests are not collected by
+      pytest here. New tests: `test_equilibrium_set_species_refs_in_algebraic_species`
+      and `test_entries_without_species_refs_not_included`, sharing
+      `_make_synthetic_equilibrium_set()`._
 
 ## Shipping
 

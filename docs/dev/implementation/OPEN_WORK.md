@@ -163,7 +163,7 @@ estimating seven left in the package after the phase — an estimate, not a
 re-checked invariant. What did happen, checked directly: deleting
 `chemistry/thermo_params.py` at checkpoint 7 (2026-09-22, decision D3 — its
 `AcidDefinition.pKas_at_T`/`WaterDefinition.Kw_at_T` had no consumer) removed
-two copies outright; `chemistry/equilibria.py`'s own
+two copies outright; `chemical_equilibrium/engines/bisection/equilibria.py`'s own
 `EquilibriumDef.pKas_at_T`/`WaterDef.Kw_at_T` (same formula, real consumer)
 survived unmerged, just repointed to import `R_J_PER_MOL_K` from `units.py`
 directly; checkpoint 4's D8 fix separately collapsed a duplicate inside
@@ -270,11 +270,13 @@ prove no code change), package by package, `core/` first.
 and therefore left alone.** Some of these are not just stale labels but
 statements that are now false:
 
-- `chemistry/equilibria.py:510-511` (in `EquilibriumSet.bsm2_default()`) says
-  the deprecated `_HA`/`_A-` fallback "is removed in the PARTITION_MODEL phase".
-  That phase shipped and the fallback is still live: the four VFA rows
-  (`S_ac`, `S_pro`, `S_bu`, `S_va`) have no `species_refs`, so the BSM2 model
-  still uses it. The same false promise was in `acid_base.py` and was rewritten.
+- `EquilibriumSet.bsm2_default()` carried a comment saying the deprecated
+  `_HA`/`_A-` fallback "is removed in the PARTITION_MODEL phase", on the
+  grounds that its four VFA rows had no `species_refs`. The method has since
+  been deleted, and the premise was wrong anyway: the BSM2 model builds its
+  `EquilibriumSet` through `from_reactions()`, which gives every entry
+  `species_refs`. See "Deprecated `{name}_HA` fallback is unreachable from
+  repo code" below.
 - `core/gas_liquid_link.py:928,958,966` cite
   `...bisection.acid_base._CANONICAL_NAMES`, which no longer exists.
 - `reactions/reaction_system.py:250` cites `EQUILIBRIUM_CONSTRAINT_UNIFICATION CP2`.
@@ -370,8 +372,8 @@ changes numbers. Three implementations of `I = ½ Σ z²c`:
   approximate compositions.
 
 Declared charges cannot simply replace the suffix rule in Bisection: the
-deprecated `{name}_HA` / `{name}_A-` keys (the VFA rows of
-`EquilibriumSet.bsm2_default()`) and `Cation(inert)` / `Anion(inert)` have no
+deprecated `{name}_HA` / `{name}_A-` keys (emitted only for entries added to
+an `EquilibriumSet` by hand without `species_refs`) and `Cation(inert)` / `Anion(inert)` have no
 `Species` objects. A replacement would have the emitter return a `{key: charge}`
 map alongside the concentrations. The comment at `tests/standalone/test_bsm2_reference.py:185-203`
 shows the risk: a species emitted under a key the rule does not recognise
@@ -460,7 +462,8 @@ or deleted several files the 2026-09-20 survey table counted literals in —
 per-file counts are stale, though the phase was pure-refactor for these
 literals (moved, not edited), so the aggregate totals per constant should be
 close to unchanged. Spot check: `101325`/`298.15` alone still appear 18 times
-across just `chemistry/partition.py`, `thermo/gas_eos.py`, `chemistry/equilibria.py`,
+across just `chemistry/partition.py`, `thermo/gas_eos.py`,
+`chemical_equilibrium/engines/bisection/equilibria.py`,
 `reactions/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
 survey against the new layout is part of picking this sweep up, not done here.
 
@@ -664,7 +667,7 @@ non-physical. A fix would check the sign of the derived `nO2`/`nCO2` (or a
 thermodynamic yield bound) and raise or warn when the requested yield isn't
 achievable by aerobic respiration.
 
-## Three small loose ends from the `chemistry-reactions-kinetics-cleanup` audit
+## Two small loose ends from the `chemistry-reactions-kinetics-cleanup` audit
 
 Logged 2026-09-21/22, not built — grouped here because each is small and
 independent, not because they are related to each other.
@@ -678,10 +681,6 @@ independent, not because they are related to each other.
   agree, if the divergence ever causes a real bug (audit found up to sixteen
   compounds with disagreeing molar masses between `Chemical` and other tables
   before this phase's deletions removed most of those tables).
-- **`EquilibriumSet` location.** `chemistry/equilibria.py`'s `EquilibriumSet`
-  is consumed only by the Bisection engine
-  (`chemical_equilibrium/engines/bisection/`), not by NR or PHREEQC. Arguably
-  belongs closer to its one real consumer than in `chemistry/`.
 - **`plot_vant_hoff` has no caller.** `reactions/plots.py`'s `plot_vant_hoff`
   (and `reactions/equilibrium.py`'s `EquilibriumReaction.plot_vant_hoff`
   wrapper) has no caller anywhere in the repo — no pytest coverage, no
@@ -689,3 +688,34 @@ independent, not because they are related to each other.
   since trimming plotting helpers wasn't this phase's scope. `plots.py` now
   has its own `plots` extra (`pyproject.toml`, checkpoint 16 of the same
   phase) if it is kept.
+
+## Deprecated `{name}_HA` fallback is unreachable from repo code
+
+Found 2026-09-23 while deleting `EquilibriumSet.bsm2_default()`, not fixed.
+`_compute_species_eq` in `chemical_equilibrium/engines/bisection/acid_base.py`
+keeps a deprecated path that emits `{name}_HA` / `{name}_A-` / `{name}_BH+` /
+`{name}_B` keys (via `_species_key`) for `EquilibriumDef` entries with no
+`species_refs`. `BisectionChemicalEquilibriumEngine.from_reactions()` always
+sets `species_refs` (`_add_acid` and `_add_polyprotic_acid` in `engine.py`),
+including for BSM2's four VFA rows (`S_ac` gets `['S_ac', 'S_ac-']`, checked by
+building the engine from `_build_bsm2_equilibrium_reactions()`). So nothing in
+the repo reaches the fallback; only an `EquilibriumSet` built by hand with
+`add()` and no `species_refs`, then passed to `solve(equilibrium_set=...)`, does.
+An earlier entry in this file claimed BSM2 still used it; that was wrong.
+
+A candidate for deletion, together with the `else` branch of
+`_populate_totals_from_phases` (`engine.py`, reads `n_mol` by entry name) and,
+if nothing else needs them, the generic-key half of the suffix rule described
+under the ionic-strength duplication entry above. Check the tests that build
+generic keys directly (`test_speciation.py`) before removing anything.
+
+## Relative imports three or more dots deep
+
+Found 2026-09-23 while moving `EquilibriumSet`, not fixed. 14 lines across 6
+files use `from ....thermo import ...`-style imports, all in
+`chemical_equilibrium/engines/bisection/` and `chemical_equilibrium/engines/nr/`,
+where the extra nesting level made them long. The rest of the package
+(`control/`, `templates/stirred_tank/`, `chemistry/partition.py`) uses absolute
+`from PyOMES.… import …`. Both work with the editable install. Converting the
+14 lines is mechanical; pick one convention if the package ever gets a style
+pass.

@@ -1075,13 +1075,13 @@ def _generalised_acid_charge(H, CT, Kas):
     return 0.0, anion_charge
 
 
-# All recognised acid systems (CO₂, NH₄⁺/NH₃, phosphate, bisulfate)
-# carry ``species_refs`` on their ``EquilibriumDef`` so
+# Every acid system that ``BisectionChemicalEquilibriumEngine.from_reactions``
+# builds carries ``species_refs`` on its ``EquilibriumDef`` so
 # ``_compute_species_eq`` emits by ``Species.id`` directly.
 # The only fallback in ``_compute_species_eq`` is the deprecated generic
 # ``{name}_HA``/``{name}_A-`` path for string-based entries without
-# ``species_refs`` (the VFA rows in ``EquilibriumSet.bsm2_default()``
-# still use it).
+# ``species_refs``; only an ``EquilibriumSet`` built by hand with ``add()``
+# and no ``species_refs`` reaches it.
 
 
 def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
@@ -1102,8 +1102,7 @@ def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
        ``{name}_HA`` / ``{name}_A-`` / ``{name}_BH+`` / ``{name}_B``
        via :func:`_species_key`.  These are **deprecated** —
        string-based ``EquilibriumDef`` entries without ``species_refs``
-       (e.g. the VFA rows in ``EquilibriumSet.bsm2_default()``) still
-       use this path.
+       (added by hand with ``EquilibriumSet.add()``) still use this path.
     """
     H = 10.0 ** (-float(pH))
     OH = Kw / (gamma_H * gamma_OH * H) if H > 0 else 0.0
@@ -1127,7 +1126,7 @@ def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
                     out[refs[1].id] = float(B)
             else:
                 # Deprecated generic path: string-based entry without
-                # species_refs (e.g. VFA rows in EquilibriumSet.bsm2_default()).
+                # species_refs (added by hand with EquilibriumSet.add()).
                 out[f"{eq_def.name}_BH+"] = float(BH)
                 out[f"{eq_def.name}_B"] = float(B)
 
@@ -1142,7 +1141,7 @@ def _compute_species_eq(pH, eq_data, Kw, gamma_H, gamma_OH, strong_ions):
                     out[refs[i].id] = float(CT * alphas[i])
             else:
                 # Deprecated generic path: string-based entry without
-                # species_refs (e.g. VFA rows in EquilibriumSet.bsm2_default()).
+                # species_refs (added by hand with EquilibriumSet.add()).
                 for i in range(n + 1):
                     key = _species_key(eq_def.name, n, i)
                     out[key] = float(CT * alphas[i])

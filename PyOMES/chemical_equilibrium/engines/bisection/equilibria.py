@@ -9,7 +9,7 @@ role (category, number of active dissociation steps).
 
 Usage
 -----
-Build from scratch (approach 1 — blank + add):
+Start from an empty set and add systems:
 
 >>> eq = EquilibriumSet()
 >>> eq.set_water(pKw=14.0, correction="van_t_hoff", dH_J_per_mol=55900.0)
@@ -18,12 +18,9 @@ Build from scratch (approach 1 — blank + add):
 ...        correction="van_t_hoff", dH_J_per_mol=(7646.0, 14900.0))
 >>> eq.add("S_ac", category="acid", pKas=(4.76,))
 
-Load a preset and modify (approach 2 — defaults + tweak):
+Systems can be removed again by name:
 
->>> eq = EquilibriumSet.bsm2_default()
->>> eq.remove("S_va")
->>> eq.add("H2S", category="acid", pKas=(7.0,),
-...        correction="van_t_hoff", dH_J_per_mol=(20000.0,))
+>>> eq.remove("S_ac")
 
 Categories
 ----------
@@ -55,7 +52,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
 from ....units import R_J_PER_MOL_K as _R_J
-from ....chemistry.common_species import CO2, HCO3_minus, CO3_2minus, NH4_plus, NH3
 
 _VALID_CATEGORIES = ("acid", "cation_acid", "inorganic_acid", "strong_ion")
 _VALID_CORRECTIONS = ("none", "van_t_hoff")
@@ -84,8 +80,8 @@ class EquilibriumDef:
         Must be ``<= len(pKas)``.  Defaults to ``len(pKas)``.
 
         This allows storing full thermodynamic data while using only
-        a subset in the charge balance.  For example, BSM2 defines
-        CO₂ as diprotic ``pKas=(6.35, 10.33)`` but sets ``n_active=1``
+        a subset in the charge balance.  For example, CO₂ can be declared
+        diprotic with ``pKas=(6.35, 10.33)`` and ``n_active=1``
         so only the first dissociation (HCO₃⁻) participates in the
         charge balance.  The second pKa is still available for other
         calculations (e.g. gas transfer speciation corrections).
@@ -258,7 +254,7 @@ class EquilibriumSet:
         n_active : int, optional
             Number of dissociation steps active in the charge balance.
             Defaults to ``len(pKas)``.  Set lower to store inactive
-            pKas as metadata (e.g. ``n_active=1`` for BSM2 monoprotic
+            pKas as metadata (e.g. ``n_active=1`` for monoprotic
             CO₂ while storing both pKa₁ and pKa₂).
         correction : str
             ``"none"`` or ``"van_t_hoff"``.
@@ -426,41 +422,6 @@ class EquilibriumSet:
 
     def __getitem__(self, name: str) -> EquilibriumDef:
         return self.get(name)
-
-    # ── Factory presets ───────────────────────────────────────────────
-
-    @staticmethod
-    def bsm2_default() -> "EquilibriumSet":
-        """BSM2-canonical ADM1 equilibria (Rosen & Jeppsson 2006).
-
-        CO₂ is diprotic but only the first dissociation is active in
-        the charge balance (``n_active=1``), matching BSM2's monoprotic
-        treatment.  The second pKa is stored for use by gas transfer
-        speciation corrections.
-
-        VFA pKas have no temperature correction.
-        """
-        eq = EquilibriumSet(T_ref_K=298.15)
-        eq.set_water(pKw=14.0, correction="van_t_hoff",
-                     dH_J_per_mol=55900.0)
-        eq.add("CO2", category="inorganic_acid",
-               pKas=(6.35, 10.33), n_active=1,
-               correction="van_t_hoff",
-               dH_J_per_mol=(7646.0, 14900.0),
-               total_key="CT_TIC",
-               species_refs=(CO2, HCO3_minus, CO3_2minus))
-        eq.add("NH4", category="cation_acid",
-               pKas=(9.25,), correction="van_t_hoff",
-               dH_J_per_mol=(51965.0,),
-               total_key="CT_NH_T",
-               species_refs=(NH4_plus, NH3))
-        # String-based VFA entries without species_refs: the engine falls
-        # back to synthesised {name}_HA / {name}_A- keys for these.
-        eq.add("S_ac",  category="acid", pKas=(4.76,))
-        eq.add("S_pro", category="acid", pKas=(4.88,))
-        eq.add("S_bu",  category="acid", pKas=(4.82,))
-        eq.add("S_va",  category="acid", pKas=(4.86,))
-        return eq
 
     # ── Repr ──────────────────────────────────────────────────────────
 
