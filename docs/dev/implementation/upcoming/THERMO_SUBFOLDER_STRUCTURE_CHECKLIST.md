@@ -422,7 +422,7 @@ uses. Line counts with `wc -l`; line endings by byte count and
       No bare LF in any new or changed file. No notebook changed. Staging: the
       `gas/` files with a plain `git add` (`gas_eos.py` was stored LF,
       decision 17)._
-- [ ] 3. **`GasEOS` as a `Protocol`** (decision 11). `@runtime_checkable class
+- [x] 3. **`GasEOS` as a `Protocol`** (decision 11). `@runtime_checkable class
       GasEOS(Protocol)` with the same two method signatures and `...` bodies;
       `IdealGasEOS` drops the base class. Known behaviour changes, all
       intended: `GasEOS()` now raises `TypeError` (nothing calls it);
@@ -432,6 +432,29 @@ uses. Line counts with `wc -l`; line endings by byte count and
       Sanity: the checkpoint-2 fingerprint bit-identical; `ThermoFramework(
       gas_eos=PengRobinsonEOS(...))` still constructs; full suite **2101
       passed**.
+      _Notes: done 2026-09-24, after checkpoint 2 was committed as `97346d2`.
+      Suite before: **2100 passed** (2m20s); after: **2101 passed**, 0 failed,
+      166 warnings, 2m11s (the one new test). `gas/protocols.py`: `GasEOS` is now
+      `@runtime_checkable class GasEOS(Protocol)` with the same two method
+      signatures, `...` bodies and one-line method docstrings; its class
+      docstring says implementations satisfy it structurally and that
+      `partial_pressures_atm` returns partial pressures for `IdealGasEOS` and
+      fugacities for `PengRobinsonEOS`. `gas/ideal.py`: `IdealGasEOS` no longer
+      subclasses `GasEOS`, and the now-unused `from .protocols import GasEOS` is
+      gone. `test_gas_eos.py`: new `TestGasEOSProtocol` with
+      `test_both_satisfy_gas_eos_without_subclassing` (it would fail on the
+      previous code on both counts). The signatures of both implementations match
+      the protocol's exactly (`inspect.signature`). Checks: the 2,768-value gas
+      fingerprint is bit-identical to checkpoint 2's (it includes
+      `isinstance(IdealGasEOS(), GasEOS)`, still true); `GasEOS()` now raises
+      `TypeError: Protocols cannot be instantiated` (nothing in the repo calls
+      it); `isinstance`/`issubclass` against `GasEOS` are true for both
+      implementations and false for `object()`; `IdealGasEOS.__mro__` is
+      `(IdealGasEOS, object)`; `ThermoFramework(gas_eos=PengRobinsonEOS(...))`
+      constructs; per-definition AST comparison against `HEAD`: `IdealGasEOS`
+      identical apart from its bases, module docstrings unchanged, only `GasEOS`
+      changed. No bare LF. The module docstring's "abstract interface" wording is
+      reviewed in checkpoint 5._
 - [ ] 4. **One `water_kg_per_L`** (decision 12). Add
       `water_kg_per_L(T_K)` to `liquid/water_properties.py` (body of the old
       `_kg_per_L`); `davies.py` and `sit.py` drop `_kg_per_L` and import it;

@@ -99,3 +99,13 @@ class TestPartialPressuresVsFugacities:
         pp = ideal.partial_pressures_atm(n_gas, T_K=self.T_K, V_L=V_L)
         for sp in ("CH4", "CO2"):
             assert fug[sp] == pytest.approx(pp[sp], rel=1e-2)
+
+
+class TestGasEOSProtocol:
+    """Both equations of state satisfy the ``GasEOS`` protocol structurally."""
+
+    def test_both_satisfy_gas_eos_without_subclassing(self):
+        from PyOMES.thermo import GasEOS, IdealGasEOS, PengRobinsonEOS, BIOGAS_SPECIES
+        for eos in (IdealGasEOS(), PengRobinsonEOS(BIOGAS_SPECIES)):
+            assert isinstance(eos, GasEOS)
+            assert GasEOS not in type(eos).__mro__

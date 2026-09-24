@@ -8,11 +8,9 @@ from typing import Dict
 
 from PyOMES.units import R_L_ATM_PER_MOL_K as R
 
-from .protocols import GasEOS
-
 
 @dataclass(frozen=True)
-class IdealGasEOS(GasEOS):
+class IdealGasEOS:
     """Ideal gas EOS (Z=1)."""
 
     def pressure_atm(self, n_tot_mol: float, *, T_K: float, V_L: float) -> float:
