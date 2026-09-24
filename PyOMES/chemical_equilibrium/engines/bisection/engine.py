@@ -200,10 +200,10 @@ class BisectionChemicalEquilibriumEngine:
         """
         from collections import defaultdict
         from .equilibria import EquilibriumSet
-        from PyOMES.reactions.equilibrium.reaction import (
-            EquilibriumConstraint, EquilibriumReaction,
-            classify_equilibrium_constraint,
+        from PyOMES.reactions.equilibrium.constraint import (
+            EquilibriumConstraint, classify_equilibrium_constraint,
         )
+        from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
 
         eq_set = EquilibriumSet(T_ref_K=T_K)
         water_set = False

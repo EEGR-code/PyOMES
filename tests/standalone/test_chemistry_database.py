@@ -201,7 +201,7 @@ class TestStockDatabases:
         from PyOMES.databases.anaerobic_digestion import AD_BASIC
         from PyOMES.chemistry.common_species import H2S, HS_minus
         from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
-        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.constraint import classify_equilibrium_constraint
 
         single_phase = [
             r for r in AD_BASIC.reactions

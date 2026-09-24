@@ -46,7 +46,7 @@ from PyOMES.chemistry.partition import _kH_mol_L_atm_from_ref
 from PyOMES.chemistry.species import Species
 from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL
 from PyOMES.units import R_L_ATM_PER_MOL_K
-from .reaction import vant_hoff_log_K
+from .constraint import vant_hoff_log_K
 from PyOMES.reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
 
 

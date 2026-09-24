@@ -38,7 +38,7 @@ class TestEquilibriumReactionConformance:
         )
 
     def test_isinstance_equilibrium_constraint(self):
-        from PyOMES.reactions.equilibrium.reaction import EquilibriumConstraint
+        from PyOMES.reactions.equilibrium.constraint import EquilibriumConstraint
         rxn = self._rxn()
         assert isinstance(rxn, EquilibriumConstraint)
 
@@ -50,17 +50,17 @@ class TestEquilibriumReactionConformance:
         assert rxn.dH_J_per_mol is None
 
     def test_vant_hoff_no_dH_returns_log_K_unchanged(self):
-        from PyOMES.reactions.equilibrium.reaction import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
         rxn = self._rxn()
         assert vant_hoff_log_K(rxn, 350.0) == pytest.approx(rxn.log_K)
 
     def test_vant_hoff_at_reference_temperature_returns_log_K(self):
-        from PyOMES.reactions.equilibrium.reaction import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
         rxn = self._rxn(dH_J_per_mol=55800.0)
         assert vant_hoff_log_K(rxn, rxn.T_ref_K) == pytest.approx(rxn.log_K)
 
     def test_vant_hoff_matches_manual_calculation(self):
-        from PyOMES.reactions.equilibrium.reaction import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
         dH = 55800.0  # J/mol, water autoionization (endothermic)
         rxn = self._rxn(dH_J_per_mol=dH)
         T_K = 323.15
@@ -69,7 +69,7 @@ class TestEquilibriumReactionConformance:
         assert vant_hoff_log_K(rxn, T_K) == pytest.approx(expected, rel=1e-12)
 
     def test_vant_hoff_endothermic_increases_log_K_with_temperature(self):
-        from PyOMES.reactions.equilibrium.reaction import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
         rxn = self._rxn(dH_J_per_mol=55800.0)
         assert vant_hoff_log_K(rxn, 323.15) > vant_hoff_log_K(rxn, _T_REF)
 
@@ -94,7 +94,7 @@ class TestHenryEquilibriumConformance:
         assert isinstance(self._henry(), PartitionModel)
 
     def test_isinstance_equilibrium_constraint(self):
-        from PyOMES.reactions.equilibrium.reaction import EquilibriumConstraint
+        from PyOMES.reactions.equilibrium.constraint import EquilibriumConstraint
         assert isinstance(self._henry(), EquilibriumConstraint)
 
     def test_T_ref_K_matches_T_ref(self):
@@ -134,7 +134,7 @@ class TestHenryEquilibriumConformance:
 
     def test_vant_hoff_matches_kH_temperature_dependence(self):
         """vant_hoff_log_K(hp, T) must agree with the native _kH_mol_L_atm(T) path."""
-        from PyOMES.reactions.equilibrium.reaction import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
         hp = self._henry()
         T_K = 315.0
         expected = math.log10(hp._kH_mol_L_atm(T_K))
@@ -151,7 +151,7 @@ class TestRaoultEquilibriumConformance:
 
     def test_isinstance_equilibrium_constraint(self):
         from PyOMES.reactions import RaoultEquilibrium
-        from PyOMES.reactions.equilibrium.reaction import EquilibriumConstraint
+        from PyOMES.reactions.equilibrium.constraint import EquilibriumConstraint
         assert isinstance(RaoultEquilibrium(), EquilibriumConstraint)
 
     def test_default_species_are_water(self):
@@ -217,7 +217,7 @@ class TestKspEquilibriumSingleIon:
         assert isinstance(self._ksp(), PartitionModel)
 
     def test_isinstance_equilibrium_constraint(self):
-        from PyOMES.reactions.equilibrium.reaction import EquilibriumConstraint
+        from PyOMES.reactions.equilibrium.constraint import EquilibriumConstraint
         assert isinstance(self._ksp(), EquilibriumConstraint)
 
     def test_log_K_equals_log10_Ksp(self):
@@ -243,7 +243,7 @@ class TestKspEquilibriumSingleIon:
 
     def test_equilibrium_a_moles_matches_formula(self):
         ksp = self._ksp(dH_J_per_mol=12000.0)
-        from PyOMES.reactions.equilibrium.reaction import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
         T_K = 310.0
         Ksp_T = 10.0 ** vant_hoff_log_K(ksp, T_K)
         n_liq = ksp.equilibrium_a_moles(n_total=1.0, capacity_a=2.0, capacity_b=1.0, T_K=T_K)
@@ -269,7 +269,7 @@ class TestKspEquilibriumMultiIon:
 
     def test_isinstance_equilibrium_constraint(self):
         """Multi-ion Ksp still structurally satisfies EquilibriumConstraint."""
-        from PyOMES.reactions.equilibrium.reaction import EquilibriumConstraint
+        from PyOMES.reactions.equilibrium.constraint import EquilibriumConstraint
         assert isinstance(self._ksp(), EquilibriumConstraint)
 
     def test_isinstance_partition_model(self):

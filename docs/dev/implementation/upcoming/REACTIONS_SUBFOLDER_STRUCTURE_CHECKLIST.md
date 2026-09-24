@@ -418,7 +418,7 @@ endings by byte count.
       differed, unchanged). All 10 changed notebooks re-run from the scratchpad,
       every code cell, OK in 0.0-5.0 s each; `phreeqpython` is installed, so the
       PHREEQC-guarded cells ran. No files left in the repo._
-- [ ] 3. **Split `equilibrium/reaction.py`.** `constraint.py` gets
+- [x] 3. **Split `equilibrium/reaction.py`.** `constraint.py` gets
       `EquilibriumConstraint`, `vant_hoff_log_K`, `classify_equilibrium_constraint`,
       `_LOG10_E`, and the imports they need (`math`, `typing` names,
       `R_J_PER_MOL_K`, `StoichiometryEntry`, `phases_from_entries`; discrepancy 3);
@@ -433,6 +433,38 @@ endings by byte count.
       as the pre-split file's (imports and module docstring removed); no unused
       import in either file; `vant_hoff_log_K` results bit-identical before and
       after on a grid of constraints and temperatures; full suite **2098 passed**.
+      _Notes: done 2026-09-24. Suite before: **2098 passed** (1m50s); after:
+      **2098 passed**, 0 failed, 166 warnings, 1m48s. `constraint.py` holds lines 66-152 of the pre-split file
+      (the protocol, `vant_hoff_log_K`, `classify_equilibrium_constraint`) plus
+      `_LOG10_E`, with its own module docstring and only the imports it uses
+      (`math`, five `typing` names, `R_J_PER_MOL_K`, `StoichiometryEntry`,
+      `phases_from_entries`); `reaction.py` keeps its module docstring and
+      `EquilibriumReaction`, and drops `math`, `R_J_PER_MOL_K` and the `typing`
+      names it no longer uses. Every top-level definition of the pre-split file is
+      in exactly one of the two files with an identical AST; the one text change is
+      the classifier docstring's reference to `EquilibriumReaction`, now a full
+      path (discrepancy 5). No unused import in either file (AST check; `pyflakes`
+      is not installed). Repointed to `constraint`: `interphase.py`,
+      `reaction_system.py:49`, the NR engine and tableau lazy imports, and 26
+      imports in the 5 tests (`test_chemistry_database.py` 1,
+      `test_equilibrium_classification.py` 9, `test_equilibrium_constraint.py` 11,
+      `test_equilibrium_constraint_dual_role.py` 3, `test_partition_model.py` 2).
+      The Bisection engine's lazy import is now two lines, `constraint` and
+      `reaction` (discrepancy 4). `equilibrium/__init__.py`'s file list gained
+      `constraint.py`. While writing `constraint.py`'s docstring, a first draft
+      said the engines accept any conforming type; the Bisection engine accepts
+      only `EquilibriumReaction` for single-phase items
+      (`bisection/engine.py:233`), so the docstring says so. Checks: a fingerprint
+      of `vant_hoff_log_K` (48 values over 7 constraints and 8 temperatures,
+      including one 1e-11 K off the reference) and `classify_equilibrium_constraint`
+      (7 labels) is bit-identical before and after (SHA-256 `91bb33a9...`); the old
+      paths `from PyOMES.reactions.equilibrium.reaction import
+      EquilibriumConstraint` (and the other two names) raise `ImportError`; 8
+      fresh-interpreter import orders pass, each asserting that root, deep and
+      re-imported names are the same objects; the three engine lazy imports called
+      directly, and the Bisection engine still rejects a non-constraint with
+      `ValueError`; no bare LF. No notebook or generator imports a constraint
+      name, so none was re-run._
 - [ ] 4. **Docstrings, comments and live docs** (decision 10). Every dotted,
       slash and bare path in discrepancies 6 and 11, re-derived against the new
       files (line citations re-read, not shifted). Subpackage `__init__.py`

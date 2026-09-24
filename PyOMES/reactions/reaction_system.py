@@ -46,7 +46,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Sequence, Union
 
 from ..chemistry.species_check import check_species_consistency
-from .equilibrium.reaction import EquilibriumConstraint, classify_equilibrium_constraint
+from .equilibrium.constraint import EquilibriumConstraint, classify_equilibrium_constraint
 from .kinetic.reaction import KineticReaction
 from .blackbox import BlackBoxReactionModel
 from .environment import ReactionEnvironment
