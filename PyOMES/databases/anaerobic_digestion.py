@@ -8,7 +8,7 @@ equilibrium, enabling correct alpha computation in
 sulfide.
 
 The CO₂ partition is declared as a single
-:class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium` instance
+:class:`~PyOMES.reactions.equilibrium.interphase.HenryEquilibrium` instance
 (``_CO2_HENRY``), used both in ``partition_models`` (feeding
 ``KineticGasLiquidLink``/``transfer_models=``) and in the reaction list
 (feeding ``ChemicalEquilibriumEngine``/``NRChemicalEquilibriumEngine`` as a gas-liquid
@@ -30,8 +30,8 @@ Usage::
 from __future__ import annotations
 
 from ..chemistry.common_species import H_plus, H2S, HS_minus
-from ..reactions.equilibrium import EquilibriumReaction
-from ..reactions.phase_equilibria import HenryEquilibrium
+from ..reactions.equilibrium.reaction import EquilibriumReaction
+from ..reactions.equilibrium.interphase import HenryEquilibrium
 from ..reactions.reaction_system import ReactionSystem
 from ..reactions.stoichiometry import StoichiometryEntry
 from .bioprocess_basic import BIOPROCESS_BASIC

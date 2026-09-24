@@ -24,8 +24,7 @@ from PyOMES.chemistry.common_species import (
     CO2, HCO3_minus, CO3_2minus,
     H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
 )
-from PyOMES.reactions.equilibrium import EquilibriumReaction
-from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
 

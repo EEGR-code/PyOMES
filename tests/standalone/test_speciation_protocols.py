@@ -39,8 +39,7 @@ def _make_reactions():
     from PyOMES.chemistry.common_species import (
         CO2, CO3_2minus, H2O, H_plus, HCO3_minus, NH3, NH4_plus, OH_minus,
     )
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     def _e(species, coeff):
         return StoichiometryEntry(species=species, phase="liquid", coefficient=coeff)

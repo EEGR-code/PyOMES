@@ -133,12 +133,12 @@ unverified. A small cleanup would make one public helper in
 call sites use it. Check the Jacobian tests in
 `tests/standalone/test_liquid_phase_model.py` still pass afterwards.
 
-## A third van 't Hoff copy in `reactions/equilibrium.py` differs from `thermo` in the last bit
+## A third van 't Hoff copy in `reactions/equilibrium/constraint.py` differs from `thermo` in the last bit
 
 Surfaced 2026-09-20 during `chemical-equilibrium-engines-subfolder`
 checkpoint 7, which merged `acid_base._vant_hoff_K` and
 `nr_tableau._vant_hoff_log_K` into `PyOMES/thermo/equilibrium_constants.py`.
-`reactions/equilibrium.py:92` `vant_hoff_log_K(constraint, T_K)` has the same
+`reactions/equilibrium/constraint.py:63` `vant_hoff_log_K(constraint, T_K)` has the same
 maths and the same edge-case rules as `thermo.equilibrium_constants.vant_hoff_log_K`,
 but converts ln K to log10 K with `_LOG10_E = 1.0 / math.log(10.0)`
 (`0.43429448190325176`), while the `nr_tableau` version — now the `thermo` one —
@@ -147,7 +147,7 @@ one into the other changes about a fifth of corrected values by up to ~4e-15 in
 log10 K (measured on 20,000 random cases). That is negligible physically but is
 a numerical change, so it was left out of a pure-refactor phase.
 
-To finish the de-duplication: make `reactions.equilibrium.vant_hoff_log_K` a
+To finish the de-duplication: make `reactions.equilibrium.constraint.vant_hoff_log_K` a
 thin wrapper that calls `thermo.equilibrium_constants.vant_hoff_log_K(
 constraint.log_K, constraint.dH_J_per_mol, T_K, constraint.T_ref_K)`, accept
 the 1-ulp shift, and re-run the suite (including `test_equilibrium_constraint.py`
@@ -168,7 +168,7 @@ two copies outright; `chemical_equilibrium/engines/bisection/equilibria.py`'s ow
 survived unmerged, just repointed to import `R_J_PER_MOL_K` from `units.py`
 directly; checkpoint 4's D8 fix separately collapsed a duplicate inside
 `chemistry/partition.py` (`HenryEquilibrium._kH_mol_L_atm`, since moved to
-`reactions/phase_equilibria.py`, delegates to `chemistry/partition.py`'s
+`reactions/equilibrium/interphase.py`, delegates to `chemistry/partition.py`'s
 module-level `_kH_mol_L_atm_from_ref` instead of repeating it, so that
 pair counts as one implementation, not two — though it is a Henry-constant
 correction, not a pKa/Kw one, so whether the original count included it isn't
@@ -176,7 +176,7 @@ clear from the audit text). A quick recount by function (not by line) after
 the phase, restricted to distinct `math.exp(-dH/R * (1/T - 1/T_ref))`-shaped
 implementations, finds eight in `chemistry/`+`reactions/`+`thermo/`
 (`equilibria.py` ×2, `partition.py` ×2 (now one each in `chemistry/partition.py`
-and `reactions/phase_equilibria.py`), `reactions/equilibrium.py` ×1,
+and `reactions/equilibrium/interphase.py`), `reactions/equilibrium/constraint.py` ×1,
 `thermo/equilibrium_constants.py` ×1 canonical, `thermo/framework.py` ×2) —
 close to, not exactly, the audit's "seven" estimate; not reconciled further
 here. Not fixed in that phase either way (Part A/B were pure-refactor,
@@ -205,7 +205,7 @@ import time. Overriding per simulation means consumers must read the value from
 something they are given, not from a module global. The consumers include hot
 paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 `core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
-`thermo/gas_eos.py`, `chemistry/partition.py`, `reactions/phase_equilibria.py`,
+`thermo/gas_eos.py`, `chemistry/partition.py`, `reactions/equilibrium/interphase.py`,
 `thermo/framework.py` and `thermo/equilibrium_constants.py`.
 
 **Design sketch (not decided).**
@@ -458,16 +458,16 @@ periodic manual re-search.
 or deleted several files the 2026-09-20 survey table counted literals in —
 `chemistry/thermo_params.py` (deleted, checkpoint 7), `chemistry/recipe.py` /
 `chem_recipe.py` (deleted, checkpoint 10), `templates/stirred_tank/kinetics.py`
-→ `reactions/rate_laws.py` (checkpoint 12), `PyOMES/equilibria/` →
+→ `reactions/rate_laws.py` (checkpoint 12; now `reactions/kinetic/rate_laws.py`), `PyOMES/equilibria/` →
 `thermo/gas_eos.py` (checkpoint 11), `chemistry/database.py` /
 `chemistry/databases/` → `PyOMES/databases/` (checkpoint 13) — so the table's
 per-file counts are stale, though the phase was pure-refactor for these
 literals (moved, not edited), so the aggregate totals per constant should be
 close to unchanged. Spot check: `101325`/`298.15` alone still appear 18 times
 across just `chemistry/partition.py` (since split into it and
-`reactions/phase_equilibria.py`), `thermo/gas_eos.py`,
+`reactions/equilibrium/interphase.py`), `thermo/gas_eos.py`,
 `chemical_equilibrium/engines/bisection/equilibria.py`,
-`reactions/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
+`reactions/kinetic/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
 survey against the new layout is part of picking this sweep up, not done here.
 
 ## Two notebooks do not parse, and the notebooks edited for the gas constant were not re-run
@@ -591,7 +591,7 @@ API smell.
 Separately: the ideal-gas law is hard-coded independently in at least eight
 places (`core/phases.py`, `core/boundaries.py`,
 `chemical_equilibrium/engines/nr/solver.py`, `chemistry/partition.py`,
-`reactions/phase_equilibria.py`,
+`reactions/equilibrium/interphase.py`,
 `control/cv_loops.py`, `templates/stirred_tank/factory.py`,
 `models/vlmodels/headspace.py`) instead of going through
 `ThermoFramework.gas_eos`, which is read by nothing in production despite
@@ -606,7 +606,7 @@ same seven files.
 ## Mapping-based parameters for several limiting/inhibiting species; composable inhibition for the growth rate laws
 
 Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 12
-(decisions D5/D6). `reactions/rate_laws.py`'s `DualSubstrateMonod` takes
+(decisions D5/D6). `reactions/kinetic/rate_laws.py`'s `DualSubstrateMonod` takes
 exactly one secondary species through four scalar arguments (`secondary_id`,
 `Ko`, `secondary_in_mol_L`, `secondary_MW`), and
 `ReactionBuilder.monod_aerobic_growth` exposes only an O2 term (`Ko2_gL`)
@@ -666,14 +666,15 @@ phase.
 
 ## No single source for water's physical constants
 
-Found 2026-09-24 while moving `RaoultEquilibrium` to `reactions/phase_equilibria.py`,
+Found 2026-09-24 while moving `RaoultEquilibrium` to `reactions/phase_equilibria.py` (now
+`reactions/equilibrium/interphase.py`),
 not fixed. `RaoultEquilibrium`'s four water values (`P_sat_ref`, `dH_vap`, `T_ref`,
 `C_water_mol_L`) are ordinary constructor arguments, so a caller can already supply
 their own, or another solvent via `gas_species`/`liquid_species`;
 `tests/standalone/test_partition_model.py::TestRaoultCustomParameters` pins that.
 The *defaults*, though, come from three unconnected places:
 
-- `reactions/phase_equilibria.py`: `_P_SAT_REF = 0.03169` atm and `_T_REF_WATER = 298.15`
+- `reactions/equilibrium/interphase.py`: `_P_SAT_REF = 0.03169` atm and `_T_REF_WATER = 298.15`
   K (private module constants), plus the inline literals `dH_vap = 44011.0` J/mol and
   `C_water_mol_L = 55.51` mol/L.
 - `chemical_equilibrium/engines/nr/engine.py:55`: `_C_WATER_MOL_L`, derived from
@@ -693,7 +694,7 @@ literals by about 1.3e-5 relative, so results move slightly wherever they are un
 
 Logged 2026-09-21 during the `chemistry-reactions-kinetics-cleanup` audit
 (checkpoint 1), not fixed (Part A/B pure-refactor scope).
-`reactions/builder.py`'s `aerobic_growth()` derives O2/CO2/H2O stoichiometry
+`reactions/kinetic/builder.py`'s `aerobic_growth()` derives O2/CO2/H2O stoichiometry
 from elemental balance for whatever `yield_gX_gS` it is given, with no check
 that the result is physically sensible. Example found during the audit:
 acetate at a 0.9 g/g yield returns without error, with CO2 *consumed* and O2
@@ -717,8 +718,8 @@ independent, not because they are related to each other.
   agree, if the divergence ever causes a real bug (audit found up to sixteen
   compounds with disagreeing molar masses between `Chemical` and other tables
   before this phase's deletions removed most of those tables).
-- **`plot_vant_hoff` has no caller.** `reactions/plots.py`'s `plot_vant_hoff`
-  (and `reactions/equilibrium.py`'s `EquilibriumReaction.plot_vant_hoff`
+- **`plot_vant_hoff` has no caller.** `reactions/equilibrium/plots.py`'s `plot_vant_hoff`
+  (and `reactions/equilibrium/reaction.py`'s `EquilibriumReaction.plot_vant_hoff`
   wrapper) has no caller anywhere in the repo — no pytest coverage, no
   notebook use. A candidate for deletion in a future pass; left alone here
   since trimming plotting helpers wasn't this phase's scope. `plots.py` now
@@ -747,11 +748,11 @@ generic keys directly (`test_speciation.py`) before removing anything.
 
 ## Relative imports three or more dots deep
 
-Found 2026-09-23 while moving `EquilibriumSet`, not fixed. 14 lines across 6
+Found 2026-09-23 while moving `EquilibriumSet`, not fixed. 11 lines across 6
 files use `from ....thermo import ...`-style imports, all in
 `chemical_equilibrium/engines/bisection/` and `chemical_equilibrium/engines/nr/`,
 where the extra nesting level made them long. The rest of the package
 (`control/`, `templates/stirred_tank/`) uses absolute
-`from PyOMES.… import …`. Both work with the editable install. Converting the
-14 lines is mechanical; pick one convention if the package ever gets a style
+`from PyOMES.… import …`, as do the engines' lazy imports of `PyOMES.reactions`.
+Both work with the editable install. Converting the 11 lines is mechanical; pick one convention if the package ever gets a style
 pass.

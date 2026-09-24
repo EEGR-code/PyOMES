@@ -29,7 +29,7 @@ unpacks a `transfer_models=` dict into the link's `partition_models`/`kLa`/
 `equilibrium_species` fields. `KineticReaction`, by contrast, self-executes
 via an arbitrary user-supplied `rate_fn(env) -> float` and directly
 satisfies `ReactionModel` itself
-([`kinetic.py:48-80`](../../../../PyOMES/reactions/kinetic.py)).
+([`kinetic/reaction.py:48-80`](../../../../PyOMES/reactions/kinetic/reaction.py)).
 
 This asymmetry is a design choice, not a physical necessity. Transfer
 kinetics today is constrained to first-order linear relaxation
@@ -207,10 +207,10 @@ doesn't exist yet.
   `KineticGasLiquidLink`, the actual executor and dual `PhaseInterface`/
   `CVLink` implementer — now `FlowBoundary`'s two topology cases on one
   object, per `RESERVOIR_TYPE.md` §5.1.
-- [`PyOMES/reactions/kinetic.py`](../../../../PyOMES/reactions/kinetic.py) —
+- [`PyOMES/reactions/kinetic/reaction.py`](../../../../PyOMES/reactions/kinetic/reaction.py) —
   `KineticReaction`, the existing arbitrary-`rate_fn` precedent this phase
   generalizes transfer models toward.
-- [`PyOMES/reactions/builder.py`](../../../../PyOMES/reactions/builder.py) —
+- [`PyOMES/reactions/kinetic/builder.py`](../../../../PyOMES/reactions/kinetic/builder.py) —
   `ReactionBuilder`'s custom-`rate_fn` escape-hatch precedent (defaults +
   power-user override, the same pattern this phase applies to transfer).
 - [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py) —

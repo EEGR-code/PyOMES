@@ -12,8 +12,9 @@ of the reaction graph.
 
 Public entry point
 ------------------
-:func:`build_tableau` — takes a list of :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction`
-objects (single-phase, from a :class:`~PyOMES.reactions.reaction_system.ReactionSystem`)
+:func:`build_tableau` — takes a list of
+:class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction` objects
+(single-phase, from a :class:`~PyOMES.reactions.reaction_system.ReactionSystem`)
 and returns a :class:`NRTableau`.
 
 Master species selection
@@ -363,7 +364,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
         All equilibrium constraints for the system — typically
         ``EquilibriumReaction``, but any ``EquilibriumConstraint``-
         conforming item is accepted. Items are classified via
-        :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`:
+        :func:`~PyOMES.reactions.equilibrium.constraint.classify_equilibrium_constraint`:
         acid-base items build the graph; gas-liquid items with a
         ``log_K`` set (e.g. a fully-parameterized ``HenryEquilibrium``/
         ``RaoultEquilibrium``) are folded in as gas-phase secondaries
@@ -398,7 +399,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
         it would require merging components, which the tableau does not
         support.
     """
-    from ....reactions.equilibrium import (
+    from PyOMES.reactions.equilibrium.constraint import (
         EquilibriumConstraint, classify_equilibrium_constraint,
     )
 

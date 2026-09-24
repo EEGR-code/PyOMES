@@ -7,7 +7,7 @@ returned source terms to its phases.
 
 Implementations carrying ``compute_rates`` in this package:
 
-- :class:`~PyOMES.reactions.kinetic.KineticReaction` — single
+- :class:`~PyOMES.reactions.kinetic.reaction.KineticReaction` — single
   stoichiometric reaction with construction-time elemental balance
   validation and a callable rate law.
 - :class:`~PyOMES.reactions.reaction_system.ReactionSystem` —
@@ -18,7 +18,7 @@ Implementations carrying ``compute_rates`` in this package:
 - :class:`~PyOMES.reactions.blackbox.BlackBoxReactionModel` — adapter
   for opaque external simulators with runtime balance checking.
 
-:class:`~PyOMES.reactions.equilibrium.EquilibriumReaction` deliberately
+:class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction` deliberately
 does **not** implement this protocol — equilibrium reactions are
 algebraic constraints, not rate-producers.
 """

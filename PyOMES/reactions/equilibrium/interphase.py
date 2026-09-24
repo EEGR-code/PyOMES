@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Henry, Raoult and Ksp phase-equilibrium constraints.
+"""Henry, Raoult and Ksp equilibria: named physical-law constraints across two phases.
 
 Each class here is declared once and plays two roles:
 
 - As a :class:`~PyOMES.chemistry.partition.PartitionModel` it describes how a
   species distributes between two phases at equilibrium
   (``partition_ratio``/``equilibrium_a_moles``).
-- As an :class:`~PyOMES.reactions.equilibrium.EquilibriumConstraint`
+- As an :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint`
   (``stoichiometry``/``log_K``/``dH_J_per_mol``/``T_ref_K``) it can go into the
   reaction list feeding ``NRChemicalEquilibriumEngine``/
   ``ChemicalEquilibriumEngine``.
@@ -41,13 +41,13 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence, Tuple, Union
 
-from ..chemistry import common_species
-from ..chemistry.partition import _kH_mol_L_atm_from_ref
-from ..chemistry.species import Species
-from ..units import R_J_PER_MOL_K as _R_J_MOL
-from ..units import R_L_ATM_PER_MOL_K
-from .equilibrium import vant_hoff_log_K
-from .stoichiometry import StoichiometryEntry, _parse_stoichiometry
+from PyOMES.chemistry import common_species
+from PyOMES.chemistry.partition import _kH_mol_L_atm_from_ref
+from PyOMES.chemistry.species import Species
+from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL
+from PyOMES.units import R_L_ATM_PER_MOL_K
+from .constraint import vant_hoff_log_K
+from PyOMES.reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
 
 
 def _resolve_species(species: Union[str, Species, None]) -> Optional[Species]:
@@ -94,7 +94,7 @@ class HenryEquilibrium:
         The gas-phase and liquid-phase forms this constant relates
         (e.g. ``gas_species="CO2", liquid_species="CO2"``). Optional —
         only needed to also satisfy
-        :class:`~PyOMES.reactions.equilibrium.EquilibriumConstraint`
+        :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint`
         (i.e. to appear in the reaction list fed to
         ``NRChemicalEquilibriumEngine``/``ChemicalEquilibriumEngine``); the
         ``PartitionModel`` role (``partition_ratio``/
@@ -244,7 +244,7 @@ class RaoultEquilibrium:
     - ``equilibrium_a_moles`` solves for n_liq at equilibrium
 
     Also satisfies
-    :class:`~PyOMES.reactions.equilibrium.EquilibriumConstraint` via the
+    :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint` via the
     ``gas ⇌ liquid`` stoichiometry named by ``gas_species``/
     ``liquid_species`` (default ``"H2O"``/``"H2O"``).
 
@@ -360,9 +360,9 @@ class KspEquilibrium:
 
     A named constructor for the solubility-product convention
     (``log_K = log10(Ksp)``) satisfying both ``PartitionModel`` and
-    :class:`~PyOMES.reactions.equilibrium.EquilibriumConstraint`, instead
+    :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint`, instead
     of requiring hand-built
-    :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction` objects.
+    :class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction` objects.
 
     The ``PartitionModel`` role (``partition_ratio``/
     ``equilibrium_a_moles``) is well-defined only for the single-ion
@@ -382,7 +382,7 @@ class KspEquilibrium:
     stoichiometry : list of StoichiometryEntry or str
         Solid ⇌ dissolved-ion(s) stoichiometry, either as
         ``StoichiometryEntry`` objects or a string (see
-        :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction` for
+        :class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction` for
         the string format).
     Ksp : float
         Solubility product (mass-action units matching the

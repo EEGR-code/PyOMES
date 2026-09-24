@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for PyOMES.reactions.rate_laws (checkpoint 12, decisions D5/D6).
+"""Tests for PyOMES.reactions.kinetic.rate_laws (checkpoint 12, decisions D5/D6).
 
 This module had zero test coverage before this phase (checkpoint-1
 audit). Covers:
@@ -24,7 +24,7 @@ import random
 
 import pytest
 
-from PyOMES.reactions.rate_laws import (
+from PyOMES.reactions import (
     Monod, Contois, Andrews, ContoisAndrews, Tessier, Moser, Blackman,
     DualSubstrateMonod,
 )
@@ -287,7 +287,7 @@ class TestMakeRateFnOutputs:
 def _reference_monod_rate_fn(mu_max_per_h, Ks_gL, yield_gX_gS, MW_S, MW_X,
                               sub_id, bio_id, Ko2_gL=None, MW_O2=32.0):
     """Frozen copy of the pre-checkpoint-12 inline closure in
-    ReactionBuilder.monod_aerobic_growth (builder.py, formerly line 298)."""
+    ReactionBuilder.monod_aerobic_growth (kinetic/builder.py, formerly line 298)."""
 
     def rate_fn(env):
         S_gL = env.concentrations.get(sub_id, 0.0) * MW_S
@@ -322,7 +322,7 @@ class TestMonodAerobicGrowthFingerprint:
         return out
 
     def _current_rate_fn(self, Ko2_gL):
-        from PyOMES.reactions.builder import ReactionBuilder
+        from PyOMES.reactions import ReactionBuilder
         from PyOMES.chemistry.species import Species
         sub = Species(id="Glucose", atoms={"C": 6, "H": 12, "O": 6}, charge=0, MW=self.MW_S)
         bio = Species(id="Ecoli", atoms={"C": 1, "H": 1.8, "O": 0.5, "N": 0.2}, charge=0, MW=self.MW_X)

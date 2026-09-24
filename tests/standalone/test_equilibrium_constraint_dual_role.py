@@ -35,7 +35,7 @@ def _co2_henry(H_ref=3.4e-4, dlnH=2400.0):
 class TestOneObjectTwoRoles:
     def test_same_instance_satisfies_both_protocols(self):
         from PyOMES.chemistry import PartitionModel
-        from PyOMES.reactions.equilibrium import EquilibriumConstraint
+        from PyOMES.reactions.equilibrium.constraint import EquilibriumConstraint
         co2 = _co2_henry()
         assert isinstance(co2, PartitionModel)
         assert isinstance(co2, EquilibriumConstraint)
@@ -159,7 +159,7 @@ class TestOldBugStructurallyImpossible:
         PartitionModel-role kH(T) and the EquilibriumConstraint-role
         log_K/dH_J_per_mol are both always read from the same H_ref/dlnH
         fields — there is no second set of numbers to fall out of sync."""
-        from PyOMES.reactions.equilibrium import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
 
         co2 = _co2_henry(H_ref=3.4e-4, dlnH=2400.0)
         for T_K in (280.0, 298.15, 320.0, 350.0):
@@ -200,5 +200,5 @@ class TestAnaerobicDigestionDatabaseFixed:
 
     def test_co2_classified_as_gas_liquid(self):
         from PyOMES.databases.anaerobic_digestion import _CO2_HENRY
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.constraint import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(_CO2_HENRY) == "gas_liquid"

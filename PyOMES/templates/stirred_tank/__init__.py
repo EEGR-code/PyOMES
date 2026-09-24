@@ -27,7 +27,7 @@ from .profiles import (
     TemperatureProfileTarget, PressureSetpointTarget,
 )
 from .builder import StirredTankBuilder
-from PyOMES.reactions.rate_laws import (
+from PyOMES.reactions.kinetic.rate_laws import (
     GrowthKinetics,
     Monod,
     Contois,

@@ -10,7 +10,7 @@ the K-space wrapper also returns ``K_ref`` unchanged for a non-positive or
 non-finite ``K_ref`` or ``T_K``, whereas the log-space wrapper accepts
 ``dH_J_per_mol=None`` and skips the correction at ``T_K == T_ref_K``.
 
-Note: ``PyOMES.reactions.equilibrium.vant_hoff_log_K(constraint, T_K)`` is a
+Note: ``PyOMES.reactions.equilibrium.constraint.vant_hoff_log_K(constraint, T_K)`` is a
 separate function of the same stem that takes an ``EquilibriumConstraint``;
 it uses a log10(e) constant that differs in the last bit, so it is not
 folded into this module (see ``docs/dev/implementation/OPEN_WORK.md``).

@@ -152,7 +152,7 @@ type was never about unlocking otherwise-impossible capability on its own:
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium` already
   demonstrates (siblings under `EquilibriumConstraint`, not
   isinstance-checked against each other — see
-  [`equilibrium.py:115-119`](../../../../PyOMES/reactions/equilibrium.py)).
+  [`constraint.py:84-88`](../../../../PyOMES/reactions/equilibrium/constraint.py)).
 - **Avoided setup cost.** `ControlVolume.__init__` always constructs
   monitors, lifecycle locks, and caches even when unused; a lean
   `Reservoir` skips all of it.

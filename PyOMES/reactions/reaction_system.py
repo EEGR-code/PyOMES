@@ -2,13 +2,13 @@
 """ReactionSystem — single attach point for all reactions on a ControlVolume.
 
 A :class:`ReactionSystem` holds one or more reaction declarations
-(:class:`~PyOMES.reactions.kinetic.KineticReaction`,
+(:class:`~PyOMES.reactions.kinetic.reaction.KineticReaction`,
 :class:`~PyOMES.reactions.blackbox.BlackBoxReactionModel`, or anything
-satisfying :class:`~PyOMES.reactions.equilibrium.EquilibriumConstraint`
-— :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction`,
-:class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`,
-:class:`~PyOMES.reactions.phase_equilibria.KspEquilibrium`,
-:class:`~PyOMES.reactions.phase_equilibria.RaoultEquilibrium`) and
+satisfying :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint`
+— :class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction`,
+:class:`~PyOMES.reactions.equilibrium.interphase.HenryEquilibrium`,
+:class:`~PyOMES.reactions.equilibrium.interphase.KspEquilibrium`,
+:class:`~PyOMES.reactions.equilibrium.interphase.RaoultEquilibrium`) and
 **pre-buckets them by classification at construction time**. The
 buckets are internal; consumers read either the unified list
 (``system.reactions``) or the type-specific projections via public
@@ -24,7 +24,7 @@ Design:
   ``_cross_phase_equilibria``, ``_precipitation_equilibria``, and
   ``_blackbox_models`` at ``__init__`` — ``KineticReaction`` and
   ``BlackBoxReactionModel`` by ``isinstance``, everything else via
-  :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`
+  :func:`~PyOMES.reactions.equilibrium.constraint.classify_equilibrium_constraint`
   rather than a hard-coded ``isinstance(rxn, EquilibriumReaction)``
   check — so a single ``HenryEquilibrium`` instance can be constructed
   once and attached here directly, in the same list as a
@@ -46,12 +46,12 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Sequence, Union
 
 from ..chemistry.species_check import check_species_consistency
-from .equilibrium import EquilibriumConstraint, classify_equilibrium_constraint
-from .kinetic import KineticReaction
+from .equilibrium.constraint import EquilibriumConstraint, classify_equilibrium_constraint
+from .kinetic.reaction import KineticReaction
 from .blackbox import BlackBoxReactionModel
 from .environment import ReactionEnvironment
 from ._shared import fmt_stoichiometry_string
-from .plots import plot_speciation
+from .equilibrium.plots import plot_speciation
 
 
 ReactionLike = Union[KineticReaction, EquilibriumConstraint, BlackBoxReactionModel]
@@ -71,7 +71,7 @@ class ReactionSystem:
         and ``RaoultEquilibrium`` uniformly. Pre-bucketed at construction
         (``KineticReaction``/``BlackBoxReactionModel`` by ``isinstance``,
         equilibrium constraints via
-        :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`).
+        :func:`~PyOMES.reactions.equilibrium.constraint.classify_equilibrium_constraint`).
         Each reaction must already be stoichiometrically validated (the
         declaration classes do this at their own construction).
     label : str
@@ -449,7 +449,7 @@ class ReactionSystem:
         ``acid ⇌ base + H⁺``, builds the connected chain automatically
         from *anchor_id*, and plots α fractions analytically.
 
-        Delegates to :func:`PyOMES.reactions.plots.plot_speciation`.
+        Delegates to :func:`PyOMES.reactions.equilibrium.plots.plot_speciation`.
         Matplotlib is imported lazily.
 
         Parameters

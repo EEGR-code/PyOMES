@@ -20,11 +20,33 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[REACTIONS_SUBFOLDER_STRUCTURE.md](REACTIONS_SUBFOLDER_STRUCTURE.md)** —
+  2026-09-24. Groups the 13 flat files in `PyOMES/reactions/` by the kind of
+  reaction they serve: `kinetic/` (`KineticReaction`, rate laws,
+  `ReactionBuilder`) and `equilibrium/` (`equilibrium.py` split into
+  `constraint.py` and `reaction.py`, `phase_equilibria.py` renamed
+  `interphase.py`, the equilibrium plots), with the shared files and
+  `blackbox.py` staying at the top level. No group imports another, so the split
+  follows an existing seam. No shims: old deep import paths stop working and
+  every call site is updated; package-root exports are unchanged. Checklist:
+  [REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md](REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md);
+  branch `reactions-subfolder-structure`.
+- **[THERMO_SUBFOLDER_STRUCTURE.md](THERMO_SUBFOLDER_STRUCTURE.md)** —
+  2026-09-24. Groups the 8 flat files in `PyOMES/thermo/` by phase: `liquid/`
+  (`protocols.py`, `ideal.py`, `davies.py`, `sit.py`, plus
+  `water_properties.py` and `factory.py`) and `gas/` (`protocols.py`,
+  `ideal.py`, `peng_robinson.py`), with `framework.py` and
+  `equilibrium_constants.py` staying at the top level. Splits
+  `liquid_phase_model.py` and `gas_eos.py` so each side has the same shape.
+  Neither group imports the other, and only three test files import a moved
+  path directly. No shims; package-root exports unchanged. Open questions:
+  whether to make `GasEOS` a `Protocol` and de-duplicate `_kg_per_L` in the
+  same phase. No branch, no checklist, no code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
   call sites (`reactions/stoichiometry.py`'s string-stoichiometry
-  parser, `reactions/phase_equilibria.py`'s `HenryEquilibrium`/
+  parser, `reactions/equilibrium/interphase.py`'s `HenryEquilibrium`/
   `RaoultEquilibrium` species fields, `core/control_volume.py`'s
   charge-conservation registry) resolve unrecognized species ids by
   scanning `common_species.py`'s entire module namespace via `vars()`,
@@ -34,7 +56,7 @@ that still describe open work are "Open phases" and the pending stages in
   favor of explicit resolution only. Phase 0 (stoichiometry.py) is
   cheap and decided; Phase 1 (control_volume.py) found `ControlVolume`
   already accepts `chemistry_db=` but doesn't consult
-  `chemistry_db.species`, so it's mostly wiring; Phase 2 (phase_equilibria.py)
+  `chemistry_db.species`, so it's mostly wiring; Phase 2 (interphase.py)
   needs an API decision (`RaoultEquilibrium.liquid_species` currently
   defaults to the bare string `"H2O"`, resolved ambiently). The
   original relocation question is downstream of this note, not

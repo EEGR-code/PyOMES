@@ -4,7 +4,7 @@ implementations (the others are :class:`~PyOMES.chemical_equilibrium.engines.nr.
 and :class:`~PyOMES.chemical_equilibrium.engines.phreeqc.PHREEQCChemicalEquilibriumEngine`).
 
 :class:`BisectionChemicalEquilibriumEngine` solves aqueous acid-base equilibria from declared
-:class:`~PyOMES.reactions.equilibrium.EquilibriumReaction` instances via 1-D
+:class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction` instances via 1-D
 bisection over the charge balance. It handles single acid-base ladders and
 independent ladders that only interact through the charge balance (e.g.
 carbonate + ammonia) — not arbitrary cross-component networks or gas-liquid/
@@ -84,7 +84,7 @@ class BisectionChemicalEquilibriumEngine:
     """Unified speciation engine.
 
     Chemistry is declared through
-    :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction` instances
+    :class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction` instances
     bound via :meth:`from_reactions`; the engine solves the charge balance
     for the supplied totals.  No chemistry is hardcoded.
 
@@ -140,15 +140,15 @@ class BisectionChemicalEquilibriumEngine:
         """Build a :class:`BisectionChemicalEquilibriumEngine` from declared equilibrium reactions.
 
         Each item in ``equilibrium_reactions`` must satisfy
-        :class:`~PyOMES.reactions.equilibrium.EquilibriumConstraint`
+        :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint`
         (``stoichiometry``/``log_K``/``dH_J_per_mol``/``T_ref_K``) —
         typically an
-        :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction`, but
-        also :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`,
-        :class:`~PyOMES.reactions.phase_equilibria.KspEquilibrium`, or
-        :class:`~PyOMES.reactions.phase_equilibria.RaoultEquilibrium`. Each
+        :class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction`, but
+        also :class:`~PyOMES.reactions.equilibrium.interphase.HenryEquilibrium`,
+        :class:`~PyOMES.reactions.equilibrium.interphase.KspEquilibrium`, or
+        :class:`~PyOMES.reactions.equilibrium.interphase.RaoultEquilibrium`. Each
         item is classified via
-        :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`
+        :func:`~PyOMES.reactions.equilibrium.constraint.classify_equilibrium_constraint`
         from its stoichiometry's phase tags. Single-phase
         (``"acid_base"``) items are further classified into
         ``"water"``, ``"acid"``, or ``"cation_acid"`` from the charge
@@ -200,10 +200,10 @@ class BisectionChemicalEquilibriumEngine:
         """
         from collections import defaultdict
         from .equilibria import EquilibriumSet
-        from ....reactions.equilibrium import (
-            EquilibriumConstraint, EquilibriumReaction,
-            classify_equilibrium_constraint,
+        from PyOMES.reactions.equilibrium.constraint import (
+            EquilibriumConstraint, classify_equilibrium_constraint,
         )
+        from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
 
         eq_set = EquilibriumSet(T_ref_K=T_K)
         water_set = False

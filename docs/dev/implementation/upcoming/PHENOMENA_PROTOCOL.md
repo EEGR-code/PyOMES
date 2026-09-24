@@ -50,7 +50,7 @@ actually determines the solver path rather than crossing it:
 - **`EquilibriumPhenomena` is already substantially real.**
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium` already
   dual-satisfy `EquilibriumConstraint` and `PartitionModel` today
-  ([`phase_equilibria.py:189-218`](../../../../PyOMES/reactions/phase_equilibria.py)), and
+  ([`interphase.py:189-218`](../../../../PyOMES/reactions/equilibrium/interphase.py)), and
   `LAYER1_GAP_CLOSURE` already folds gas-liquid equilibrium rows into the
   *same* simultaneous Newton solve as acid-base equilibria — genuine
   solver-level convergence, not just a naming coincidence.
@@ -95,7 +95,7 @@ Today, reaction-like declarations are bucketed by `ReactionSystem` via
 `KineticReaction`, `BlackBoxReactionModel`, and an `EquilibriumConstraint`-
 satisfying bucket (`EquilibriumReaction` and its
 `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium` siblings). None of
-this is unified under a literal shared type — `equilibrium.py`'s own
+this is unified under a literal shared type — `equilibrium/reaction.py`'s own
 docstring says so outright: "There is no shared base class; shared
 validation logic lives as free functions in `_shared.py`."
 
@@ -249,14 +249,14 @@ pass that would benefit from a named, diagrammable taxonomy rather than
 - [`RESERVOIR_TYPE.md`](RESERVOIR_TYPE.md) — sibling design discussion,
   same session, same underlying question applied to the transport-topology
   protocols instead.
-- [`PyOMES/reactions/equilibrium.py`](../../../../PyOMES/reactions/equilibrium.py) —
+- [`PyOMES/reactions/equilibrium/constraint.py`](../../../../PyOMES/reactions/equilibrium/constraint.py) —
   `EquilibriumConstraint` protocol.
-- [`PyOMES/reactions/kinetic.py`](../../../../PyOMES/reactions/kinetic.py) —
+- [`PyOMES/reactions/kinetic/reaction.py`](../../../../PyOMES/reactions/kinetic/reaction.py) —
   `KineticReaction`, today's only real `KineticPhenomena`-shaped object.
 - [`PyOMES/reactions/reaction_system.py`](../../../../PyOMES/reactions/reaction_system.py)
   — the `isinstance`-based bucketing this note's taxonomy would sit
   alongside (not necessarily replace).
-- [`PyOMES/reactions/phase_equilibria.py`](../../../../PyOMES/reactions/phase_equilibria.py) —
+- [`PyOMES/reactions/equilibrium/interphase.py`](../../../../PyOMES/reactions/equilibrium/interphase.py) —
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium`'s dual
   `EquilibriumConstraint`/`PartitionModel` satisfaction.
 - [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py) —

@@ -40,10 +40,9 @@ import math
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PyOMES.reactions.kinetic import KineticReaction
-from PyOMES.reactions.equilibrium import EquilibriumReaction
-from PyOMES.reactions.reaction_system import ReactionSystem
-from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from PyOMES.reactions import (
+    KineticReaction, EquilibriumReaction, ReactionSystem, StoichiometryEntry,
+)
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.common_species import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
 
