@@ -3,8 +3,8 @@
 
 Private module — not part of the public ``PyOMES.reactions`` surface.
 Carries the free-function utilities common to
-:class:`~PyOMES.reactions.kinetic.KineticReaction` and
-:class:`~PyOMES.reactions.equilibrium.EquilibriumReaction` so the two
+:class:`~PyOMES.reactions.kinetic.reaction.KineticReaction` and
+:class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction` so the two
 classes can remain independent (no ABC, no shared base) without
 duplicating logic.
 

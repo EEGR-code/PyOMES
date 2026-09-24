@@ -103,7 +103,7 @@ The central simulation object. Owns a dict of `Phase` objects (gas, liquid, soli
 `BisectionChemicalEquilibriumEngine` solves aqueous acid-base speciation from a set of declared equilibrium reactions, rather than a fixed tier of hardcoded chemistry. Activity correction is optional: ideal by default, or a Davies/SIT ionic-strength correction, selected on the `StirredTankBuilder` via `chemistry(use_activity=..., activity_model=...)`.
 
 ### Reaction Framework
-`ReactionBuilder` constructs stoichiometrically validated `KineticReaction` / `EquilibriumReaction` objects from an organism formula, substrate, and balance mode (e.g. `"CHO"`, `"CHON"`) — elemental-balance errors (`StoichiometryError`) raise at construction, not simulation time. `ReactionSystem` aggregates reactions for a `ControlVolume`; `BlackBoxReactionModel` wraps external kinetic functions behind the `ReactionModel` protocol.
+`KineticReaction` pairs a stoichiometrically validated reaction with a rate law, and `ReactionBuilder` constructs them from an organism formula, substrate, and balance mode (e.g. `"CHO"`, `"CHON"`) — elemental-balance errors (`StoichiometryError`) raise at construction, not simulation time. `EquilibriumReaction` declares an equilibrium with an equilibrium constant, and `HenryEquilibrium`, `RaoultEquilibrium` and `KspEquilibrium` are named equilibria between two phases. `ReactionSystem` aggregates reactions for a `ControlVolume`; `BlackBoxReactionModel` wraps external kinetic functions behind the `ReactionModel` protocol.
 
 ### Control System
 Each controller follows a sense → compute → actuate cycle:
@@ -167,7 +167,7 @@ This table groups ~60 test modules thematically rather than listing all of them 
 |-------|--------------|---------|
 | `phreeqc` | `phreeqpython>=1.6` | PHREEQC-backed chemistry comparisons and validation |
 | `export` | `pandas`, `pyarrow` | Tabular export workflows |
-| `plots` | `matplotlib` | `PyOMES.reactions.plots` — speciation/Van 't Hoff plotting helpers |
+| `plots` | `matplotlib` | `PyOMES.reactions.equilibrium.plots` — speciation/Van 't Hoff plotting helpers |
 | `test` | `pytest`, `pandas`, `pyarrow`, `phreeqpython>=1.6` | Development and validation suite |
 | `all` | `phreeqpython>=1.6`, `pandas`, `pyarrow`, `matplotlib` | All optional runtime features |
 

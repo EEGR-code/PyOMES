@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for PyOMES.reactions.rate_laws (checkpoint 12, decisions D5/D6).
+"""Tests for PyOMES.reactions.kinetic.rate_laws (checkpoint 12, decisions D5/D6).
 
 This module had zero test coverage before this phase (checkpoint-1
 audit). Covers:
@@ -287,7 +287,7 @@ class TestMakeRateFnOutputs:
 def _reference_monod_rate_fn(mu_max_per_h, Ks_gL, yield_gX_gS, MW_S, MW_X,
                               sub_id, bio_id, Ko2_gL=None, MW_O2=32.0):
     """Frozen copy of the pre-checkpoint-12 inline closure in
-    ReactionBuilder.monod_aerobic_growth (builder.py, formerly line 298)."""
+    ReactionBuilder.monod_aerobic_growth (kinetic/builder.py, formerly line 298)."""
 
     def rate_fn(env):
         S_gL = env.concentrations.get(sub_id, 0.0) * MW_S

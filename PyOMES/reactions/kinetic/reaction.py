@@ -152,7 +152,7 @@ class KineticReaction:
 
         Kinetic reactions are typically single-phase, but the flag is
         exposed for symmetry with
-        :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction`.
+        :class:`~PyOMES.reactions.equilibrium.reaction.EquilibriumReaction`.
         """
         return is_cross_phase_from_entries(self.stoichiometry)
 

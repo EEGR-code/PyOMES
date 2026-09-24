@@ -115,7 +115,7 @@ class KineticGasLiquidLink:
     partition_models : dict
         ``{species_id: PartitionModel}`` for each transferable species.
         Species not listed are not transferred.  Use
-        :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium` for
+        :class:`~PyOMES.reactions.equilibrium.interphase.HenryEquilibrium` for
         Henry-law systems.
     kLa : dict
         Volumetric mass transfer coefficients ``{species_id: 1/h}`` for
@@ -572,7 +572,7 @@ class KineticGasLiquidLink:
             Species identifier.
         partition_model : PartitionModel
             Partition model (e.g. a
-            :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`).
+            :class:`~PyOMES.reactions.equilibrium.interphase.HenryEquilibrium`).
         """
         from .lifecycle import raise_if_running
         raise_if_running(self, f"set_henry({species!r})")

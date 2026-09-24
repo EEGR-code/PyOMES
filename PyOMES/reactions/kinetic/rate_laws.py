@@ -3,7 +3,7 @@
 
 Each kinetics class encapsulates a specific growth rate law (μ as a
 function of substrate and biomass concentrations). Reactor-agnostic:
-any caller building a :class:`~PyOMES.reactions.kinetic.KineticReaction`
+any caller building a :class:`~PyOMES.reactions.kinetic.reaction.KineticReaction`
 can use these to construct rate functions for
 :meth:`ReactionBuilder.aerobic_growth`, including
 :class:`~PyOMES.templates.stirred_tank.StirredTankBuilder`'s
@@ -16,7 +16,7 @@ The kinetics object computes only the specific growth rate μ (1/h).
 
 Usage with the stirred-tank builder
 ------------------------------------
->>> from PyOMES.reactions.rate_laws import Monod, Contois, Andrews
+>>> from PyOMES.reactions import Monod, Contois, Andrews
 >>>
 >>> StirredTankBuilder()
 ...     .substrate("Glucose", mu_max=0.8, Ks=0.02, yield_gX_gS=0.5,

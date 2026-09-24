@@ -371,15 +371,19 @@ PyOMES/
     lifecycle.py                 # RunContext, _LockableList, raise_if_running
   reactions/                     # Reaction framework
     stoichiometry.py             # StoichiometryEntry + elemental balance
-    kinetic.py                   # KineticReaction
-    equilibrium.py               # EquilibriumReaction (log_K, single- and cross-phase)
-    phase_equilibria.py          # HenryEquilibrium, RaoultEquilibrium, KspEquilibrium
-    blackbox.py                  # BlackBoxReactionModel
-    reaction_system.py           # ReactionSystem (pre-bucketed container)
-    builder.py                   # ReactionBuilder (aerobic_growth, from_coefficients)
     environment.py               # ReactionEnvironment
     protocols.py                 # ReactionModel protocol
     _shared.py                   # Shared validation helpers
+    reaction_system.py           # ReactionSystem (pre-bucketed container)
+    blackbox.py                  # BlackBoxReactionModel
+    kinetic/                     # reaction.py (KineticReaction), rate_laws.py (GrowthKinetics, Monod,
+                                 # Contois, Andrews, ...), builder.py (ReactionBuilder: aerobic_growth,
+                                 # monod_aerobic_growth, from_coefficients)
+    equilibrium/                 # constraint.py (EquilibriumConstraint, vant_hoff_log_K,
+                                 # classify_equilibrium_constraint), reaction.py (EquilibriumReaction:
+                                 # log_K, single- and cross-phase), interphase.py (HenryEquilibrium,
+                                 # RaoultEquilibrium, KspEquilibrium), plots.py (plot_vant_hoff,
+                                 # plot_speciation)
   chemical_equilibrium/          # Aqueous equilibrium solvers (acid-base, complexation, folded gas-liquid
                                  # and precipitation rows) built on thermo/'s activity models
     protocols.py                 # Engine protocols, EquilibriumResult

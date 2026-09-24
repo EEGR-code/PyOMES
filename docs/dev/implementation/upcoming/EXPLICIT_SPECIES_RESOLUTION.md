@@ -50,29 +50,29 @@ seeds its lookup dict with this catalog *first*, then overlays the
 caller's own `species=` dict on top (`stoichiometry.py:259-262`:
 `lookup = dict(common); lookup.update(species)`). This is reached from
 the public API whenever `EquilibriumReaction(stoichiometry="...", ...)`
-(`reactions/equilibrium.py:221,231`) or
-`KineticReaction(stoichiometry="...", ...)` (`reactions/kinetic.py:90,96`)
+(`reactions/equilibrium/reaction.py:126,136`) or
+`KineticReaction(stoichiometry="...", ...)` (`reactions/kinetic/reaction.py:90,96`)
 is given a string instead of a list of `StoichiometryEntry` objects.
 
 This one already has the right shape for a fix: `species=` is a real,
 documented caller override. The only problem is the ambient pre-seed
 that runs before it.
 
-### 2. `reactions/phase_equilibria.py` — partition-model species fields
+### 2. `reactions/equilibrium/interphase.py` — partition-model species fields
 
-`_resolve_species()` (`phase_equilibria.py:53-70`) takes
+`_resolve_species()` (`interphase.py:53-70`) takes
 `Union[str, Species, None]`. If given a `Species` object it returns it
 unchanged; if given a string, it builds the *same* kind of
-`vars(common_species).values()` catalog inline (`phase_equilibria.py:62-64`,
+`vars(common_species).values()` catalog inline (`interphase.py:62-64`,
 duplicating `_get_common_species()`'s logic — the docstring says as
 much) and looks the id up there, with no caller-supplied override path
 at all. `HenryEquilibrium.gas_species`/`.liquid_species`
-(`phase_equilibria.py:113-114`) and `RaoultEquilibrium.gas_species`/
-`.liquid_species` (`phase_equilibria.py:278-279`) are typed
+(`interphase.py:113-114`) and `RaoultEquilibrium.gas_species`/
+`.liquid_species` (`interphase.py:278-279`) are typed
 `Union[str, Species, None]` and resolved through this function
-(`phase_equilibria.py:213-214, 348-349`). `RaoultEquilibrium.liquid_species`
+(`interphase.py:213-214, 348-349`). `RaoultEquilibrium.liquid_species`
 and `.gas_species` both *default* to the literal string `"H2O"`
-(`phase_equilibria.py:278-279`) — meaning a `RaoultEquilibrium()` constructed
+(`interphase.py:278-279`) — meaning a `RaoultEquilibrium()` constructed
 with no arguments at all resolves its species from the ambient module
 by design, not as a fallback for an edge case.
 
@@ -180,7 +180,7 @@ given, so the gap is visible instead of silent. Needs its own audit:
 which existing tests currently rely on the ambient catalog recovering a
 spectator ion and would need `chemistry_db=` added to keep passing.
 
-## Phase 2: `reactions/phase_equilibria.py` (hardest — needs an API decision)
+## Phase 2: `reactions/equilibrium/interphase.py` (hardest — needs an API decision)
 
 No caller-facing override path exists today, so this isn't a
 delete-the-seed fix. Two directions, not yet decided:

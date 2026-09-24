@@ -4,7 +4,7 @@
 :class:`ReactionBuilder` provides static methods that derive complete
 stoichiometric coefficients from high-level specifications (substrate
 formula, biomass formula, yield, balance mode) and produce validated
-:class:`~PyOMES.reactions.kinetic.KineticReaction` objects.
+:class:`~PyOMES.reactions.kinetic.reaction.KineticReaction` objects.
 
 High-level convenience method (Monod kinetics + stoichiometry in one call):
 

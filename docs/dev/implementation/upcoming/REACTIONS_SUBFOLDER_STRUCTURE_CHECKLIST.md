@@ -465,7 +465,7 @@ endings by byte count.
       directly, and the Bisection engine still rejects a non-constraint with
       `ValueError`; no bare LF. No notebook or generator imports a constraint
       name, so none was re-run._
-- [ ] 4. **Docstrings, comments and live docs** (decision 10). Every dotted,
+- [x] 4. **Docstrings, comments and live docs** (decision 10). Every dotted,
       slash and bare path in discrepancies 6 and 11, re-derived against the new
       files (line citations re-read, not shifted). Subpackage `__init__.py`
       docstrings say what each folder holds; `interphase.py`'s module docstring
@@ -479,6 +479,55 @@ endings by byte count.
       Sanity: every changed relative link resolves; the touched `>>>` examples
       run by hand; changed `.py` files have identical ASTs with docstrings
       removed (no code change); full suite **2098 passed**.
+      _Notes: done 2026-09-24. Suite before: **2098 passed** (1m48s); after:
+      **2098 passed**, 0 failed, 166 warnings, 1m53s. 28 files plus this checklist. A fresh sweep (every file type, dotted, slash,
+      bare-filename and relative forms, allowing the new deep paths) found 110
+      live hits before and 20 after, all intended: bare names of the new files in
+      the subpackage docstrings and the `architecture.md` tree, correct relative
+      imports inside the new folders, two `OPEN_WORK.md` lines that narrate a past
+      move and now add "(now ...)", the shipped-phase entry at
+      `upcoming/README.md:175`, this phase's own README entry,
+      `THERMO_SUBFOLDER_STRUCTURE.md:321` (a sequencing remark that this phase
+      repoints `equilibrium_constants.py`, which it now has; left alone),
+      `test_bsm2_reference.py:351` (decision 11), the synthetic strings in
+      `test_package_layering.py`, and `test_rate_laws.py:128` (bare
+      `rate_laws.py`, still unambiguous). **`PyOMES/` docstrings:** 48 dotted
+      references repointed by counted pattern (`equilibrium.EquilibriumReaction`
+      10, `EquilibriumConstraint` 6, `classify_equilibrium_constraint` 5,
+      `vant_hoff_log_K` 1, `phase_equilibria` 18, `kinetic.KineticReaction` 6,
+      `plots.` 2), in 18 files including the engines, `chemistry/partition.py`,
+      `core/gas_liquid_link.py`, `core/transfer_models.py`,
+      `databases/anaerobic_digestion.py` and `thermo/equilibrium_constants.py`;
+      the two import examples (`kinetic/rate_laws.py:19`,
+      `stirred_tank/builder.py:342`) use the short form; `interphase.py`'s module
+      title now says it holds named physical-law constraints across two phases
+      (its body already described the `PartitionModel` role). One docstring line
+      that grew past 100 characters (`tableau.py:15`) was rewrapped. **Tests:**
+      `test_rate_laws.py:2,290` (docstrings). **Docs:** `README.md:106` and
+      `PyOMES/README.md:15` no longer say `ReactionBuilder` builds
+      `EquilibriumReaction` objects, and the latter describes the two folders;
+      `README.md:170` names `PyOMES.reactions.equilibrium.plots`; the
+      `architecture.md` `reactions/` tree shows the new layout, including
+      `rate_laws.py` and `plots.py`, in the style of the `engines/` block.
+      `OPEN_WORK.md`: 18 edits at the listed lines, including the
+      `plot_vant_hoff` entry, the van 't Hoff heading (no link used its anchor),
+      and the three-dots entry, now 11 lines across 6 files (recounted; the
+      engines' lazy imports of `PyOMES.reactions` are absolute). Upcoming notes:
+      `EXPLICIT_SPECIES_RESOLUTION.md`, `KINETIC_TRANSFER_GENERALIZATION.md`,
+      `PHENOMENA_PROTOCOL.md`, `RESERVOIR_TYPE.md`, `upcoming/README.md:49,59`.
+      **Line citations re-read against the files:** the `interphase.py` and
+      `kinetic/reaction.py` ones are unchanged, since those files swapped import
+      lines one for one (each cited range re-checked for its content);
+      `equilibrium.py:221,231` became `equilibrium/reaction.py:126,136`;
+      `RESERVOIR_TYPE.md`'s `equilibrium.py:115-119` became
+      `constraint.py:84-88` (the same classifier-docstring passage);
+      `OPEN_WORK.md`'s `equilibrium.py:92` (already 2 lines off) became
+      `constraint.py:63`. Checks: every changed `.py` file has an identical AST
+      to `HEAD` with docstrings removed (no code change); 146 relative links in
+      the changed docs resolve; the touched import examples and
+      `EquilibriumReaction`'s module example run by hand (the other `>>>` blocks
+      in `builder.py` and `rate_laws.py` are illustrative, with `...`
+      placeholders, and cannot run); no bare LF._
 - [ ] 5. **Sweep.** Search every old path in every form (dotted, slash,
       backslash, relative, bare filename; old path followed by a non-`.`
       character, decision 3) across `.py`, `.ipynb`, `.md`, `.toml`, `.yml`,

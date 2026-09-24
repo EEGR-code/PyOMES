@@ -196,7 +196,7 @@ class NRChemicalEquilibriumEngine:
             typically ``EquilibriumReaction``, but any
             ``EquilibriumConstraint``-conforming item is accepted (e.g.
             ``KspEquilibrium``). Each item is classified via
-            :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`:
+            :func:`~PyOMES.reactions.equilibrium.constraint.classify_equilibrium_constraint`:
             single-phase (acid-base) items feed the NR tableau; solid-liquid
             items (one ``StoichiometryEntry(phase="solid")`` — the mineral —
             plus one or more ``StoichiometryEntry(phase="liquid")`` dissolved

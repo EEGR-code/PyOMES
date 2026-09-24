@@ -339,7 +339,7 @@ class StirredTankBuilder:
             Available models (also re-exported from
             ``PyOMES.templates.stirred_tank``)::
 
-                from PyOMES.reactions.rate_laws import (
+                from PyOMES.reactions import (
                     Monod, Contois, Andrews, ContoisAndrews,
                     Tessier, Moser, Blackman, DualSubstrateMonod,
                 )

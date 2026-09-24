@@ -6,7 +6,7 @@ equilibrium.  ``PartitionModel`` is the per-species protocol and
 ``MultispeciesPartitionModel`` the protocol for models that solve all
 species at once; ``MultispeciesVLEPartition`` implements the latter for an
 ideal gas.  The single-species implementations (Henry, Raoult and Ksp) live
-in :mod:`PyOMES.reactions.phase_equilibria`, since each also acts as an
+in :mod:`PyOMES.reactions.equilibrium.interphase`, since each also acts as an
 equilibrium constraint.  Future non-linear models (Langmuir, Freundlich)
 implement the same protocol.
 

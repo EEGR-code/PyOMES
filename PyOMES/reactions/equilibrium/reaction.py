@@ -8,7 +8,7 @@ to the species id in a phase's ``n_mol`` dict that carries the
 *total* concentration this equilibrium operates on.
 
 This is one of three independent reaction declaration classes —
-:class:`~PyOMES.reactions.kinetic.KineticReaction`,
+:class:`~PyOMES.reactions.kinetic.reaction.KineticReaction`,
 :class:`EquilibriumReaction`, and
 :class:`~PyOMES.reactions.blackbox.BlackBoxReactionModel`. There is no
 shared base class; shared validation logic lives as free functions in
@@ -202,7 +202,7 @@ class EquilibriumReaction:
     ) -> tuple:
         """Plot the Van 't Hoff temperature dependence of this reaction.
 
-        Delegates to :func:`PyOMES.reactions.plots.plot_vant_hoff`.
+        Delegates to :func:`PyOMES.reactions.equilibrium.plots.plot_vant_hoff`.
         Matplotlib is imported lazily — the reactions package does not
         require a display environment.
 
