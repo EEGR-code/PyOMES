@@ -9,16 +9,8 @@ from typing import Dict
 from .water_properties import (
     debye_huckel_A,
     ionic_strength_molal_from_molar,
-    water_density_kg_per_m3,
+    water_kg_per_L,
 )
-
-
-def _kg_per_L(T_K: float) -> float:
-    """Water density in kg/L at T_K — the I_molL -> I_molal conversion factor."""
-    rho_kg_m3 = water_density_kg_per_m3(float(T_K))
-    if not np.isfinite(rho_kg_m3) or rho_kg_m3 <= 0.0:
-        return 1.0
-    return float(rho_kg_m3) / 1000.0
 
 
 _LN10 = float(np.log(10.0))
@@ -127,7 +119,7 @@ class DaviesLiquidModel:
 
         A = debye_huckel_A(float(T_K))
         sqrtIm = float(np.sqrt(I_m))
-        dIm_dImolL = 1.0 / _kg_per_L(T_K)
+        dIm_dImolL = 1.0 / water_kg_per_L(T_K)
         # d(log10 gamma)/dI_m, from log10(gamma) = -A z^2 (sqrt(Im)/(1+sqrt(Im)) - 0.3*Im)
         d_log10_dIm = 1.0 / (2.0 * sqrtIm * (1.0 + sqrtIm) ** 2) - 0.3
 

@@ -455,7 +455,7 @@ uses. Line counts with `wc -l`; line endings by byte count and
       identical apart from its bases, module docstrings unchanged, only `GasEOS`
       changed. No bare LF. The module docstring's "abstract interface" wording is
       reviewed in checkpoint 5._
-- [ ] 4. **One `water_kg_per_L`** (decision 12). Add
+- [x] 4. **One `water_kg_per_L`** (decision 12). Add
       `water_kg_per_L(T_K)` to `liquid/water_properties.py` (body of the old
       `_kg_per_L`); `davies.py` and `sit.py` drop `_kg_per_L` and import it;
       `ionic_strength_molal_from_molar` uses it. Add one test to
@@ -466,6 +466,47 @@ uses. Line counts with `wc -l`; line endings by byte count and
       `ionic_strength_molal_from_molar` over a grid including non-finite and
       non-positive inputs and a non-physical temperature; no `_kg_per_L` left;
       full suite **2102 passed**.
+      _Notes: done 2026-09-24, after checkpoint 3 was committed as `614dc53`.
+      Suite before: **2101 passed** (2m15s); after: **2102 passed**, 0 failed,
+      166 warnings, 4m09s (the one new test; the slower run is sandbox load, not
+      the change). `liquid/water_properties.py`: new `water_kg_per_L(T_K)`, whose
+      body is the old `_kg_per_L` verbatim, placed after
+      `water_density_kg_per_m3`; `ionic_strength_molal_from_molar` now returns
+      `float(I / water_kg_per_L(T_K))` after its unchanged `I` guard.
+      `davies.py` and `sit.py` drop `_kg_per_L` and import the helper; each
+      Jacobian's `dIm_dImolL` line calls it; `davies.py` no longer imports
+      `water_density_kg_per_m3`, and `sit.py` still does, for its two inline
+      copies. `test_liquid_phase_model.py`: new `test_water_kg_per_L` (value at
+      298.15 K equals the density / 1000, about 0.997; 1.0 at 2273.15 K, where
+      the density is negative, and at NaN), with a deep import, since the helper is
+      not exported. The two private copies were identical to the helper, so the
+      Jacobians are unchanged by construction. `ionic_strength_molal_from_molar`
+      used to test the kg/L value rather than the density: the two can differ
+      only when the density is positive but below about 2.5e-321 kg/m³ (dividing
+      it by 1000 underflows to 0), which no representable temperature produces;
+      elsewhere `I / (rho / 1000)` and `I / 1.0` are the same floats as before.
+      Checks: a new 800-value fingerprint of the conversion and its users
+      (density, both old private copies vs the helper, `ionic_strength_molal_from_molar`
+      for 9 ionic strengths including NaN, ±inf, negative, 0 and 1e-300, and the
+      Davies and SIT `gamma_all` and Jacobians, over 16 temperatures of which 8
+      give a bad density: around the correlation's pole at T_C = −68.12963, 1500 K,
+      2273.15 K, NaN and ±inf) is bit-identical before and after (SHA-256
+      `5e9b452d...`, two runs before), and the 13,668-value checkpoint-1 liquid
+      fingerprint is unchanged. Per-definition AST against `HEAD`: `_kg_per_L`
+      removed from both model files, `water_kg_per_L` added,
+      `ionic_strength_molal_from_molar` changed, and in `DaviesLiquidModel` and
+      `SITLiquidModel` only the call name on the `dIm_dImolL` line. No unused or
+      undefined names; no `_kg_per_L` left in any `.py` or notebook; no bare LF.
+      `OPEN_WORK.md`: the "Three copies" entry is now "SIT converts mol/L to
+      mol/kg-water inline, without the bad-density fallback". It records that the
+      three copies share the helper, and that SIT's `gamma_all` and
+      `compute_gammas` still divide by `water_density_kg_per_m3(T_K) / 1000.0`
+      inline: at a negative density (for example 1500 K) their ε sum uses negative
+      molalities while the Debye–Hückel term uses 1 kg/L (measured: at 2273.15 K
+      SIT γ for 0.05 M NaCl is 0.8214 against 0.8239 at 298.15 K; NaN at NaN).
+      Nothing links to the old heading. Two of this checkpoint's edits were
+      rejected once in the edit prompt and then re-applied unchanged on the
+      owner's go-ahead._
 - [ ] 5. **Docstrings, comments and live docs** (decision 10, discrepancies 6-8).
       Every path and label listed, re-derived against the new files (line
       citations re-read, not shifted). Subpackage `__init__.py` docstrings say

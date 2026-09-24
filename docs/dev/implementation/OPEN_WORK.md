@@ -110,28 +110,29 @@ regenerating, and check per notebook whether it carries baked outputs.
 Moot once [`upcoming/NOTEBOOK_GENERATOR_REMOVAL.md`](upcoming/NOTEBOOK_GENERATOR_REMOVAL.md)
 ships.
 
-## Three copies of the mol/L → mol/kg-water conversion in `PyOMES/thermo/`
+## SIT converts mol/L to mol/kg-water inline, without the bad-density fallback
 
 Surfaced 2026-09-20 during `chemical-equilibrium-engines-subfolder`
-checkpoint 4, while checking where `debye_huckel_A` lives. Left alone there
-because that phase is a pure move/delete refactor. The conversion "divide
-ionic strength by water density in kg/L" exists three times:
+checkpoint 4 as three copies of the conversion "divide by water density in
+kg/L" in `PyOMES/thermo/`. Those three now share one helper:
+`thermo/liquid/water_properties.water_kg_per_L(T_K)`, which returns the
+density in kg/L and falls back to `1.0` when the density correlation gives a
+non-finite or non-positive value (far outside 0–100 °C).
+`ionic_strength_molal_from_molar` and the Davies and SIT
+`jacobian_dgamma_dx` methods use it (since 2026-09-24,
+`thermo-subfolder-structure`; bit-identical to the three copies it replaced).
 
-- `water_properties.ionic_strength_molal_from_molar(I_molL, *, T_K)` — the
-  public one, exported from `PyOMES.thermo`. Returns `0.0` for a non-finite or
-  non-positive `I_molL`, and falls back to returning `I` unchanged when the
-  water density is non-finite or non-positive.
-- `liquid_phase_model._kg_per_L(T_K)` and `sit_liquid_model._kg_per_L(T_K)` —
-  two private copies with identical bodies. Both return the density in kg/L,
-  falling back to `1.0` when the density is bad. They are used only to build
-  `dIm_dImolL = 1.0 / _kg_per_L(T_K)` in each model's Jacobian method.
-
-The fallbacks agree (a bad density acts as 1 kg/L in all three), so this looks
-like harmless duplication rather than a numerical inconsistency, but that is
-unverified. A small cleanup would make one public helper in
-`water_properties.py` (for example `water_kg_per_L(T_K)`), and have all three
-call sites use it. Check the Jacobian tests in
-`tests/standalone/test_liquid_phase_model.py` still pass afterwards.
+Two more copies remain, both in `thermo/liquid/sit.py`:
+`SITLiquidModel.gamma_all` and `SITLiquidModel.compute_gammas` each compute
+`water_density_kg_per_m3(T_K) / 1000.0` inline to turn concentrations into
+molalities for the ion-pair (ε) sum, with no fallback. At a temperature where
+the density is negative (for example 1500 K or 2273 K) the ε sum therefore
+uses negative molalities, while the Debye–Hückel term, which gets its ionic
+strength from `ionic_strength_molal_from_molar`, uses 1 kg/L; the two terms of
+the same γ disagree. Inside 0–100 °C the result is the same either way.
+Switching both to `water_kg_per_L` would change results only at such
+temperatures, so it was left out of the pure-refactor phase; it is a one-line
+change in each method if wanted.
 
 ## A third van 't Hoff copy in `reactions/equilibrium/constraint.py` differs from `thermo` in the last bit
 

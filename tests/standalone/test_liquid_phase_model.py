@@ -191,6 +191,17 @@ class TestDaviesLiquidModel:
         )
         assert debye_huckel_A(298.15) == pytest.approx(0.509, rel=0.02)
 
+    def test_water_kg_per_L(self):
+        from PyOMES.thermo import water_density_kg_per_m3
+        from PyOMES.thermo.liquid.water_properties import water_kg_per_L
+        assert water_kg_per_L(298.15) == water_density_kg_per_m3(298.15) / 1000.0
+        assert water_kg_per_L(298.15) == pytest.approx(0.997, abs=1e-3)
+        # Far outside 0-100 °C the density correlation goes negative or NaN:
+        # the conversion factor falls back to 1 kg/L.
+        assert water_density_kg_per_m3(2273.15) < 0.0
+        assert water_kg_per_L(2273.15) == 1.0
+        assert water_kg_per_L(float("nan")) == 1.0
+
 
 class TestSITLiquidModel:
     def test_satisfies_liquid_phase_model_protocol(self):
