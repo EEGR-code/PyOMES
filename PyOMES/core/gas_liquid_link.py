@@ -65,7 +65,7 @@ independently-parameterized declaration to keep in sync; species without
 that need (O2, N2, CH4, H2, NH3 below) simply omit ``gas_species``/
 ``liquid_species`` and stay ``PartitionModel``-only.
 
->>> from PyOMES.chemistry import HenryEquilibrium
+>>> from PyOMES.reactions import HenryEquilibrium
 >>> from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
 >>> co2_henry = HenryEquilibrium(
 ...     H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
@@ -115,7 +115,8 @@ class KineticGasLiquidLink:
     partition_models : dict
         ``{species_id: PartitionModel}`` for each transferable species.
         Species not listed are not transferred.  Use
-        :class:`~PyOMES.chemistry.HenryEquilibrium` for Henry-law systems.
+        :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium` for
+        Henry-law systems.
     kLa : dict
         Volumetric mass transfer coefficients ``{species_id: 1/h}`` for
         kinetic-mode species.  Species listed in ``equilibrium_species``
@@ -570,7 +571,8 @@ class KineticGasLiquidLink:
         species : str
             Species identifier.
         partition_model : PartitionModel
-            Partition model (e.g. a :class:`~PyOMES.chemistry.HenryEquilibrium`).
+            Partition model (e.g. a
+            :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`).
         """
         from .lifecycle import raise_if_running
         raise_if_running(self, f"set_henry({species!r})")

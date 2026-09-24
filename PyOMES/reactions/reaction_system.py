@@ -6,9 +6,9 @@ A :class:`ReactionSystem` holds one or more reaction declarations
 :class:`~PyOMES.reactions.blackbox.BlackBoxReactionModel`, or anything
 satisfying :class:`~PyOMES.reactions.equilibrium.EquilibriumConstraint`
 — :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction`,
-:class:`~PyOMES.chemistry.partition.HenryEquilibrium`,
-:class:`~PyOMES.chemistry.partition.KspEquilibrium`,
-:class:`~PyOMES.chemistry.partition.RaoultEquilibrium`) and
+:class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`,
+:class:`~PyOMES.reactions.phase_equilibria.KspEquilibrium`,
+:class:`~PyOMES.reactions.phase_equilibria.RaoultEquilibrium`) and
 **pre-buckets them by classification at construction time**. The
 buckets are internal; consumers read either the unified list
 (``system.reactions``) or the type-specific projections via public

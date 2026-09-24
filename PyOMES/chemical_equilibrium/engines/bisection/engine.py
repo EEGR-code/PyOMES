@@ -144,9 +144,9 @@ class BisectionChemicalEquilibriumEngine:
         (``stoichiometry``/``log_K``/``dH_J_per_mol``/``T_ref_K``) —
         typically an
         :class:`~PyOMES.reactions.equilibrium.EquilibriumReaction`, but
-        also :class:`~PyOMES.chemistry.partition.HenryEquilibrium`,
-        :class:`~PyOMES.chemistry.partition.KspEquilibrium`, or
-        :class:`~PyOMES.chemistry.partition.RaoultEquilibrium`. Each
+        also :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`,
+        :class:`~PyOMES.reactions.phase_equilibria.KspEquilibrium`, or
+        :class:`~PyOMES.reactions.phase_equilibria.RaoultEquilibrium`. Each
         item is classified via
         :func:`~PyOMES.reactions.equilibrium.classify_equilibrium_constraint`
         from its stoichiometry's phase tags. Single-phase

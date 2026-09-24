@@ -250,7 +250,7 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       other change and no LF-only lines. Remaining old-path references, all for
       later checkpoints: the docstring paths listed in checkpoint 2, 7 notebooks
       plus the gitignored `scratch/` copies, and the two `docs/tutorials` scripts._
-- [ ] 2. Repoint docstring and comment paths in `PyOMES/`: `~PyOMES.chemistry.
+- [x] 2. Repoint docstring and comment paths in `PyOMES/`: `~PyOMES.chemistry.
       partition.X` and `~PyOMES.chemistry.HenryEquilibrium` become
       `~PyOMES.reactions.phase_equilibria.X` in `bisection/engine.py:147-149`,
       `databases/anaerobic_digestion.py:11`, `reactions/equilibrium.py:77-79,
@@ -260,6 +260,11 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       Nothing else in these files changes.
       Sanity: no `PyOMES.chemistry.(partition.)?(Henry|Raoult|Ksp)` left under
       `PyOMES/`; the `gas_liquid_link.py` example runs; full suite **2086 passed**.
+      _Notes: done 2026-09-24. Suite before: **2086 passed** (8m01s); after:
+      **2086 passed**, 0 failed, 166 warnings, 5m44s. The
+      `gas_liquid_link.py:68-84` example (construct `HenryEquilibrium` from
+      `PyOMES.reactions`, build a `KineticGasLiquidLink`) runs unchanged. No other
+      text in the nine edited lines changed._
 - [ ] 3. Notebooks and scripts: change the import in the 7 notebooks' code cells,
       `_generate_notebooks.py:828,1209` (kept identical to notebooks 02/03) and
       `raw_construction.py:56`. Source cells only; saved outputs are not re-run
