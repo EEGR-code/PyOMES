@@ -528,7 +528,7 @@ endings by byte count.
       `EquilibriumReaction`'s module example run by hand (the other `>>>` blocks
       in `builder.py` and `rate_laws.py` are illustrative, with `...`
       placeholders, and cannot run); no bare LF._
-- [ ] 5. **Sweep.** Search every old path in every form (dotted, slash,
+- [x] 5. **Sweep.** Search every old path in every form (dotted, slash,
       backslash, relative, bare filename; old path followed by a non-`.`
       character, decision 3) across `.py`, `.ipynb`, `.md`, `.toml`, `.yml`,
       `.json`, with plain `grep` and the Grep tool. Remaining hits only in
@@ -540,6 +540,42 @@ endings by byte count.
       import with the expected error. Every notebook changed in the phase re-run
       once more from the scratchpad.
       Sanity: full suite **2098 passed**.
+      _Notes: done 2026-09-24; no file other than this checklist changed, since
+      the sweep found no missed site. Full suite **2098 passed**, 0 failed, 166
+      warnings, 2m26s. **Old-path search:** plain `grep -rnE` over the whole tree
+      (gitignored and hidden paths included) for every dotted, slash, backslash
+      and relative-import form, with a folder path allowed only when followed by
+      one of its real modules, found 88 hits: 45 in `shipped/`, 28 in this phase's
+      note and checklist, 4 in `PyOMES.egg-info/SOURCES.txt` (generated,
+      gitignored), 1 in the gitignored `scratch/` copy, and 10 live ones, all
+      intended (two `OPEN_WORK.md` lines that record a past move with "(now
+      ...)", the shipped entry at `upcoming/README.md:175`,
+      `THERMO_SUBFOLDER_STRUCTURE.md:321`, correct relative imports inside the new
+      folders, `test_bsm2_reference.py:351`, the synthetic strings in
+      `test_package_layering.py`). The Grep tool found 83, exactly the same
+      minus the 5 in gitignored paths. The bare-filename sweep's 10 live hits all
+      name the new files (the subpackage docstrings, the `architecture.md` tree,
+      the `OPEN_WORK.md` `plot_vant_hoff` entry, this phase's README entry) or
+      are unambiguous (`test_rate_laws.py:128`). **AST import audit:** 209 `.py`
+      files and notebooks, 2,075 `PyOMES`/`models` imports (lazy,
+      `TYPE_CHECKING` and generator string templates included) across 86
+      modules, each module imported and each name resolved. 12 problems, none
+      from this phase in a live file: 8 in gitignored `scratch/` notebooks (one
+      is this phase's old `reactions.equilibrium` path, left by decision 11;
+      seven are from earlier phases), `tests/run_tests.py:105`
+      (`create_standalone_fermenter`, already logged), `test_simulation.py:2186`
+      (imports a deleted module on purpose to assert it is gone), and two
+      synthetic `import X` strings in `test_package_layering.py` that the audit's
+      template scan picked up. **Old paths:** all ten forms fail as expected
+      (`reactions.kinetic` and `reactions.equilibrium` names, including the three
+      constraint names, with `ImportError`; the constraint names from
+      `equilibrium.reaction` with `ImportError`; `reactions.rate_laws`,
+      `.builder`, `.phase_equilibria` and `.plots` with `ModuleNotFoundError`).
+      **Notebooks:** all 11 changed in the phase re-run from the scratchpad: the
+      10 from checkpoint 2 in full (0.0-9.3 s each), and
+      `aerobic_fermentation_stoichiometry.ipynb` as in checkpoint 1 (cells before
+      18 plus one `build_sim` call; the 60 h simulation cells not run). No files
+      left in the repo._
 - [ ] 6. **Seam guard** (decision 12). Generalise `test_package_layering.py`'s
       resolver; add the `reactions/` layout test and its synthetic self-check
       cases. Also run the new check against a copy with an injected
