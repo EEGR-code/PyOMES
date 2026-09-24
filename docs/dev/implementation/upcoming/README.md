@@ -20,6 +20,17 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[REACTIONS_SUBFOLDER_STRUCTURE.md](REACTIONS_SUBFOLDER_STRUCTURE.md)** —
+  2026-09-24. Groups the 13 flat files in `PyOMES/reactions/` by the kind of
+  reaction they serve: `kinetic/` (`KineticReaction`, rate laws,
+  `ReactionBuilder`) and `equilibrium/` (`equilibrium.py` split into
+  `constraint.py` and `reaction.py`, `phase_equilibria.py` renamed
+  `interphase.py`, the equilibrium plots), with the shared files and
+  `blackbox.py` staying at the top level. No group imports another, so the split
+  follows an existing seam. No shims: old deep import paths stop working and
+  every call site is updated; package-root exports are unchanged. Checklist:
+  [REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md](REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md);
+  branch `reactions-subfolder-structure`.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
