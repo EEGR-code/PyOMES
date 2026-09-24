@@ -67,7 +67,8 @@ class KineticTransferModel:
     ----------
     partition_model : PartitionModel
         Thermodynamic model that describes the equilibrium distribution
-        between the two phases (e.g. :class:`~PyOMES.chemistry.HenryEquilibrium`).
+        between the two phases (e.g. a
+        :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`).
     k_transfer : float
         Volumetric mass transfer coefficient (h⁻¹).  Equivalent to
         ``kLa`` for gas-liquid systems.
@@ -109,7 +110,7 @@ class EquilibriumTransferModel:
     ----------
     partition_model : PartitionModel
         Thermodynamic model describing the equilibrium distribution
-        (e.g. :class:`~PyOMES.chemistry.HenryEquilibrium`).
+        (e.g. a :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`).
     """
 
     partition_model: "PartitionModel"

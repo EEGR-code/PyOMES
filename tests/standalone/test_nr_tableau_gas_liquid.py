@@ -111,7 +111,7 @@ def _h2s_ladder():
 
 
 def _co2_henry():
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
         label="henry_CO2",
@@ -119,7 +119,7 @@ def _co2_henry():
 
 
 def _nh3_henry():
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=5.9e-1, dlnH=4200.0, gas_species="NH3", liquid_species="NH3",
         label="henry_NH3",
@@ -127,7 +127,7 @@ def _nh3_henry():
 
 
 def _h2s_henry():
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=1.0e-3, dlnH=2100.0, gas_species="H2S", liquid_species="H2S",
         label="henry_H2S",
@@ -147,7 +147,7 @@ def _inert_gas_species():
 
 
 def _inert_henry(species_id, species_obj, H_ref, dlnH):
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=H_ref, dlnH=dlnH,
         gas_species=species_obj, liquid_species=species_obj,
@@ -355,7 +355,7 @@ class TestUnparameterizedGasLiquidStillSkipped:
         """A HenryEquilibrium with no gas_species/liquid_species set has
         an empty stoichiometry (classify_equilibrium_constraint raises
         ValueError internally) and is silently skipped, as before."""
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
 
         partition_only = HenryEquilibrium(H_ref=3.4e-4, dlnH=2400.0)

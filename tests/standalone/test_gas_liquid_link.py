@@ -25,7 +25,7 @@ from PyOMES.core.phases import GasPhase, LiquidPhase
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
-from PyOMES.chemistry import HenryEquilibrium
+from PyOMES.reactions import HenryEquilibrium
 
 
 def _hp(kH_mol_L_atm: float, dlnH: float = 0.0) -> HenryEquilibrium:

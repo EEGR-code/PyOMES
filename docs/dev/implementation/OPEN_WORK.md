@@ -87,7 +87,7 @@ migration; re-audited 2026-09-19. The old `FermenterBuilder`/
 `FermenterFactory` names survive only as prose comparison points (the code
 runs correctly) in:
 
-- `docs/tutorials/D2C_workshop/raw_construction.py` — lines 8, 99, 380
+- `docs/tutorials/D2C_workshop/raw_construction.py` — lines 8, 100, 381
   (module docstring, a comment, and a printed demo banner).
 - `docs/tutorials/reactions/reaction_system.ipynb` — one comment ("…
   FermenterBuilder uses by default").
@@ -167,14 +167,16 @@ two copies outright; `chemical_equilibrium/engines/bisection/equilibria.py`'s ow
 `EquilibriumDef.pKas_at_T`/`WaterDef.Kw_at_T` (same formula, real consumer)
 survived unmerged, just repointed to import `R_J_PER_MOL_K` from `units.py`
 directly; checkpoint 4's D8 fix separately collapsed a duplicate inside
-`chemistry/partition.py` (`HenryEquilibrium._kH_mol_L_atm` now delegates to
-the module-level `_kH_mol_L_atm_from_ref` instead of repeating it, so that
+`chemistry/partition.py` (`HenryEquilibrium._kH_mol_L_atm`, since moved to
+`reactions/phase_equilibria.py`, delegates to `chemistry/partition.py`'s
+module-level `_kH_mol_L_atm_from_ref` instead of repeating it, so that
 pair counts as one implementation, not two — though it is a Henry-constant
 correction, not a pKa/Kw one, so whether the original count included it isn't
 clear from the audit text). A quick recount by function (not by line) after
 the phase, restricted to distinct `math.exp(-dH/R * (1/T - 1/T_ref))`-shaped
 implementations, finds eight in `chemistry/`+`reactions/`+`thermo/`
-(`equilibria.py` ×2, `partition.py` ×2, `reactions/equilibrium.py` ×1,
+(`equilibria.py` ×2, `partition.py` ×2 (now one each in `chemistry/partition.py`
+and `reactions/phase_equilibria.py`), `reactions/equilibrium.py` ×1,
 `thermo/equilibrium_constants.py` ×1 canonical, `thermo/framework.py` ×2) —
 close to, not exactly, the audit's "seven" estimate; not reconciled further
 here. Not fixed in that phase either way (Part A/B were pure-refactor,
@@ -203,8 +205,8 @@ import time. Overriding per simulation means consumers must read the value from
 something they are given, not from a module global. The consumers include hot
 paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 `core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
-`thermo/gas_eos.py`, `chemistry/partition.py`, `thermo/framework.py` and
-`thermo/equilibrium_constants.py`.
+`thermo/gas_eos.py`, `chemistry/partition.py`, `reactions/phase_equilibria.py`,
+`thermo/framework.py` and `thermo/equilibrium_constants.py`.
 
 **Design sketch (not decided).**
 
@@ -462,7 +464,8 @@ or deleted several files the 2026-09-20 survey table counted literals in —
 per-file counts are stale, though the phase was pure-refactor for these
 literals (moved, not edited), so the aggregate totals per constant should be
 close to unchanged. Spot check: `101325`/`298.15` alone still appear 18 times
-across just `chemistry/partition.py`, `thermo/gas_eos.py`,
+across just `chemistry/partition.py` (since split into it and
+`reactions/phase_equilibria.py`), `thermo/gas_eos.py`,
 `chemical_equilibrium/engines/bisection/equilibria.py`,
 `reactions/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
 survey against the new layout is part of picking this sweep up, not done here.
@@ -585,9 +588,10 @@ different physical quantity. `test_gas_eos.py` (added the same checkpoint)
 pins this distinction, so it won't drift silently, but it is still a real
 API smell.
 
-Separately: the ideal-gas law is hard-coded independently in at least seven
+Separately: the ideal-gas law is hard-coded independently in at least eight
 places (`core/phases.py`, `core/boundaries.py`,
 `chemical_equilibrium/engines/nr/solver.py`, `chemistry/partition.py`,
+`reactions/phase_equilibria.py`,
 `control/cv_loops.py`, `templates/stirred_tank/factory.py`,
 `models/vlmodels/headspace.py`) instead of going through
 `ThermoFramework.gas_eos`, which is read by nothing in production despite
@@ -634,24 +638,56 @@ Not blocking: `tests/standalone/test_rate_laws.py` pins `Andrews` and
 laws at fixed points, specifically so a later composable-inhibition redesign
 can be checked against these values rather than against vibes.
 
-## Package-level layering: `chemistry` still cycles with `reactions`
+## Package-level layering: two package cycles remain
 
-Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 13
-(decision D7). Moving `chemistry/database.py` and `chemistry/databases/` to
-`PyOMES/databases/` fixed one cause of the package-level `chemistry` <->
-`reactions` cycle. A second cause remains: `chemistry/partition.py`'s
-`HenryEquilibrium`, `RaoultEquilibrium` and `KspEquilibrium` are equilibrium
-constraints — a `reactions/` concept (they need `StoichiometryEntry` and
-`vant_hoff_log_K`) — yet live in `chemistry/`. The *module*-level import
-graph is still acyclic (`tests/standalone/test_import_graph_acyclic.py`,
-added checkpoint 2 of the same phase, checks this), so nothing is currently
-broken; the *package*-level graph is not.
+Originally logged 2026-09-22 (`chemistry-reactions-kinetics-cleanup`
+checkpoint 13, decision D7) as `chemistry` cycling with `reactions`. That
+cycle is gone: `chemistry/` now imports only `units`, at any depth
+(function-level and `TYPE_CHECKING` imports included), and
+`tests/standalone/test_package_layering.py` enforces it.
 
-A later layering phase would fix this either by moving `StoichiometryEntry`
-and its helpers into `chemistry/`, or by moving the three `*Equilibrium`
-constraint classes into `reactions/` and leaving the `PartitionModel`
-protocol (which `core/` imports) in `chemistry/`. Touches many imports
-(tests, notebooks) and is its own phase.
+`tests/standalone/test_import_graph_acyclic.py` checks only the *module*-level
+graph, so it does not see the package-level cycles that remain. Counting every
+import statement (checked 2026-09-24):
+
+- `control` <-> `core`, at module level in both directions. `control/__init__.py:11`,
+  `cv_loops.py:17` and `interfaces.py:34-35` import `core`; `core/boundaries.py:34`,
+  `gas_liquid_link.py:96`, `phases.py:25`, `recorder.py:27` and `simulation.py:32`
+  import `control`. Each side also has function-level imports of the other.
+- `chemical_equilibrium` <-> `reactions`, at function level only.
+  `reactions/reaction_system.py:261,273` import the engines;
+  `chemical_equilibrium/engines/bisection/engine.py:203`, `nr/engine.py:239` and
+  `nr/tableau.py:401` import `reactions`.
+
+Nothing is broken today: the module-level graph is acyclic. A test asserting an
+acyclic *package* graph cannot be added until both cycles are resolved. Which
+package should sit lower in each pair is not decided; fixing either is its own
+phase.
+
+## No single source for water's physical constants
+
+Found 2026-09-24 while moving `RaoultEquilibrium` to `reactions/phase_equilibria.py`,
+not fixed. `RaoultEquilibrium`'s four water values (`P_sat_ref`, `dH_vap`, `T_ref`,
+`C_water_mol_L`) are ordinary constructor arguments, so a caller can already supply
+their own, or another solvent via `gas_species`/`liquid_species`;
+`tests/standalone/test_partition_model.py::TestRaoultCustomParameters` pins that.
+The *defaults*, though, come from three unconnected places:
+
+- `reactions/phase_equilibria.py`: `_P_SAT_REF = 0.03169` atm and `_T_REF_WATER = 298.15`
+  K (private module constants), plus the inline literals `dH_vap = 44011.0` J/mol and
+  `C_water_mol_L = 55.51` mol/L.
+- `chemical_equilibrium/engines/nr/engine.py:55`: `_C_WATER_MOL_L`, derived from
+  `_RHO_WATER_G_L = 1000.0` and `_M_WATER_G_MOL = 18.015` (about 55.51).
+- `models/vlmodels/adm1/base.py:1050`: a literal `55.51`.
+
+`thermo/water_properties.py` already has a temperature-dependent
+`water_density_kg_per_m3(T_K)` and no vapour-pressure function. Two smaller changes
+would help, and neither has been decided: publish the `RaoultEquilibrium` defaults as
+named, documented public constants (for example a saturation pressure and an
+enthalpy of vaporisation at 25 °C) so a caller can refer to them, and route the
+three `C_water` copies through one value. The second is not a pure refactor: the
+engine's derived value is 1000 / 18.015 = 55.5093, which differs from the 55.51
+literals by about 1.3e-5 relative, so results move slightly wherever they are unified.
 
 ## `ReactionBuilder.aerobic_growth` doesn't check the derived yield is achievable
 
@@ -715,7 +751,7 @@ Found 2026-09-23 while moving `EquilibriumSet`, not fixed. 14 lines across 6
 files use `from ....thermo import ...`-style imports, all in
 `chemical_equilibrium/engines/bisection/` and `chemical_equilibrium/engines/nr/`,
 where the extra nesting level made them long. The rest of the package
-(`control/`, `templates/stirred_tank/`, `chemistry/partition.py`) uses absolute
+(`control/`, `templates/stirred_tank/`) uses absolute
 `from PyOMES.… import …`. Both work with the editable install. Converting the
 14 lines is mechanical; pick one convention if the package ever gets a style
 pass.

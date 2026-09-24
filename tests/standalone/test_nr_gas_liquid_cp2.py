@@ -85,7 +85,7 @@ def _carbonate_ladder():
 
 
 def _co2_henry(H_ref=3.4e-4, dlnH=2400.0):
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=H_ref, dlnH=dlnH, gas_species="CO2", liquid_species="CO2",
         label="henry_CO2",
@@ -103,7 +103,7 @@ class TestInertGasMatchesPartitionModel:
 
     def test_o2_matches_equilibrium_a_moles(self):
         from PyOMES.chemistry.species import Species
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         O2 = Species(id="O2", atoms={"O": 2}, charge=0)

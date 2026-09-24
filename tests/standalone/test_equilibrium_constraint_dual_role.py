@@ -25,7 +25,7 @@ import pytest
 
 
 def _co2_henry(H_ref=3.4e-4, dlnH=2400.0):
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=H_ref, dlnH=dlnH, gas_species="CO2", liquid_species="CO2",
         label="partition_CO2",
@@ -133,7 +133,7 @@ class TestOldBugStructurallyImpossible:
         still do today with two independent HenryEquilibrium instances,
         or a HenryEquilibrium alongside a hand-built EquilibriumReaction) —
         it is not prevented, only made unnecessary."""
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
         from PyOMES.chemistry.common_species import CO2
 
@@ -173,7 +173,7 @@ class TestOldBugStructurallyImpossible:
         """There is exactly one place to edit — H_ref/dlnH on the shared
         instance — and both roles see the update immediately, since both
         read from the same object rather than independent copies."""
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         import dataclasses
 
         original = _co2_henry(H_ref=3.4e-4, dlnH=2400.0)

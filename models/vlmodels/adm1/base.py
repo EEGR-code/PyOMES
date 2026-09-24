@@ -1052,7 +1052,7 @@ def build_adm1_cv(
     gas.n_mol.setdefault("H2O", 0.0)
 
     import warnings as _warnings
-    from PyOMES.chemistry import RaoultEquilibrium
+    from PyOMES.reactions import RaoultEquilibrium
     from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
 
     with _warnings.catch_warnings():

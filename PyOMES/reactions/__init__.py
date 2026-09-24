@@ -12,6 +12,12 @@ This package provides:
   :class:`~PyOMES.chemical_equilibrium.engines.bisection.engine.BisectionChemicalEquilibriumEngine` (single-phase) or
   :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink`
   (cross-phase partition declarations).
+- :class:`HenryEquilibrium`, :class:`RaoultEquilibrium` and
+  :class:`KspEquilibrium` — gas-liquid and solid-liquid equilibrium
+  constraints that are also
+  :class:`~PyOMES.chemistry.partition.PartitionModel` instances, so one
+  declaration can go both into a ``ReactionSystem`` and into
+  ``KineticGasLiquidLink``'s ``partition_models=``.
 - :class:`ReactionSystem` — single attach point for all reactions on a
   :class:`~PyOMES.core.control_volume.ControlVolume`. Pre-buckets its
   reactions by type at construction; immutable post-attach.
@@ -40,6 +46,7 @@ from .protocols import ReactionModel
 # Concrete reaction declarations (independent classes, no shared base)
 from .kinetic import KineticReaction
 from .equilibrium import EquilibriumReaction
+from .phase_equilibria import HenryEquilibrium, RaoultEquilibrium, KspEquilibrium
 from .blackbox import BlackBoxReactionModel, FluxEntry, MassBalanceWarning, MassBalanceError
 
 # Container and helpers
@@ -71,6 +78,9 @@ __all__ = [
     # Reaction declarations
     "KineticReaction",
     "EquilibriumReaction",
+    "HenryEquilibrium",
+    "RaoultEquilibrium",
+    "KspEquilibrium",
     "BlackBoxReactionModel",
     # Container and helpers
     "ReactionSystem",

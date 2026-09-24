@@ -6,7 +6,7 @@ from PyOMES.core.phases import GasPhase, LiquidPhase
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.boundaries import MembraneGasBoundary, ExternalBoundary, apply_boundary
-from PyOMES.chemistry import HenryEquilibrium
+from PyOMES.reactions import HenryEquilibrium
 
 
 def _hp(kH: float, dlnH: float = 0.0) -> HenryEquilibrium:

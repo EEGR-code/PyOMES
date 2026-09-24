@@ -64,7 +64,7 @@ def _calcite_reaction():
 
 
 def _co2_henry():
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
         label="henry_CO2",

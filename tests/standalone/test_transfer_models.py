@@ -25,7 +25,7 @@ from PyOMES.core import (
     SolidPhase,
 )
 from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
-from PyOMES.chemistry import HenryEquilibrium
+from PyOMES.reactions import HenryEquilibrium
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

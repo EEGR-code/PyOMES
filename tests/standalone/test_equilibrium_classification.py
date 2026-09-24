@@ -67,7 +67,7 @@ def _co2_gas_liquid_declaration():
 
 
 def _henry_co2():
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     return HenryEquilibrium(
         H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
     )
@@ -113,7 +113,7 @@ class TestClassifyEquilibriumConstraint:
         assert classify_equilibrium_constraint(_henry_co2()) == "gas_liquid"
 
     def test_raoult_equilibrium_is_gas_liquid(self):
-        from PyOMES.chemistry import RaoultEquilibrium
+        from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(RaoultEquilibrium()) == "gas_liquid"
 
@@ -122,7 +122,7 @@ class TestClassifyEquilibriumConstraint:
         assert classify_equilibrium_constraint(_calcite_reaction()) == "solid_liquid"
 
     def test_ksp_equilibrium_is_solid_liquid(self):
-        from PyOMES.chemistry import KspEquilibrium
+        from PyOMES.reactions import KspEquilibrium
         from PyOMES.chemistry.species import Species
         from PyOMES.reactions.stoichiometry import StoichiometryEntry
         from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
@@ -157,7 +157,7 @@ class TestClassifyEquilibriumConstraint:
         assert classify_equilibrium_constraint(rxn) == "solid_liquid"
 
     def test_empty_stoichiometry_raises_value_error(self):
-        from PyOMES.chemistry import HenryEquilibrium
+        from PyOMES.reactions import HenryEquilibrium
         from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
         hp = HenryEquilibrium(H_ref=3.4e-4, dlnH=2400.0)  # gas/liquid species unset
         assert hp.stoichiometry == ()
@@ -310,7 +310,7 @@ class TestBuildTableauSharedClassifierFilter:
         assert "CO2" in tableau.masters
 
     def test_ksp_equilibrium_excluded_from_graph(self):
-        from PyOMES.chemistry import KspEquilibrium
+        from PyOMES.reactions import KspEquilibrium
         from PyOMES.chemistry.species import Species
         from PyOMES.reactions.stoichiometry import StoichiometryEntry
         from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau

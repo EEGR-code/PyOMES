@@ -24,7 +24,7 @@ that still describe open work are "Open phases" and the pending stages in
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
   call sites (`reactions/stoichiometry.py`'s string-stoichiometry
-  parser, `chemistry/partition.py`'s `HenryEquilibrium`/
+  parser, `reactions/phase_equilibria.py`'s `HenryEquilibrium`/
   `RaoultEquilibrium` species fields, `core/control_volume.py`'s
   charge-conservation registry) resolve unrecognized species ids by
   scanning `common_species.py`'s entire module namespace via `vars()`,
@@ -34,7 +34,7 @@ that still describe open work are "Open phases" and the pending stages in
   favor of explicit resolution only. Phase 0 (stoichiometry.py) is
   cheap and decided; Phase 1 (control_volume.py) found `ControlVolume`
   already accepts `chemistry_db=` but doesn't consult
-  `chemistry_db.species`, so it's mostly wiring; Phase 2 (partition.py)
+  `chemistry_db.species`, so it's mostly wiring; Phase 2 (phase_equilibria.py)
   needs an API decision (`RaoultEquilibrium.liquid_species` currently
   defaults to the bare string `"H2O"`, resolved ambiently). The
   original relocation question is downstream of this note, not

@@ -74,9 +74,9 @@ class EquilibriumConstraint(Protocol):
     equilibrium-classification/tableau-building machinery in
     ``PyOMES.chemical_equilibrium``, regardless of whether it also satisfies
     :class:`~PyOMES.chemistry.partition.PartitionModel` (as
-    :class:`~PyOMES.chemistry.partition.HenryEquilibrium`,
-    :class:`~PyOMES.chemistry.partition.KspEquilibrium`, and
-    :class:`~PyOMES.chemistry.partition.RaoultEquilibrium` all do).
+    :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`,
+    :class:`~PyOMES.reactions.phase_equilibria.KspEquilibrium`, and
+    :class:`~PyOMES.reactions.phase_equilibria.RaoultEquilibrium` all do).
 
     ``log_K``/``dH_J_per_mol`` are plain attributes carrying the
     *reference* mass-action constant (at ``T_ref_K``) — not methods.
@@ -115,9 +115,9 @@ def classify_equilibrium_constraint(
     """Classify an :class:`EquilibriumConstraint` from its stoichiometry's phase tags.
 
     Not an ``isinstance(item, EquilibriumReaction)`` check —
-    :class:`~PyOMES.chemistry.partition.HenryEquilibrium`,
-    :class:`~PyOMES.chemistry.partition.KspEquilibrium`, and
-    :class:`~PyOMES.chemistry.partition.RaoultEquilibrium` are siblings,
+    :class:`~PyOMES.reactions.phase_equilibria.HenryEquilibrium`,
+    :class:`~PyOMES.reactions.phase_equilibria.KspEquilibrium`, and
+    :class:`~PyOMES.reactions.phase_equilibria.RaoultEquilibrium` are siblings,
     not subclasses, of :class:`EquilibriumReaction`. Any
     ``EquilibriumConstraint``-conforming item is classified purely from
     the distinct phases present across its ``stoichiometry``:

@@ -51,7 +51,7 @@ def _water_rxn():
 
 
 def _o2_henry():
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     O2 = _o2_species()
     return HenryEquilibrium(
         H_ref=1.3e-5, dlnH=1500.0, gas_species=O2, liquid_species=O2,
@@ -60,7 +60,7 @@ def _o2_henry():
 
 
 def _n2_henry():
-    from PyOMES.chemistry import HenryEquilibrium
+    from PyOMES.reactions import HenryEquilibrium
     N2 = _n2_species()
     return HenryEquilibrium(H_ref=6.4e-6, dlnH=1300.0, label="henry_N2_partition_only")
 
