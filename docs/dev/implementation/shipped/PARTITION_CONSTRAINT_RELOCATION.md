@@ -1,9 +1,28 @@
 # Partition Constraint Relocation — Design Note
 
-> Status: design note, not yet started. No branch, no checklist, no code
-> yet. Surfaced 2026-09-23 in a conversational review of `chemistry/`
+> **Status: Shipped 2026-09-24** — merged into `main` via `git merge --no-ff`
+> as commit `afbc546`, tagged `partition-constraint-relocation-shipped`. Six
+> checkpoints: the move of `HenryEquilibrium`/`RaoultEquilibrium`/`KspEquilibrium`
+> (with `_resolve_species`) from `chemistry/partition.py` to the new
+> `reactions/phase_equilibria.py`, exported from `reactions/__init__.py`; docstring
+> paths; notebooks and scripts; docs and live notes; a layering test; and tests for
+> `RaoultEquilibrium`'s custom parameters. Open questions 1-2 were settled as a new
+> file (`phase_equilibria.py`) and exporting all three classes; question 5 (renaming
+> `test_partition_model.py`) stayed no. The note below is the audit as originally
+> written; where it disagrees with the checklist's "Re-verification" section, the
+> checklist is correct. The main corrections: the package graph does not become a
+> DAG (two other cycles remain, now logged in `OPEN_WORK.md`); the old file also had
+> an unused `TYPE_CHECKING` import of `thermo`; checkpoints pickle these classes, so
+> ones saved earlier will not load; the "31 external files" break down differently
+> (26 needed edits); and live notes and docstrings the note did not list carried
+> stale paths. Full suite green post-merge: 2098 passed, 0 failed (2086 plus two
+> layering tests and ten `RaoultEquilibrium` tests). See
+> [`PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md`](PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md).
+
+> Written before implementation, from a conversational audit. Surfaced 2026-09-23
+> in a conversational review of `chemistry/`
 > (the same one that produced
-> [`EQUILIBRIUM_SET_RELOCATION.md`](../shipped/EQUILIBRIUM_SET_RELOCATION.md)). It
+> [`EQUILIBRIUM_SET_RELOCATION.md`](EQUILIBRIUM_SET_RELOCATION.md)). It
 > develops the second, still-open cause of the package-level
 > `chemistry` <-> `reactions` cycle logged in `OPEN_WORK.md`'s
 > "Package-level layering" entry (logged 2026-09-22,
@@ -227,7 +246,7 @@ nearly all of that is mechanical.
 ## How to start one
 
 Per this folder's usual convention
-([README.md](README.md#how-to-start-one)): resolve open questions 1-2,
+([README.md](../upcoming/README.md#how-to-start-one)): resolve open questions 1-2,
 write a checklist file (`PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md`),
 cut a branch off `main` (suggested name: `partition-constraint-relocation`).
 Logic change is small (two imports per moved class, one file split);

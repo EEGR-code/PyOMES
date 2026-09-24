@@ -1,13 +1,17 @@
 
 # Phase Kickoff Checklist — partition-constraint-relocation
 
+> **Status: Shipped 2026-09-24** — merged into `main` via `git merge --no-ff`
+> as commit `afbc546`, tagged `partition-constraint-relocation-shipped`. Full suite
+> green post-merge: 2098 passed, 0 failed. Remote and local feature branch both deleted.
+
 > Checklist for [`PARTITION_CONSTRAINT_RELOCATION.md`](PARTITION_CONSTRAINT_RELOCATION.md),
 > the source of truth for motivation and design; do not restate it here. Where
 > this checklist and the note disagree, this checklist wins: the note was written
 > from a conversational audit and the "Re-verification" section below corrects
-> it. See [`README.md`](README.md)'s "Branching and tagging convention". Modelled
+> it. See [`README.md`](../upcoming/README.md)'s "Branching and tagging convention". Modelled
 > on
-> [`EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md`](../shipped/EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md).
+> [`EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md`](EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md).
 
 **Working rules**
 
@@ -424,17 +428,28 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff partition-constraint-relocation -m "Merge partition-constraint-relocation: <summary>"`
-- [ ] `git tag partition-constraint-relocation-shipped` on the merge commit
-- [ ] `git push && git push --tags`
-- [ ] `git branch -d partition-constraint-relocation` and
+- [x] Full test suite green on the branch — **2098 passed** (checkpoint 6's number
+      above)
+- [x] `git checkout main`
+- [x] `git merge --no-ff partition-constraint-relocation -m "Merge partition-constraint-relocation: <summary>"`
+      (merge commit `afbc546`)
+- [x] `git tag partition-constraint-relocation-shipped` on the merge commit
+      (confirmed on `origin`, pointing at `afbc546`)
+- [x] `git push && git push --tags`
+- [x] `git branch -d partition-constraint-relocation` and
       `git push origin --delete partition-constraint-relocation`
-- [ ] Full suite on `main` after the merge
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`
+- [x] Full suite on `main` after the merge: **2098 passed**, 0 failed, 166 warnings,
+      4m20s
+- [x] Move the design note and this checklist to `docs/dev/implementation/shipped/`
       (plain filesystem move); add "Shipped" banners
-- [ ] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
+- [x] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
       "Recently shipped" entry
-- [ ] Repoint any live link to the moved docs (search for
-      `PARTITION_CONSTRAINT_RELOCATION` across `docs/` and `OPEN_WORK.md`)
+- [x] Repoint any live link to the moved docs (search for
+      `PARTITION_CONSTRAINT_RELOCATION` across `docs/` and `OPEN_WORK.md`). The
+      two moved docs' own relative links were repointed (`README.md` now
+      `../upcoming/README.md`; `../shipped/` links became same-directory), and all
+      72 relative links across both docs and `upcoming/README.md` resolve. Nothing
+      in `OPEN_WORK.md` linked to them. One inline-code mention of
+      `upcoming/PARTITION_CONSTRAINT_RELOCATION.md` remains in the shipped
+      `EQUILIBRIUM_SET_RELOCATION_CHECKLIST.md:211`; it is a historical log line,
+      not a link, and is left alone.

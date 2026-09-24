@@ -40,23 +40,6 @@ that still describe open work are "Open phases" and the pending stages in
   original relocation question is downstream of this note, not
   parallel — see its own "Relationship to the relocation question"
   section. No branch, no checklist, no code yet.
-- **[PARTITION_CONSTRAINT_RELOCATION.md](PARTITION_CONSTRAINT_RELOCATION.md)** —
-  2026-09-23. Develops `OPEN_WORK.md`'s "Package-level layering" entry (the
-  remaining `chemistry` <-> `reactions` package cycle) into a concrete plan.
-  `chemistry/partition.py`'s `HenryEquilibrium`/`RaoultEquilibrium`/
-  `KspEquilibrium` also satisfy `reactions`' `EquilibriumConstraint` and are
-  the only pieces importing `reactions/`; the protocols
-  (`PartitionModel`, `MultispeciesPartitionModel`) and
-  `MultispeciesVLEPartition` need nothing from it. Picks OPEN_WORK's option
-  (b): move the three classes (plus `_resolve_species`) into `reactions/`,
-  leave the protocols in `chemistry/` — which fully removes the
-  `chemistry -> reactions` edge. Consumer inventory: 3 production files
-  with real imports plus `models/vlmodels/adm1/base.py`, docstring-only
-  references elsewhere in `PyOMES/`, and 31 external files (17 tests,
-  notebooks, scripts, docs). No re-export shim (would recreate the cycle).
-  Ends with a package-level layering test. Open questions: new file vs merge
-  into `reactions/equilibrium.py`, `reactions/__init__.py` exports. No
-  branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
@@ -164,6 +147,26 @@ that still describe open work are "Open phases" and the pending stages in
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
+
+- `partition-constraint-relocation` (2026-09-24) — moved `HenryEquilibrium`/
+  `RaoultEquilibrium`/`KspEquilibrium` (plus `_resolve_species`) from
+  `chemistry/partition.py` to a new `reactions/phase_equilibria.py`, exported from
+  `reactions/__init__.py`. That removed the `chemistry -> reactions` package edge:
+  `chemistry/` now imports only `units`, enforced by a new
+  `tests/standalone/test_package_layering.py` that also counts function-level and
+  `TYPE_CHECKING` imports. Six checkpoints, no behaviour change beyond the import
+  path. There is no re-export from `chemistry/`, so the old import path stops
+  working, and checkpoints pickled before the phase will not load. The design
+  note's audit needed correcting: the package graph does not become acyclic (two
+  other package cycles, `control` <-> `core` and `chemical_equilibrium` <->
+  `reactions`, are now logged in `OPEN_WORK.md`, unfixed), the "31 external files"
+  were 26 needing edits, and live notes and docstrings the note did not list
+  carried stale paths. Also added ten tests showing `RaoultEquilibrium`'s water
+  values are already configurable (including another solvent), and logged that
+  those values exist in three places with no shared source. Full suite green
+  post-merge: 2098 passed, 0 failed. Tag `partition-constraint-relocation-shipped`.
+  See
+  [`../shipped/PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md`](../shipped/PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md).
 
 - `equilibrium-set-relocation` (2026-09-23) — moved `EquilibriumSet`/
   `EquilibriumDef`/`WaterDef` (the acid-base charge-balance declaration
