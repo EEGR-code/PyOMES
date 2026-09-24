@@ -638,7 +638,7 @@ uses. Line counts with `wc -l`; line endings by byte count and
       **Notebooks:** the branch changes no `.ipynb`, `.toml`, `.yml` or `.json`
       file (`git diff --name-only main..HEAD`: 17 `.py`, 4 `.md`), so none was
       re-run._
-- [ ] 7. **Seam guard** (decision 14). Add `_thermo_layout_violations()` and two
+- [x] 7. **Seam guard** (decision 14). Add `_thermo_layout_violations()` and two
       tests to `test_package_layering.py`: a synthetic self-check (crossings in
       every import form, allowed same-folder imports, files outside the rule's
       scope) and the real-files test (after asserting the new modules are found).
@@ -646,6 +646,34 @@ uses. Line counts with `wc -l`; line endings by byte count and
       `liquid -> gas` import, a lazy `framework` import in `gas/`, and a
       `TYPE_CHECKING` package-root import in `liquid/`, to see each fail.
       Sanity: all layering tests pass; full suite **2104 passed**.
+      _Notes: done 2026-09-24, after checkpoint 6 was committed as `d29c545`.
+      Suite before: **2102 passed** (2m38s); after: **2104 passed**, 0 failed,
+      166 warnings, 2m35s (the two new tests). The docstring and constants edits
+      below were saved while the before-run was still going; pytest had already
+      collected the file, and neither edit changes behaviour, so that run stands
+      as the baseline. `test_package_layering.py`: module docstring gains a third
+      bullet stating the rule; new constants `THERMO` and `THERMO_SIDES`; new
+      `_thermo_layout_violations()` built on the existing `_imports()` resolver
+      (no change to it or to the two existing guards). For a module in
+      `thermo/liquid/` or `thermo/gas/`, any import at any depth (module level,
+      function body, `TYPE_CHECKING` block) whose target is inside
+      `PyOMES.thermo` but outside the module's own folder is a violation, as is
+      `import PyOMES` or `from PyOMES import *` (the root imports all of
+      `thermo/`); imports from outside `PyOMES.thermo` (`units`, `numpy`, ...)
+      are not restricted. New tests: `test_thermo_layout_detector_catches_every_crossing`
+      (23 synthetic cases: 17 crossings in every form, including `from .. import
+      gas`, lazy and `TYPE_CHECKING` imports, `framework`,
+      `equilibrium_constants`, both package roots and a package `__init__`; 4
+      allowed imports; 2 files outside the rule's scope) and
+      `test_thermo_liquid_and_gas_stay_separate` (the real files, after asserting
+      that `liquid/protocols.py`, `liquid/davies.py`, `gas/protocols.py` and
+      `gas/peng_robinson.py` are found). Checks beyond the tests: injecting, in
+      memory, `from ..gas.protocols import GasEOS` into `liquid/davies.py`, a lazy
+      `framework` import into `gas/peng_robinson.py` and a `TYPE_CHECKING`
+      import of the `PyOMES.thermo` root into `liquid/sit.py` each gives exactly
+      one violation with its reason, while the unmodified files give none. No
+      bare LF. `OPEN_WORK.md`'s layering entry (which describes package cycles
+      and the `chemistry/` guard) is still accurate and was not changed._
 
 ## Shipping
 
