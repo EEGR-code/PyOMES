@@ -638,24 +638,31 @@ Not blocking: `tests/standalone/test_rate_laws.py` pins `Andrews` and
 laws at fixed points, specifically so a later composable-inhibition redesign
 can be checked against these values rather than against vibes.
 
-## Package-level layering: `chemistry` still cycles with `reactions`
+## Package-level layering: two package cycles remain
 
-Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 13
-(decision D7). Moving `chemistry/database.py` and `chemistry/databases/` to
-`PyOMES/databases/` fixed one cause of the package-level `chemistry` <->
-`reactions` cycle. A second cause remains: `chemistry/partition.py`'s
-`HenryEquilibrium`, `RaoultEquilibrium` and `KspEquilibrium` are equilibrium
-constraints — a `reactions/` concept (they need `StoichiometryEntry` and
-`vant_hoff_log_K`) — yet live in `chemistry/`. The *module*-level import
-graph is still acyclic (`tests/standalone/test_import_graph_acyclic.py`,
-added checkpoint 2 of the same phase, checks this), so nothing is currently
-broken; the *package*-level graph is not.
+Originally logged 2026-09-22 (`chemistry-reactions-kinetics-cleanup`
+checkpoint 13, decision D7) as `chemistry` cycling with `reactions`. That
+cycle is gone: `chemistry/` now imports only `units`, at any depth
+(function-level and `TYPE_CHECKING` imports included), and
+`tests/standalone/test_package_layering.py` enforces it.
 
-A later layering phase would fix this either by moving `StoichiometryEntry`
-and its helpers into `chemistry/`, or by moving the three `*Equilibrium`
-constraint classes into `reactions/` and leaving the `PartitionModel`
-protocol (which `core/` imports) in `chemistry/`. Touches many imports
-(tests, notebooks) and is its own phase.
+`tests/standalone/test_import_graph_acyclic.py` checks only the *module*-level
+graph, so it does not see the package-level cycles that remain. Counting every
+import statement (checked 2026-09-24):
+
+- `control` <-> `core`, at module level in both directions. `control/__init__.py:11`,
+  `cv_loops.py:17` and `interfaces.py:34-35` import `core`; `core/boundaries.py:34`,
+  `gas_liquid_link.py:96`, `phases.py:25`, `recorder.py:27` and `simulation.py:32`
+  import `control`. Each side also has function-level imports of the other.
+- `chemical_equilibrium` <-> `reactions`, at function level only.
+  `reactions/reaction_system.py:261,273` import the engines;
+  `chemical_equilibrium/engines/bisection/engine.py:203`, `nr/engine.py:239` and
+  `nr/tableau.py:401` import `reactions`.
+
+Nothing is broken today: the module-level graph is acyclic. A test asserting an
+acyclic *package* graph cannot be added until both cycles are resolved. Which
+package should sit lower in each pair is not decided; fixing either is its own
+phase.
 
 ## `ReactionBuilder.aerobic_growth` doesn't check the derived yield is achievable
 

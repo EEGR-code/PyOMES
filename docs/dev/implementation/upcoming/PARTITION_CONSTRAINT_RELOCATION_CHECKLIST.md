@@ -1,3 +1,4 @@
+
 # Phase Kickoff Checklist — partition-constraint-relocation
 
 > Checklist for [`PARTITION_CONSTRAINT_RELOCATION.md`](PARTITION_CONSTRAINT_RELOCATION.md),
@@ -343,7 +344,7 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       (`PartitionModel`, `MultispeciesVLEPartition`, `_kH_mol_L_atm_from_ref`),
       historical text (`test_bsm2_reference.py:266`, `OPEN_WORK.md` layering
       entry which checkpoint 5 rewrites), the design note and this checklist._
-- [ ] 5. Layering test and `OPEN_WORK.md`. New
+- [x] 5. Layering test and `OPEN_WORK.md`. New
       `tests/standalone/test_package_layering.py`: parse every `.py` under
       `PyOMES/chemistry/` with `ast.walk` (all imports at any depth, including
       `TYPE_CHECKING`), resolve relative imports, and assert the set of `PyOMES`
@@ -356,6 +357,30 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       `reactions`), unfixed.
       Sanity: the new test passes; full suite **2087 passed** (or one more per
       test function added).
+      _Notes: done 2026-09-24. Suite before: **2086 passed** (2m36s); after:
+      **2088 passed**, 0 failed, 166 warnings, 5m17s (two test functions added:
+      the detector self-check and the real layer check). The self-check covers
+      relative and absolute forms, function-level and `TYPE_CHECKING` imports,
+      `from PyOMES import x` and `from .. import x`, bare `import PyOMES`, a
+      star import, and `__init__.py` resolving one level higher than a plain
+      module. Beyond the self-check, the detector was run against the pre-move
+      `partition.py` from history (`git show f598511^:...`, read-only), and it
+      reported `reactions` and `thermo`; against today's file it reports nothing;
+      against today's file plus an injected function-level
+      `from ..reactions.equilibrium import ...` it reports `reactions`. The `thermo`
+      hit is a finding the checklist missed: the old file also had an unused
+      `if TYPE_CHECKING:` import of `PyOMES.thermo.ThermoFramework` (`partition.py`
+      line 51), so `chemistry/` was never limited to `units` before this phase;
+      checkpoint 1 dropped that block, which is what makes the "only `units`"
+      claim (decision 8) true. `OPEN_WORK.md`'s layering entry was rewritten
+      rather than deleted, because its premise (package graph not acyclic) still
+      holds: it now records that the `chemistry` cycle is gone and lists the two
+      remaining cycles with their edges, re-derived against the current tree
+      (`control` <-> `core` at module level, `chemical_equilibrium` <->
+      `reactions` at function level only). No link uses the old heading's anchor;
+      other notes refer to the entry by its "Package-level layering" name, which
+      still matches. The new test file uses LF line endings, like the existing
+      `test_import_graph_acyclic.py` (many other test files are CRLF)._
 - [ ] 6. Tests for `RaoultEquilibrium`'s custom parameters (decision 9), added to
       the Raoult section of `tests/standalone/test_partition_model.py`. No source
       change. Cases: `P_sat(T_ref)` equals a custom `P_sat_ref`; `P_sat` at another
