@@ -265,7 +265,7 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       `gas_liquid_link.py:68-84` example (construct `HenryEquilibrium` from
       `PyOMES.reactions`, build a `KineticGasLiquidLink`) runs unchanged. No other
       text in the nine edited lines changed._
-- [ ] 3. Notebooks and scripts: change the import in the 7 notebooks' code cells,
+- [x] 3. Notebooks and scripts: change the import in the 7 notebooks' code cells,
       `_generate_notebooks.py:828,1209` (kept identical to notebooks 02/03) and
       `raw_construction.py:56`. Source cells only; saved outputs are not re-run
       into the repo.
@@ -273,6 +273,37 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       whole notebook where it runs quickly) from a scratch copy, and
       `raw_construction.py` if it is short; confirm generator and notebook cells
       match by script; full suite **2086 passed**.
+      _Notes: done 2026-09-24. Suite before: **2086 passed** (3m07s); after:
+      **2086 passed**, 0 failed, 166 warnings, 2m27s (docs/scripts/notebooks are
+      outside `testpaths`, so no test-count change was expected). Each of the 7
+      notebooks got exactly one changed line (verified by diff against a backup
+      taken before editing), splitting the moved name onto its own
+      `from PyOMES.reactions import ...` line beside the existing
+      `from PyOMES.chemistry import ...`/`from PyOMES.reactions import ...` line,
+      same pattern as checkpoint 1's test-file rewrite. Editing was scripted for
+      the same CRLF reason as checkpoint 1; the script additionally had to
+      preserve each file's exact trailing bytes after the final `}` byte-for-byte
+      (three different endings across the 7: none, `\r\n`, and a lone trailing
+      `\r` with no `\n` — all three now match their originals), and CRLF counts
+      match old-to-new for every file. `raw_construction.py`'s single import line
+      was merged into its existing `from PyOMES.reactions import (...)` block, and
+      the file was run end-to-end (`python docs/tutorials/D2C_workshop/
+      raw_construction.py`): exit 0, 0.474 s wall-clock, prints unchanged from a
+      run before this checkpoint. `_generate_notebooks.py`'s two sites were first
+      merged into their existing `from PyOMES.reactions import (...)` blocks (to
+      match `raw_construction.py`'s style), which did not match the corresponding
+      notebook cells; switched to a separate `from PyOMES.reactions import
+      HenryEquilibrium` line instead (matching the scripted notebook edit's shape),
+      confirmed identical to the `KINETIC_SETUP`/`CSTR_SETUP` string constants by
+      direct string comparison against notebooks 02 and 03's first code cell — not
+      run (would regenerate every notebook the script produces, not just 02/03,
+      risking unrelated diffs from output/timestamp drift). The generator was not
+      executed for that reason; its two other sanity checks (syntax parse, string
+      match) covered the intended check. The three false-positive grep hits this
+      produced (`from PyOMES.chemistry import X\nfrom PyOMES.reactions import
+      Henry...` spanning the split) were confirmed benign — the two matched
+      substrings sit either side of the new line break, not a leftover old-style
+      import. Gitignored `scratch/ArXiv_preprint/02,03` untouched, as decided._
 - [ ] 4. Docs and live notes: `docs/architecture.md` (add `phase_equilibria.py` to
       the `reactions/` tree); `PyOMES/README.md:13` (drop "and acid-base
       equilibrium sets", and mention the constraints under `reactions/` if that

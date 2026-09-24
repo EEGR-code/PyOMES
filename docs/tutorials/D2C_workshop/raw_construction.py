@@ -53,12 +53,13 @@ from PyOMES.core import (
 from PyOMES.core.boundaries import GasFeed, PressureReliefVent
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.control.cv_loops import PHController
-from PyOMES.chemistry import HenryEquilibrium, Species
+from PyOMES.chemistry import Species
 from PyOMES.chemistry.common_species import (
     H_plus, H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
 )
 from PyOMES.reactions import (
     EquilibriumReaction,
+    HenryEquilibrium,
     ReactionBuilder,
     ReactionSystem,
     StoichiometryEntry,

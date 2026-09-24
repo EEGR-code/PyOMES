@@ -825,7 +825,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
-from PyOMES.chemistry import HenryEquilibrium
+from PyOMES.reactions import HenryEquilibrium
 from PyOMES.reactions import EquilibriumReaction, ReactionSystem, StoichiometryEntry
 from PyOMES.core import (
     ControlVolume, GasPhase, LiquidPhase, KineticTransferModel, Simulation,
@@ -1206,7 +1206,7 @@ from PyOMES.chemistry.common_species import (
     NH3, NH4_plus,
     CO2, HCO3_minus, CO3_2minus,
 )
-from PyOMES.chemistry import HenryEquilibrium
+from PyOMES.reactions import HenryEquilibrium
 from PyOMES.reactions import (
     EquilibriumReaction, ReactionBuilder, ReactionSystem, StoichiometryEntry,
 )
