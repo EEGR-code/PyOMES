@@ -46,10 +46,10 @@ from typing import (
     Dict, List, Literal, Optional, Protocol, Sequence, Union, runtime_checkable,
 )
 
-from ..chemistry.species import Species
-from ..units import R_J_PER_MOL_K as _R_J_MOL_K
-from .stoichiometry import StoichiometryEntry, _parse_stoichiometry
-from ._shared import (
+from PyOMES.chemistry.species import Species
+from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL_K
+from PyOMES.reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
+from PyOMES.reactions._shared import (
     _infer_elements,
     coerce_and_validate,
     fmt_stoichiometry_string,

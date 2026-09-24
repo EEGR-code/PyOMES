@@ -73,8 +73,7 @@ class TestChemistryDatabaseExtend:
 
     def test_extend_adds_reactions(self):
         from PyOMES.chemistry.common_species import CO2, H_plus, H2O, HCO3_minus
-        from PyOMES.reactions.equilibrium import EquilibriumReaction
-        from PyOMES.reactions.stoichiometry import StoichiometryEntry
+        from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
         base = self._base()
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -202,7 +201,7 @@ class TestStockDatabases:
         from PyOMES.databases.anaerobic_digestion import AD_BASIC
         from PyOMES.chemistry.common_species import H2S, HS_minus
         from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
 
         single_phase = [
             r for r in AD_BASIC.reactions

@@ -46,12 +46,12 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Sequence, Union
 
 from ..chemistry.species_check import check_species_consistency
-from .equilibrium import EquilibriumConstraint, classify_equilibrium_constraint
+from .equilibrium.reaction import EquilibriumConstraint, classify_equilibrium_constraint
 from .kinetic.reaction import KineticReaction
 from .blackbox import BlackBoxReactionModel
 from .environment import ReactionEnvironment
 from ._shared import fmt_stoichiometry_string
-from .plots import plot_speciation
+from .equilibrium.plots import plot_speciation
 
 
 ReactionLike = Union[KineticReaction, EquilibriumConstraint, BlackBoxReactionModel]

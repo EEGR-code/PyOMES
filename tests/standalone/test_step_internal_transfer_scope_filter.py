@@ -38,8 +38,7 @@ def _n2_species():
 
 def _water_rxn():
     from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry as E
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
     return EquilibriumReaction(
         stoichiometry=[
             E(species=H2O, phase="liquid", coefficient=-1.0),
@@ -104,8 +103,7 @@ class TestOwnedSpeciesIdentification:
         from PyOMES.chemistry.common_species import (
             H2O, H_plus, CO2, HCO3_minus,
         )
-        from PyOMES.reactions.equilibrium import EquilibriumReaction
-        from PyOMES.reactions.stoichiometry import StoichiometryEntry as E
+        from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
 
         co2_first = EquilibriumReaction(
             stoichiometry=[

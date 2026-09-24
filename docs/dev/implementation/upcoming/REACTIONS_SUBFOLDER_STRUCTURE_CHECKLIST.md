@@ -336,8 +336,18 @@ endings by byte count.
       `Simulation` without calling `sim.run` (10 cells plus the call, 2.4 s, from
       the scratchpad; no files left in the repo). Cells 18-20 (the 60 h
       simulation and its two report/plot cells) were not run. CI does not
-      execute notebooks, so it does not cover this either._
-- [ ] 2. **Equilibrium group into `equilibrium/`, no split yet.** Move
+      execute notebooks, so it does not cover this either.
+      **Found after committing:** with `core.autocrlf=true`, git stored the moved
+      files under their new paths as LF (the old paths were stored as CRLF), so
+      `git diff`/`git blame` show `kinetic/reaction.py` and `kinetic/builder.py` as
+      whole-file rewrites; `git blame -w` and `git log -M --follow` see through it.
+      Working-tree files are unchanged (CRLF). Left as is: re-storing them as CRLF
+      would be a second whole-file rewrite. From checkpoint 2 on, each moved file is
+      staged so git stores it with the same line endings as its old path
+      (`git -c core.autocrlf=false add` where the old path was stored as CRLF).
+      In checkpoint 2 that is `equilibrium/reaction.py` only; `phase_equilibria.py`
+      and `plots.py` were already stored as LF._
+- [x] 2. **Equilibrium group into `equilibrium/`, no split yet.** Move
       `equilibrium.py` whole to `equilibrium/reaction.py`, `phase_equilibria.py` to
       `equilibrium/interphase.py`, `plots.py` to `equilibrium/plots.py`; add a
       docstring-only `equilibrium/__init__.py`. Imports (decision 9):
@@ -370,6 +380,44 @@ endings by byte count.
       notebooks re-run from the scratchpad; generator templates match their
       notebook cells; both generators compile; no bare LF beyond the known 3;
       full suite **2098 passed**.
+      _Notes: done 2026-09-24. Suite before: **2098 passed** (2m01s); after:
+      **2098 passed**, 0 failed, 166 warnings, 1m52s. Moves by plain filesystem
+      move; each moved file's AST with imports removed is identical to the
+      original, and line endings and trailing bytes are unchanged (all CRLF). New
+      docstring-only `equilibrium/__init__.py` (wording reviewed in checkpoint 4).
+      Package edits, all import lines: `reaction.py` (4), `interphase.py` (7),
+      `plots.py` (3, two of them under `TYPE_CHECKING`), `reactions/__init__.py`
+      (2), `reaction_system.py:49,54`, the three engine lazy imports (now
+      absolute `PyOMES.reactions.equilibrium.reaction`), `databases/`
+      (`anaerobic_digestion.py:33-34`, `aqueous.py:21`, `bioprocess_basic.py:31-32`)
+      and `stirred_tank/factory.py:48`. Outside `PyOMES/`, 32 files by script: 38
+      adjacent `equilibrium`/`stoichiometry` pairs folded into
+      `from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry`
+      (aliases kept), 26 constraint-name imports pointed at
+      `PyOMES.reactions.equilibrium.reaction` for now, and 4 lone
+      `StoichiometryEntry` imports given their own short-form line. With
+      checkpoint 1's notebook line that is all 45 decision-13 lines. Existing
+      short-form lines next to a rewritten one (for example
+      `from PyOMES.reactions import HenryEquilibrium` in `02_nr_engine_basics`)
+      were left separate. **Added by the owner's decision (2026-09-24):** in
+      `adm1/base.py` and `adm1/bsm2.py` only, the four adjacent
+      `PyOMES.reactions` lines, including the unchanged
+      `reaction_system` path, became one parenthesised short-form import; the
+      other six files that deep-import `ReactionSystem` are left alone. Checks:
+      old paths fail (`reactions.equilibrium` with `ImportError`,
+      `reactions.phase_equilibria` and `reactions.plots` with
+      `ModuleNotFoundError`); 12 fresh-interpreter import orders pass, including
+      `PyOMES.chemical_equilibrium` and `PyOMES.chemistry.partition` first, each
+      asserting that root and deep names are the same objects; the three engine
+      lazy imports called directly (`build_tableau`, and `from_reactions` on both
+      engines). Notebooks: only `source` changed, one import line per notebook.
+      Generators: each rewritten line appears in its template; the ArXiv cell
+      matches its template verbatim; the validation generator composes cells from
+      pieces, so no cell matched verbatim before either, and every line of each
+      cell is in the generator, as before (one docstring line in `06` already
+      differed, unchanged). All 10 changed notebooks re-run from the scratchpad,
+      every code cell, OK in 0.0-5.0 s each; `phreeqpython` is installed, so the
+      PHREEQC-guarded cells ran. No files left in the repo._
 - [ ] 3. **Split `equilibrium/reaction.py`.** `constraint.py` gets
       `EquilibriumConstraint`, `vant_hoff_log_K`, `classify_equilibrium_constraint`,
       `_LOG10_E`, and the imports they need (`math`, `typing` names,

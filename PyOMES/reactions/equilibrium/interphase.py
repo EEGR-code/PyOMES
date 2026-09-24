@@ -41,13 +41,13 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence, Tuple, Union
 
-from ..chemistry import common_species
-from ..chemistry.partition import _kH_mol_L_atm_from_ref
-from ..chemistry.species import Species
-from ..units import R_J_PER_MOL_K as _R_J_MOL
-from ..units import R_L_ATM_PER_MOL_K
-from .equilibrium import vant_hoff_log_K
-from .stoichiometry import StoichiometryEntry, _parse_stoichiometry
+from PyOMES.chemistry import common_species
+from PyOMES.chemistry.partition import _kH_mol_L_atm_from_ref
+from PyOMES.chemistry.species import Species
+from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL
+from PyOMES.units import R_L_ATM_PER_MOL_K
+from .reaction import vant_hoff_log_K
+from PyOMES.reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
 
 
 def _resolve_species(species: Union[str, Species, None]) -> Optional[Species]:

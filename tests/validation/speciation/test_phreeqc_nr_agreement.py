@@ -23,8 +23,7 @@ from PyOMES.chemistry.common_species import (
     CO2, HCO3_minus, CO3_2minus,
     NH3, NH4_plus,
 )
-from PyOMES.reactions.equilibrium import EquilibriumReaction
-from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from PyOMES.chemical_equilibrium.engines.phreeqc import PHREEQCChemicalEquilibriumEngine
 

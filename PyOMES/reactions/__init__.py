@@ -45,8 +45,8 @@ from .protocols import ReactionModel
 
 # Concrete reaction declarations (independent classes, no shared base)
 from .kinetic.reaction import KineticReaction
-from .equilibrium import EquilibriumReaction
-from .phase_equilibria import HenryEquilibrium, RaoultEquilibrium, KspEquilibrium
+from .equilibrium.reaction import EquilibriumReaction
+from .equilibrium.interphase import HenryEquilibrium, RaoultEquilibrium, KspEquilibrium
 from .blackbox import BlackBoxReactionModel, FluxEntry, MassBalanceWarning, MassBalanceError
 
 # Container and helpers

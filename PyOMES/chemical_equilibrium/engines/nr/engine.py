@@ -236,7 +236,7 @@ class NRChemicalEquilibriumEngine:
         -------
         NRChemicalEquilibriumEngine
         """
-        from ....reactions.equilibrium import (
+        from PyOMES.reactions.equilibrium.reaction import (
             EquilibriumConstraint, classify_equilibrium_constraint,
         )
 

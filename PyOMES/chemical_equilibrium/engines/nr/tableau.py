@@ -398,7 +398,7 @@ def build_tableau(reactions, *, T_K: float = 298.15) -> NRTableau:
         it would require merging components, which the tableau does not
         support.
     """
-    from ....reactions.equilibrium import (
+    from PyOMES.reactions.equilibrium.reaction import (
         EquilibriumConstraint, classify_equilibrium_constraint,
     )
 

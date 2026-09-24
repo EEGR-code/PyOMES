@@ -28,8 +28,8 @@ from ..chemistry.common_species import (
     K_plus, Cl_minus, Na_plus,
 )
 from ..chemistry.species import Species
-from ..reactions.equilibrium import EquilibriumReaction
-from ..reactions.phase_equilibria import HenryEquilibrium
+from ..reactions.equilibrium.reaction import EquilibriumReaction
+from ..reactions.equilibrium.interphase import HenryEquilibrium
 from ..reactions.reaction_system import ReactionSystem
 from ..reactions.stoichiometry import StoichiometryEntry
 from .aqueous import AQUEOUS_DEFAULT

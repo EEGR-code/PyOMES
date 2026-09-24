@@ -38,8 +38,7 @@ def _base_reactions():
         CO2, HCO3_minus, CO3_2minus,
         NH3, NH4_plus,
     )
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     def _e(species, phase, coeff):
         return StoichiometryEntry(species=species, phase=phase, coefficient=coeff)
@@ -95,8 +94,7 @@ def _h2s_ladder():
     """H2S <-> HS- + H+, pKa=7.0 — a third single-component acid-base
     ladder to exercise the CO2/NH3/H2S 'attach' case named in the plan."""
     from PyOMES.chemistry.common_species import H2S, HS_minus, H_plus
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     return EquilibriumReaction(
         stoichiometry=[
@@ -283,8 +281,7 @@ class TestBridgingRaisesConfigurationError:
         deliberately not a real formula."""
         from PyOMES.chemistry.common_species import CO2, NH3
         from PyOMES.chemistry.species import Species
-        from PyOMES.reactions.equilibrium import EquilibriumReaction
-        from PyOMES.reactions.stoichiometry import StoichiometryEntry
+        from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
         placeholder_gas = Species(id="BridgeGas", atoms={}, charge=0)
         return EquilibriumReaction(
@@ -334,8 +331,7 @@ class TestUnparameterizedGasLiquidStillSkipped:
         silently skipped, exactly as before CP1 — it carries no mass-
         action constant to fold in."""
         from PyOMES.chemistry.common_species import CO2
-        from PyOMES.reactions.equilibrium import EquilibriumReaction
-        from PyOMES.reactions.stoichiometry import StoichiometryEntry
+        from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
         from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
 
         routing_only = EquilibriumReaction(

@@ -200,7 +200,7 @@ class BisectionChemicalEquilibriumEngine:
         """
         from collections import defaultdict
         from .equilibria import EquilibriumSet
-        from ....reactions.equilibrium import (
+        from PyOMES.reactions.equilibrium.reaction import (
             EquilibriumConstraint, EquilibriumReaction,
             classify_equilibrium_constraint,
         )

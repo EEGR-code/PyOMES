@@ -29,8 +29,7 @@ from PyOMES.units import R_L_ATM_PER_MOL_K
 
 def _carbonate_reactions():
     from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry as E
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
 
     water = EquilibriumReaction(
         stoichiometry=[E(H2O, "liquid", -1), E(H_plus, "liquid", +1), E(OH_minus, "liquid", +1)],
@@ -52,8 +51,7 @@ def _carbonate_reactions():
 def _calcite_reaction():
     from PyOMES.chemistry.common_species import Ca_plus_plus, CO3_2minus
     from PyOMES.chemistry.species import Species
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry as E
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
 
     CaCO3 = Species(id="CaCO3", atoms={"Ca": 1, "C": 1, "O": 3}, charge=0, MW=100.086)
     return EquilibriumReaction(

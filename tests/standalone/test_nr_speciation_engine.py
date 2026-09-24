@@ -55,8 +55,7 @@ def _make_reactions():
         CO2, HCO3_minus, CO3_2minus,
         NH3, NH4_plus,
     )
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     def _e(species, phase, coeff):
         return StoichiometryEntry(species=species, phase=phase, coefficient=coeff)
@@ -557,8 +556,7 @@ class TestPhaseWriteback:
 def _make_carbonate_reactions():
     """Carbonate-only reactions (water + 2-step carbonate ladder)."""
     from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     def _e(sp, phase, coeff):
         return StoichiometryEntry(species=sp, phase=phase, coefficient=coeff)
@@ -584,8 +582,7 @@ def _make_calcite_reaction():
     """Calcite dissolution: CaCO3(s) <-> Ca++ + CO3--  log_K = -8.48 (Ksp at 25°C)."""
     from PyOMES.chemistry.common_species import Ca_plus_plus, CO3_2minus
     from PyOMES.chemistry.species import Species
-    from PyOMES.reactions.equilibrium import EquilibriumReaction
-    from PyOMES.reactions.stoichiometry import StoichiometryEntry
+    from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     CaCO3 = Species(id="CaCO3", atoms={"Ca": 1, "C": 1, "O": 3}, charge=0, MW=100.086)
 
@@ -697,8 +694,7 @@ class TestPrecipitationEquilibria:
         """
         from PyOMES.chemistry.species import Species
         from PyOMES.chemistry.common_species import CO3_2minus, H2O, H_plus, OH_minus
-        from PyOMES.reactions.equilibrium import EquilibriumReaction
-        from PyOMES.reactions.stoichiometry import StoichiometryEntry
+        from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
         DummySolid = Species(id="DummySolid", atoms={"C": 1, "O": 3}, charge=0, MW=60.0)

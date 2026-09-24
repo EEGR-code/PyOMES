@@ -97,35 +97,35 @@ def _species(result):
 
 class TestClassifyEquilibriumConstraint:
     def test_water_reaction_is_acid_base(self):
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(_water_reaction()) == "acid_base"
 
     def test_single_phase_acid_reaction_is_acid_base(self):
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(_co2_acid_reaction()) == "acid_base"
 
     def test_cross_phase_equilibrium_reaction_is_gas_liquid(self):
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(_co2_gas_liquid_declaration()) == "gas_liquid"
 
     def test_henry_equilibrium_is_gas_liquid(self):
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(_henry_co2()) == "gas_liquid"
 
     def test_raoult_equilibrium_is_gas_liquid(self):
         from PyOMES.reactions import RaoultEquilibrium
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(RaoultEquilibrium()) == "gas_liquid"
 
     def test_equilibrium_reaction_calcite_is_solid_liquid(self):
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         assert classify_equilibrium_constraint(_calcite_reaction()) == "solid_liquid"
 
     def test_ksp_equilibrium_is_solid_liquid(self):
         from PyOMES.reactions import KspEquilibrium
         from PyOMES.chemistry.species import Species
-        from PyOMES.reactions.stoichiometry import StoichiometryEntry
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions import StoichiometryEntry
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         MineralX_solid = Species(id="MineralX(s)", atoms={"Mn": 1, "O": 1}, charge=0)
         MineralX_aq = Species(id="MineralX", atoms={"Mn": 1, "O": 1}, charge=0)
         ksp = KspEquilibrium(
@@ -141,7 +141,7 @@ class TestClassifyEquilibriumConstraint:
         """A solid+gas+liquid mix still classifies as solid_liquid (solid wins)."""
         from PyOMES.chemistry.species import Species
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         MineralX_solid = Species(id="MineralX(s)", atoms={"Mn": 1}, charge=0)
         MineralX_gas = Species(id="MineralX(g)", atoms={"Mn": 1}, charge=0)
         MineralX_aq = Species(id="MineralX", atoms={"Mn": 1}, charge=0)
@@ -158,7 +158,7 @@ class TestClassifyEquilibriumConstraint:
 
     def test_empty_stoichiometry_raises_value_error(self):
         from PyOMES.reactions import HenryEquilibrium
-        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        from PyOMES.reactions.equilibrium.reaction import classify_equilibrium_constraint
         hp = HenryEquilibrium(H_ref=3.4e-4, dlnH=2400.0)  # gas/liquid species unset
         assert hp.stoichiometry == ()
         with pytest.raises(ValueError):
@@ -312,7 +312,7 @@ class TestBuildTableauSharedClassifierFilter:
     def test_ksp_equilibrium_excluded_from_graph(self):
         from PyOMES.reactions import KspEquilibrium
         from PyOMES.chemistry.species import Species
-        from PyOMES.reactions.stoichiometry import StoichiometryEntry
+        from PyOMES.reactions import StoichiometryEntry
         from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
         MineralX_solid = Species(id="MineralX(s)", atoms={"Mn": 1}, charge=0)
         MineralX_aq = Species(id="MineralX", atoms={"Mn": 1}, charge=0)

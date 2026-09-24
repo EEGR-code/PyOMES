@@ -57,8 +57,7 @@ from PyOMES.chemistry.common_species import (
     NH3, NH4_plus, Na_plus, Cl_minus,
     H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
 )
-from PyOMES.reactions.equilibrium import EquilibriumReaction
-from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
 def _e(sp, coeff):
@@ -1130,8 +1129,7 @@ from PyOMES.chemistry.common_species import (
     Ca_plus_plus,
 )
 from PyOMES.chemistry.species import Species
-from PyOMES.reactions.equilibrium import EquilibriumReaction
-from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from PyOMES.thermo import DaviesLiquidModel
 
@@ -1476,8 +1474,7 @@ from PyOMES.chemistry.common_species import (
     NH3, NH4_plus, Ca_plus_plus,
 )
 from PyOMES.chemistry.species import Species
-from PyOMES.reactions.equilibrium import EquilibriumReaction
-from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from phreeqpython import PhreeqPython
 
