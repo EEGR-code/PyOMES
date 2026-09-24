@@ -206,8 +206,9 @@ import time. Overriding per simulation means consumers must read the value from
 something they are given, not from a module global. The consumers include hot
 paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 `core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
-`thermo/gas_eos.py`, `chemistry/partition.py`, `reactions/equilibrium/interphase.py`,
-`thermo/framework.py` and `thermo/equilibrium_constants.py`.
+`thermo/gas/ideal.py`, `thermo/gas/peng_robinson.py`, `chemistry/partition.py`,
+`reactions/equilibrium/interphase.py`, `thermo/framework.py` and
+`thermo/equilibrium_constants.py`.
 
 **Design sketch (not decided).**
 
@@ -253,9 +254,11 @@ than the code.
 `docs/dev/` or a `CP<n>` / `chemistry-unification-*` / `Phase <n>` / "Layer 1"
 label), excluding `chemical_equilibrium/`: **108 lines in 32 files** under
 `PyOMES/` — `core/` 67 (14 files), `chemistry/` 14, `thermo/` 8, `templates/` 6,
-`reactions/` 5, `control/` 4, other 4. Some are in this phase's new code and
-its neighbours, for example `thermo/liquid_phase_model.py` ("Added by CP2 of
-`LAYER1_GAP_CLOSURE`…").
+`reactions/` 5, `control/` 4, other 4. For example `core/control_volume.py:386`
+("folded gas-liquid row (CP1/CP2 of `LAYER1_GAP_CLOSURE`)").
+**Update 2026-09-24:** `thermo/` is down to 1 line (`thermo-subfolder-structure`
+rewrote the other 7 docstring lines when it moved them); the one left,
+`equilibrium_constants.py:16`, points at this file on purpose.
 
 **Tests have the same problem, and worse in the file names.** Module
 docstrings read "Tests for CP2 of LAYER1_GAP_CLOSURE…", and several files are
@@ -368,7 +371,7 @@ changes numbers. Three implementations of `I = ½ Σ z²c`:
   (`engines/nr/engine.py`, and twice in `engines/nr/solver.py`), and
   Bisection's charge-balance residual hard-codes strong-ion charges again
   (`engines/bisection/acid_base.py`, `solve_from_equilibrium_set`).
-- `thermo/`: `gamma_all` in `liquid_phase_model.py` and `sit_liquid_model.py`
+- `thermo/`: `gamma_all` in `liquid/davies.py` and `liquid/sit.py`
   computes I from a caller-supplied `charge` dict and clamps negative
   concentrations to 0, which the other two do not. SIT also keeps a fixed
   `ION_CHARGES` table for `compute_gammas`, which Bisection calls with
@@ -460,13 +463,13 @@ or deleted several files the 2026-09-20 survey table counted literals in —
 `chemistry/thermo_params.py` (deleted, checkpoint 7), `chemistry/recipe.py` /
 `chem_recipe.py` (deleted, checkpoint 10), `templates/stirred_tank/kinetics.py`
 → `reactions/rate_laws.py` (checkpoint 12; now `reactions/kinetic/rate_laws.py`), `PyOMES/equilibria/` →
-`thermo/gas_eos.py` (checkpoint 11), `chemistry/database.py` /
+`thermo/gas_eos.py` (checkpoint 11; now split into `thermo/gas/`), `chemistry/database.py` /
 `chemistry/databases/` → `PyOMES/databases/` (checkpoint 13) — so the table's
 per-file counts are stale, though the phase was pure-refactor for these
 literals (moved, not edited), so the aggregate totals per constant should be
 close to unchanged. Spot check: `101325`/`298.15` alone still appear 18 times
 across just `chemistry/partition.py` (since split into it and
-`reactions/equilibrium/interphase.py`), `thermo/gas_eos.py`,
+`reactions/equilibrium/interphase.py`), `thermo/gas_eos.py` (now `thermo/gas/`),
 `chemical_equilibrium/engines/bisection/equilibria.py`,
 `reactions/kinetic/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
 survey against the new layout is part of picking this sweep up, not done here.
@@ -582,7 +585,7 @@ pooled totals. This also supersedes the recipe-layer open question in
 
 Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 11
 (decision D4), moved but not fixed. `IdealGasEOS.partial_pressures_atm`
-(`thermo/gas_eos.py`) returns partial pressures (`y_i × P`);
+(`thermo/gas/ideal.py`) returns partial pressures (`y_i × P`);
 `PengRobinsonEOS.partial_pressures_atm` returns fugacities
 (`f_i = y_i × φ_i × P`) — same method name on the shared `GasEOS` interface,
 different physical quantity. `test_gas_eos.py` (added the same checkpoint)
@@ -682,7 +685,7 @@ The *defaults*, though, come from three unconnected places:
   `_RHO_WATER_G_L = 1000.0` and `_M_WATER_G_MOL = 18.015` (about 55.51).
 - `models/vlmodels/adm1/base.py:1050`: a literal `55.51`.
 
-`thermo/water_properties.py` already has a temperature-dependent
+`thermo/liquid/water_properties.py` already has a temperature-dependent
 `water_density_kg_per_m3(T_K)` and no vapour-pressure function. Two smaller changes
 would help, and neither has been decided: publish the `RaoultEquilibrium` defaults as
 named, documented public constants (for example a saturation pressure and an

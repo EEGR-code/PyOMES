@@ -82,7 +82,7 @@ SIT_EPSILON: Dict[Tuple[str, str], float] = {
     ("Mg++", "SO4--"):      -0.10,
 }
 
-# Charge lookup for backward-compat compute_gammas() method.
+# Charges of the fixed ion set that compute_gammas() covers.
 ION_CHARGES: Dict[str, int] = {
     "H+": +1, "Na+": +1, "K+": +1, "NH4+": +1,
     "Ca++": +2, "Mg++": +2, "Zn++": +2, "Mn++": +2, "Co++": +2,
@@ -115,7 +115,7 @@ class SITLiquidModel:
     - ``gamma(z, I_molL, *, T_K)`` — extended Debye-Hückel term only
       (charge-based; no ion-pair specificity).  ActivityModel compatibility.
     - ``compute_gammas(composition_molL, I_molL, T_K)`` — full SIT over
-      ``ION_CHARGES`` ions; backward-compatible with NRChemicalEquilibriumEngine.
+      ``ION_CHARGES`` ions, for the Bisection engine's acid-base solver.
 
     Parameters
     ----------
@@ -208,18 +208,16 @@ class SITLiquidModel:
         *,
         charge: Dict[str, int],
     ) -> np.ndarray:
-        """``∂γ_i/∂C_j = (∂γ_i/∂I)(z_j²/2)`` — §8.4 of THERMODYNAMIC_MODEL_ARCHITECTURE.md.
+        """``∂γ_i/∂C_j = (∂γ_i/∂I)(z_j²/2)``.
 
         Differentiates only the extended Debye-Hückel term's I-dependence
         analytically (matching :meth:`gamma`'s DH-only treatment); the
         ion-pair ``ε`` cross-terms used by :meth:`gamma_all` are not
         differentiated (each ``ε(j,k)·m_k`` term is itself linear in a
         *different* species' composition, not I — a full treatment would
-        need the per-pair partials, which this "cheap analytically"
-        extension (per the design doc) does not attempt). See
-        :class:`~PyOMES.thermo.liquid_phase_model.DifferentiableLiquidModel`
-        for why this is standalone groundwork, not yet consumed by the
-        inner NR loop.
+        need the per-pair partials, which this method does not attempt).
+        Nothing in the package calls it; see
+        :class:`~PyOMES.thermo.liquid.protocols.DifferentiableLiquidModel`.
         """
         species_ids = sorted(x_mol)
         n = len(species_ids)
@@ -263,10 +261,11 @@ class SITLiquidModel:
         I_molL: float,
         T_K: float,
     ) -> Dict[str, float]:
-        """Full SIT for the fixed ``ION_CHARGES`` ion set (backward compat).
+        """Full SIT for the fixed ``ION_CHARGES`` ion set, without a charge map.
 
-        Called by NRChemicalEquilibriumEngine when an SIT model is active.  Returns
-        gammas for every ion in ``ION_CHARGES``; ions absent from
+        Called by the Bisection engine's acid-base solver when an SIT model is
+        active, with an approximate composition it builds from its totals.
+        Returns gammas for every ion in ``ION_CHARGES``; ions absent from
         ``composition_molL`` still receive the DH-only term.
         """
         T_K = float(T_K)

@@ -7,7 +7,7 @@ law gives errors <1.2%.
 
 Usage
 -----
->>> from PyOMES.thermo.gas_eos import PengRobinsonEOS, BIOGAS_SPECIES
+>>> from PyOMES.thermo import PengRobinsonEOS, BIOGAS_SPECIES
 >>> eos = PengRobinsonEOS(BIOGAS_SPECIES)
 >>> P = eos.pressure_atm(0.1, T_K=308.15, V_L=0.4)
 >>> p = eos.partial_pressures_atm({"CH4": 0.06, "CO2": 0.04}, T_K=308.15, V_L=0.4)
@@ -201,7 +201,8 @@ def _solve_cubic_Z(A: float, B: float) -> float:
 class PengRobinsonEOS:
     """Peng-Robinson (1976) cubic equation of state for gas mixtures.
 
-    Implements the :class:`GasEOS` protocol.
+    Satisfies the :class:`~PyOMES.thermo.gas.protocols.GasEOS` protocol;
+    its ``partial_pressures_atm`` returns fugacities.
 
     Parameters
     ----------

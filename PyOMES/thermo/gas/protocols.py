@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """GasEOS: the interface for gas-phase equations of state.
 
-``GasEOS`` is the abstract interface both implementations satisfy:
+``GasEOS`` is the protocol both implementations satisfy:
 ``pressure_atm`` (total pressure from n_total) and
 ``partial_pressures_atm`` (per species). The two return different
 quantities: ``IdealGasEOS.partial_pressures_atm`` returns partial

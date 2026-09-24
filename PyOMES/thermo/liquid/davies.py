@@ -93,13 +93,12 @@ class DaviesLiquidModel:
         *,
         charge: Dict[str, int],
     ) -> np.ndarray:
-        """``∂γ_i/∂C_j = (∂γ_i/∂I)(z_j²/2)`` — §8.4 of THERMODYNAMIC_MODEL_ARCHITECTURE.md.
+        """``∂γ_i/∂C_j = (∂γ_i/∂I)(z_j²/2)``.
 
         Differentiates the Davies equation's own I-dependence analytically
         (``I = 0.5 Σ z² C`` is itself linear in composition, so
-        ``∂I/∂C_j = z_j²/2`` exactly). See :class:`DifferentiableLiquidModel`
-        for why this is standalone groundwork, not yet consumed by the
-        inner NR loop.
+        ``∂I/∂C_j = z_j²/2`` exactly). Nothing in the package calls it; see
+        :class:`~PyOMES.thermo.liquid.protocols.DifferentiableLiquidModel`.
         """
         species_ids = sorted(x_mol)
         n = len(species_ids)

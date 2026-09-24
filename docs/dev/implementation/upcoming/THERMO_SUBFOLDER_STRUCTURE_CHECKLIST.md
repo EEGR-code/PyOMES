@@ -1,3 +1,4 @@
+
 # Phase Kickoff Checklist — thermo-subfolder-structure
 
 > Checklist for [`THERMO_SUBFOLDER_STRUCTURE.md`](THERMO_SUBFOLDER_STRUCTURE.md),
@@ -507,7 +508,7 @@ uses. Line counts with `wc -l`; line endings by byte count and
       Nothing links to the old heading. Two of this checkpoint's edits were
       rejected once in the edit prompt and then re-applied unchanged on the
       owner's go-ahead._
-- [ ] 5. **Docstrings, comments and live docs** (decision 10, discrepancies 6-8).
+- [x] 5. **Docstrings, comments and live docs** (decision 10, discrepancies 6-8).
       Every path and label listed, re-derived against the new files (line
       citations re-read, not shifted). Subpackage `__init__.py` docstrings say
       what each folder holds; module docstrings of the new files reviewed;
@@ -519,6 +520,70 @@ uses. Line counts with `wc -l`; line endings by byte count and
       Sanity: changed `.py` files have identical ASTs with docstrings removed;
       the two gas `>>>` examples run by hand; every changed relative link
       resolves; no bare LF; full suite **2102 passed**.
+      _Notes: done 2026-09-24, after checkpoint 4 was committed as `ca98358`.
+      Suite before: **2102 passed** (2m40s); after: **2102 passed**, 0 failed,
+      166 warnings, 2m33s. Every claim in a rewritten docstring was checked
+      against the code first. **`liquid/protocols.py`:** module title names the
+      three protocols; the `gas_eos.py` path is now a cross-reference to
+      `GasEOS`; the dual-protocol note says all three models satisfy both
+      protocols and names the real users (`HenryEquilibrium` calls `gamma_all`,
+      `interphase.py:184`; the NR solver calls the per-ion `gamma` in its outer
+      ionic-strength loop; the Bisection engine calls `gamma` or SIT's
+      `compute_gammas`); `DifferentiableLiquidModel` loses "CP2 of
+      `LAYER1_GAP_CLOSURE`", both § pointers and "(this phase)" and says in the
+      present tense that nothing in the package calls it (only tests do) and why
+      the NR solver does not need it; `LiquidPhaseModel` loses both "(in CP2)"
+      labels, and the `NRTLLiquidModel` "(future)" bullet became "none is
+      implemented". **`davies.py`, `sit.py`:** the Jacobian docstrings lose the
+      § pointer and "(per the design doc)", and point at
+      `PyOMES.thermo.liquid.protocols.DifferentiableLiquidModel` (the SIT one
+      named the deleted `liquid_phase_model`). **SIT `compute_gammas` was
+      documented as called by the NR engine; its only caller is the Bisection
+      engine's acid-base solver** (`acid_base.py:243-267`), so its docstring,
+      the class docstring's bullet and the `ION_CHARGES` comment now say so and
+      drop "backward-compat". **`water_properties.py`:** the stale
+      `PyOMES/speciation/` sentence became "used by the Davies and SIT activity
+      models in this folder" (nothing outside `thermo/` imports these functions).
+      **Subpackage docstrings:** `liquid/__init__.py` and `gas/__init__.py` list
+      each file in the style of `reactions/kinetic/__init__.py`; the liquid one
+      says `DifferentiableLiquidModel` and `water_kg_per_L` are not exported.
+      **`gas/protocols.py`:** "abstract interface" became "protocol".
+      **`gas/peng_robinson.py`:** the usage example imports from `PyOMES.thermo`;
+      the class says it satisfies `GasEOS` (full cross-reference) and returns
+      fugacities. **`framework.py`:** `gas_eos` now says nothing in the package
+      reads it (the `KineticGasLiquidLink` claim was false); "Backward-compatible
+      properties" became "Derived properties", which says the Bisection and NR
+      engines copy `use_activity`/`activity_model` into their own attributes
+      (`bisection/engine.py:106-107`, `nr/engine.py:152-153`), and the section
+      comment matches. **`test_gas_eos.py`:** module docstring names
+      `PyOMES.thermo.gas`, drops "checkpoint 11, decision D4", "this one file"
+      and "the checkpoint-1 audit", and lists the protocol test. **Live docs:**
+      `docs/architecture.md`'s `thermo/` block now lists `framework.py`,
+      `equilibrium_constants.py`, `liquid/` and `gas/` in the style of the
+      `reactions/` block; `PyOMES/README.md:22` names both subfolders, with links;
+      `OPEN_WORK.md` at the lines in discrepancy 7: `:209` (the `R` consumers list
+      now names `gas/ideal.py` and `gas/peng_robinson.py`), `:374` (`liquid/davies.py`,
+      `liquid/sit.py`), `:466` and `:472` (dated narration, "now split into
+      `thermo/gas/`"), `:588` (`gas/ideal.py`), `:688`
+      (`liquid/water_properties.py`); the development-history entry keeps its
+      dated 2026-09-20 figures, swaps its dead `liquid_phase_model.py` example
+      for `core/control_volume.py:386`, and gains an update: `thermo/` is at 1
+      line (the entry's rule, recounted: only `equilibrium_constants.py:16`, a
+      deliberate pointer to `OPEN_WORK.md`). `:20`, `:35` stay as history.
+      **Checks:** every changed `.py` file has an identical AST to `HEAD` with
+      docstrings removed (no code change; the `sit.py` comment is not in the
+      AST); the two `>>>` blocks in `gas/peng_robinson.py` run with
+      `doctest.testmod` (7 examples, 0 failed); the three new README link targets
+      exist; no bare LF, every file ends in `\r\n`; no new line over 100
+      characters (the two over it are code lines that already were). A sweep for
+      the old module names, `PyOMES/speciation`, the `KineticGasLiquidLink` claim
+      and "backward-compat" over live files leaves only intended hits and, outside
+      `thermo/`, other packages' own "backward compatible" wording (out of scope).
+      **Observation, not changed:** a markdown cell in
+      `docs/tutorials/reactions/chemistry_database.ipynb` (cell 5) calls
+      `use_activity`/`activity_model` "derived read-only properties for
+      backward-compatible inspection"; not false, outside this checkpoint's list,
+      and editing it would mean a notebook re-run, so it is left._
 - [ ] 6. **Sweep.** Search every old path in every form (dotted, slash,
       backslash, relative, bare filename, Sphinx cross-reference) across every
       file type, with plain `grep` and the Grep tool, matching full paths for the

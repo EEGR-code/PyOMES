@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
-"""Tests for PyOMES.thermo.gas_eos: IdealGasEOS and PengRobinsonEOS.
+"""Tests for PyOMES.thermo.gas: IdealGasEOS, PengRobinsonEOS and the GasEOS protocol.
 
-Pins current behaviour after moving ``PyOMES/equilibria/`` (``vle.py`` +
-``peng_robinson.py``) into this one file (checkpoint 11, decision D4),
-which previously had no test coverage at all:
+Pins current behaviour:
 
 - Compressibility factors (Z) at biogas-relevant pressures, cross-checked
-  against the plausibility figures from the checkpoint-1 audit (a
-  plausibility check against approximate reference values, not a
+  against approximate reference values (a plausibility check, not a
   validation).
 - ``PengRobinsonEOS.partial_pressures_atm`` returns fugacities
   (``f_i = y_i * phi_i * P``); ``IdealGasEOS``'s returns plain partial
   pressures (``y_i * P``). The two differ at non-ideal (high) pressure
   and converge at low pressure.
+- Both implementations satisfy ``GasEOS`` without subclassing it.
 """
 from __future__ import annotations
 

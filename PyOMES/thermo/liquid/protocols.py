@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-"""LiquidPhaseModel protocol and liquid-phase non-ideality implementations.
+"""Protocols for liquid-phase non-ideality: LiquidPhaseModel, ActivityModel and
+DifferentiableLiquidModel.
 
-Liquid-side EOS, symmetric with GasEOS in PyOMES/thermo/gas_eos.py.
+``LiquidPhaseModel`` is the liquid-side counterpart of
+:class:`~PyOMES.thermo.gas.protocols.GasEOS`. The models that satisfy these
+protocols live next to this module: ``ideal.py``, ``davies.py`` and ``sit.py``.
 
 Unit convention
 ---------------
@@ -17,13 +20,14 @@ by callers:
 
 Dual-protocol implementations
 ------------------------------
-``DaviesLiquidModel`` satisfies both:
+``IdealLiquidModel``, ``DaviesLiquidModel`` and ``SITLiquidModel`` each satisfy both:
 - ``LiquidPhaseModel`` — ``gamma_all(x_mol, T_K, *, charge)``
-- ``ActivityModel`` (this module) — ``gamma(z, I_molL, *, T_K)``
+- ``ActivityModel`` — ``gamma(z, I_molL, *, T_K)``
 
 This allows ThermoFramework to hold a single ``liquid_activity`` object that
-works for both the phase-level LiquidPhaseModel and the per-ion ActivityModel
-interfaces used internally by NRChemicalEquilibriumEngine.
+works for both the phase-level LiquidPhaseModel interface (used by
+``HenryEquilibrium``) and the per-ion ActivityModel interface used by the NR and
+Bisection chemical-equilibrium engines.
 """
 from __future__ import annotations
 
@@ -35,21 +39,19 @@ from typing import Dict, Protocol, runtime_checkable
 class DifferentiableLiquidModel(Protocol):
     """Extension of :class:`LiquidPhaseModel` exposing an analytic Jacobian.
 
-    Added by CP2 of ``LAYER1_GAP_CLOSURE`` per §8.4 of
-    ``THERMODYNAMIC_MODEL_ARCHITECTURE.md``: the ``∂γ_i/∂C_j`` contribution
-    is needed once gas-liquid constraints are folded into the NR tableau
-    (this phase). Parallel to ``SplitJacobianCapable`` on the engine side.
-    Not every :class:`LiquidPhaseModel` need satisfy this — only those with
-    a cheap analytic derivative (Davies, SIT). NRTL would need the full
-    ``∂γ_i/∂x_j`` matrix, deferred.
+    ``∂γ_i/∂C_j`` is the activity contribution to the Jacobian of an
+    equilibrium residual; this protocol is the liquid-side parallel of
+    :class:`~PyOMES.chemical_equilibrium.protocols.SplitJacobianCapable`.
+    Not every :class:`LiquidPhaseModel` need satisfy it — only those with a
+    cheap analytic derivative (Davies, SIT). A composition-based model such as
+    NRTL would need the full ``∂γ_i/∂x_j`` matrix.
 
-    This is standalone groundwork, not yet wired into ``engines/nr/solver.py``'s
-    inner Newton loop: that loop already achieves correct convergence via
-    the existing outer (ionic-strength fixed-point) / inner (NR) split,
-    which treats γ as frozen within each inner solve rather than
-    differentiating through it. This Jacobian is exposed for future
-    white-box/DAE consumers (§10.4 of ``MASS_EXCHANGE_ARCHITECTURE.md``)
-    that need ``∂g/∂z`` including activity sensitivity.
+    Nothing in the package calls it today. The NR solver
+    (``chemical_equilibrium/engines/nr/solver.py``) updates γ in an outer
+    fixed-point loop on ionic strength and holds it fixed within each inner
+    Newton solve, so it converges without differentiating through γ. The
+    Jacobian is for callers that need ``∂g/∂z`` including activity
+    sensitivity; the tests check it against finite differences.
     """
 
     def jacobian_dgamma_dx(
@@ -92,10 +94,12 @@ class LiquidPhaseModel(Protocol):
     ---------------
     - ``IdealLiquidModel``   — γ_i = 1 for all species (default)
     - ``DaviesLiquidModel``  — Davies equation; compresses x_mol to ionic
-                               strength internally (in CP2)
+                               strength internally
     - ``SITLiquidModel``     — Specific Ion Interaction; also ionic-strength
-                               based (in CP2)
-    - ``NRTLLiquidModel``    — Non-Random Two Liquid; uses full x_mol (future)
+                               based
+
+    A model that uses the full x_mol (for example NRTL) would satisfy the
+    same protocol; none is implemented.
     """
 
     name: str
