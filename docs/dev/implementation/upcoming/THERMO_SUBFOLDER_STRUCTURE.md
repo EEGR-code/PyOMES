@@ -7,7 +7,7 @@
 > navigate. Direction approved by the repo owner the same day: **`liquid/` and
 > `gas/` subfolders, each with a `protocols.py`, an `ideal.py` and one file per
 > non-ideal model; `framework.py` and `equilibrium_constants.py` stay flat**.
-> Modelled on [`REACTIONS_SUBFOLDER_STRUCTURE.md`](REACTIONS_SUBFOLDER_STRUCTURE.md)
+> Modelled on [`REACTIONS_SUBFOLDER_STRUCTURE.md`](../shipped/REACTIONS_SUBFOLDER_STRUCTURE.md)
 > and the `chemical_equilibrium/engines/` reorganisation
 > ([`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`](../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md)).
 

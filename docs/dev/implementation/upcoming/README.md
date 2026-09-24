@@ -20,17 +20,6 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
-- **[REACTIONS_SUBFOLDER_STRUCTURE.md](REACTIONS_SUBFOLDER_STRUCTURE.md)** —
-  2026-09-24. Groups the 13 flat files in `PyOMES/reactions/` by the kind of
-  reaction they serve: `kinetic/` (`KineticReaction`, rate laws,
-  `ReactionBuilder`) and `equilibrium/` (`equilibrium.py` split into
-  `constraint.py` and `reaction.py`, `phase_equilibria.py` renamed
-  `interphase.py`, the equilibrium plots), with the shared files and
-  `blackbox.py` staying at the top level. No group imports another, so the split
-  follows an existing seam. No shims: old deep import paths stop working and
-  every call site is updated; package-root exports are unchanged. Checklist:
-  [REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md](REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md);
-  branch `reactions-subfolder-structure`.
 - **[THERMO_SUBFOLDER_STRUCTURE.md](THERMO_SUBFOLDER_STRUCTURE.md)** —
   2026-09-24. Groups the 8 flat files in `PyOMES/thermo/` by phase: `liquid/`
   (`protocols.py`, `ideal.py`, `davies.py`, `sit.py`, plus
@@ -169,6 +158,33 @@ that still describe open work are "Open phases" and the pending stages in
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
+
+- `reactions-subfolder-structure` (2026-09-24) — grouped the 13 flat files in
+  `PyOMES/reactions/` by the kind of reaction they serve: `kinetic/` (`reaction.py`
+  with `KineticReaction`, `rate_laws.py`, `builder.py`) and `equilibrium/`
+  (`equilibrium.py` split into `constraint.py`, holding the `EquilibriumConstraint`
+  protocol, `vant_hoff_log_K` and `classify_equilibrium_constraint`, and
+  `reaction.py`; `phase_equilibria.py` renamed `interphase.py`; `plots.py`), with
+  `stoichiometry`, `environment`, `protocols`, `_shared`, `reaction_system` and
+  `blackbox` staying at the top level. Six checkpoints, no behaviour change. There
+  are no shims, so the old deep import paths stop working; package-root exports
+  are unchanged. Tests, notebooks, both notebook generators and `models/` now
+  import exported names, including `StoichiometryEntry`, from `PyOMES.reactions`,
+  while code inside `PyOMES/` keeps deep imports. A second test in
+  `tests/standalone/test_package_layering.py` keeps `kinetic/` and `equilibrium/`
+  from importing each other. The design note's audit needed correcting: several
+  counts were off by one or two, both halves of the split need
+  `phases_from_entries`, and the Bisection engine depends on both halves, not only
+  `constraint.py`. `README.md`, `PyOMES/README.md` (which said `ReactionBuilder`
+  builds `EquilibriumReaction` objects) and the `docs/architecture.md` tree (which
+  lacked `rate_laws.py` and `plots.py`) were corrected on the way. Two working
+  notes: the aerobic-fermentation tutorial notebook's 60 h simulation cells were
+  not re-run (the tool sandbox caps CPU; every other cell was), and with
+  `core.autocrlf=true` a moved file is stored under its new path as LF unless it is
+  staged with autocrlf off, which makes git show it as rewritten. Full suite green
+  post-merge: 2100 passed, 0 failed. Tag `reactions-subfolder-structure-shipped`.
+  See
+  [`../shipped/REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md`](../shipped/REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md).
 
 - `partition-constraint-relocation` (2026-09-24) — moved `HenryEquilibrium`/
   `RaoultEquilibrium`/`KspEquilibrium` (plus `_resolve_species`) from

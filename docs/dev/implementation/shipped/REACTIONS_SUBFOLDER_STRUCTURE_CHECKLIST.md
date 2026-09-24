@@ -1,13 +1,17 @@
 # Phase Kickoff Checklist — reactions-subfolder-structure
 
+> **Status: Shipped 2026-09-24** — merged into `main` via `git merge --no-ff`
+> as commit `f1d795f`, tagged `reactions-subfolder-structure-shipped`. Full suite
+> green post-merge: 2100 passed, 0 failed. Remote and local feature branch both deleted.
+
 > Checklist for [`REACTIONS_SUBFOLDER_STRUCTURE.md`](REACTIONS_SUBFOLDER_STRUCTURE.md),
 > the source of truth for motivation, groups, target layout and decisions; do not
 > restate it here. Where this checklist and the note disagree, this checklist
 > wins: the "Re-verification" section below corrects the note from a fresh search.
-> See [`README.md`](README.md)'s "Branching and tagging convention". Modelled on
-> [`../shipped/PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md`](../shipped/PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md)
+> See [`README.md`](../upcoming/README.md)'s "Branching and tagging convention". Modelled on
+> [`../shipped/PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md`](PARTITION_CONSTRAINT_RELOCATION_CHECKLIST.md)
 > and
-> [`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md`](../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md).
+> [`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md`](CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md).
 
 **Working rules**
 
@@ -115,16 +119,18 @@
       (checked 2026-09-24)
 - [x] Full-suite baseline on `main`: **2098 passed**, 0 failed, 166 warnings,
       1m50s (`python -m pytest -p no:cacheprovider -q`)
-- [ ] Branch created off `main`: `reactions-subfolder-structure`
-- [ ] This checklist and the `upcoming/README.md` entry committed on that branch
-      as the first commit
+- [x] Branch created off `main`: `reactions-subfolder-structure`
+- [x] This checklist and the `upcoming/README.md` entry committed on that branch
+      as the first commit (`27b67c6`)
 
 ## During
 
 - [x] Plan doc exists in `docs/dev/implementation/upcoming/`
       ([`REACTIONS_SUBFOLDER_STRUCTURE.md`](REACTIONS_SUBFOLDER_STRUCTURE.md))
-- [ ] Checkpoints tracked below, one commit each
-- [ ] **If work stalls:** add a status banner to the top of the plan doc at once
+- [x] Checkpoints tracked below, one commit each (`3466d3e`, `8d89055`, `91fcbf7`,
+      `23ab5ae`, `3efa71e`, `d6cfea8`)
+- [x] **If work stalls:** add a status banner to the top of the plan doc at once
+      _Not needed: the phase ran checkpoint by checkpoint to shipping._
 
 ### Re-verification of the design note (2026-09-24, on `main` at `f88f372`)
 
@@ -617,18 +623,26 @@ endings by byte count.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff reactions-subfolder-structure -m "Merge reactions-subfolder-structure: <summary>"`
-- [ ] `git tag reactions-subfolder-structure-shipped` on the merge commit
-- [ ] `git push` and `git push --tags` (separate commands)
-- [ ] `git branch -d reactions-subfolder-structure` and
-      `git push origin --delete reactions-subfolder-structure`
-- [ ] Full suite on `main` after the merge
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`
+- [x] Full test suite green on the branch — **2100 passed** (checkpoint 6's number
+      above)
+- [x] `git checkout main`
+- [x] `git merge --no-ff reactions-subfolder-structure -m "Merge reactions-subfolder-structure: group reactions/ into kinetic/ and equilibrium/ subfolders"`
+      (merge commit `f1d795f`)
+- [x] `git tag reactions-subfolder-structure-shipped` on the merge commit (points at
+      `f1d795f`)
+- [x] `git push` and `git push --tags` (separate commands)
+- [x] `git branch -d reactions-subfolder-structure` and
+      `git push origin --delete reactions-subfolder-structure` (no local or
+      remote-tracking branch left)
+- [x] Full suite on `main` after the merge: **2100 passed, 0 failed, 166 warnings, 1m50s**
+- [x] Move the design note and this checklist to `docs/dev/implementation/shipped/`
       (plain filesystem move); add "Shipped" banners; repoint the moved docs' own
-      relative links
-- [ ] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
+      relative links (`README.md` now `../upcoming/README.md`; `../shipped/`
+      links became same-directory)
+- [x] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
       "Recently shipped" entry
-- [ ] Repoint any live link to the moved docs (search for
-      `REACTIONS_SUBFOLDER_STRUCTURE` across `docs/` and `OPEN_WORK.md`)
+- [x] Repoint any live link to the moved docs (search for
+      `REACTIONS_SUBFOLDER_STRUCTURE` across `docs/` and `OPEN_WORK.md`): the one
+      link, in `THERMO_SUBFOLDER_STRUCTURE.md:10`, now points into `shipped/`; its
+      plain-text mention at :317 needs no change. Nothing in `OPEN_WORK.md` links
+      to the two docs.

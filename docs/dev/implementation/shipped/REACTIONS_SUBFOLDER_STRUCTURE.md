@@ -1,5 +1,12 @@
 # Reactions Subfolder Structure — Design Note
 
+> **Status: Shipped 2026-09-24** — implemented on branch
+> `reactions-subfolder-structure`, merged into `main` via `git merge --no-ff` as
+> commit `f1d795f`, tagged `reactions-subfolder-structure-shipped`. The checklist,
+> [`REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md`](REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md),
+> records the implementation and the settled open questions, and corrects parts of
+> this note's audit; where the two differ, the checklist wins.
+
 > Design discussion, 2026-09-24. No branch, no checklist, no code yet. Written
 > from a planning conversation that audited `PyOMES/reactions/` (13 flat `.py`
 > files, 3,840 lines) and asked whether grouping files by the kind of reaction
@@ -7,7 +14,7 @@
 > Direction approved by the repo owner the same day: **`kinetic/` and
 > `equilibrium/` subfolders, `blackbox.py` stays flat**. Modelled on the
 > `chemical_equilibrium/engines/` reorganisation
-> ([`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`](../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md)).
+> ([`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`](CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md)).
 
 ## Re-verification of the kickoff brief (2026-09-24, on `main` at `61d481a`)
 
@@ -347,7 +354,7 @@ Rough; the checklist decides granularity. Full suite before and after each
 
 ## How to start one
 
-Per this folder's convention ([README.md](README.md#how-to-start-one)): resolve
+Per this folder's convention ([README.md](../upcoming/README.md#how-to-start-one)): resolve
 the open questions, write `REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md`, and cut
 a branch off `main` named `reactions-subfolder-structure`. The change is file
 moves, one file split and import rewrites, with no behaviour change; the risk is
