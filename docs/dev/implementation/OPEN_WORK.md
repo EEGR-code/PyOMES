@@ -87,7 +87,7 @@ migration; re-audited 2026-09-19. The old `FermenterBuilder`/
 `FermenterFactory` names survive only as prose comparison points (the code
 runs correctly) in:
 
-- `docs/tutorials/D2C_workshop/raw_construction.py` — lines 8, 99, 380
+- `docs/tutorials/D2C_workshop/raw_construction.py` — lines 8, 100, 381
   (module docstring, a comment, and a printed demo banner).
 - `docs/tutorials/reactions/reaction_system.ipynb` — one comment ("…
   FermenterBuilder uses by default").
@@ -167,14 +167,16 @@ two copies outright; `chemical_equilibrium/engines/bisection/equilibria.py`'s ow
 `EquilibriumDef.pKas_at_T`/`WaterDef.Kw_at_T` (same formula, real consumer)
 survived unmerged, just repointed to import `R_J_PER_MOL_K` from `units.py`
 directly; checkpoint 4's D8 fix separately collapsed a duplicate inside
-`chemistry/partition.py` (`HenryEquilibrium._kH_mol_L_atm` now delegates to
-the module-level `_kH_mol_L_atm_from_ref` instead of repeating it, so that
+`chemistry/partition.py` (`HenryEquilibrium._kH_mol_L_atm`, since moved to
+`reactions/phase_equilibria.py`, delegates to `chemistry/partition.py`'s
+module-level `_kH_mol_L_atm_from_ref` instead of repeating it, so that
 pair counts as one implementation, not two — though it is a Henry-constant
 correction, not a pKa/Kw one, so whether the original count included it isn't
 clear from the audit text). A quick recount by function (not by line) after
 the phase, restricted to distinct `math.exp(-dH/R * (1/T - 1/T_ref))`-shaped
 implementations, finds eight in `chemistry/`+`reactions/`+`thermo/`
-(`equilibria.py` ×2, `partition.py` ×2, `reactions/equilibrium.py` ×1,
+(`equilibria.py` ×2, `partition.py` ×2 (now one each in `chemistry/partition.py`
+and `reactions/phase_equilibria.py`), `reactions/equilibrium.py` ×1,
 `thermo/equilibrium_constants.py` ×1 canonical, `thermo/framework.py` ×2) —
 close to, not exactly, the audit's "seven" estimate; not reconciled further
 here. Not fixed in that phase either way (Part A/B were pure-refactor,
@@ -203,8 +205,8 @@ import time. Overriding per simulation means consumers must read the value from
 something they are given, not from a module global. The consumers include hot
 paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 `core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
-`thermo/gas_eos.py`, `chemistry/partition.py`, `thermo/framework.py` and
-`thermo/equilibrium_constants.py`.
+`thermo/gas_eos.py`, `chemistry/partition.py`, `reactions/phase_equilibria.py`,
+`thermo/framework.py` and `thermo/equilibrium_constants.py`.
 
 **Design sketch (not decided).**
 
@@ -462,7 +464,8 @@ or deleted several files the 2026-09-20 survey table counted literals in —
 per-file counts are stale, though the phase was pure-refactor for these
 literals (moved, not edited), so the aggregate totals per constant should be
 close to unchanged. Spot check: `101325`/`298.15` alone still appear 18 times
-across just `chemistry/partition.py`, `thermo/gas_eos.py`,
+across just `chemistry/partition.py` (since split into it and
+`reactions/phase_equilibria.py`), `thermo/gas_eos.py`,
 `chemical_equilibrium/engines/bisection/equilibria.py`,
 `reactions/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
 survey against the new layout is part of picking this sweep up, not done here.
@@ -585,9 +588,10 @@ different physical quantity. `test_gas_eos.py` (added the same checkpoint)
 pins this distinction, so it won't drift silently, but it is still a real
 API smell.
 
-Separately: the ideal-gas law is hard-coded independently in at least seven
+Separately: the ideal-gas law is hard-coded independently in at least eight
 places (`core/phases.py`, `core/boundaries.py`,
 `chemical_equilibrium/engines/nr/solver.py`, `chemistry/partition.py`,
+`reactions/phase_equilibria.py`,
 `control/cv_loops.py`, `templates/stirred_tank/factory.py`,
 `models/vlmodels/headspace.py`) instead of going through
 `ThermoFramework.gas_eos`, which is read by nothing in production despite
@@ -715,7 +719,7 @@ Found 2026-09-23 while moving `EquilibriumSet`, not fixed. 14 lines across 6
 files use `from ....thermo import ...`-style imports, all in
 `chemical_equilibrium/engines/bisection/` and `chemical_equilibrium/engines/nr/`,
 where the extra nesting level made them long. The rest of the package
-(`control/`, `templates/stirred_tank/`, `chemistry/partition.py`) uses absolute
+(`control/`, `templates/stirred_tank/`) uses absolute
 `from PyOMES.… import …`. Both work with the editable install. Converting the
 14 lines is mechanical; pick one convention if the package ever gets a style
 pass.

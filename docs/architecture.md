@@ -373,6 +373,7 @@ PyOMES/
     stoichiometry.py             # StoichiometryEntry + elemental balance
     kinetic.py                   # KineticReaction
     equilibrium.py               # EquilibriumReaction (log_K, single- and cross-phase)
+    phase_equilibria.py          # HenryEquilibrium, RaoultEquilibrium, KspEquilibrium
     blackbox.py                  # BlackBoxReactionModel
     reaction_system.py           # ReactionSystem (pre-bucketed container)
     builder.py                   # ReactionBuilder (aerobic_growth, from_coefficients)

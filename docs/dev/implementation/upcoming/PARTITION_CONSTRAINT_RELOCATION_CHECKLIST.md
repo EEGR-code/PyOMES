@@ -304,7 +304,7 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       Henry...` spanning the split) were confirmed benign — the two matched
       substrings sit either side of the new line break, not a leftover old-style
       import. Gitignored `scratch/ArXiv_preprint/02,03` untouched, as decided._
-- [ ] 4. Docs and live notes: `docs/architecture.md` (add `phase_equilibria.py` to
+- [x] 4. Docs and live notes: `docs/architecture.md` (add `phase_equilibria.py` to
       the `reactions/` tree); `PyOMES/README.md:13` (drop "and acid-base
       equilibrium sets", and mention the constraints under `reactions/` if that
       row lists contents); repoint `partition.py` references in
@@ -317,6 +317,32 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       gitignored paths, and references to what stays (`PartitionModel`,
       `MultispeciesVLEPartition`); every changed link resolves; full suite
       unchanged.
+      _Notes: done 2026-09-24. Suite before: **2086 passed** (2m35s); after:
+      **2086 passed**, 0 failed, 166 warnings, 3m19s. Edits: `architecture.md`
+      (one line in the `reactions/` tree); `PyOMES/README.md` (the `chemistry/`
+      row drops "and acid-base equilibrium sets" and names the two protocols; the
+      `reactions/` row names the three constraint classes);
+      `EXPLICIT_SPECIES_RESOLUTION.md` (path, Phase 2 heading and every
+      `partition.py:N` reference re-derived against the new file: 53-70, 62-64,
+      113-114, 278-279, 213-214, 348-349); `PHENOMENA_PROTOCOL.md:53,259` (the
+      link now targets `phase_equilibria.py:189-218`, the Henry conformance
+      block, and all three link targets resolve); `upcoming/README.md:27,37`.
+      Deviations from the plan above: `upcoming/README.md:46` is deliberately
+      left, since it is this phase's own entry describing the pre-move state and
+      is replaced at shipping (`:212` is shipped-phase history and also stays).
+      `OPEN_WORK.md` was edited at the four planned spots (now lines 170, 207,
+      466, 589) and at three the plan missed because this phase made them false or
+      stale: the van 't Hoff recount at :178 (its two `partition.py` copies now
+      live one in each file), the relative-imports entry at :721 (which listed
+      `chemistry/partition.py` as using absolute imports; it now has only relative
+      ones), and the `raw_construction.py` line citations at :90 (99 and 380
+      became 100 and 381 when checkpoint 3 added an import line). The ideal-gas
+      "at least seven places" count at :589 is now eight, because the
+      Henry/Raoult code that used `R` moved to a second file. Remaining
+      `chemistry.partition`/`partition.py` mentions are all what stays there
+      (`PartitionModel`, `MultispeciesVLEPartition`, `_kH_mol_L_atm_from_ref`),
+      historical text (`test_bsm2_reference.py:266`, `OPEN_WORK.md` layering
+      entry which checkpoint 5 rewrites), the design note and this checklist._
 - [ ] 5. Layering test and `OPEN_WORK.md`. New
       `tests/standalone/test_package_layering.py`: parse every `.py` under
       `PyOMES/chemistry/` with `ast.walk` (all imports at any depth, including

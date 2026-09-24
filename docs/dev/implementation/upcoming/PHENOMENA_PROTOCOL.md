@@ -50,7 +50,7 @@ actually determines the solver path rather than crossing it:
 - **`EquilibriumPhenomena` is already substantially real.**
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium` already
   dual-satisfy `EquilibriumConstraint` and `PartitionModel` today
-  ([`partition.py:221-253`](../../../../PyOMES/chemistry/partition.py)), and
+  ([`phase_equilibria.py:189-218`](../../../../PyOMES/reactions/phase_equilibria.py)), and
   `LAYER1_GAP_CLOSURE` already folds gas-liquid equilibrium rows into the
   *same* simultaneous Newton solve as acid-base equilibria — genuine
   solver-level convergence, not just a naming coincidence.
@@ -256,7 +256,7 @@ pass that would benefit from a named, diagrammable taxonomy rather than
 - [`PyOMES/reactions/reaction_system.py`](../../../../PyOMES/reactions/reaction_system.py)
   — the `isinstance`-based bucketing this note's taxonomy would sit
   alongside (not necessarily replace).
-- [`PyOMES/chemistry/partition.py`](../../../../PyOMES/chemistry/partition.py) —
+- [`PyOMES/reactions/phase_equilibria.py`](../../../../PyOMES/reactions/phase_equilibria.py) —
   `HenryEquilibrium`/`KspEquilibrium`/`RaoultEquilibrium`'s dual
   `EquilibriumConstraint`/`PartitionModel` satisfaction.
 - [`PyOMES/core/solvers.py`](../../../../PyOMES/core/solvers.py) —
