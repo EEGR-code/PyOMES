@@ -664,6 +664,31 @@ acyclic *package* graph cannot be added until both cycles are resolved. Which
 package should sit lower in each pair is not decided; fixing either is its own
 phase.
 
+## No single source for water's physical constants
+
+Found 2026-09-24 while moving `RaoultEquilibrium` to `reactions/phase_equilibria.py`,
+not fixed. `RaoultEquilibrium`'s four water values (`P_sat_ref`, `dH_vap`, `T_ref`,
+`C_water_mol_L`) are ordinary constructor arguments, so a caller can already supply
+their own, or another solvent via `gas_species`/`liquid_species`;
+`tests/standalone/test_partition_model.py::TestRaoultCustomParameters` pins that.
+The *defaults*, though, come from three unconnected places:
+
+- `reactions/phase_equilibria.py`: `_P_SAT_REF = 0.03169` atm and `_T_REF_WATER = 298.15`
+  K (private module constants), plus the inline literals `dH_vap = 44011.0` J/mol and
+  `C_water_mol_L = 55.51` mol/L.
+- `chemical_equilibrium/engines/nr/engine.py:55`: `_C_WATER_MOL_L`, derived from
+  `_RHO_WATER_G_L = 1000.0` and `_M_WATER_G_MOL = 18.015` (about 55.51).
+- `models/vlmodels/adm1/base.py:1050`: a literal `55.51`.
+
+`thermo/water_properties.py` already has a temperature-dependent
+`water_density_kg_per_m3(T_K)` and no vapour-pressure function. Two smaller changes
+would help, and neither has been decided: publish the `RaoultEquilibrium` defaults as
+named, documented public constants (for example a saturation pressure and an
+enthalpy of vaporisation at 25 °C) so a caller can refer to them, and route the
+three `C_water` copies through one value. The second is not a pure refactor: the
+engine's derived value is 1000 / 18.015 = 55.5093, which differs from the 55.51
+literals by about 1.3e-5 relative, so results move slightly wherever they are unified.
+
 ## `ReactionBuilder.aerobic_growth` doesn't check the derived yield is achievable
 
 Logged 2026-09-21 during the `chemistry-reactions-kinetics-cleanup` audit

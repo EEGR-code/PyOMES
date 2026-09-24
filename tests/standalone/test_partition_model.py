@@ -6,7 +6,7 @@ import dataclasses
 import math
 import pytest
 
-from PyOMES.units import R_L_ATM_PER_MOL_K
+from PyOMES.units import R_J_PER_MOL_K, R_L_ATM_PER_MOL_K
 
 _R = R_L_ATM_PER_MOL_K  # L·atm/(mol·K)
 _T_REF = 298.15
@@ -329,6 +329,94 @@ class TestRaoultPartition:
         rp = RaoultEquilibrium()
         with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
             rp.P_sat_ref = 0.1  # type: ignore
+
+
+class TestRaoultCustomParameters:
+    """The water defaults are ordinary constructor arguments: a caller can supply
+    other reference data, or another solvent altogether."""
+
+    def _custom(self, **overrides):
+        from PyOMES.reactions import RaoultEquilibrium
+        kwargs = dict(P_sat_ref=0.0313, dH_vap=43990.0, T_ref=300.0, C_water_mol_L=55.3)
+        kwargs.update(overrides)
+        return RaoultEquilibrium(**kwargs)
+
+    def test_defaults_are_unchanged(self):
+        from PyOMES.reactions import RaoultEquilibrium
+        rp = RaoultEquilibrium()
+        assert (rp.P_sat_ref, rp.dH_vap, rp.T_ref, rp.C_water_mol_L) == (
+            0.03169, 44011.0, 298.15, 55.51,
+        )
+        assert (rp.gas_species, rp.liquid_species) == ("H2O", "H2O")
+        assert rp.label == ""
+
+    def test_psat_at_custom_reference_returns_custom_value(self):
+        rp = self._custom()
+        assert rp.P_sat(300.0) == pytest.approx(0.0313, rel=1e-12)
+
+    def test_psat_follows_clausius_clapeyron_with_custom_constants(self):
+        rp = self._custom()
+        for T in (280.0, 320.0, 373.15):
+            expected = 0.0313 * math.exp(-43990.0 / R_J_PER_MOL_K * (1.0 / T - 1.0 / 300.0))
+            assert rp.P_sat(T) == pytest.approx(expected, rel=1e-12)
+
+    def test_larger_dH_vap_gives_steeper_temperature_dependence(self):
+        mild = self._custom(dH_vap=30000.0)
+        steep = self._custom(dH_vap=60000.0)
+        # Both pass through P_sat_ref at T_ref ...
+        assert mild.P_sat(300.0) == pytest.approx(steep.P_sat(300.0), rel=1e-12)
+        # ... and diverge on either side of it.
+        assert steep.P_sat(350.0) > mild.P_sat(350.0) > mild.P_sat(300.0)
+        assert steep.P_sat(280.0) < mild.P_sat(280.0)
+
+    def test_partition_ratio_matches_formula_with_custom_constants(self):
+        rp = self._custom()
+        T, V_liq, V_gas = 310.0, 2.0, 0.1
+        expected = (55.3 * V_liq * _R * T) / (rp.P_sat(T) * V_gas)
+        assert rp.partition_ratio(V_liq, V_gas, T) == pytest.approx(expected, rel=1e-12)
+
+    def test_partition_ratio_scales_with_C_water(self):
+        low = self._custom(C_water_mol_L=20.0)
+        high = self._custom(C_water_mol_L=40.0)
+        assert high.partition_ratio(1.0, 0.5, 310.0) == pytest.approx(
+            2.0 * low.partition_ratio(1.0, 0.5, 310.0), rel=1e-12
+        )
+
+    def test_partition_ratio_is_inverse_in_P_sat_ref(self):
+        low = self._custom(P_sat_ref=0.02)
+        high = self._custom(P_sat_ref=0.04)
+        assert high.partition_ratio(1.0, 0.5, 310.0) == pytest.approx(
+            0.5 * low.partition_ratio(1.0, 0.5, 310.0), rel=1e-12
+        )
+
+    def test_constraint_attributes_report_custom_values(self):
+        rp = self._custom()
+        assert rp.log_K == pytest.approx(-math.log10(0.0313), rel=1e-12)
+        assert rp.dH_J_per_mol == pytest.approx(-43990.0)
+        assert rp.T_ref_K == pytest.approx(300.0)
+
+    def test_constraint_role_agrees_with_partition_role_at_any_temperature(self):
+        """vant_hoff_log_K(rp, T) must equal -log10(P_sat(T)) for custom constants."""
+        from PyOMES.reactions.equilibrium import vant_hoff_log_K
+        rp = self._custom()
+        for T in (285.0, 300.0, 340.0):
+            assert vant_hoff_log_K(rp, T) == pytest.approx(-math.log10(rp.P_sat(T)), rel=1e-9)
+
+    def test_other_solvent_with_species_objects(self):
+        from PyOMES.chemistry.species import Species
+        from PyOMES.reactions import RaoultEquilibrium
+        from PyOMES.reactions.equilibrium import classify_equilibrium_constraint
+        etoh = Species(id="EtOH", atoms={"C": 2, "H": 6, "O": 1}, charge=0)
+        # Illustrative round numbers, not literature values.
+        rp = RaoultEquilibrium(
+            P_sat_ref=0.08, dH_vap=42000.0, C_water_mol_L=17.0,
+            gas_species=etoh, liquid_species=etoh,
+        )
+        gas, liq = rp.stoichiometry
+        assert (gas.species, gas.phase, gas.coefficient) == (etoh, "gas", -1.0)
+        assert (liq.species, liq.phase, liq.coefficient) == (etoh, "liquid", 1.0)
+        assert classify_equilibrium_constraint(rp) == "gas_liquid"
+        assert rp.P_sat(rp.T_ref) == pytest.approx(0.08, rel=1e-12)
 
 
 # ── Module-level constants for MultispeciesVLE tests ─────────────────────────

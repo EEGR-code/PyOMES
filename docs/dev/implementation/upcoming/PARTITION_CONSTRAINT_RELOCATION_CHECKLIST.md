@@ -84,7 +84,8 @@
 
 - [x] Plan doc exists in `docs/dev/implementation/upcoming/`
       ([`PARTITION_CONSTRAINT_RELOCATION.md`](PARTITION_CONSTRAINT_RELOCATION.md))
-- [ ] Checkpoints tracked below, one commit each
+- [x] Checkpoints tracked below, one commit each (`f598511`, `0f54853`, `68bd00a`,
+      `342d20f`, `7854aac`; checkpoint 6 pending commit)
 - [ ] **If work stalls:** add a status banner to the top of the plan doc at once
 
 ### Re-verification of the design note (2026-09-23, on `main`)
@@ -381,7 +382,7 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       other notes refer to the entry by its "Package-level layering" name, which
       still matches. The new test file uses LF line endings, like the existing
       `test_import_graph_acyclic.py` (many other test files are CRLF)._
-- [ ] 6. Tests for `RaoultEquilibrium`'s custom parameters (decision 9), added to
+- [x] 6. Tests for `RaoultEquilibrium`'s custom parameters (decision 9), added to
       the Raoult section of `tests/standalone/test_partition_model.py`. No source
       change. Cases: `P_sat(T_ref)` equals a custom `P_sat_ref`; `P_sat` at another
       temperature follows Clausius-Clapeyron with a custom `dH_vap` and `T_ref`;
@@ -394,6 +395,32 @@ plain `grep` (which also covers gitignored and hidden paths: `notes/`, `scratch/
       option of public named constants for the defaults, unfixed.
       Sanity: the new tests pass; full suite passes with the count up by the number
       of test functions added.
+      _Notes: done 2026-09-24. Suite before: **2088 passed** (2m31s); after:
+      **2098 passed**, 0 failed, 166 warnings, 2m13s (ten tests added, all in a new
+      `TestRaoultCustomParameters` class after `TestRaoultPartition`; the file's
+      one import line gained `R_J_PER_MOL_K`). All ten passed first time, so no
+      defect was exposed and nothing beyond the water-values entry was logged.
+      Cases: defaults unchanged (all four values plus the `"H2O"` species and empty
+      label, which pins them for any later change to the defaults); `P_sat(T_ref)`
+      equals a custom `P_sat_ref`; `P_sat` matches an independently computed
+      Clausius-Clapeyron value at three temperatures; a larger `dH_vap` is steeper
+      on either side of `T_ref` while both pass through `P_sat_ref`;
+      `partition_ratio` matches its formula with custom constants, doubles when
+      `C_water_mol_L` doubles and halves when `P_sat_ref` doubles; `log_K`,
+      `dH_J_per_mol` and `T_ref_K` report the custom values; and
+      `vant_hoff_log_K(rp, T)` equals `-log10(P_sat(T))` at three temperatures, i.e.
+      the constraint role and the partition role agree for custom constants. One case
+      beyond the plan: a non-water solvent built from `Species` objects (illustrative
+      round numbers, not literature values), which gets a two-entry gas/liquid
+      stoichiometry and classifies as `"gas_liquid"`, covering the "someone may
+      want another solvent" use. `OPEN_WORK.md` entry "No single source for water's
+      physical constants" lists the three locations, re-checked at
+      `phase_equilibria.py:223-224,275,277`, `nr/engine.py:55` and `adm1/base.py:1050`,
+      and notes that `thermo/water_properties.py` has a temperature-dependent water
+      density but no vapour-pressure function. A first draft of the entry said
+      unifying the `C_water` copies would change numerics only at other
+      temperatures; that was wrong (1000 / 18.015 = 55.5093 vs the 55.51 literal,
+      about 1.3e-5 relative), so the entry says it is not a pure refactor._
 
 ## Shipping
 
