@@ -55,7 +55,7 @@ Everything else imports from the package root (`from PyOMES.thermo import
 notebook and `_generate_notebooks.py`. Those imports are unaffected. No notebook
 imports a deep `thermo` path, and the two notebooks with `try/except
 ImportError` guard PHREEQC only. Neither guard test names a `thermo` module:
-`test_package_layering.py:77` uses `thermo` as synthetic detector input only.
+`test_package_layering.py:148` uses `thermo` as synthetic detector input only.
 
 ### Found along the way
 

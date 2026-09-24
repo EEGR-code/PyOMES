@@ -576,13 +576,44 @@ endings by byte count.
       `aerobic_fermentation_stoichiometry.ipynb` as in checkpoint 1 (cells before
       18 plus one `build_sim` call; the 60 h simulation cells not run). No files
       left in the repo._
-- [ ] 6. **Seam guard** (decision 12). Generalise `test_package_layering.py`'s
+- [x] 6. **Seam guard** (decision 12). Generalise `test_package_layering.py`'s
       resolver; add the `reactions/` layout test and its synthetic self-check
       cases. Also run the new check against a copy with an injected
       `kinetic -> equilibrium` import and a module-level `reaction_system` import
       in `equilibrium/plots.py`, to see it fail.
       Sanity: both tests pass; full suite passes with the count up by the number
       of test functions added.
+      _Notes: done 2026-09-24. Suite before: **2098 passed** (1m52s); after:
+      **2100 passed**, 0 failed, 166 warnings, 1m39s (two test functions added).
+      `test_package_layering.py`: the resolver is now `_imports()`, which returns
+      every import at any depth as `(from_module, name, type_checking_only)`,
+      with relative imports resolved and only the body of an
+      `if TYPE_CHECKING:` block flagged (its `else` branch is not);
+      `_imported_subpackages()` derives the `chemistry/` result from it, and the
+      existing self-check's assertions are unchanged and pass. New
+      `_reactions_layout_violations()` applies decision 12's rules to
+      `kinetic/`, `equilibrium/` and `blackbox.py`: no import reaching the other
+      folder (in any form: deep path, `from .. import equilibrium`, plain
+      `import`, lazy, or under `TYPE_CHECKING`); `reaction_system` only under
+      `TYPE_CHECKING`; no `from PyOMES.reactions import ...` (or
+      `from .. import ...`) inside the folders. New tests:
+      `test_reactions_layout_detector_catches_every_crossing` (24 synthetic
+      cases, including allowed ones and files outside the rule's scope) and
+      `test_reactions_kinetic_and_equilibrium_stay_separate` (the real files,
+      after asserting that `kinetic/reaction.py`, `equilibrium/constraint.py` and
+      `blackbox.py` are found). The module docstring describes both guards.
+      Checks beyond the tests: injecting, in memory, a
+      `from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K` into
+      `kinetic/builder.py`, a module-level `reaction_system` import into
+      `equilibrium/plots.py` and a `kinetic` import into `blackbox.py` each gives
+      one violation with its reason; the generalised `chemistry/` detector still
+      reports `reactions` and `thermo` for the pre-move `partition.py`
+      (`git show f598511^:...`, read-only), as when it was written. The file stays
+      CRLF in the working tree (git stores it as LF). The new docstring moved the
+      synthetic `thermo` line from 77 to 148, so
+      `THERMO_SUBFOLDER_STRUCTURE.md:58`'s citation was updated;
+      `OPEN_WORK.md:647` (the test enforces the `chemistry/` rule) is still
+      accurate._
 
 ## Shipping
 
