@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """Water property correlations for temperature-dependent Debye–Hückel constants.
 
-Lightweight polynomial correlations valid over 0–100 °C (bioprocess range).
-Kept in PyOMES/thermo/ so activity models in this package can use them without
-importing from PyOMES/speciation/ (which would create a circular dependency).
+Lightweight polynomial correlations valid over 0–100 °C (bioprocess range),
+used by the Davies and SIT activity models in this folder.
 """
 from __future__ import annotations
 
@@ -33,6 +32,18 @@ def water_density_kg_per_m3(T_K: float) -> float:
             * (T_C - 3.9863) ** 2
         )
     )
+
+
+def water_kg_per_L(T_K: float) -> float:
+    """Density of pure water in kg/L: the mol/L to mol/kg-water conversion factor.
+
+    Returns 1.0 when :func:`water_density_kg_per_m3` gives a non-finite or
+    non-positive value (far outside 0–100 °C).
+    """
+    rho_kg_m3 = water_density_kg_per_m3(float(T_K))
+    if not np.isfinite(rho_kg_m3) or rho_kg_m3 <= 0.0:
+        return 1.0
+    return float(rho_kg_m3) / 1000.0
 
 
 def debye_huckel_A(T_K: float) -> float:
@@ -66,8 +77,4 @@ def ionic_strength_molal_from_molar(I_molL: float, *, T_K: float) -> float:
     I = float(I_molL)
     if not np.isfinite(I) or I <= 0.0:
         return 0.0
-    rho = water_density_kg_per_m3(float(T_K))  # kg/m³
-    kg_per_L = rho / 1000.0
-    if not np.isfinite(kg_per_L) or kg_per_L <= 0.0:
-        return I
-    return float(I / kg_per_L)
+    return float(I / water_kg_per_L(T_K))

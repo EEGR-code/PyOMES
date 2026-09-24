@@ -394,10 +394,14 @@ PyOMES/
                                  # ionic_strength.py (suffix-based ionic strength)
       nr/                        # engine.py (NRChemicalEquilibriumEngine), tableau.py, solver.py
       phreeqc.py                 # PHREEQCChemicalEquilibriumEngine (optional phreeqpython)
-  thermo/                        # Stateless models and conventions (no solvers; depends only on units.py):
-                                 # activity models (Ideal/Davies/SIT), ThermoFramework, water properties,
-                                 # make_activity_model, van 't Hoff helpers (equilibrium_constants.py),
-                                 # gas_eos.py (IdealGasEOS, PengRobinsonEOS)
+  thermo/                        # Stateless models and conventions (no solvers; depends only on units.py)
+    framework.py                 # ThermoFramework (liquid_activity + gas_eos), THERMO_IDEAL, THERMO_DAVIES
+    equilibrium_constants.py     # van 't Hoff helpers (vant_hoff_K, vant_hoff_log_K)
+    liquid/                      # protocols.py (LiquidPhaseModel, ActivityModel, DifferentiableLiquidModel),
+                                 # ideal.py, davies.py, sit.py (activity models), water_properties.py,
+                                 # factory.py (make_activity_model)
+    gas/                         # protocols.py (GasEOS), ideal.py (IdealGasEOS), peng_robinson.py
+                                 # (PengRobinsonEOS, CriticalProperties, BIOGAS_SPECIES, BIOGAS_KIJ)
   control/                       # Controllers and profiles
     actions.py                   # ControlAction, ProfileRecord (new framework)
     cv_loops.py                  # CV-native PHController, DO controllers, pressure-relief

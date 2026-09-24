@@ -342,18 +342,17 @@ class TestDifferentiableLiquidModel:
         return Jfd
 
     def test_davies_satisfies_differentiable_liquid_model(self):
-        from PyOMES.thermo.liquid_phase_model import (
-            DaviesLiquidModel, DifferentiableLiquidModel,
-        )
+        from PyOMES.thermo import DaviesLiquidModel
+        from PyOMES.thermo.liquid.protocols import DifferentiableLiquidModel
         assert isinstance(DaviesLiquidModel(), DifferentiableLiquidModel)
 
     def test_sit_satisfies_differentiable_liquid_model(self):
-        from PyOMES.thermo.sit_liquid_model import SITLiquidModel
-        from PyOMES.thermo.liquid_phase_model import DifferentiableLiquidModel
+        from PyOMES.thermo import SITLiquidModel
+        from PyOMES.thermo.liquid.protocols import DifferentiableLiquidModel
         assert isinstance(SITLiquidModel(), DifferentiableLiquidModel)
 
     def test_davies_jacobian_matches_finite_difference(self):
-        from PyOMES.thermo.liquid_phase_model import DaviesLiquidModel
+        from PyOMES.thermo import DaviesLiquidModel
         model = DaviesLiquidModel()
         x_mol = {"Na+": 0.05, "Cl-": 0.05, "Ca++": 0.01, "CO2": 0.02}
         charge = {"Na+": 1, "Cl-": -1, "Ca++": 2, "CO2": 0}
@@ -366,7 +365,7 @@ class TestDifferentiableLiquidModel:
         (not the ion-pair epsilon cross-terms — see the method's own
         docstring) — this test documents that limitation rather than
         asserting a false equivalence with the full finite difference."""
-        from PyOMES.thermo.sit_liquid_model import SITLiquidModel
+        from PyOMES.thermo import SITLiquidModel
         model = SITLiquidModel()
         x_mol = {"Na+": 0.05, "Cl-": 0.05, "Ca++": 0.01, "CO2": 0.02}
         charge = {"Na+": 1, "Cl-": -1, "Ca++": 2, "CO2": 0}
@@ -375,7 +374,7 @@ class TestDifferentiableLiquidModel:
         assert not (J == pytest.approx(Jfd, abs=1e-2))
 
     def test_neutral_species_have_zero_jacobian_row_and_column(self):
-        from PyOMES.thermo.liquid_phase_model import DaviesLiquidModel
+        from PyOMES.thermo import DaviesLiquidModel
         model = DaviesLiquidModel()
         x_mol = {"Na+": 0.05, "Cl-": 0.05, "CO2": 0.02}
         charge = {"Na+": 1, "Cl-": -1, "CO2": 0}
@@ -386,7 +385,7 @@ class TestDifferentiableLiquidModel:
         assert (J[:, co2_idx] == 0).all()
 
     def test_dilute_limit_returns_zero_matrix(self):
-        from PyOMES.thermo.liquid_phase_model import DaviesLiquidModel
+        from PyOMES.thermo import DaviesLiquidModel
         model = DaviesLiquidModel()
         x_mol = {"Na+": 0.0, "Cl-": 0.0}
         charge = {"Na+": 1, "Cl-": -1}

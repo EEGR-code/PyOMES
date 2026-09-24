@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
-"""Tests for PyOMES.thermo.gas_eos: IdealGasEOS and PengRobinsonEOS.
+"""Tests for PyOMES.thermo.gas: IdealGasEOS, PengRobinsonEOS and the GasEOS protocol.
 
-Pins current behaviour after moving ``PyOMES/equilibria/`` (``vle.py`` +
-``peng_robinson.py``) into this one file (checkpoint 11, decision D4),
-which previously had no test coverage at all:
+Pins current behaviour:
 
 - Compressibility factors (Z) at biogas-relevant pressures, cross-checked
-  against the plausibility figures from the checkpoint-1 audit (a
-  plausibility check against approximate reference values, not a
+  against approximate reference values (a plausibility check, not a
   validation).
 - ``PengRobinsonEOS.partial_pressures_atm`` returns fugacities
   (``f_i = y_i * phi_i * P``); ``IdealGasEOS``'s returns plain partial
   pressures (``y_i * P``). The two differ at non-ideal (high) pressure
   and converge at low pressure.
+- Both implementations satisfy ``GasEOS`` without subclassing it.
 """
 from __future__ import annotations
 
@@ -25,7 +23,7 @@ class TestPengRobinsonCompressibilityFactors:
     T_K = 308.15
 
     def _eos(self):
-        from PyOMES.thermo.gas_eos import PengRobinsonEOS, BIOGAS_SPECIES
+        from PyOMES.thermo import PengRobinsonEOS, BIOGAS_SPECIES
         return PengRobinsonEOS(BIOGAS_SPECIES)
 
     def test_co2_20atm(self):
@@ -76,7 +74,7 @@ class TestPartialPressuresVsFugacities:
     T_K = 308.15
 
     def test_differ_at_high_pressure(self):
-        from PyOMES.thermo.gas_eos import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
+        from PyOMES.thermo import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
         pr = PengRobinsonEOS(BIOGAS_SPECIES)
         ideal = IdealGasEOS()
         n_gas = {"CH4": 2.170219515757866}  # ~50 atm CH4 (see above)
@@ -90,7 +88,7 @@ class TestPartialPressuresVsFugacities:
         assert fugacity / partial_p == pytest.approx(0.8291, abs=1e-3)
 
     def test_converge_at_low_pressure(self):
-        from PyOMES.thermo.gas_eos import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
+        from PyOMES.thermo import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
         pr = PengRobinsonEOS(BIOGAS_SPECIES)
         ideal = IdealGasEOS()
         n_gas = {"CH4": 0.6, "CO2": 0.4}
@@ -99,3 +97,13 @@ class TestPartialPressuresVsFugacities:
         pp = ideal.partial_pressures_atm(n_gas, T_K=self.T_K, V_L=V_L)
         for sp in ("CH4", "CO2"):
             assert fug[sp] == pytest.approx(pp[sp], rel=1e-2)
+
+
+class TestGasEOSProtocol:
+    """Both equations of state satisfy the ``GasEOS`` protocol structurally."""
+
+    def test_both_satisfy_gas_eos_without_subclassing(self):
+        from PyOMES.thermo import GasEOS, IdealGasEOS, PengRobinsonEOS, BIOGAS_SPECIES
+        for eos in (IdealGasEOS(), PengRobinsonEOS(BIOGAS_SPECIES)):
+            assert isinstance(eos, GasEOS)
+            assert GasEOS not in type(eos).__mro__

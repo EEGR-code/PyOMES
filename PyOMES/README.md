@@ -19,7 +19,7 @@ its own module docstring with more detail than is repeated here.
 | [`numerics/`](numerics/) | Spatial discretization schemes (upwind, TVD, dispersion) for spatially resolved models. |
 | [`monitoring/`](monitoring/) | Cheap per-step accuracy and mass-conservation checks that warn when a simulation runs outside the regime its solver/activity model is reliable in. |
 | [`templates/stirred_tank/`](templates/stirred_tank/) | `StirredTankBuilder` — the fluent builder used in the top-level Quick Start — plus its factory, presets, and kinetics helpers. |
-| [`thermo/`](thermo/) | `ThermoFramework` and liquid-phase activity models (`IdealLiquidModel`, `DaviesLiquidModel`, `SITLiquidModel`), water property correlations that back `chemical_equilibrium/`, and gas-phase equations of state (`IdealGasEOS`, `PengRobinsonEOS`). |
+| [`thermo/`](thermo/) | `ThermoFramework` and van 't Hoff helpers at the top level; [`liquid/`](thermo/liquid/) holds the liquid-phase activity models (`IdealLiquidModel`, `DaviesLiquidModel`, `SITLiquidModel`) and the water property correlations they use, which back `chemical_equilibrium/`; [`gas/`](thermo/gas/) holds the gas-phase equations of state (`IdealGasEOS`, `PengRobinsonEOS`). |
 | [`compounds.py`](compounds.py) | `ChemicalRegistry` / `Chemical` — standalone named-compound database (molecular weights, atom compositions), decoupled from `Species`. Backs the stirred-tank template's default organism/substrate composition lookup. |
 | [`units.py`](units.py) | Shared unit conversions and physical constants. |
 | [`config.py`](config.py) | Package-level accuracy-warning thresholds and throttling, configurable via the `VLSIM_WARNINGS` environment variable. |

@@ -17,8 +17,10 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from ..units import R_J_PER_MOL_K as _R_J
-from .liquid_phase_model import LiquidPhaseModel, IdealLiquidModel, DaviesLiquidModel
-from .gas_eos import GasEOS
+from .liquid.protocols import LiquidPhaseModel
+from .liquid.ideal import IdealLiquidModel
+from .liquid.davies import DaviesLiquidModel
+from .gas.protocols import GasEOS
 
 
 @dataclass(frozen=True)
@@ -32,18 +34,20 @@ class ThermoFramework:
         (γ_i = 1 for all species).  Use ``DaviesLiquidModel()`` for
         Davies equation or ``SITLiquidModel()`` for SIT corrections.
     gas_eos : GasEOS or None
-        Gas-phase equation of state.  Default ``None`` (no gas phase or
-        uses ideal-gas via the KineticGasLiquidLink default).
+        Gas-phase equation of state.  Default ``None``.  Nothing in the
+        package reads this field yet: where a gas pressure is needed, the
+        ideal-gas law is applied directly.
     standard_T_K : float
         Standard-state temperature (K).  Default 298.15 K (25 °C).
     standard_P_atm : float
         Standard-state pressure (atm).  Default 1.0.
 
-    Backward-compatible properties
-    --------------------------------
-    ``use_activity`` and ``activity_model`` are read-only properties for
-    callers that still reference the old string-based API.  They are
-    derived from ``liquid_activity`` and cannot be set.
+    Derived properties
+    ------------------
+    ``use_activity`` and ``activity_model`` are read-only properties derived
+    from ``liquid_activity``; they cannot be set.  The Bisection and NR
+    chemical-equilibrium engines copy them into their own attributes of the
+    same names.
     """
 
     liquid_activity: LiquidPhaseModel = field(default_factory=IdealLiquidModel)
@@ -51,7 +55,7 @@ class ThermoFramework:
     standard_T_K: float = 298.15
     standard_P_atm: float = 1.0
 
-    # ── Backward-compatible read-only properties ───────────────────────
+    # ── Derived read-only properties ───────────────────────────────────
 
     @property
     def use_activity(self) -> bool:

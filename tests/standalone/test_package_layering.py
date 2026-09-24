@@ -10,6 +10,12 @@
   imports names from the ``PyOMES.reactions`` package root. They may import the
   shared top-level modules (``stoichiometry``, ``environment``, ``_shared``) and
   their own folder.
+- Inside ``PyOMES/thermo/``, the ``liquid/`` and ``gas/`` folders stay separate.
+  A module in either may import from ``PyOMES.thermo`` only within its own
+  folder: not the other folder, not ``framework`` or ``equilibrium_constants``,
+  and not the ``PyOMES.thermo`` package root (nor the ``PyOMES`` root, which
+  imports all of ``thermo/``). Imports from outside ``PyOMES.thermo``, such as
+  ``units``, are not restricted by this rule.
 
 Unlike ``test_import_graph_acyclic.py``, which counts only imports that run at
 import time, these count *every* import statement at any depth: inside function
@@ -35,6 +41,9 @@ REACTIONS = f"{PACKAGE}.reactions"
 KINETIC = f"{REACTIONS}.kinetic"
 EQUILIBRIUM = f"{REACTIONS}.equilibrium"
 REACTION_SYSTEM = f"{REACTIONS}.reaction_system"
+
+THERMO = f"{PACKAGE}.thermo"
+THERMO_SIDES = ("liquid", "gas")
 
 
 def _module_name(path: Path, root: Path) -> str:
@@ -129,6 +138,23 @@ def _reactions_layout_violations(source: str, module: str, is_package: bool) -> 
             out.append(f"{stmt} (reaction_system is allowed only under TYPE_CHECKING)")
         elif in_folder and from_module == REACTIONS and name is not None:
             out.append(f"{stmt} (names from the package root; import the defining module)")
+    return out
+
+
+def _thermo_layout_violations(source: str, module: str, is_package: bool) -> list:
+    """Imports in a ``thermo/liquid/`` or ``thermo/gas/`` module that leave its folder."""
+    own = next((f"{THERMO}.{side}" for side in THERMO_SIDES
+                if _within(module, f"{THERMO}.{side}")), None)
+    if own is None:
+        return []
+    out = []
+    for from_module, name, _ in _imports(source, module, is_package):
+        target = _full_target(from_module, name)
+        stmt = f"from {from_module} import {name}" if name else f"import {from_module}"
+        if target in (PACKAGE, f"{PACKAGE}.*"):
+            out.append(f"{stmt} (the {PACKAGE} root imports all of thermo/)")
+        elif _within(target, THERMO) and not _within(target, own):
+            out.append(f"{stmt} (leaves {own.rsplit('.', 1)[1]}/ inside thermo/)")
     return out
 
 
@@ -241,5 +267,67 @@ def test_reactions_kinetic_and_equilibrium_stay_separate():
         "blackbox.py must import neither, and neither folder may import reaction_system "
         "outside TYPE_CHECKING or import names from the package root (all import depths "
         "counted). Offenders: "
+        + "; ".join(f"{f} -> {', '.join(p)}" for f, p in offenders.items())
+    )
+
+
+def test_thermo_layout_detector_catches_every_crossing():
+    # Self-check for the thermo/ layout rule, as above.
+    def bad(src, module, is_package=False):
+        return len(_thermo_layout_violations(src, module, is_package))
+
+    davies = "PyOMES.thermo.liquid.davies"
+    pr = "PyOMES.thermo.gas.peng_robinson"
+    # Reaching the other folder, in every form and at any depth.
+    assert bad("from PyOMES.thermo.gas.protocols import GasEOS", davies) == 1
+    assert bad("from ..gas.ideal import IdealGasEOS", davies) == 1
+    assert bad("from ..gas import ideal", davies) == 1
+    assert bad("from .. import gas", davies) == 1
+    assert bad("import PyOMES.thermo.gas.peng_robinson", davies) == 1
+    assert bad("def f():\n    from ..gas.protocols import GasEOS", davies) == 1
+    assert bad("if TYPE_CHECKING:\n    from ..gas.protocols import GasEOS", davies) == 1
+    assert bad("from ..liquid.water_properties import water_kg_per_L", pr) == 1
+    assert bad("from ..liquid import factory", "PyOMES.thermo.gas", True) == 1
+    # framework, equilibrium_constants and the package roots.
+    assert bad("from ..framework import ThermoFramework", davies) == 1
+    assert bad("if TYPE_CHECKING:\n    from PyOMES.thermo.framework import ThermoFramework", pr) == 1
+    assert bad("from ..equilibrium_constants import vant_hoff_K", davies) == 1
+    assert bad("from PyOMES.thermo import DaviesLiquidModel", "PyOMES.thermo.liquid.factory") == 1
+    assert bad("import PyOMES.thermo", pr) == 1
+    assert bad("from PyOMES import thermo", pr) == 1
+    assert bad("import PyOMES", pr) == 1
+    assert bad("from PyOMES import *", pr) == 1
+    # Allowed: the own folder, and anything outside PyOMES.thermo.
+    assert bad("from .water_properties import debye_huckel_A\nfrom . import protocols", davies) == 0
+    assert bad("from PyOMES.thermo.liquid.sit import SITLiquidModel", "PyOMES.thermo.liquid.factory") == 0
+    assert bad("from .protocols import GasEOS", "PyOMES.thermo.gas.ideal") == 0
+    assert bad("from PyOMES.units import R_L_ATM_PER_MOL_K as R\nimport math\nimport numpy", pr) == 0
+    # Files outside liquid/ and gas/ are not checked.
+    assert bad("from .liquid.davies import D\nfrom .gas.protocols import G", "PyOMES.thermo.framework") == 0
+    assert bad("from .liquid.davies import D\nfrom .gas.protocols import G", "PyOMES.thermo", True) == 0
+
+
+def test_thermo_liquid_and_gas_stay_separate():
+    thermo_dir = REPO_ROOT / PACKAGE / "thermo"
+    files = sorted(
+        p for side in THERMO_SIDES
+        for p in (thermo_dir / side).rglob("*.py") if "__pycache__" not in p.parts
+    )
+    for expected in ("liquid/protocols.py", "liquid/davies.py", "gas/protocols.py",
+                     "gas/peng_robinson.py"):
+        assert thermo_dir / expected in files, f"thermo/{expected} not found"
+
+    offenders = {}
+    for path in files:
+        module = _module_name(path, REPO_ROOT)
+        source = path.read_text(encoding="utf-8")
+        problems = _thermo_layout_violations(source, module, path.name == "__init__.py")
+        if problems:
+            offenders[path.relative_to(REPO_ROOT).as_posix()] = problems
+
+    assert not offenders, (
+        f"{PACKAGE}/thermo/liquid/ and gas/ may import from {PACKAGE}.thermo only within "
+        "their own folder: not each other, framework, equilibrium_constants or the package "
+        "root (all import depths counted). Offenders: "
         + "; ".join(f"{f} -> {', '.join(p)}" for f, p in offenders.items())
     )

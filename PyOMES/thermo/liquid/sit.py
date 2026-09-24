@@ -28,17 +28,10 @@ from .water_properties import (
     debye_huckel_A,
     ionic_strength_molal_from_molar,
     water_density_kg_per_m3,
+    water_kg_per_L,
 )
 
 _LN10 = math.log(10.0)
-
-
-def _kg_per_L(T_K: float) -> float:
-    """Water density in kg/L at T_K — the I_molL -> I_molal conversion factor."""
-    rho_kg_m3 = water_density_kg_per_m3(float(T_K))
-    if not np.isfinite(rho_kg_m3) or rho_kg_m3 <= 0.0:
-        return 1.0
-    return float(rho_kg_m3) / 1000.0
 
 
 # ── SIT interaction coefficient database (ε values) ────────────────────────
@@ -89,7 +82,7 @@ SIT_EPSILON: Dict[Tuple[str, str], float] = {
     ("Mg++", "SO4--"):      -0.10,
 }
 
-# Charge lookup for backward-compat compute_gammas() method.
+# Charges of the fixed ion set that compute_gammas() covers.
 ION_CHARGES: Dict[str, int] = {
     "H+": +1, "Na+": +1, "K+": +1, "NH4+": +1,
     "Ca++": +2, "Mg++": +2, "Zn++": +2, "Mn++": +2, "Co++": +2,
@@ -122,7 +115,7 @@ class SITLiquidModel:
     - ``gamma(z, I_molL, *, T_K)`` — extended Debye-Hückel term only
       (charge-based; no ion-pair specificity).  ActivityModel compatibility.
     - ``compute_gammas(composition_molL, I_molL, T_K)`` — full SIT over
-      ``ION_CHARGES`` ions; backward-compatible with NRChemicalEquilibriumEngine.
+      ``ION_CHARGES`` ions, for the Bisection engine's acid-base solver.
 
     Parameters
     ----------
@@ -215,18 +208,16 @@ class SITLiquidModel:
         *,
         charge: Dict[str, int],
     ) -> np.ndarray:
-        """``∂γ_i/∂C_j = (∂γ_i/∂I)(z_j²/2)`` — §8.4 of THERMODYNAMIC_MODEL_ARCHITECTURE.md.
+        """``∂γ_i/∂C_j = (∂γ_i/∂I)(z_j²/2)``.
 
         Differentiates only the extended Debye-Hückel term's I-dependence
         analytically (matching :meth:`gamma`'s DH-only treatment); the
         ion-pair ``ε`` cross-terms used by :meth:`gamma_all` are not
         differentiated (each ``ε(j,k)·m_k`` term is itself linear in a
         *different* species' composition, not I — a full treatment would
-        need the per-pair partials, which this "cheap analytically"
-        extension (per the design doc) does not attempt). See
-        :class:`~PyOMES.thermo.liquid_phase_model.DifferentiableLiquidModel`
-        for why this is standalone groundwork, not yet consumed by the
-        inner NR loop.
+        need the per-pair partials, which this method does not attempt).
+        Nothing in the package calls it; see
+        :class:`~PyOMES.thermo.liquid.protocols.DifferentiableLiquidModel`.
         """
         species_ids = sorted(x_mol)
         n = len(species_ids)
@@ -246,7 +237,7 @@ class SITLiquidModel:
 
         A = debye_huckel_A(float(T_K))
         sqrtIm = math.sqrt(I_m)
-        dIm_dImolL = 1.0 / _kg_per_L(T_K)
+        dIm_dImolL = 1.0 / water_kg_per_L(T_K)
         # d(log10 gamma_DH)/dI_m, from log10(gamma_DH) = -A z^2 sqrt(Im)/(1+1.5 sqrt(Im))
         d_log10_dIm = 1.0 / (2.0 * sqrtIm * (1.0 + 1.5 * sqrtIm) ** 2)
 
@@ -270,10 +261,11 @@ class SITLiquidModel:
         I_molL: float,
         T_K: float,
     ) -> Dict[str, float]:
-        """Full SIT for the fixed ``ION_CHARGES`` ion set (backward compat).
+        """Full SIT for the fixed ``ION_CHARGES`` ion set, without a charge map.
 
-        Called by NRChemicalEquilibriumEngine when an SIT model is active.  Returns
-        gammas for every ion in ``ION_CHARGES``; ions absent from
+        Called by the Bisection engine's acid-base solver when an SIT model is
+        active, with an approximate composition it builds from its totals.
+        Returns gammas for every ion in ``ION_CHARGES``; ions absent from
         ``composition_molL`` still receive the DH-only term.
         """
         T_K = float(T_K)

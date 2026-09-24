@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
-from .liquid_phase_model import ActivityModel, DaviesLiquidModel, IdealLiquidModel
-from .sit_liquid_model import SITLiquidModel
+from .protocols import ActivityModel
+from .ideal import IdealLiquidModel
+from .davies import DaviesLiquidModel
+from .sit import SITLiquidModel
 
 
 def make_activity_model(use_activity: bool, activity_model: str) -> ActivityModel:
