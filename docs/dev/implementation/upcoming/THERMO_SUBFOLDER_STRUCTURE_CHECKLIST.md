@@ -364,7 +364,7 @@ uses. Line counts with `wc -l`; line endings by byte count and
       empty `liquid/` folder, which was removed before the corrected run.
       Staging: `liquid/sit.py`, `protocols.py`, `ideal.py`, `davies.py` with
       autocrlf off (decision 17); the rest with a plain `git add`._
-- [ ] 2. **Gas group into `gas/`.** Split `gas_eos.py` into `gas/protocols.py`
+- [x] 2. **Gas group into `gas/`.** Split `gas_eos.py` into `gas/protocols.py`
       (`GasEOS`, 40-47, with the interface part of the module docstring,
       including the partial-pressure vs fugacity distinction), `gas/ideal.py`
       (`IdealGasEOS`, 50-63, still subclassing `GasEOS` via `.protocols`) and
@@ -380,6 +380,48 @@ uses. Line counts with `wc -l`; line endings by byte count and
       volumes bit-identical; `import PyOMES.thermo.gas_eos` raises
       `ModuleNotFoundError`; fresh-interpreter import orders; no bare LF; full
       suite **2100 passed**.
+      _Notes: done 2026-09-24, after checkpoint 1 was committed as `13e6139`.
+      Suite before: **2100 passed** (2m08s); after: **2100 passed**, 0 failed,
+      166 warnings, 2m10s. By script, with byte-level line handling:
+      `gas/protocols.py` holds `GasEOS` (lines 40-47) under a new title line plus
+      the old docstring's interface paragraph (lines 4-11, with the
+      partial-pressure vs fugacity distinction); `gas/ideal.py` holds
+      `IdealGasEOS` (50-63), still subclassing `GasEOS`, imported with
+      `from .protocols import GasEOS`, under a new one-line docstring;
+      `gas/peng_robinson.py` holds lines 66-506 under a new title line plus the
+      old docstring's pressure-range note, usage example and references (lines
+      13-28). All three keep the source file's blank line between docstring and
+      `from __future__`. `..units` became `from PyOMES.units import
+      R_L_ATM_PER_MOL_K as R` in `ideal.py` and `peng_robinson.py`; `gas/protocols.py`
+      imports only `Dict`. `gas/__init__.py` is docstring-only. Docstring
+      wording, including the usage example's old import path, waits for
+      checkpoint 5. Staying files, import lines only: `thermo/__init__.py` (the
+      gas block became `.gas.protocols`, `.gas.ideal` and a parenthesised
+      `.gas.peng_robinson` import) and `framework.py:23`
+      (`.gas.protocols`). `test_gas_eos.py:28,79,93` use the short form; its
+      docstring at :2 waits for checkpoint 5. Checks: the 14 top-level statements
+      of `gas_eos.py`, minus imports and module docstring, are the same ASTs as
+      those of the three new files taken together, each once; `__init__.py` and
+      `framework.py` differ from `HEAD` only in imports, and `test_gas_eos.py` is
+      identical with imports removed at every depth (its imports are inside the
+      test functions); no unused or undefined names in the new files. A 2,768-value
+      fingerprint (`IdealGasEOS` and `PengRobinsonEOS` with the default, empty and
+      extended `kij`, a species set extended with argon; `pressure_atm` and
+      `partial_pressures_atm` over 6 temperatures, 5 volumes including 0 and
+      1e-6 L, 5 amounts and 8 mixtures including unknown species, zero amounts
+      and an empty dict; the `BIOGAS_*` tables; `ThermoFramework(gas_eos=...)`;
+      3 recorded `AttributeError`s for `partial_pressures_atm(None)` on
+      Peng-Robinson, which the ideal EOS accepts) is bit-identical before and after
+      (SHA-256 `1fba3358...`, two runs before), and the checkpoint-1 liquid
+      fingerprint is unchanged. `import PyOMES.thermo.gas_eos` raises
+      `ModuleNotFoundError`. Nine fresh-interpreter import orders pass (`PyOMES`,
+      `PyOMES.thermo`, `.gas`, `.gas.ideal`, `.gas.peng_robinson`, `.framework`,
+      `.liquid`, `PyOMES.databases`, `PyOMES.chemical_equilibrium` first), each
+      asserting that the root gas names are the new modules' objects,
+      `IdealGasEOS` still subclasses `GasEOS` and `PengRobinsonEOS` does not.
+      No bare LF in any new or changed file. No notebook changed. Staging: the
+      `gas/` files with a plain `git add` (`gas_eos.py` was stored LF,
+      decision 17)._
 - [ ] 3. **`GasEOS` as a `Protocol`** (decision 11). `@runtime_checkable class
       GasEOS(Protocol)` with the same two method signatures and `...` bodies;
       `IdealGasEOS` drops the base class. Known behaviour changes, all

@@ -10,9 +10,9 @@ from .liquid.water_properties import (
     debye_huckel_A,
     ionic_strength_molal_from_molar,
 )
-from .gas_eos import (
-    GasEOS,
-    IdealGasEOS,
+from .gas.protocols import GasEOS
+from .gas.ideal import IdealGasEOS
+from .gas.peng_robinson import (
     PengRobinsonEOS,
     CriticalProperties,
     BIOGAS_SPECIES,

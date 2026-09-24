@@ -25,7 +25,7 @@ class TestPengRobinsonCompressibilityFactors:
     T_K = 308.15
 
     def _eos(self):
-        from PyOMES.thermo.gas_eos import PengRobinsonEOS, BIOGAS_SPECIES
+        from PyOMES.thermo import PengRobinsonEOS, BIOGAS_SPECIES
         return PengRobinsonEOS(BIOGAS_SPECIES)
 
     def test_co2_20atm(self):
@@ -76,7 +76,7 @@ class TestPartialPressuresVsFugacities:
     T_K = 308.15
 
     def test_differ_at_high_pressure(self):
-        from PyOMES.thermo.gas_eos import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
+        from PyOMES.thermo import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
         pr = PengRobinsonEOS(BIOGAS_SPECIES)
         ideal = IdealGasEOS()
         n_gas = {"CH4": 2.170219515757866}  # ~50 atm CH4 (see above)
@@ -90,7 +90,7 @@ class TestPartialPressuresVsFugacities:
         assert fugacity / partial_p == pytest.approx(0.8291, abs=1e-3)
 
     def test_converge_at_low_pressure(self):
-        from PyOMES.thermo.gas_eos import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
+        from PyOMES.thermo import PengRobinsonEOS, IdealGasEOS, BIOGAS_SPECIES
         pr = PengRobinsonEOS(BIOGAS_SPECIES)
         ideal = IdealGasEOS()
         n_gas = {"CH4": 0.6, "CO2": 0.4}

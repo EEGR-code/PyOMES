@@ -20,7 +20,7 @@ from ..units import R_J_PER_MOL_K as _R_J
 from .liquid.protocols import LiquidPhaseModel
 from .liquid.ideal import IdealLiquidModel
 from .liquid.davies import DaviesLiquidModel
-from .gas_eos import GasEOS
+from .gas.protocols import GasEOS
 
 
 @dataclass(frozen=True)
