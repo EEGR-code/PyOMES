@@ -17,7 +17,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from ..units import R_J_PER_MOL_K as _R_J
-from .liquid_phase_model import LiquidPhaseModel, IdealLiquidModel, DaviesLiquidModel
+from .liquid.protocols import LiquidPhaseModel
+from .liquid.ideal import IdealLiquidModel
+from .liquid.davies import DaviesLiquidModel
 from .gas_eos import GasEOS
 
 

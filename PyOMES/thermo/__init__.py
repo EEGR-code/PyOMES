@@ -1,13 +1,10 @@
 from .framework import ThermoFramework
-from .liquid_phase_model import (
-    ActivityModel,
-    LiquidPhaseModel,
-    IdealLiquidModel,
-    DaviesLiquidModel,
-)
-from .sit_liquid_model import SITLiquidModel, SIT_EPSILON, ION_CHARGES
-from .factory import make_activity_model
-from .water_properties import (
+from .liquid.protocols import ActivityModel, LiquidPhaseModel
+from .liquid.ideal import IdealLiquidModel
+from .liquid.davies import DaviesLiquidModel
+from .liquid.sit import SITLiquidModel, SIT_EPSILON, ION_CHARGES
+from .liquid.factory import make_activity_model
+from .liquid.water_properties import (
     water_dielectric_constant,
     water_density_kg_per_m3,
     debye_huckel_A,

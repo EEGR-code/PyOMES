@@ -241,7 +241,7 @@ class TestSITLiquidModel:
 
     def test_compute_gammas_returns_ion_charges_keys(self):
         from PyOMES.thermo import SITLiquidModel
-        from PyOMES.thermo.sit_liquid_model import ION_CHARGES
+        from PyOMES.thermo import ION_CHARGES
         model = SITLiquidModel()
         result = model.compute_gammas({"Na+": 0.1, "Cl-": 0.1}, 0.1, 298.15)
         for ion in ION_CHARGES:

@@ -130,8 +130,8 @@
       the last fetch (checked 2026-09-24, no fetch run)
 - [x] Full-suite baseline on `main`: **2100 passed**, 0 failed, 166 warnings,
       1m48s (`python -m pytest -p no:cacheprovider -q`)
-- [ ] Branch created off `main`: `thermo-subfolder-structure`
-- [ ] This checklist committed on that branch as the first commit
+- [x] Branch created off `main`: `thermo-subfolder-structure`
+- [x] This checklist committed on that branch as the first commit (`ce2500a`)
 
 ## During
 
@@ -293,7 +293,7 @@ uses. Line counts with `wc -l`; line endings by byte count and
 
 ### Checkpoints
 
-- [ ] 1. **Liquid group into `liquid/`.** Split `liquid_phase_model.py` into
+- [x] 1. **Liquid group into `liquid/`.** Split `liquid_phase_model.py` into
       `liquid/protocols.py` (module docstring and lines 41-143),
       `liquid/ideal.py` (157-182) and `liquid/davies.py` (`_kg_per_L`, `_LN10`,
       185-304); move `sit_liquid_model.py` to `liquid/sit.py`, and
@@ -319,6 +319,51 @@ uses. Line counts with `wc -l`; line endings by byte count and
       `PyOMES.thermo`, `PyOMES.thermo.liquid.davies`, `PyOMES.databases`,
       `PyOMES.chemical_equilibrium` in several orders, each asserting root and
       deep names are the same objects; no bare LF; full suite **2100 passed**.
+      _Notes: done 2026-09-24. Suite before: **2100 passed** (2m09s); after:
+      **2100 passed**, 0 failed, 166 warnings, 2m11s. By script, with byte-level
+      line handling: `liquid/protocols.py` holds the old module docstring and
+      lines 41-143, `liquid/ideal.py` lines 157-182, `liquid/davies.py`
+      `_kg_per_L`, `_LN10` and lines 185-304; `ideal.py` and `davies.py` have new
+      one-line module docstrings and `liquid/__init__.py` is docstring-only (all
+      three reviewed in checkpoint 5). Each new file imports only what it uses
+      (AST check: no unused or undefined names), which drops the unused
+      `Optional` (discrepancy 4). `sit_liquid_model.py` → `liquid/sit.py` and
+      `water_properties.py` → `liquid/water_properties.py` by plain filesystem
+      move, byte-identical; `factory.py` → `liquid/factory.py` with its two
+      import lines rewritten to four (`.protocols`, `.ideal`, `.davies`, `.sit`).
+      Staying files, import lines only: `thermo/__init__.py` (the liquid, SIT,
+      factory and water blocks, now `.liquid.<module>`) and `framework.py:20`
+      (now three lines). Tests: `test_nr_gas_liquid_cp2.py` (7 import lines;
+      345-347 became a short-form `DaviesLiquidModel` line plus a deep
+      `PyOMES.thermo.liquid.protocols` line for `DifferentiableLiquidModel`, and
+      352 is deep; the other five are short form) and
+      `test_liquid_phase_model.py:244` (short form; it now sits next to an
+      existing short-form line at :243, left as two lines). Checks: the top-level
+      statements of `liquid_phase_model.py`, minus imports and module docstring,
+      are the same 7 ASTs as those of the three new files taken together, each
+      once; `factory.py`, `__init__.py` and `framework.py` have identical ASTs
+      apart from imports; a fingerprint of 13,668 values (Ideal, Davies and SIT
+      `gamma`, `gamma_all`, `jacobian_dgamma_dx`, SIT `compute_gammas` with
+      default and custom `epsilon`, over 11 temperatures including 1e-3 K, −5 K,
+      1500 K and NaN and 5 compositions including zero and negative ones; the
+      four water functions; `make_activity_model` for 16 inputs including the
+      error cases; `THERMO_DAVIES`/`THERMO_IDEAL`; the SIT tables; 7 of the values
+      are recorded exceptions at extreme temperatures) is bit-identical before and
+      after (SHA-256 `88bed7f6...`, two runs before). `import
+      PyOMES.thermo.liquid_phase_model`, `.sit_liquid_model`, `.water_properties`
+      and `.factory` raise `ModuleNotFoundError`. Nine fresh-interpreter import
+      orders pass (`PyOMES`, `PyOMES.thermo`, `.liquid`, `.liquid.davies`,
+      `.liquid.factory`, `.liquid.sit`, `.framework`, `PyOMES.databases`,
+      `PyOMES.chemical_equilibrium` first), each asserting that the 19 root names,
+      the engines' `make_activity_model`/`ActivityModel` and
+      `THERMO_DAVIES.liquid_activity` are the new modules' objects and that
+      Davies and SIT still satisfy `DifferentiableLiquidModel`. No bare LF in any
+      new or changed file; every one ends in `\r\n`. No notebook changed. The
+      first run of the edit script stopped on a wrong boundary check (line 157 is
+      the `@dataclass` decorator, not the class line) after creating only the
+      empty `liquid/` folder, which was removed before the corrected run.
+      Staging: `liquid/sit.py`, `protocols.py`, `ideal.py`, `davies.py` with
+      autocrlf off (decision 17); the rest with a plain `git add`._
 - [ ] 2. **Gas group into `gas/`.** Split `gas_eos.py` into `gas/protocols.py`
       (`GasEOS`, 40-47, with the interface part of the module docstring,
       including the partial-pressure vs fugacity distinction), `gas/ideal.py`
