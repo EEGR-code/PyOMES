@@ -547,6 +547,18 @@ rounded `_R_J = 8.31446` (see the ADM1 / BSM2 entry above). Decide whether it is
 supported second BSM2 implementation, in which case it needs a test and a correct
 docstring, or dead code to delete.
 
+## Docstrings in `models/` and `numerics/` still use pre-rename module paths
+
+Found 2026-09-24 by the `thermo-subfolder-structure` import audit, which also reads
+import lines in docstring examples. Besides `bsm2_direct.py` (entry above), three
+docstrings name modules that no longer exist under those names:
+`models/vlmodels/adm1/bsm2.py:24` (`from PyOMES.models.adm1_bsm2 import (...)`),
+`models/vlmodels/hplc/column.py:48` (`from PyOMES.models.hplc_column import
+HPLCColumn, LangmuirSpecies`) and `PyOMES/numerics/spatial.py:55`
+(`:class:`~fermenter.models.hplc_column.HPLCColumn``). None is run by the suite.
+The fix is text only, but `models/` has no `__init__.py` (see the entry above), so
+the right import to show depends on how `models/` is meant to be imported.
+
 ## The package root exports only the Bisection engine
 
 Observed 2026-09-20 in checkpoint 11 of `chemical-equilibrium-engines-subfolder`

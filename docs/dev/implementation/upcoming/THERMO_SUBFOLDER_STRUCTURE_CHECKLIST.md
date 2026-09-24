@@ -584,7 +584,7 @@ uses. Line counts with `wc -l`; line endings by byte count and
       `use_activity`/`activity_model` "derived read-only properties for
       backward-compatible inspection"; not false, outside this checkpoint's list,
       and editing it would mean a notebook re-run, so it is left._
-- [ ] 6. **Sweep.** Search every old path in every form (dotted, slash,
+- [x] 6. **Sweep.** Search every old path in every form (dotted, slash,
       backslash, relative, bare filename, Sphinx cross-reference) across every
       file type, with plain `grep` and the Grep tool, matching full paths for the
       ambiguous new names (`protocols.py`, `ideal.py`, `factory.py`, `sit.py`).
@@ -593,6 +593,51 @@ uses. Line counts with `wc -l`; line endings by byte count and
       audit of every `.py` and notebook code cell: every `PyOMES`/`models` import
       resolves, including each imported name. Each old path fails to import.
       Sanity: full suite **2102 passed**.
+      _Notes: done 2026-09-24, after checkpoint 5 was committed as `56a1e43`. The
+      sweep found no missed site, so the only file changed besides this checklist
+      is `OPEN_WORK.md` (one new entry, below). Full suite **2102 passed**, 0
+      failed, 166 warnings, 2m07s. **Old-path search:** plain `grep -rnE` over the
+      whole tree (gitignored and hidden paths included) and every file type, for
+      `thermo.`/`thermo/`/`thermo\` followed by any old module or by a new module
+      name without its folder (`protocols`, `ideal`, `davies`, `sit`,
+      `peng_robinson`, `water_properties`, `factory`), relative
+      `from .<old module>`, and bare `liquid_phase_model`, `sit_liquid_model`,
+      `gas_eos` (with or without `.py`, not inside a longer name): 138 lines in
+      16 files; 31 in `shipped/`, 15 in `docs/dev/ideas/`, 81 in this phase's note
+      and checklist, 3 in gitignored `PyOMES.egg-info/SOURCES.txt`, and 8 live,
+      all intended (the `gas_eos` field name in `framework.py:36,54` and
+      `architecture.md:398`; `OPEN_WORK.md:20,35` (history) and `:466,472`
+      (dated narration with "now `thermo/gas/`"); this phase's own entry at
+      `upcoming/README.md:29`, replaced at shipping). No relative import of a
+      moved module is left in `thermo/`'s top level. The Grep tool finds 135 lines
+      in 15 files, exactly the same minus the 3 gitignored ones. (A first run
+      used `\w` inside a bracket expression, which extended `grep` does not
+      support, so it also matched `test_liquid_phase_model.py`; rerun with
+      `[:alnum:]_`.) **AST import audit:** every `.py` file and notebook code
+      cell, including lazy, `TYPE_CHECKING` and docstring/template import lines:
+      3,480 `PyOMES`/`models` imports in 180 files across 93 modules, each module
+      imported and each name resolved. 23 problems, **none involving `thermo`**:
+      16 in gitignored `scratch/` notebooks and synthetic strings in
+      `test_package_layering.py`, as in the reactions phase; the known
+      `tests/run_tests.py:105`, `test_simulation.py:2186` and
+      `batch_fermenter.ipynb` cell 10 (does not parse; logged); and four
+      docstring examples with pre-rename paths (`adm1/bsm2.py:24`,
+      `adm1/bsm2_direct.py:20` (logged), `hplc/column.py:48`, twice). This audit
+      reads docstring examples, which the reactions phase's did not, so the last
+      group is new: logged in `OPEN_WORK.md` as "Docstrings in `models/` and
+      `numerics/` still use pre-rename module paths", together with
+      `numerics/spatial.py:55` (a `fermenter.models...` cross-reference found by
+      the follow-up search). The first audit run missed `bsm2.py:24` (a bug in
+      the script's handling of multi-line template imports); fixed and rerun
+      before the numbers above. **Old paths:** `import PyOMES.thermo.<m>` raises
+      `ModuleNotFoundError` for all five old modules and for the five new module
+      names used without their folder (`davies`, `ideal`, `protocols`, `sit`,
+      `peng_robinson`); `from PyOMES.thermo import` `liquid_phase_model`,
+      `gas_eos`, `DifferentiableLiquidModel` and `water_kg_per_L` raise
+      `ImportError` (the last two are not exported, decisions 12-13).
+      **Notebooks:** the branch changes no `.ipynb`, `.toml`, `.yml` or `.json`
+      file (`git diff --name-only main..HEAD`: 17 `.py`, 4 `.md`), so none was
+      re-run._
 - [ ] 7. **Seam guard** (decision 14). Add `_thermo_layout_violations()` and two
       tests to `test_package_layering.py`: a synthetic self-check (crossings in
       every import form, allowed same-folder imports, files outside the rule's
