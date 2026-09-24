@@ -20,17 +20,6 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
-- **[THERMO_SUBFOLDER_STRUCTURE.md](THERMO_SUBFOLDER_STRUCTURE.md)** —
-  2026-09-24. Groups the 8 flat files in `PyOMES/thermo/` by phase: `liquid/`
-  (`protocols.py`, `ideal.py`, `davies.py`, `sit.py`, plus
-  `water_properties.py` and `factory.py`) and `gas/` (`protocols.py`,
-  `ideal.py`, `peng_robinson.py`), with `framework.py` and
-  `equilibrium_constants.py` staying at the top level. Splits
-  `liquid_phase_model.py` and `gas_eos.py` so each side has the same shape.
-  Neither group imports the other, and only three test files import a moved
-  path directly. No shims; package-root exports unchanged. Open questions:
-  whether to make `GasEOS` a `Protocol` and de-duplicate `_kg_per_L` in the
-  same phase. No branch, no checklist, no code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
@@ -158,6 +147,31 @@ that still describe open work are "Open phases" and the pending stages in
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
+
+- `thermo-subfolder-structure` (2026-09-24) — grouped the 8 flat files in
+  `PyOMES/thermo/` by phase: `liquid/` (`liquid_phase_model.py` split into
+  `protocols.py`, `ideal.py` and `davies.py`; `sit_liquid_model.py` renamed
+  `sit.py`; `water_properties.py`, `factory.py`) and `gas/` (`gas_eos.py` split
+  into `protocols.py`, `ideal.py` and `peng_robinson.py`), with `framework.py` and
+  `equilibrium_constants.py` staying at the top level. Seven checkpoints. The two
+  moves were pure refactors (definitions identical by AST, numeric fingerprints
+  bit-identical); there are no shims, so the old deep import paths stop working,
+  and package-root exports are unchanged. Two small changes rode along, each in
+  its own checkpoint: `GasEOS` is now a runtime-checkable `Protocol`, which
+  `PengRobinsonEOS` satisfies as its docstring always claimed; and the two private
+  `_kg_per_L` copies became one `water_kg_per_L` helper (bit-identical). A third
+  test in `tests/standalone/test_package_layering.py` keeps `liquid/` and `gas/`
+  from importing each other, `framework`, `equilibrium_constants` or either
+  package root. The docstring pass found statements that were false, not just
+  stale: SIT's `compute_gammas` is called by the Bisection engine, not NR, and
+  nothing reads `ThermoFramework.gas_eos` (it cited a `KineticGasLiquidLink`
+  default). The design note's audit needed correcting (line endings, line numbers
+  moved by the reactions phase, five copies of the mol/L → mol/kg conversion
+  rather than three). Logged in `OPEN_WORK.md`: SIT's two inline conversions lack
+  the bad-density fallback, and docstring examples in `models/` and `numerics/`
+  still use pre-rename module paths. Full suite green post-merge: 2104 passed, 0
+  failed. Tag `thermo-subfolder-structure-shipped`. See
+  [`../shipped/THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md`](../shipped/THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md).
 
 - `reactions-subfolder-structure` (2026-09-24) — grouped the 13 flat files in
   `PyOMES/reactions/` by the kind of reaction they serve: `kinetic/` (`reaction.py`

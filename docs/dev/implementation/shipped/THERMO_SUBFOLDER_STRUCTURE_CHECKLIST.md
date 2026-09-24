@@ -1,14 +1,17 @@
-
 # Phase Kickoff Checklist — thermo-subfolder-structure
+
+> **Status: Shipped 2026-09-24** — merged into `main` via `git merge --no-ff`
+> as commit `f8758b8`, tagged `thermo-subfolder-structure-shipped`. Full suite
+> green post-merge: 2104 passed, 0 failed. Remote and local feature branch both deleted.
 
 > Checklist for [`THERMO_SUBFOLDER_STRUCTURE.md`](THERMO_SUBFOLDER_STRUCTURE.md),
 > the source of truth for motivation, groups, target layout and decisions; do not
 > restate it here. Where this checklist and the note disagree, this checklist
 > wins: the "Re-verification" section below corrects the note from a fresh search.
-> See [`README.md`](README.md)'s "Branching and tagging convention". Modelled on
-> [`../shipped/REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md`](../shipped/REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md)
+> See [`README.md`](../upcoming/README.md)'s "Branching and tagging convention". Modelled on
+> [`../shipped/REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md`](REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md)
 > and
-> [`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md`](../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md).
+> [`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md`](CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER_CHECKLIST.md).
 
 **Working rules**
 
@@ -138,8 +141,10 @@
 
 - [x] Plan doc exists in `docs/dev/implementation/upcoming/`
       ([`THERMO_SUBFOLDER_STRUCTURE.md`](THERMO_SUBFOLDER_STRUCTURE.md))
-- [ ] Checkpoints tracked below, one commit each
-- [ ] **If work stalls:** add a status banner to the top of the plan doc at once
+- [x] Checkpoints tracked below, one commit each (`13e6139`, `97346d2`, `614dc53`,
+      `ca98358`, `56a1e43`, `d29c545`, `431b920`)
+- [x] **If work stalls:** add a status banner to the top of the plan doc at once
+      _Not needed: the phase ran checkpoint by checkpoint to shipping._
 
 ### Re-verification of the design note (2026-09-24, on `main` at `8c89048`)
 
@@ -677,18 +682,28 @@ uses. Line counts with `wc -l`; line endings by byte count and
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff thermo-subfolder-structure -m "Merge thermo-subfolder-structure: group thermo/ into liquid/ and gas/ subfolders"`
-- [ ] `git tag thermo-subfolder-structure-shipped` on the merge commit
-- [ ] `git push` and `git push --tags` (separate commands)
-- [ ] `git branch -d thermo-subfolder-structure` and
-      `git push origin --delete thermo-subfolder-structure`
-- [ ] Full suite on `main` after the merge
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`
+- [x] Full test suite green on the branch — **2104 passed** (checkpoint 7's number
+      above)
+- [x] `git checkout main`
+- [x] `git merge --no-ff thermo-subfolder-structure -m "Merge thermo-subfolder-structure: group thermo/ into liquid/ and gas/ subfolders"`
+      (merge commit `f8758b8`; its tree is identical to the branch tip `431b920`)
+- [x] `git tag thermo-subfolder-structure-shipped` on the merge commit (points at
+      `f8758b8`)
+- [x] `git push` and `git push --tags` (separate commands)
+- [x] `git branch -d thermo-subfolder-structure` and
+      `git push origin --delete thermo-subfolder-structure` (no local or
+      remote-tracking branch left)
+- [x] Full suite on `main` after the merge: **2104 passed, 0 failed, 166 warnings, 3m45s**
+- [x] Move the design note and this checklist to `docs/dev/implementation/shipped/`
       (plain filesystem move); add "Shipped" banners; repoint the moved docs' own
-      relative links
-- [ ] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
+      relative links (`README.md` now `../upcoming/README.md`; `../shipped/`
+      links became same-directory). The stray blank first line this checklist
+      picked up in checkpoint 5 was removed in the same edit.
+- [x] Update `upcoming/README.md`: remove the "Design discussions" entry, add a
       "Recently shipped" entry
-- [ ] Repoint any live link to the moved docs (search for
-      `THERMO_SUBFOLDER_STRUCTURE` across `docs/` and `OPEN_WORK.md`)
+- [x] Repoint any live link to the moved docs (search for
+      `THERMO_SUBFOLDER_STRUCTURE` across `docs/` and `OPEN_WORK.md`): the only
+      link was the "Design discussions" entry, replaced above. The four
+      plain-text mentions in `shipped/REACTIONS_SUBFOLDER_STRUCTURE_CHECKLIST.md`
+      are historical notes (and `shipped/` is not edited). Nothing in
+      `OPEN_WORK.md` links to the two docs.

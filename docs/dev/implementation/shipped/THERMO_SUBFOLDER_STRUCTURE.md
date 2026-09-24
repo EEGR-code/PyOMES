@@ -1,5 +1,12 @@
 # Thermo Subfolder Structure — Design Note
 
+> **Status: Shipped 2026-09-24** — implemented on branch
+> `thermo-subfolder-structure`, merged into `main` via `git merge --no-ff` as
+> commit `f8758b8`, tagged `thermo-subfolder-structure-shipped`. The checklist,
+> [`THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md`](THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md),
+> records the implementation and the settled open questions, and corrects parts of
+> this note's audit; where the two differ, the checklist wins.
+
 > Design discussion, 2026-09-24. No branch, no checklist, no code yet. Written
 > from a planning conversation that audited `PyOMES/thermo/` (8 flat `.py`
 > files, 1,459 lines) and asked whether the liquid-phase and gas-phase models
@@ -7,9 +14,9 @@
 > navigate. Direction approved by the repo owner the same day: **`liquid/` and
 > `gas/` subfolders, each with a `protocols.py`, an `ideal.py` and one file per
 > non-ideal model; `framework.py` and `equilibrium_constants.py` stay flat**.
-> Modelled on [`REACTIONS_SUBFOLDER_STRUCTURE.md`](../shipped/REACTIONS_SUBFOLDER_STRUCTURE.md)
+> Modelled on [`REACTIONS_SUBFOLDER_STRUCTURE.md`](REACTIONS_SUBFOLDER_STRUCTURE.md)
 > and the `chemical_equilibrium/engines/` reorganisation
-> ([`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`](../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md)).
+> ([`../shipped/CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md`](CHEMICAL_EQUILIBRIUM_ENGINES_SUBFOLDER.md)).
 
 ## Inventory (2026-09-24, on `main` at `f88f372`)
 
@@ -324,7 +331,7 @@ Rough; the checklist decides granularity. Full suite before and after each
 
 ## How to start one
 
-Per this folder's convention ([README.md](README.md#how-to-start-one)): resolve
+Per this folder's convention ([README.md](../upcoming/README.md#how-to-start-one)): resolve
 the proposed defaults and open questions, write
 `THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md`, and cut a branch off `main` named
 `thermo-subfolder-structure`. The change is file moves, two file splits and
