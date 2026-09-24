@@ -44,17 +44,17 @@ from .environment import ReactionEnvironment
 from .protocols import ReactionModel
 
 # Concrete reaction declarations (independent classes, no shared base)
-from .kinetic import KineticReaction
+from .kinetic.reaction import KineticReaction
 from .equilibrium import EquilibriumReaction
 from .phase_equilibria import HenryEquilibrium, RaoultEquilibrium, KspEquilibrium
 from .blackbox import BlackBoxReactionModel, FluxEntry, MassBalanceWarning, MassBalanceError
 
 # Container and helpers
 from .reaction_system import ReactionSystem
-from .builder import ReactionBuilder
+from .kinetic.builder import ReactionBuilder
 
 # Growth rate laws
-from .rate_laws import (
+from .kinetic.rate_laws import (
     GrowthKinetics,
     Monod,
     Contois,

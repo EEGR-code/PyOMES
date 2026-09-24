@@ -282,7 +282,7 @@ endings by byte count.
 
 ### Checkpoints
 
-- [ ] 1. **Kinetic group into `kinetic/`.** Move `kinetic.py` to
+- [x] 1. **Kinetic group into `kinetic/`.** Move `kinetic.py` to
       `kinetic/reaction.py`, `rate_laws.py` to `kinetic/rate_laws.py`,
       `builder.py` to `kinetic/builder.py`; add a docstring-only
       `kinetic/__init__.py`. Imports (decision 9): `reaction.py` and `builder.py`
@@ -306,6 +306,37 @@ endings by byte count.
       `PyOMES.templates` and `models.vlmodels.adm1.bsm2` in several orders;
       the aerobic notebook re-run from the scratchpad; no bare LF in changed files;
       full suite **2098 passed**.
+      _Notes: done 2026-09-24. Suite before: **2098 passed** (2m07s); after:
+      **2098 passed**, 0 failed, 166 warnings, 2m07s. The three files were moved
+      with a plain filesystem move; `kinetic/rate_laws.py` is byte-identical to the
+      old `rate_laws.py`, and `kinetic/reaction.py` and `kinetic/builder.py` differ
+      from the originals only in their import lines (4 and 5 lines; the ASTs with
+      imports removed are identical). `kinetic/__init__.py` is docstring-only
+      (checkpoint 4 reviews its wording). Edited lines elsewhere, all imports:
+      `reactions/__init__.py` (3), `reaction_system.py:50`,
+      `templates/stirred_tank/__init__.py:30` (deep), `adm1/base.py:43` and
+      `adm1/bsm2.py:46` (short form; their `equilibrium` and `stoichiometry` lines
+      wait for checkpoint 2), `test_rate_laws.py:27,325` (short form), and cell 17
+      of `aerobic_fermentation_stoichiometry.ipynb`, where the adjacent
+      `stoichiometry` and `kinetic` imports became one
+      `from PyOMES.reactions import KineticReaction, StoichiometryEntry` line
+      (decision 13); only that cell's `source` changed. Edits were scripted with
+      exact-count byte replacements: no bare LF in any changed file, trailing
+      bytes unchanged. Old paths: `from PyOMES.reactions.kinetic import
+      KineticReaction` raises `ImportError`; `PyOMES.reactions.rate_laws` and
+      `PyOMES.reactions.builder` raise `ModuleNotFoundError`. Nine
+      fresh-interpreter import orders pass, each asserting that the root,
+      subpackage and `templates.stirred_tank` names are the same objects.
+      **Deviation (notebook re-run):** the tool sandbox caps every process at
+      about 15 % of one CPU core (a Windows job object; a bare busy loop gets the
+      same share), and the full run had not finished after about 30 minutes, so
+      the notebook was run without its simulation: code cells before cell 18,
+      then one `build_sim(...)` call for the first composition, which constructs
+      the `KineticReaction`, the `ReactionSystem` and the stirred-tank
+      `Simulation` without calling `sim.run` (10 cells plus the call, 2.4 s, from
+      the scratchpad; no files left in the repo). Cells 18-20 (the 60 h
+      simulation and its two report/plot cells) were not run. CI does not
+      execute notebooks, so it does not cover this either._
 - [ ] 2. **Equilibrium group into `equilibrium/`, no split yet.** Move
       `equilibrium.py` whole to `equilibrium/reaction.py`, `phase_equilibria.py` to
       `equilibrium/interphase.py`, `plots.py` to `equilibrium/plots.py`; add a

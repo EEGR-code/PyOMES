@@ -24,7 +24,7 @@ import random
 
 import pytest
 
-from PyOMES.reactions.rate_laws import (
+from PyOMES.reactions import (
     Monod, Contois, Andrews, ContoisAndrews, Tessier, Moser, Blackman,
     DualSubstrateMonod,
 )
@@ -322,7 +322,7 @@ class TestMonodAerobicGrowthFingerprint:
         return out
 
     def _current_rate_fn(self, Ko2_gL):
-        from PyOMES.reactions.builder import ReactionBuilder
+        from PyOMES.reactions import ReactionBuilder
         from PyOMES.chemistry.species import Species
         sub = Species(id="Glucose", atoms={"C": 6, "H": 12, "O": 6}, charge=0, MW=self.MW_S)
         bio = Species(id="Ecoli", atoms={"C": 1, "H": 1.8, "O": 0.5, "N": 0.2}, charge=0, MW=self.MW_X)

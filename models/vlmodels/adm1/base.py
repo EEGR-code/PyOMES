@@ -40,7 +40,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PyOMES.reactions.kinetic import KineticReaction
+from PyOMES.reactions import KineticReaction
 from PyOMES.reactions.equilibrium import EquilibriumReaction
 from PyOMES.reactions.reaction_system import ReactionSystem
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
