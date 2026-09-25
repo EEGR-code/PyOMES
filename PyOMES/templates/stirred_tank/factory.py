@@ -17,7 +17,6 @@ Example
 ...     vessel=VesselConfig(V_total_L=2000, T_K=305.15),
 ...     gas_feed=GasFeedConfig(vvm_min=1.0),
 ...     transfer=TransferConfig.default_kinetic(kLa_O2=150.0),
-...     chemistry=ChemistryConfig(speciation_level=1),
 ...     organism=OrganismConfig("Yeast"),
 ...     substrates=[SubstrateConfig("AceticAcid", yield_gX_gS=0.36)],
 ... )

@@ -100,7 +100,7 @@
       each notebook's diff touches only the intended `source` lines (plus the
       re-run notebook's outputs); fingerprint identical; `use_activity` absent
       from `docs/tutorials/` and `tests/`.
-- [ ] **4. Docs and close-out.** `README.md` and `docs/architecture.md`
+- [x] **4. Docs and close-out.** `README.md` and `docs/architecture.md`
       (parameter description, checked against the code); the three usage
       examples that pass a `speciation_level` argument `chemistry()` and
       `ChemistryConfig` no longer have (`templates/stirred_tank/builder.py:17`,
@@ -189,6 +189,32 @@ verified no saved output changed. Code cells: the pair became `activity_model=`
   saved outputs and ran without error to cell 15. No notebook was regenerated.
 - Fingerprint identical (`c649ad00…a38876ac763`); suite 2130 passed; no
   `use_activity` left in `PyOMES/`, `models/`, `tests/` or `docs/tutorials/`.
+
+**Checkpoint 4 (2026-09-25).** `README.md` and `docs/architecture.md` describe the
+single `activity_model` argument. `OPEN_WORK.md`: the entry
+"`chemical_equilibrium`'s `use_activity`/`activity_model` split could be one
+parameter" is deleted, and the "package root exports only the Bisection engine"
+entry no longer points at it. Repo-wide sweep: no `use_activity` or
+`speciation_level` outside `shipped/`, `ideas/` and this phase's own docs (the
+design note, this checklist and its `upcoming/README.md` entry, which move to
+`shipped/` or are replaced at shipping). Relative links resolve; line endings
+unchanged.
+
+- **The three `speciation_level` examples** were wrong in more ways than the
+  argument: this tank declares no equilibria, so it has no speciation engine,
+  its pH is `nan`, and `chemistry(...)` has no effect on it. The `.chemistry(...)`
+  / `chemistry=` line is removed from all three rather than rewritten.
+  `builder.py`'s example also ended with `result.pH[-1]`, which raises `KeyError`
+  (`pH` is keyed by CV); it now ends with `result.liquid_mol["main"]["Yeast"][-1]`.
+  The tutorials README example used `PressureReliefVent` without importing it;
+  the import is added. All three examples run (with `n_steps` reduced for speed).
+- **Deviation:** the checklist expected checkpoint 4's diff to be `.md` only;
+  `builder.py` and `factory.py` also change, docstrings only (AST identical with
+  docstrings removed).
+- **Not fixed, noted:** the builder example adds no inoculum, so its biomass stays
+  0; the tutorials README example attaches a `PHController` to a tank that
+  computes no pH. Both predate this phase and are example-quality issues, not
+  wrong API.
 
 ## Shipping
 

@@ -41,25 +41,6 @@ default for its engine, with an explicit `ReactionSystem` setting taking
 precedence, and to test both. That changes results for any CV whose database is
 non-ideal and whose reaction system sets nothing, so it is its own change.
 
-## `chemical_equilibrium`'s `use_activity`/`activity_model` split could be one parameter
-
-Surfaced 2026-09-18 while checking
-`StirredTankBuilder.chemistry()`'s `use_activity: bool` +
-`activity_model: str = "davies"` signature. The split is threaded from
-`PyOMES.thermo.make_activity_model(use_activity, activity_model)` (it lived in
-`chemical_equilibrium/activity_models.py` until
-`chemical-equilibrium-engines-subfolder` moved it) through
-`engines/bisection/engine.py` and `engines/nr/engine.py` (the
-`chemical_equilibrium/factory.py` that used to be in this list was deleted in
-that phase) — `activity_model` is only meaningful when
-`use_activity=True`, and `"ideal"` is not itself a valid value for
-`activity_model` (it's only reachable via `use_activity=False`).
-Consider collapsing this into a single `activity_model: str`
-parameter that accepts `"ideal"` alongside `"davies"`/`"sit"`,
-removing the separate boolean gate. Touches the builder, the three
-engines above, and their callers — worth scoping as its own small
-phase rather than a drive-by fix.
-
 ## Regenerating tutorial notebooks can wipe baked outputs
 
 Found 2026-09-16, still applicable while the generator scripts exist
@@ -522,8 +503,7 @@ the newer NR engine or the PHREEQC engine, which need deep imports
 (`PyOMES.chemical_equilibrium.engines.nr.engine`, `...engines.phreeqc`). The engines
 were not exported from the root before the move either, so re-exporting them would
 be new API. Whether the root should export all three, none, or a small engine
-selector is an API decision, and it interacts with "`use_activity` /
-`activity_model` split could be one parameter" above.
+selector is an API decision.
 
 ## A species-based replacement for the deleted recipe layer
 

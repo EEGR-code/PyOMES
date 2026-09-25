@@ -204,9 +204,11 @@ It also owns the lazy speciation engine via the `engine` property.
 On first access the engine selected by `ReactionSystem(solver=...)`
 is built with `from_reactions(...)`: the Bisection engine from the
 single-phase and gas-liquid constraints, the NR engine from those
-plus the solid-liquid ones. Activity settings are pinned beforehand
-by `configure_engine(use_activity=, activity_model=)`; the solver
-choice itself is fixed at construction. Models and tests needing a
+plus the solid-liquid ones. The liquid activity model is set
+beforehand by `configure_engine(activity_model=...)`: a name
+(`"ideal"`, the default, `"davies"` or `"sit"`) or a model object,
+resolved at that call. The solver choice itself is fixed at
+construction. Models and tests needing a
 pre-built engine inject it via `attach_engine(engine)`.
 Monitors attach on the same surface: `attach_monitor(monitor)` for
 the `AccuracyMonitor` (propagated to the engine on build) and

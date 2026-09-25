@@ -14,12 +14,11 @@ Example
 ...     .vessel(V_total_L=2000, T_K=305.15)
 ...     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
 ...     .transfer_kinetic(kLa_O2=150.0)
-...     .chemistry(speciation_level=1)
 ...     .organism("Yeast")
 ...     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
 ...     .build_simulation_and_run(tau_h=5.0, n_steps=1000)
 ... )
->>> result.pH[-1]
+>>> result.liquid_mol["main"]["Yeast"][-1]
 """
 
 from __future__ import annotations
