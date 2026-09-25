@@ -1,17 +1,16 @@
 # Architecture: CV-Centric PyOMES Simulation
 
 This document describes the internal architecture of the PyOMES simulation
-module as of v0.12.5.  (The core package, previously distributed as
-`fermenter`, was renamed to `PyOMES` in this version; the `vlmodels`
-package of concrete units kept its name.)
+module as of v0.12.5.  Concrete models (ADM1/BSM2, the HPLC column)
+live in the separate `vlmodels` package under `models/`.
 
 ## Overview
 
 The simulation is structured around a **ControlVolume** (CV) that owns all
 thermodynamic state (mole inventories, equilibrium, derived properties). The
-fermenter orchestrator is a thin loop that applies external fluxes to the CV,
-calls `cv.advance()` each timestep, and handles controller actions (pressure
-relief, pH dosing, DO control).
+`Simulation` orchestrator owns the time loop: each step it applies open-loop
+profiles and inter-CV links, advances every CV, then applies the actions its
+controllers return (pressure relief, pH dosing, DO control).
 
 This design was chosen to support multi-zone reactor models, where multiple CVs
 represent different zones within a single unit operation (e.g. a sparger zone
@@ -27,8 +26,13 @@ A CV holds:
 - **Phases** — `GasPhase` and `LiquidPhase` objects containing mole
   inventories in a single canonical `n_mol` dict (totals + derived
   species both live here, PHREEQC-style).
-- **Internal interfaces** — `KineticGasLiquidLink` for kLa-based
-  gas-liquid partitioning.
+- **Internal interfaces** — a `KineticGasLiquidLink` for gas-liquid
+  transfer, kinetic (kLa-limited) or at equilibrium per species. It is
+  built from the CV's `transfer_models=` argument (one
+  `KineticTransferModel` or `EquilibriumTransferModel` per species).
+- **Boundaries** — exchanges with the outside: gas and liquid feeds,
+  liquid drains, headspace overpressure outlets, and gas-permeable
+  membranes (`cv.boundaries`).
 - **Reaction system** (optional) — one `ReactionSystem` holding all
   reaction declarations on the CV, pre-bucketed by kind.
 - **Property calculators** (optional) — list of `PropertyCalculator`
@@ -38,63 +42,67 @@ A CV holds:
   attached on the reaction system surface (the CV auto-attaches a
   default `ConservationMonitor` in `__init__`).
 
-The `advance(dt_h, t_h, external_source_terms=None, solver=None)`
-method sequences:
+`advance(dt_h, t_h, external_source_terms=None, solver=None)` hands
+the step to a `StepSolver` (see "Step solvers" below). With
+`solver=None` it uses `SequentialAdvanceSolver`, which sequences:
 
-1. Property calculators (viscosity, density, …) — write to
-   `phase.properties`.
-2. Speciation solve via `reaction_system.engine.solve(phases=...)` —
-   writes derived molecular species (`CO2aq`, `NH3`, `HAc`, `H+`, …)
+1. Speciation solve via `reaction_system.engine.solve(phases=...)` —
+   writes derived molecular species (`CO2aq`, `HCO3-`, `NH3`, `H+`, …)
    back to `phase.n_mol` via the privileged
    `phase._refresh_derived(values)` hook.
+2. Property calculators (viscosity, density, …) — write to
+   `phase.properties`, after speciation so they can read derived
+   species.
 3. Apply `external_source_terms` (orchestrator-supplied fluxes).
-4. Integrate kinetic + black-box reactions (post-feed state; reads
-   pre-step properties via `env.prop(key)`).
-5. Internal kinetic transfer (`KineticGasLiquidLink`, kLa, Henry
-   constants corrected via molecular fractions resolved from
-   `phase.n_mol` against the system's `cross_phase_equilibria`).
-6. `ConservationMonitor.check_step(phases)` — element + charge drift
+4. Apply boundary fluxes (`cv.boundaries`).
+5. Integrate kinetic + black-box reactions (post-feed state; reads
+   properties via `env.prop(key)`).
+6. Internal transfer (`KineticGasLiquidLink`, with Henry constants
+   corrected via molecular fractions resolved from `phase.n_mol`
+   against the system's `cross_phase_equilibria`).
+7. `ConservationMonitor.check_step(phases)` — element + charge drift
    guard.
 
 The CV returns an `AdvanceResult` containing transfer diagnostics
-and reaction source terms. `chem_env` is gone; pH is read from
-`liquid.n_mol["H+"]` and ionic strength is recomputable from the
-canonical `n_mol` directly.
+and reaction source terms. pH is read from `liquid.n_mol["H+"]` and
+ionic strength is recomputable from the canonical `n_mol` directly.
 
 ### Gas-liquid CV pattern
 
-After Phase 7 (`docs/dev/implementation/shipped/PHASE7_CHECKLIST.md`),
-`GasLiquidVolume` is deleted.  A fermenter is now a plain
-`ControlVolume` whose `phases` dict is
+A stirred tank is a plain `ControlVolume` whose `phases` dict is
 `{"gas": GasPhase, "liquid": LiquidPhase}` and whose
 `internal_interfaces` list contains a `KineticGasLiquidLink` acting
 as a `PhaseInterface`.  Callers construct one via
-`StirredTankFactory.create_volume(...)` (or `StirredTankBuilder().build()`).
+`StirredTankBuilder().build()` (or `StirredTankFactory.create_volume(...)`).
 
-Both `SimultaneousEulerSolver` and `SimultaneousAdaptiveSolver` operate directly on
-a `ControlVolume` and return the unified `AdvanceResult`, which
-carries `transfer_record` and `boundary_records`. Boundaries live
-on `cv.boundaries`. Controllers that need the gas-liquid link reach
-into `cv.internal_interfaces` directly with an `isinstance` check
-against `KineticGasLiquidLink`. pH is read inline from
-`liquid.n_mol["H+"]` (the speciation engine refreshes it at the
-top of every `advance` step). The `AdvanceResult.properties`
-channel is gone — derived species are first-class in `n_mol` and
-scalar properties live on `phase.properties`.
+Controllers never touch the link directly: they read a snapshot and
+change link parameters such as kLa through `params_changed` paths
+(see "Control System" below). Derived species are first-class in
+`n_mol`; scalar properties live on `phase.properties`.
 
-See `CV_UPDATE.md`, `SOLVER_PROMOTION.md`,
-`SIMULATION_CLASS.md` (shipped 2026-05-27; retired `MultiCVSystem`
-in favour of the unified `Simulation` orchestrator), and
-`CONTAINER_LAYERING.md` for the broader layering question of
-whether the fermenter pattern and `HPLCColumn` should be
-unbundled into orthogonal topology / unit / integration axes.
+### Step solvers (`PyOMES/core/solvers.py`)
+
+A `StepSolver` advances one CV by one step and returns an
+`AdvanceResult`, which carries `transfer_record` and
+`boundary_records`. Three are provided:
+
+- `SequentialAdvanceSolver` (the default) — runs the sub-steps one
+  after another, in the order listed above.
+- `SimultaneousEulerSolver` — computes every sub-system's deltas
+  from one frozen snapshot of the state and applies them together,
+  so the result does not depend on sub-step order.
+- `SimultaneousAdaptiveSolver` — integrates the same combined
+  right-hand side with `scipy.integrate.solve_ivp`, solving
+  speciation algebraically at every internal step.
+
+Only `SequentialAdvanceSolver` runs property calculators; under the
+two simultaneous solvers `phase.properties` is not refreshed.
 
 ### Phases (`PyOMES/core/phases.py`)
 
 `GasPhase` and `LiquidPhase` hold mole inventories in a single
-canonical `n_mol` dict and volume/temperature. State-unification
-collapsed totals + derived species into one store (PHREEQC-style):
-the speciation engine writes derived molecular species (`H+`,
+canonical `n_mol` dict and volume/temperature. Totals and derived
+species share that one store (PHREEQC-style): the speciation engine writes derived molecular species (`H+`,
 `OH-`, `CO2aq`, `HCO3-`, `NH3`, `NH4+`, …) back to `n_mol` via the
 privileged `_refresh_derived(values)` hook. Strong ions (named
 species like `Na+`/`Cl-`, plus unnamed lumps `S_cat`/`S_an` with
@@ -108,9 +116,10 @@ computed from the ideal gas law; liquid-phase concentrations
 `PropertyCalculator` instances and read by rate laws via
 `env.prop(key)`.
 
-Species without a Henry constant in the equilibrium interface
-(e.g. biomass, substrates) are stored in the liquid phase but are
-not touched by the equilibrium solver. They participate in
+Species with no gas-liquid transfer model and no declared
+equilibrium (e.g. biomass, substrates) are stored in the liquid
+phase but are not touched by the speciation engine or the
+gas-liquid link. They participate in
 inter-zone transport via advective links.
 
 ### Property Calculators (`PyOMES/core/property_calculator.py`)
@@ -122,46 +131,58 @@ A `PropertyCalculator` is a narrow protocol with a `key: str` and
 `env.prop("viscosity")`.
 
 Speciation is *not* a `PropertyCalculator`. Acid-base equilibria are
-state-completion handled by the `BisectionChemicalEquilibriumEngine` attached to
-`cv.reaction_system`; the engine writes derived molecular species
-straight to `phase.n_mol`, not to `phase.properties`.
+state-completion handled by the speciation engine of
+`cv.reaction_system` (see "Equilibrium pathway" below); the engine
+writes derived molecular species straight to `phase.n_mol`, not to
+`phase.properties`.
 
 Property calculators are registered via
-`cv.property_calculators=[...]` and evaluated automatically at the
-top of every `advance()` step (before the speciation solve and
-reaction integration).
+`cv.property_calculators=[...]` and evaluated by
+`SequentialAdvanceSolver` on every step, after the speciation solve
+and before reaction integration.
 
 ### Equilibrium pathway
 
-**`BisectionChemicalEquilibriumEngine` + `KineticGasLiquidLink`** is the
-canonical pathway used by every CV-based model (ADM1, BSM2, any
-`Simulation`-orchestrated CV). Acid-base equilibria are declared
-as `EquilibriumReaction` objects on the `ReactionSystem` and
-solved by the engine in step 1 of `cv.advance()`; the engine
-writes derived molecular species back to `phase.n_mol` via the
-privileged `_refresh_derived(values)` hook. Gas-liquid
-partitioning is kLa-driven through `KineticGasLiquidLink`, with
-alpha-correction read inline from `phase.n_mol` against the
-reaction system's `cross_phase_equilibria` bucket.
+Equilibria are declared on the `ReactionSystem` (as
+`EquilibriumReaction`, `HenryEquilibrium`, `KspEquilibrium`, …) and
+solved by the system's speciation engine at the start of each step;
+the engine writes derived molecular species back to `phase.n_mol`
+via the privileged `_refresh_derived(values)` hook. The engine is
+chosen by `ReactionSystem(solver=...)`:
+
+- `"charge_balance"` (default) — `BisectionChemicalEquilibriumEngine`,
+  which solves the charge balance for pH with a bracketed root-finder.
+  It has no precipitation support.
+  ADM1, BSM2 and `StirredTankBuilder` models use it.
+- `"newton_raphson"` — `NRChemicalEquilibriumEngine`, a tableau
+  Newton-Raphson solver that also handles gas-liquid rows folded
+  into the tableau and mineral precipitation.
+
+Gas-liquid transfer runs separately, through `KineticGasLiquidLink`:
+kLa-limited or instantaneous per species, with the Henry constant
+alpha-corrected inline from `phase.n_mol` against the reaction
+system's `cross_phase_equilibria` bucket.
 
 ## Reaction Framework (`PyOMES/reactions/`)
 
-### Three independent declaration classes
+### Three kinds of declaration
 
-A reaction is declared as one of three independent classes — no
-shared base, shared validation lives as free functions in
-`_shared.py`:
+A reaction is declared as one of three kinds — no shared base
+class; shared validation lives as free functions in `_shared.py`:
 
 - `KineticReaction` — stoichiometric template + callable rate law.
   Stoichiometry is validated at construction for elemental balance
-  (default `("C", "H", "O")`); `StoichiometryError` carries a
-  per-species breakdown.
-- `EquilibriumReaction` — stoichiometric template + `log_K` (and
-  optional Van 't Hoff parameters `dH_J_per_mol` / `T_ref_K`).
-  Routed to the `BisectionChemicalEquilibriumEngine` as an algebraic constraint
-  (single-phase) or to the `KineticGasLiquidLink` as a partition
-  declaration (cross-phase, `log_K` optional). Has no
-  `compute_rates`.
+  (by default over every element that appears in it);
+  `StoichiometryError` carries a per-species breakdown.
+- Equilibrium constraints — `EquilibriumReaction` (stoichiometric
+  template + `log_K`, with optional Van 't Hoff parameters
+  `dH_J_per_mol` / `T_ref_K`) and the specialised `HenryEquilibrium`,
+  `RaoultEquilibrium` and `KspEquilibrium`, all conforming to the
+  `EquilibriumConstraint` protocol. Each is classified by the phases
+  it spans: single-phase constraints go to the speciation engine,
+  gas-liquid ones to the `KineticGasLiquidLink` as partition
+  declarations, and solid-liquid ones to the precipitation loop of
+  the NR engine. None has `compute_rates`.
 - `BlackBoxReactionModel` — adapter for opaque external simulators
   (FBA, genome-scale, proprietary). Stoichiometry is not
   inspectable, so elemental balance is checked at runtime against
@@ -172,17 +193,21 @@ shared base, shared validation lives as free functions in
 
 `ReactionSystem` is the **single attach point** for every reaction
 on a CV (`cv.reaction_system`). At construction it pre-buckets its
-input into `_kinetic_reactions`, `_single_phase_equilibria`,
-`_cross_phase_equilibria`, and `_blackbox_models` by `isinstance` —
-each consumer pulls from its own bucket, and mixed-kind systems
-are always safe to integrate (equilibria are simply not in the
-kinetic iteration path).
+input into `_kinetic_reactions`, `_blackbox_models` (by
+`isinstance`), and `_single_phase_equilibria`,
+`_cross_phase_equilibria`, `_precipitation_equilibria` (by
+`classify_equilibrium_constraint`) — each consumer pulls from its
+own bucket, and mixed-kind systems are always safe to integrate
+(equilibria are simply not in the kinetic iteration path).
 
-It also owns the lazy speciation engine via the `engine` property:
-on first access, `BisectionChemicalEquilibriumEngine.from_reactions(...)` is built
-from the bucketed equilibria with the settings pinned by
-`configure_engine(use_activity=, activity_model=, level=)`. Tests
-needing a pre-built engine inject it via `attach_engine(engine)`.
+It also owns the lazy speciation engine via the `engine` property.
+On first access the engine selected by `ReactionSystem(solver=...)`
+is built with `from_reactions(...)`: the Bisection engine from the
+single-phase and gas-liquid constraints, the NR engine from those
+plus the solid-liquid ones. Activity settings are pinned beforehand
+by `configure_engine(use_activity=, activity_model=)`; the solver
+choice itself is fixed at construction. Models and tests needing a
+pre-built engine inject it via `attach_engine(engine)`.
 Monitors attach on the same surface: `attach_monitor(monitor)` for
 the `AccuracyMonitor` (propagated to the engine on build) and
 `attach_conservation_monitor(monitor)` for the `ConservationMonitor`.
@@ -207,15 +232,19 @@ a rate producer.
 ### Simulation
 
 `Simulation` is the single orchestration class for all CV-based
-models (shipped in the `simulation-class` phase, 2026-05-27). It
-holds a named dict of ControlVolumes, an optional list of inter-CV
-`CVLink` objects, controllers, profiles, a step solver (or per-CV
-dict), and a recorder. The constructor wires every CV (and its
-nested phases, links, lockable lists) to a shared `RunContext`
-that the lifecycle gate consults during `.run()`.
+models. It holds a named dict of ControlVolumes, an optional list
+of inter-CV `CVLink` objects, controllers, profiles, a step solver
+(or per-CV dict), and a recorder. The constructor wires every CV
+(and its nested phases, links, lockable lists) to a shared
+`RunContext` that the lifecycle gate consults during `.run()`.
+`save_checkpoint` / `load_checkpoint` write and restore a run's
+full state.
 
 `Simulation.run(tau_h, n_steps)` is the user-facing entry point.
-The per-step body (`_step`) is structured as:
+If a `system_solver=` is given (`PyOMES/core/system_solver.py`:
+explicit Euler, Strang splitting, multirate, implicit transport, or
+a monolithic ODE solve), it advances the whole multi-CV system each
+step. Otherwise the default per-step body is:
 
 1. **Profiles** (open-loop time-varying mutators) fire *before*
    integration so the advance sees updated state. Each profile's
@@ -224,26 +253,23 @@ The per-step body (`_step`) is structured as:
    (source loses, sink gains), yielding one `LinkFlowRecord` per
    link.
 3. **Each CV advances** via `cv.advance(dt_h, t_h, solver=...)`
-   with its dispatched solver. The CV refreshes property
-   calculators, runs the speciation solve into `phase.n_mol`,
-   applies source terms, integrates kinetic reactions one Euler
-   sub-step, then runs internal kinetic transfer.
+   with its dispatched step solver (by default the sequential
+   body listed under ControlVolume: speciation, property
+   calculators, source terms and boundary fluxes, reactions,
+   internal transfer).
 4. **A `SimulationSnapshot`** is built from the post-advance
    state.
 5. **Controllers** (respecting sample-period gating; zero-order
    hold between samples) consume the snapshot and return a
    `ControlAction` describing the mutation they want applied.
 6. **The orchestrator applies each action**: `flux_applied` via
-   `cv.apply_external_flux`; `params_changed` via the Pattern B
-   semantic-path dispatch to unchecked setters
-   (`link._set_kLa_unchecked`, `GasFeed` attribute writes, etc.).
+   `cv.apply_external_flux`; each `params_changed` key (a path
+   string such as `"internal_interfaces[KineticGasLiquidLink].kLa.O2"`,
+   a parsed `ParamPath`, or a class-level descriptor handle such as
+   `KineticGasLiquidLink.kLa["O2"]`) is walked from the CV and the
+   value written through the target's unchecked setter.
 7. The recorder receives per-step records and finalises into a
    `BatchResult` (per-CV nested arrays).
-
-The legacy `_calc_ODE_with_headspace()` method on the
-`CUFermentationSpeciation` BioSTEAM wrapper still exists for
-backward compatibility; it is **out of scope** for the new
-orchestrator and follows its own time-loop pattern.
 
 ### Lifecycle gating (RunContext)
 
@@ -258,12 +284,15 @@ one context and consults `self._context.is_running` from a
 `raise_if_running` guard before mutating.
 
 For controllers and profiles that need to mutate state during a
-run (the legitimate case), the framework provides
-**Pattern B unchecked siblings** to every gated mutator
-(e.g. `_set_kLa_unchecked`, `_set_T_K_unchecked`,
-`_set_reaction_system_unchecked`). User code calls the public
-gated method; the orchestrator's action-apply path uses the
-unchecked siblings.
+run (the legitimate case), every gated mutator has an **unchecked
+sibling**. Most gated attributes (phase `T_K`, the link's `kLa`,
+a gas feed's composition) are declared with the `MutableScalar` /
+`MutableDict` descriptors in `PyOMES/control/descriptors.py`, which
+supply the gate and the unchecked write in one declaration; the rest
+have explicit `_set_*_unchecked` methods (e.g.
+`_set_reaction_system_unchecked`, `Simulation._set_controllers_unchecked`).
+User code goes through the gated public attribute; the orchestrator's
+action-apply path uses the unchecked write.
 
 ### Links (`links.py`)
 
@@ -282,13 +311,13 @@ exist in the source within one timestep.
 ```python
 from PyOMES.core import (
     ControlVolume, GasPhase, LiquidPhase,
-    Simulation, AdvectiveLink,
+    Simulation, AdvectiveLink, KineticTransferModel,
 )
 
 # Sparger zone: small, high kLa, has the gas phase
 cv_sparger = ControlVolume(
     phases={"gas": GasPhase(...), "liquid": LiquidPhase(...)},
-    internal_interfaces=[link_sparger],
+    transfer_models={"O2": KineticTransferModel(o2_henry, k_transfer=150.0)},
     reaction_system=my_reaction_system,
 )
 
@@ -312,7 +341,7 @@ result = sim.run(tau_h=24.0, n_steps=2400)
 
 ## Control System (`PyOMES/control/`)
 
-Controllers in the new framework consume a typed `CVSnapshot`
+Controllers consume a typed `CVSnapshot`
 (single-CV) or `SimulationSnapshot` (multi-CV) and return a
 structured `ControlAction` from a single
 `compute(state, dt_h) -> ControlAction` method. Internal state
@@ -320,7 +349,7 @@ structured `ControlAction` from a single
 instance.
 
 1. `Simulation.run` calls `ctrl.reset()` at run-entry on every
-   controller (decision 10: always destructive).
+   controller, so a re-run always starts from fresh controller state.
 2. Per step (post-advance), the orchestrator builds the snapshot,
    filters by sample-period (zero-order hold between samples),
    and invokes `ctrl.compute(snapshot, dt_h)`.
@@ -328,21 +357,16 @@ instance.
    (`{phase: {species: mol/h}}`), `params_changed`
    (`{semantic_path: value}`), `vented_mol`, and `dosed_mol`.
 4. The orchestrator applies the action: `flux_applied` via
-   `cv.apply_external_flux`; `params_changed` via the C9
-   semantic-path resolver to the Pattern B unchecked setters.
+   `cv.apply_external_flux`; `params_changed` via the path walker
+   described under Simulation, step 6.
 
-CV-native concrete controllers ship in `PyOMES/control/cv_loops.py`:
+Concrete controllers ship in `PyOMES/control/cv_loops.py`:
 `PHController`, `DOAgitationController` (+`DOController` alias),
 `DOCascadeController`, `InstantPressureReliefController`,
 `SmoothPressureReliefController`, `PressureReliefController`.
 Profiles (open-loop time-varying mutators) ship in
 `PyOMES/control/cv_profiles.py`: `TemperatureRamp`, `VVMSchedule`,
 `SetpointTrajectory`.
-
-The legacy `PyOMES/control/system.py:ControlSystem` and
-`PyOMES/control/loops.py` (FermenterState-based controllers) remain
-alive for the still-out-of-scope `CUFermentationSpeciation`
-BioSTEAM wrapper; their deletion is a follow-up phase.
 
 ## Directory layout
 
@@ -352,22 +376,31 @@ PyOMES/
   units.py                       # Shared constants and unit conversions
   config.py                      # PyOMES.config — WarningConfig, env-var presets
   compounds.py                   # ChemicalRegistry, Chemical — standalone compound database
-  chemistry/                     # Compound registry, recipes, Species declarations
-    compounds.py, recipe.py, registry.py, species.py, species_check.py,
-    common_species.py, types.py, chem_recipe.py
+  chemistry/                     # species.py (Species), common_species.py (inorganic aqueous species),
+                                 # species_check.py (cross-reaction consistency), partition.py
+                                 # (phase-partition protocols, ideal-gas VLE model)
+  databases/                     # ChemistryDatabase (species + reactions + ThermoFramework bundle) and
+                                 # stock databases: aqueous, anaerobic digestion, basic bioprocess
   core/                          # Framework core: phases, CV, orchestration
     phases.py                    # GasPhase, LiquidPhase, SolidPhase
     interfaces.py                # PhaseInterface, TransferDiagnostics, AdvanceResult
     control_volume.py            # ControlVolume.advance(dt_h, t_h, …)
-    gas_liquid_link.py           # KineticGasLiquidLink (kLa + alpha)
-    gl_equilibrium.py            # HenryEquilibriumInterface — legacy (CUFermenter island)
+    gas_liquid_link.py           # KineticGasLiquidLink (kinetic or equilibrium transfer + alpha)
+    transfer_models.py           # KineticTransferModel, EquilibriumTransferModel (per-species transfer)
     property_calculator.py       # PropertyCalculator protocol
-    solvers.py                   # SimultaneousEulerSolver, SimultaneousAdaptiveSolver, StepSolver
+    solvers.py                   # StepSolver protocol; SequentialAdvanceSolver (default),
+                                 # SimultaneousEulerSolver, SimultaneousAdaptiveSolver
+    clamping.py                  # Non-negativity clamping for discrete-step solvers
+    state_vector.py              # State-vector packing for ODE-style solvers
+    system_solver.py             # SystemSolver protocol + multi-CV integrators (splitting, multirate, …)
+    system_env.py                # SystemEnv — read-only system state view for controllers
     links.py                     # CVLink, AdvectiveLink, DiffusiveLink, LinkFlowRecord
-    boundaries.py                # GasFeed, Vent, MembraneGasBoundary, LiquidFeed, …
-    simulation.py                # Simulation orchestrator + run loop + RunContext
+    boundaries.py                # External boundaries: gas/liquid feeds, drains, overpressure outlets,
+                                 # membranes
+    simulation.py                # Simulation orchestrator: run loop, action dispatch, checkpoints
     snapshot.py                  # CVSnapshot, SimulationSnapshot + builders
-    recorder.py                  # Recorder protocol, BatchRecorder, BatchResult
+    recorder.py                  # Recorder protocol, BatchRecorder → BatchResult, plus streaming,
+                                 # sparse and summary recorders
     lifecycle.py                 # RunContext, _LockableList, raise_if_running
   reactions/                     # Reaction framework
     stoichiometry.py             # StoichiometryEntry + elemental balance
@@ -403,26 +436,26 @@ PyOMES/
     gas/                         # protocols.py (GasEOS), ideal.py (IdealGasEOS), peng_robinson.py
                                  # (PengRobinsonEOS, CriticalProperties, BIOGAS_SPECIES, BIOGAS_KIJ)
   control/                       # Controllers and profiles
-    actions.py                   # ControlAction, ProfileRecord (new framework)
-    cv_loops.py                  # CV-native PHController, DO controllers, pressure-relief
+    actions.py                   # ControlAction, ProfileRecord
+    cv_loops.py                  # PHController, DO controllers, pressure-relief controllers
     cv_profiles.py               # TemperatureRamp, VVMSchedule, SetpointTrajectory
-    interfaces.py                # Controller Protocol (compute → ControlAction)
-    loops.py                     # Legacy FermenterState controllers (CUFermenter island)
-    system.py                    # Legacy ControlSystem (CUFermenter island)
-    controllers/, actuators/, builders/   # Legacy support (CUFermenter island)
+    interfaces.py                # Controller protocol (compute → ControlAction), ControllerBase
+    descriptors.py               # MutableScalar, MutableDict (lifecycle-gated attributes)
+    param_path.py                # ParamPath — parsed params_changed paths
   monitoring/                    # AccuracyMonitor, ConservationMonitor
   numerics/                      # Shared numerical methods
     spatial.py                   # Advection (upwind, TVD) + dispersion
   properties/                    # Physical property models (viscosity)
-  sim/                           # Legacy types (Ledger, FermenterState) — CUFermenter island
-  solvers/                       # Legacy solver dispatch (CoupledSolver) — CUFermenter island
+  templates/
+    stirred_tank/                # builder.py (StirredTankBuilder), factory.py (StirredTankFactory),
+                                 # configs.py (config dataclasses), profiles.py (time profiles)
 
-models/
+models/                          # Installable vlmodels package (pyproject.toml, setup.py)
   vlmodels/
     __init__.py
-    headspace.py
-    adm1/                        # ADM1 + BSM2 — built on Simulation
-      base.py, bsm2.py, bsm2_direct.py
+    headspace.py                 # Ideal-gas headspace helpers, clamp()
+    adm1/                        # base.py (ADM1), bsm2.py (BSM2) — ControlVolume builders;
+                                 # bsm2_direct.py (BSM2DirectModel, a native-unit ReactionModel)
     hplc/                        # HPLC column model (own .simulate() loop; not on Simulation)
       column.py
 ```
