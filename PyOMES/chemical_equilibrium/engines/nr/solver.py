@@ -46,6 +46,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from .tableau import NRTableau, SecondaryEntry
+from ....thermo import IdealLiquidModel
 from ....units import R_L_ATM_PER_MOL_K
 
 logger = logging.getLogger(__name__)
@@ -492,7 +493,7 @@ def solve_nr(
     I = (cache.I_last if cache is not None and cache.I_last is not None
          else float(I_init))
 
-    is_ideal = getattr(activity_model, "name", "ideal") == "ideal"
+    is_ideal = isinstance(activity_model, IdealLiquidModel)
 
     # ── Outer activity loop ───────────────────────────────────────────
     outer_converged = False

@@ -210,14 +210,15 @@ class TestChemistryConfig:
 
     def test_defaults(self):
         c = ChemistryConfig()
-        assert c.use_activity is False
+        assert c.activity_model == "ideal"
         assert "AceticAcid" in c.acid_pKas
 
     def test_round_trip(self):
-        c1 = ChemistryConfig(use_activity=True)
+        c1 = ChemistryConfig(activity_model="davies")
         d = c1.to_dict()
         c2 = ChemistryConfig.from_dict(d)
-        assert c2.use_activity is True
+        assert c2.activity_model == "davies"
+        assert c2.acid_pKas == c1.acid_pKas
 
 
 # ═══════════════════════════════════════════════════════════════════════

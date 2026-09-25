@@ -73,7 +73,7 @@ def _folded_engine_with_precipitation():
     from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(
         _carbonate_reactions() + [_calcite_reaction(), _co2_henry()],
-        use_activity=True, activity_model="davies",
+        activity_model="davies",
     )
 
 
@@ -183,7 +183,7 @@ class TestPrecipitationCoexistsWithGasLiquidFold:
 
         unfolded_engine = NRChemicalEquilibriumEngine.from_reactions(
             _carbonate_reactions() + [_calcite_reaction()],
-            use_activity=True, activity_model="davies",
+            activity_model="davies",
         )
         out_unfolded = unfolded_engine.solve(
             totals={"CO2": 0.010}, strong_ions={"CT_Ca": 0.002, "CT_Na": 0.005},
@@ -212,7 +212,7 @@ class TestPrecipitationCoexistsWithGasLiquidFold:
         with pytest.raises(NotImplementedError, match="gas-liquid secondaries"):
             NRChemicalEquilibriumEngine.from_reactions(
                 _carbonate_reactions() + [_calcite_reaction(), _co2_henry()],
-                use_activity=True, activity_model="davies",
+                activity_model="davies",
                 retain_jacobian=True,
             )
 

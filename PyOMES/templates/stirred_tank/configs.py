@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import copy
 import math
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, fields, asdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
+
+from PyOMES.thermo import ActivityModel, make_activity_model
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -269,16 +271,21 @@ class ChemistryConfig:
 
     Parameters
     ----------
-    use_activity : bool
-        Enable activity coefficient corrections.
-    activity_model : str
-        Activity model name (``"davies"``, ``"ideal"``).
+    activity_model : str or activity model object
+        ``"ideal"`` (default), ``"davies"``, ``"sit"``, or a model object such
+        as ``SITLiquidModel(epsilon=...)``. Checked at construction by
+        :func:`~PyOMES.thermo.make_activity_model` and stored as given.
     acid_pKas : dict
         ``{acid_id: pKa_or_list}`` for weak acid systems.
+
+    Notes
+    -----
+    :meth:`to_dict` keeps a model object as the object itself, so
+    :meth:`from_dict` gets the same model back. A config with a named model
+    can be written to JSON or YAML; one holding a model object cannot.
     """
 
-    use_activity: bool = False
-    activity_model: str = "davies"
+    activity_model: Union[str, ActivityModel] = "ideal"
     acid_pKas: Dict[str, Any] = field(
         default_factory=lambda: {
             "AceticAcid": 4.76,
@@ -288,8 +295,19 @@ class ChemistryConfig:
         }
     )
 
+    def __post_init__(self) -> None:
+        make_activity_model(self.activity_model)  # raises on a bad name or object
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        # Not asdict(): it would turn a dataclass model (e.g. SITLiquidModel)
+        # into a plain dict.
+        return {
+            f.name: (
+                getattr(self, f.name) if f.name == "activity_model"
+                else copy.deepcopy(getattr(self, f.name))
+            )
+            for f in fields(self)
+        }
 
     @classmethod
     def from_dict(cls, d: dict) -> "ChemistryConfig":

@@ -50,14 +50,14 @@
 
 ## Pre-flight
 
-- [ ] `git status -sb` clean apart from this phase's docs (the design note, this
+- [x] `git status -sb` clean apart from this phase's docs (the design note, this
       checklist, the `upcoming/README.md` entry and the new `OPEN_WORK.md` entry
       "A CV's `chemistry_db` activity model never reaches its speciation engine")
-- [ ] `git log origin/main..main --oneline` empty
-- [ ] Branch created off current `main`: `git switch -c activity-model-parameter`
-- [ ] Those docs committed on the branch as the first commit
-- [ ] Baseline full suite recorded here (pass / fail / skip counts)
-- [ ] Fingerprint baseline captured. A scratchpad script (not committed) builds
+- [x] `git log origin/main..main --oneline` empty
+- [x] Branch created off current `main`: `git switch -c activity-model-parameter`
+- [x] Those docs committed on the branch as the first commit (`bd8b372`)
+- [x] Baseline full suite recorded here (pass / fail / skip counts)
+- [x] Fingerprint baseline captured. A scratchpad script (not committed) builds
       each engine over a fixed set of cases — pure water, carbonate, acetate,
       ammonium, phosphate, a mixed BSM2-like liquid, and one high-ionic-strength
       case — for ideal, Davies and SIT, through the **old** parameters, solves at
@@ -68,7 +68,8 @@
 
 ## Checkpoints
 
-- [ ] **1. Resolver, framework and engines.**
+- [x] **1. Resolver, framework and engines** (with checkpoint 2's package and
+      model call sites folded in; see Notes).
       `thermo/liquid/factory.py` (`make_activity_model(activity_model)`: a name
       in `"ideal"`/`"davies"`/`"sit"`, case-insensitive, or a model object passed
       through; `ValueError` listing the accepted names otherwise),
@@ -85,7 +86,7 @@
       is not `IdealLiquidModel` and has no `name` takes the ionic-strength loop.
       Sanity: fingerprint identical; suite green; `use_activity` absent from
       `PyOMES/` and the edited tests.
-- [ ] **2. Stirred tank and models.** `templates/stirred_tank/builder.py`
+- [x] **2. Stirred tank and models.** Done inside checkpoint 1 (see Notes). `templates/stirred_tank/builder.py`
       (`chemistry(activity_model="ideal")`), `configs.py`
       (`ChemistryConfig.activity_model`), `factory.py` (pass-through),
       `models/vlmodels/adm1/base.py` and `bsm2.py`, and their tests
@@ -100,7 +101,11 @@
       re-run notebook's outputs); fingerprint identical; `use_activity` absent
       from `docs/tutorials/` and `tests/`.
 - [ ] **4. Docs and close-out.** `README.md` and `docs/architecture.md`
-      (parameter description, checked against the code); delete the `OPEN_WORK.md`
+      (parameter description, checked against the code); the three usage
+      examples that pass a `speciation_level` argument `chemistry()` and
+      `ChemistryConfig` no longer have (`templates/stirred_tank/builder.py:17`,
+      `templates/stirred_tank/factory.py:20` docstrings and
+      `docs/tutorials/templates/README.md:61`; found in checkpoint 1); delete the `OPEN_WORK.md`
       entry "`chemical_equilibrium`'s `use_activity`/`activity_model` split could
       be one parameter". Sanity: repo-wide sweep finds no `use_activity` outside
       `docs/dev/implementation/shipped/` and `docs/dev/ideas/`; relative links in
@@ -108,8 +113,59 @@
 
 ## Notes
 
-<!-- Baseline counts, fingerprint hash, deviations and findings go here as each
-checkpoint lands. -->
+**Pre-flight (2026-09-25, on `bd8b372`).** Baseline suite: 2104 passed, 0
+failed, 166 warnings (129 s). Fingerprint baseline (old parameters):
+`c649ad00ad8fc1501f458122aeedd932d9def639ad168b65bbe78a38876ac763` over 1,452
+values, identical on repeated runs. It covers four routes, each for ideal /
+Davies / SIT: the Bisection engine built directly (7 cases × 25 and 37 °C); the
+NR engine from `from_reactions` (3 cases × 2 temperatures, plus a calcite
+precipitation case); `ReactionSystem.configure_engine` with both solvers,
+solving from a phase; and `StirredTankBuilder.chemistry()` with two substrates
+(the only way the factory calls `configure_engine`), recording which model class
+the reaction system resolves plus one advance step. The first three routes give
+different values for each model, so the hash would catch a model mix-up. A
+default single-substrate tank declares no equilibria and has no engine, so its
+activity setting changes no number; hence the class check for route 4.
+
+**Checkpoint 1 (2026-09-25).** Suite: 2130 passed, 0 failed, 166 warnings
+(2104, minus 4 removed tests — `test_default_use_activity_false` and the three
+`thermo=` engine tests — plus 29 in the new
+`tests/standalone/test_activity_model_argument.py` and 1 new monitor test).
+Fingerprint through the new parameter: `c649ad00…a38876ac763`, identical to the
+baseline. No `use_activity` left in `PyOMES/`, `models/` or the tests outside the
+generator and notebooks (checkpoint 3). Every edited file keeps its stored line
+endings.
+
+- **Deviation: checkpoint 2 folded into 1.** The stirred-tank factory and the
+  ADM1/BSM2 builders pass `use_activity=` to `configure_engine` and the engines,
+  so they break as soon as the engines change; a separate checkpoint 1 could not
+  have a green suite.
+- **Settled while implementing** (owner's decisions, 2026-09-25):
+  - `make_activity_model` raises `TypeError` for an object with no callable
+    `gamma`, so a non-model fails when the engine is built. `name` is not
+    required: it is only a label.
+  - `solve_from_equilibrium_set`'s `activity_model` is required; its silent
+    `None` → ideal branch is gone (its one caller always passed a model).
+  - The engines' default stays `"ideal"`, with no warning: it is a documented
+    default, not a fallback. A condition-based warning (ideal at high ionic
+    strength) is the existing `OPEN_WORK.md` entry "No engine emits a
+    high-ionic-strength warning".
+  - `ReactionSystem.configure_engine` resolves the model immediately (a bad
+    name fails at that call) and stores the resolved object.
+  - `ChemistryConfig.activity_model` takes a name or a model object (option A):
+    it is checked in `__post_init__` and stored as given; `to_dict()` keeps a
+    model object as the object instead of letting `asdict` flatten it into a
+    dict. A named model round-trips through JSON; a model object round-trips in
+    Python only, as its docstring says.
+- The resolver's accepted names are now exactly the models' `name` labels; the
+  old unused aliases (`"daviesliquidmodel"` and so on) are gone.
+- `configure_engine`'s docstring and error message referred to a
+  `ReactionSystem.advance()` that does not exist; they now say the engine is
+  built on first `engine` access (a CV's first step).
+- The three models keep no state between calls (Ideal and Davies are frozen
+  dataclasses; nothing in `sit.py` assigns to `self`), so building the model
+  once per engine instead of once per solve is equivalent, as the fingerprint
+  confirms.
 
 ## Shipping
 

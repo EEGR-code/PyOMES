@@ -780,8 +780,9 @@ def build_bsm2_cv(
         Operating temperature (K).
     k_L_a_per_d : float
         Volumetric mass transfer coefficient (1/d).
-    activity_model : str
-        Activity model for speciation (``"ideal"`` or ``"davies"``).
+    activity_model : str or activity model object
+        Activity model for speciation: ``"davies"`` (default), ``"ideal"``,
+        ``"sit"``, or a model object.
 
     Returns
     -------
@@ -791,7 +792,6 @@ def build_bsm2_cv(
     from PyOMES.core.boundaries import PressureReliefVent
     from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
 
-    use_activity = activity_model.lower() != "ideal"
     kLa_h = k_L_a_per_d / 24.0
 
     # BSM2 Henry constants at 35°C converted to mol/L/atm
@@ -826,8 +826,7 @@ def build_bsm2_cv(
                             henry_mol_L_atm=H_h2)
           .transfer_species("CO2", mode="equilibrium",
                             henry_mol_L_atm=H_co2)
-          .chemistry(use_activity=use_activity,
-                     activity_model=activity_model)
+          .chemistry(activity_model=activity_model)
           .reaction_system(reaction_system)
           .label("ADM1_BSM2")
           .build())
@@ -839,7 +838,6 @@ def build_bsm2_cv(
     engine = BisectionChemicalEquilibriumEngine.from_reactions(
         equilibrium_rxns,
         activity_model=activity_model,
-        use_activity=use_activity,
         T_K=T_K,
     )
     cv.reaction_system.attach_engine(engine)

@@ -204,10 +204,7 @@ class StirredTankFactory:
         # Pre-configure the lazy-engine defaults from the chemistry
         # config when a ReactionSystem is present.
         if rxn_system is not None and hasattr(rxn_system, "configure_engine"):
-            rxn_system.configure_engine(
-                use_activity=chemistry.use_activity,
-                activity_model=chemistry.activity_model,
-            )
+            rxn_system.configure_engine(activity_model=chemistry.activity_model)
 
         # ── 6. Boundaries ─────────────────────────────────────────────
         boundaries = []

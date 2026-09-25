@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Any, Dict, FrozenSet, List, Optional
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -43,7 +43,7 @@ from .solver import (
     NRSolverCache, _gamma_safe, solve_nr,
     _build_gammas, _compute_concentrations, _residual_and_jacobian,
 )
-from ....thermo import make_activity_model
+from ....thermo import ActivityModel, make_activity_model
 from ....thermo.equilibrium_constants import vant_hoff_log_K
 from ...protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
 
@@ -104,10 +104,11 @@ class NRChemicalEquilibriumEngine:
     ----------
     tableau : NRTableau
         Pre-built log-linear tableau.
-    use_activity : bool
-        Apply Davies activity-coefficient corrections.  Default ``False``.
-    activity_model : str
-        ``"davies"`` (default), ``"ideal"``.
+    activity_model : str or activity model object
+        ``"ideal"`` (default), ``"davies"``, ``"sit"``, or a model object such
+        as ``SITLiquidModel(epsilon=...)``. Resolved once, here, by
+        :func:`~PyOMES.thermo.make_activity_model`; the resolved object is
+        stored on :attr:`activity_model`.
     T_C : float
         Operating temperature (°C).  Default ``25.0``.
     use_warmstart : bool
@@ -123,14 +124,12 @@ class NRChemicalEquilibriumEngine:
         self,
         tableau: NRTableau,
         *,
-        use_activity: bool = False,
-        activity_model: str = "davies",
+        activity_model: Union[str, ActivityModel] = "ideal",
         T_C: float = 25.0,
         use_warmstart: bool = True,
         max_log_activity: float = 50.0,
         min_component_total: float = 1e-20,
         retain_jacobian: bool = False,
-        thermo=None,
     ):
         self._tableau = tableau
         if retain_jacobian and any(sec.phase == "gas" for sec in tableau.secondaries):
@@ -147,14 +146,7 @@ class NRChemicalEquilibriumEngine:
                 "methods are not phase-aware, so this guard "
                 "stays in place. The main solve() path is unaffected."
             )
-        if thermo is not None:
-            self._liquid_activity = thermo.liquid_activity
-            use_activity = thermo.use_activity
-            activity_model = thermo.activity_model
-        else:
-            self._liquid_activity = None
-        self.use_activity = bool(use_activity)
-        self.activity_model = str(activity_model)
+        self.activity_model: ActivityModel = make_activity_model(activity_model)
         self.T_C = float(T_C)
         self.use_warmstart = bool(use_warmstart)
         self.max_log_activity = float(max_log_activity)
@@ -179,8 +171,7 @@ class NRChemicalEquilibriumEngine:
         equilibrium_reactions,
         *,
         precipitation_reactions=None,
-        use_activity: bool = False,
-        activity_model: str = "davies",
+        activity_model: Union[str, ActivityModel] = "ideal",
         T_K: float = 298.15,
         use_warmstart: bool = True,
         max_log_activity: float = 50.0,
@@ -216,10 +207,9 @@ class NRChemicalEquilibriumEngine:
             Deprecated — solid-liquid items are now auto-classified from
             ``equilibrium_reactions``. Emits ``DeprecationWarning`` and is
             merged with the auto-detected set.
-        use_activity : bool
-            Enable Davies activity corrections.  Default ``False``.
-        activity_model : str
-            Activity model name (``"davies"`` or ``"ideal"``).
+        activity_model : str or activity model object
+            ``"ideal"`` (default), ``"davies"``, ``"sit"`` or a model object;
+            forwarded to :meth:`__init__`.
         T_K : float
             Operating temperature (K).  Van't Hoff correction is applied
             to all log_K values at this temperature.
@@ -268,7 +258,6 @@ class NRChemicalEquilibriumEngine:
         T_C = float(T_K) - 273.15
         engine = cls(
             tableau,
-            use_activity=use_activity,
             activity_model=activity_model,
             T_C=T_C,
             use_warmstart=use_warmstart,
@@ -360,11 +349,7 @@ class NRChemicalEquilibriumEngine:
             V_liq_L = kwargs.pop("V_liq_L", None)
             V_gas_L = kwargs.pop("V_gas_L", None)
 
-        am = (
-            self._liquid_activity
-            if self._liquid_activity is not None
-            else make_activity_model(self.use_activity, self.activity_model)
-        )
+        am = self.activity_model
 
         self.n_solve_calls += 1
 
@@ -956,11 +941,7 @@ class NRChemicalEquilibriumEngine:
         for sec in self._tableau.secondaries:
             all_charges[sec.species_id] = sec.charge
 
-        am = (
-            self._liquid_activity
-            if self._liquid_activity is not None
-            else make_activity_model(self.use_activity, self.activity_model)
-        )
+        am = self.activity_model
         gammas = _build_gammas(self._tableau, all_charges, I, T_K, am)
         c = _compute_concentrations(
             self._tableau, x, gammas, max_log_activity=self.max_log_activity

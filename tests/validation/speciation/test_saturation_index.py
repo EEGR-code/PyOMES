@@ -51,7 +51,7 @@ def _make_dissolved_only_engine():
         log_K=-10.33, total_id="CO2", label="co2_second",
     )
     return NRChemicalEquilibriumEngine.from_reactions(
-        [water, co2_first, co2_second], use_activity=True, activity_model="davies",
+        [water, co2_first, co2_second], activity_model="davies",
     )
 
 

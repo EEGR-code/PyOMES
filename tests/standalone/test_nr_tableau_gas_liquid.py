@@ -375,7 +375,7 @@ class TestSolveRequiresVolumes:
         from PyOMES.thermo import make_activity_model
 
         tableau = build_tableau(_base_reactions() + [_co2_henry()], T_K=298.15)
-        am = make_activity_model(False, "ideal")
+        am = make_activity_model("ideal")
         with pytest.raises(ValueError, match="V_liq_L"):
             solve_nr(tableau, {"CO2": 0.05, "NH3": 0.04}, {}, activity_model=am)
 

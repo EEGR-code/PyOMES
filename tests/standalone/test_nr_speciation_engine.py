@@ -600,14 +600,13 @@ def _make_calcite_reaction():
     )
 
 
-def _make_calcite_engine(use_activity=True):
+def _make_calcite_engine(activity_model="davies"):
     """Build NRChemicalEquilibriumEngine with calcite precipitation reactions."""
     from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
     return NRChemicalEquilibriumEngine.from_reactions(
         _make_carbonate_reactions(),
         precipitation_reactions=[_make_calcite_reaction()],
-        use_activity=use_activity,
-        activity_model="davies",
+        activity_model=activity_model,
     )
 
 
@@ -619,7 +618,7 @@ class TestPrecipitationEquilibria:
 
         After solve: xi > 0 and log10(a_Ca * a_CO3) ≈ -8.48 ± 0.01.
         """
-        engine = _make_calcite_engine(use_activity=True)
+        engine = _make_calcite_engine()
         out = engine.solve(
             totals={"CO2": 0.010},
             strong_ions={"CT_Ca": 0.002, "CT_Na": 0.005},
@@ -633,7 +632,7 @@ class TestPrecipitationEquilibria:
         """Total Ca conserved: xi + dissolved_Ca_eff ≈ CT_Ca_input."""
         CT_Ca_input = 0.002
         CT_CO2_input = 0.010
-        engine = _make_calcite_engine(use_activity=True)
+        engine = _make_calcite_engine()
         out = engine.solve(
             totals={"CO2": CT_CO2_input},
             strong_ions={"CT_Ca": CT_Ca_input, "CT_Na": 0.005},
@@ -648,7 +647,7 @@ class TestPrecipitationEquilibria:
 
     def test_undersaturated_no_precipitation(self):
         """Very low Ca + CO2 at low pH: SI < 0, xi = 0."""
-        engine = _make_calcite_engine(use_activity=True)
+        engine = _make_calcite_engine()
         # Low pH (CT_Cl drives acidic), small Ca and CO2 → undersaturated
         out = engine.solve(
             totals={"CO2": 0.001},
@@ -671,7 +670,7 @@ class TestPrecipitationEquilibria:
         CT_CO2 = 0.010        # mol/L TIC
         CT_Na  = 0.010        # mol/L (drives pH up; at CT_Ca=0.001, CT_Na=0.010: SI ≈ +2.35)
 
-        engine = _make_calcite_engine(use_activity=True)
+        engine = _make_calcite_engine()
         # Pass n_mol_solid as CT_Ca: represents max dissolved Ca if all solid dissolved.
         # The outer loop precipitates back whatever exceeds Ksp.
         out = engine.solve(
@@ -714,7 +713,7 @@ class TestPrecipitationEquilibria:
         engine = NRChemicalEquilibriumEngine.from_reactions(
             _make_carbonate_reactions(),
             precipitation_reactions=[dummy_mineral],
-            use_activity=False,
+            activity_model="ideal",
         )
         # Even with CT_CO2 = 0.01, [CO3--] << 10^5 → SI << 0 → xi = 0
         out = engine.solve(

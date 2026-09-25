@@ -180,7 +180,7 @@ class TestDaviesLiquidModel:
 
     def test_make_activity_model_returns_davies_liquid_model(self):
         from PyOMES.thermo import make_activity_model, DaviesLiquidModel
-        m = make_activity_model(True, "davies")
+        m = make_activity_model("davies")
         assert isinstance(m, DaviesLiquidModel)
 
     def test_water_helpers_importable_from_thermo(self):
@@ -266,7 +266,7 @@ class TestSITLiquidModel:
 
     def test_make_activity_model_returns_sit(self):
         from PyOMES.thermo import make_activity_model, SITLiquidModel
-        m = make_activity_model(True, "sit")
+        m = make_activity_model("sit")
         assert isinstance(m, SITLiquidModel)
 
     def test_sit_epsilon_importable_from_thermo(self):

@@ -46,6 +46,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Sequence, Union
 
 from ..chemistry.species_check import check_species_consistency
+from ..thermo import ActivityModel, make_activity_model
 from .equilibrium.constraint import EquilibriumConstraint, classify_equilibrium_constraint
 from .kinetic.reaction import KineticReaction
 from .blackbox import BlackBoxReactionModel
@@ -166,8 +167,7 @@ class ReactionSystem:
 
         self._engine = None
         self._engine_config: Dict[str, object] = {
-            "use_activity": False,
-            "activity_model": "davies",
+            "activity_model": "ideal",
         }
         # AccuracyMonitor reference, propagated to the engine on
         # first build (or immediately if already built).
@@ -261,7 +261,6 @@ class ReactionSystem:
             from ..chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
             self._engine = NRChemicalEquilibriumEngine.from_reactions(
                 equilibria,
-                use_activity=self._engine_config["use_activity"],
                 activity_model=self._engine_config["activity_model"],
             )
         else:
@@ -273,7 +272,6 @@ class ReactionSystem:
             from ..chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
             self._engine = BisectionChemicalEquilibriumEngine.from_reactions(
                 equilibria,
-                use_activity=self._engine_config["use_activity"],
                 activity_model=self._engine_config["activity_model"],
             )
         # Propagate any pre-attached AccuracyMonitor to the
@@ -285,49 +283,43 @@ class ReactionSystem:
     def configure_engine(
         self,
         *,
-        use_activity: bool = None,
-        activity_model: str = None,
+        activity_model: Union[str, ActivityModel, None] = None,
     ) -> None:
-        """Override engine-construction defaults before first build.
+        """Override engine-construction settings before the engine is built.
 
-        Call this before any :meth:`engine` access or
-        :meth:`advance` step. Tweaks the lazy-build settings; the
-        engine is still constructed on first access.
+        The engine is built on the first :attr:`engine` access, which a
+        ControlVolume triggers on its first step; call this before then.
 
         Parameters
         ----------
-        use_activity : bool, optional
-            Apply activity-coefficient corrections (Davies / SIT).
-            Default ``False``.
-        activity_model : str, optional
-            ``"davies"`` (default), ``"sit"``, or ``"ideal"``.
+        activity_model : str or activity model object, optional
+            ``"ideal"`` (the default if never set), ``"davies"``, ``"sit"``,
+            or a model object. Resolved here by
+            :func:`~PyOMES.thermo.make_activity_model`, so an unknown name
+            fails at this call. ``None`` leaves the current setting.
 
         .. warning::
             The solver backend (``"charge_balance"`` vs
             ``"newton_raphson"``) **cannot** be changed here — it must
             be set at construction time via
             ``ReactionSystem(..., solver="newton_raphson")``.
-            Calling :meth:`configure_engine` after the engine has been
-            built (i.e. after the first :attr:`engine` access or
-            :meth:`advance` call) raises :exc:`RuntimeError`.
 
         Raises
         ------
         RuntimeError
-            If the engine has already been built (lazy access
-            already triggered). Configure before the first solve.
+            If the engine has already been built.
+        ValueError, TypeError
+            If ``activity_model`` is not an accepted name or model object.
         """
         if self._engine is not None:
             raise RuntimeError(
                 "ReactionSystem.configure_engine: engine has already "
                 "been built. Configure before the first .engine access "
-                "or .advance() call, or call .attach_engine(...) "
+                "(the ControlVolume's first step), or call .attach_engine(...) "
                 "with a fully-constructed replacement."
             )
-        if use_activity is not None:
-            self._engine_config["use_activity"] = bool(use_activity)
         if activity_model is not None:
-            self._engine_config["activity_model"] = str(activity_model)
+            self._engine_config["activity_model"] = make_activity_model(activity_model)
 
     def attach_engine(self, engine) -> None:
         """Attach a pre-constructed speciation engine.

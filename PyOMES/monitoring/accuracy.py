@@ -19,7 +19,9 @@ from __future__ import annotations
 import math
 import warnings
 from collections import Counter
-from typing import Optional, Set
+from typing import Optional, Set, Union
+
+from ..thermo import ActivityModel, IdealLiquidModel
 
 
 class AccuracyWarning(UserWarning):
@@ -311,22 +313,20 @@ class AccuracyMonitor:
     def check_ionic_strength(
         self,
         I_molL: Optional[float],
-        activity_model: str,
-        use_activity: bool,
+        activity_model: Union[str, "ActivityModel"],
     ) -> None:
         """Flag when ionic strength exceeds the regime of the
         configured activity model.
 
-        Replaces the per-instance ``_warned_high_I`` dedup that
-        used to live on ``BisectionChemicalEquilibriumEngine``; the throttle takes
-        over.
+        *activity_model* is a model name or a model object. Repeated
+        warnings are throttled.
 
-        - ``use_activity=False`` is treated as the ideal-solution
-          assumption (``ionic_strength_ideal_threshold``,
-          default 0.10 mol/L).
-        - ``davies`` activity model uses
-          ``ionic_strength_davies_threshold`` (default 0.50 mol/L).
-        - Unknown activity models silently no-op.
+        - The ideal model (``"ideal"`` or an ``IdealLiquidModel``) uses
+          ``ionic_strength_ideal_threshold`` (default 0.10 mol/L).
+        - The Davies model (``"davies"``, or a model whose ``name`` is
+          ``"davies"``) uses ``ionic_strength_davies_threshold``
+          (default 0.50 mol/L).
+        - Any other model has no threshold and is not checked.
         """
         if I_molL is None:
             return
@@ -336,16 +336,19 @@ class AccuracyMonitor:
             return
         if math.isnan(I):
             return
-        cfg = _get_warning_config()
-        if not use_activity:
+        if isinstance(activity_model, str):
+            model_key = activity_model.strip().lower()
+        elif isinstance(activity_model, IdealLiquidModel):
             model_key = "ideal"
-            threshold = cfg.ionic_strength_ideal_threshold
         else:
-            model_key = (activity_model or "").strip().lower()
-            if model_key == "davies":
-                threshold = cfg.ionic_strength_davies_threshold
-            else:
-                return
+            model_key = str(getattr(activity_model, "name", "")).strip().lower()
+        cfg = _get_warning_config()
+        if model_key == "ideal":
+            threshold = cfg.ionic_strength_ideal_threshold
+        elif model_key == "davies":
+            threshold = cfg.ionic_strength_davies_threshold
+        else:
+            return
         if I <= threshold:
             return
         if model_key == "ideal":

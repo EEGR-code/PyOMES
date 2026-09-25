@@ -60,8 +60,9 @@ def make_activity_model(use_activity: bool, activity_model: str) -> ActivityMode
   `engine.activity_model`. A bad name fails at construction. Every `solve()`
   uses the stored object. The `thermo=` argument, `engine.use_activity`,
   `engine.thermo` and the private `_liquid_activity` go.
-- **`ReactionSystem.configure_engine(activity_model=...)`** stores the value
-  (name or object) and passes it to whichever engine it builds.
+- **`ReactionSystem.configure_engine(activity_model=...)`** resolves the value
+  (name or object) immediately, so a bad name fails at that call, and passes the
+  resolved model to whichever engine it builds.
 - **Stirred tank:** `StirredTankBuilder.chemistry(activity_model="ideal")` and
   `ChemistryConfig.activity_model` take the same type; the factory passes it
   through.
