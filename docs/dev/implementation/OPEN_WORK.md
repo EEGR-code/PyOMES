@@ -19,6 +19,28 @@ A fix would call the property calculators from the simultaneous solvers' state
 snapshot (and from `compute_rhs`), which changes results for any model that
 registers a calculator and uses one of those solvers.
 
+## A CV's `chemistry_db` activity model never reaches its speciation engine
+
+Found 2026-09-25 while scoping the `activity_model` parameter change, not fixed.
+Every `ChemistryDatabase` carries a `ThermoFramework` whose `liquid_activity` is
+the liquid activity model, and `ControlVolume(chemistry_db=...)` stores the
+database on `cv.chemistry_db`. Nothing passes that model on:
+`ReactionSystem.engine` builds its engine only from the reaction system's own
+engine settings (`configure_engine`, default ideal), and the stirred-tank factory
+reads only the database's partition models. So a CV given a database whose
+framework uses Davies or SIT still solves ideal chemistry, with no warning. The
+only reader of the database's framework is `Simulation`, which warns when two
+linked CVs' frameworks differ, as if the difference mattered to the chemistry.
+
+No result is wrong today: all three stock databases (`AQUEOUS_DEFAULT`,
+`AD_BASIC`, `BIOPROCESS_BASIC`) are ideal, and the only CV in the repo built with
+a non-ideal database is in `TestThermoMismatchWarning`
+(`tests/standalone/test_chemistry_database.py`), which has no reactions and only
+checks the warning. The likely fix is to make the CV's database model the
+default for its engine, with an explicit `ReactionSystem` setting taking
+precedence, and to test both. That changes results for any CV whose database is
+non-ideal and whose reaction system sets nothing, so it is its own change.
+
 ## `chemical_equilibrium`'s `use_activity`/`activity_model` split could be one parameter
 
 Surfaced 2026-09-18 while checking
