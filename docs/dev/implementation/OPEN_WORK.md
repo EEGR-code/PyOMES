@@ -238,6 +238,30 @@ statements that are now false:
   label. It is a recorded past run, not a live message; it refreshes the next time
   those notebooks are re-run.
 
+**Found 2026-09-25 (`activity-model-parameter` phase): `PropertyResult` is cited
+as if it still existed.** No class of that name exists anywhere in the repo;
+derived species and their fractions live in `phase.n_mol`, written by the
+speciation engine. It is still named in:
+
+- **Two runtime warnings users can see**, in `core/gas_liquid_link.py`: the
+  orphan `molecular_driving_force` check (line 459) and `set_transfer_mode`
+  (line 551) both say the link looks alphas up in `PropertyResult.alphas`. The
+  second also tells the user to add a `speciation_keys` entry by hand, although
+  the link derives those keys from the declared cross-phase reactions; that advice
+  was not re-checked.
+- **`models/vlmodels/adm1/bsm2.py`'s module docstring** ("Note" section, lines
+  28–36): says `make_bsm2_callback` "was removed in chemistry-unification-1" and
+  that equilibrium species "live in `PropertyResult` only". Both halves are wrong
+  now: the engine writes those species back into `phase.n_mol`.
+- **Comments:** `bsm2.py:735`, `adm1/base.py:987-996` (which also calls wiring the
+  VFA/H₂S equilibria "Phase 3 work"), and docstrings or comments in
+  `core/gas_liquid_link.py` (425, 599, 658), `core/control_volume.py:563` and
+  `core/solvers.py` (341, 599, 643). Several of these only say `PropertyResult`
+  is gone, which is history rather than a false claim.
+
+The two warnings are code strings, so rewording them is a small code change;
+the rest is docstring and comment text.
+
 ## `chemical_equilibrium/activity_dispatch.py` was deleted (checkpoint 12c)
 
 Found 2026-09-20 in checkpoint 12b and deleted the same day in checkpoint 12c of
@@ -438,6 +462,32 @@ not re-execute them. Their saved outputs still show numbers from before `R`
 moved by 4e-7 relative, which is below what most cells print but not verified. They
 refresh the next time each notebook is re-run; see also "Regenerating tutorial
 notebooks can wipe baked outputs" above.
+
+## Tutorial and docstring examples that run but show less than they say
+
+Found 2026-09-25 (`activity-model-parameter` phase), not fixed. Each of these runs
+without error but is misleading:
+
+- **The `StirredTankBuilder` module docstring example** (`templates/stirred_tank/builder.py`)
+  builds and runs a tank in one call (`build_simulation_and_run`), so it never
+  sets a starting biomass, and its final line, `result.liquid_mol["main"]["Yeast"][-1]`,
+  is `0.0`: nothing grows. The template scripts seed biomass by setting
+  `cv.phases["liquid"].n_mol["Yeast"]` after `build()` (e.g.
+  `docs/tutorials/templates/cstr_fermenter.py:145`), which the one-call form cannot
+  do. The builder has no method for initial composition.
+- **The "Canonical shape" example in `docs/tutorials/templates/README.md`**
+  attaches `PHController(setpoint=5.0)` to a tank that declares no acid-base
+  equilibria, so it has no speciation engine and its pH is `nan`: the controller
+  has nothing to act on. It also seeds no biomass, as above.
+- **`docs/tutorials/reactions/reaction_system.ipynb`, markdown cell 10,** says
+  "four properties expose the type-specific projections" and lists
+  `kinetic_reactions`, `single_phase_equilibria`, `cross_phase_equilibria` and
+  `blackbox_models`. There is a fifth, `precipitation_equilibria`, and the saved
+  output of the next cell shows it (`0 precipitation eq`).
+
+The first two want a decision on what the canonical example should demonstrate
+(a seeded batch with declared acid-base chemistry would make both the growth and
+the pH controller real); the third is a one-cell prose fix.
 
 ## Keep the engine fingerprint scripts, or freeze golden values for each engine
 
