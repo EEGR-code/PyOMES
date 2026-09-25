@@ -52,8 +52,8 @@ Registering a custom scheme::
 
 See Also
 --------
-:class:`~fermenter.models.hplc_column.HPLCColumn` — primary consumer.
-:class:`~fermenter.core.links.AdvectiveLink` — link-based transport
+:class:`~vlmodels.hplc.column.HPLCColumn` — primary consumer.
+:class:`~PyOMES.core.links.AdvectiveLink` — link-based transport
     (for arbitrary topologies; schemes assume a regular 1D grid).
 """
 

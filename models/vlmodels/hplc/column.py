@@ -45,7 +45,7 @@ Boundary conditions
 
 Usage
 -----
->>> from PyOMES.models.hplc_column import HPLCColumn, LangmuirSpecies
+>>> from vlmodels.hplc.column import HPLCColumn, LangmuirSpecies
 >>> col = HPLCColumn(
 ...     length_cm=25.0, diameter_cm=0.46,
 ...     void_fraction=0.4, bulk_density_g_mL=0.6,
@@ -61,9 +61,12 @@ Usage
 
 See Also
 --------
-:class:`~fermenter.core.phases.LiquidPhase` — mobile phase per cell.
-:class:`~fermenter.core.phases.SolidPhase` — adsorbed inventory per cell.
-:class:`~fermenter.core.links.AdvectiveLink` — inter-cell advective flow.
+:class:`~PyOMES.core.phases.LiquidPhase` — mobile phase per cell.
+:class:`~PyOMES.core.phases.SolidPhase` — adsorbed inventory per cell.
+:mod:`PyOMES.numerics.spatial` — the advection and dispersion schemes used
+    between cells.
+:class:`~PyOMES.core.links.AdvectiveLink` — link-based advection between
+    ControlVolumes, for arbitrary topologies (not used by this column).
 """
 
 from __future__ import annotations
