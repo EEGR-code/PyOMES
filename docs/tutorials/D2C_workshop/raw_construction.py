@@ -5,7 +5,7 @@
 Mirrors [batch_fermenter.py](../templates/batch_fermenter.py) topology
 (0-D sparged batch fermenter, aerobic growth on acetic acid, PI pH
 control), but constructs every object explicitly using the underlying
-:mod:`PyOMES.core` types instead of :class:`FermenterBuilder`.
+:mod:`PyOMES.core` types instead of :class:`StirredTankBuilder`.
 
 The chemistry is declared **inline, in this file** — this tutorial folder
 is self-sufficient and doesn't depend on importing from a sibling
@@ -96,8 +96,8 @@ ACETATE_MINUS = Species(
 # vs common_species' 44.01).
 CO2 = Species(id="CO2", atoms={"C": 1, "O": 2}, charge=0, MW=44.009)
 
-# Biomass: a CHO pseudo-molecule "Yeast" with the same elemental
-# composition the FermenterBuilder uses by default.
+# Biomass: a CHO pseudo-molecule "Yeast", the nitrogen-free composition
+# listed as "Yeast_CHO" in PyOMES.compounds.ChemicalRegistry.
 YEAST = Species(
     id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0, MW=24.626,
 )
@@ -378,7 +378,7 @@ def main() -> None:
 
     cv_key = "main"
     print(
-        f"Demo: raw construction (no FermenterBuilder), "
+        f"Demo: raw construction (no StirredTankBuilder), "
         f"t = 0 -> {TAU_H} h, {N_STEPS} steps."
     )
     print(f"  V_gas = {V_GAS:.3f} L, V_liq = {V_LIQ:.3f} L, T = {T_K:.2f} K")
