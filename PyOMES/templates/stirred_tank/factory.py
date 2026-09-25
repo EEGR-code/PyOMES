@@ -17,7 +17,6 @@ Example
 ...     vessel=VesselConfig(V_total_L=2000, T_K=305.15),
 ...     gas_feed=GasFeedConfig(vvm_min=1.0),
 ...     transfer=TransferConfig.default_kinetic(kLa_O2=150.0),
-...     chemistry=ChemistryConfig(speciation_level=1),
 ...     organism=OrganismConfig("Yeast"),
 ...     substrates=[SubstrateConfig("AceticAcid", yield_gX_gS=0.36)],
 ... )
@@ -204,10 +203,7 @@ class StirredTankFactory:
         # Pre-configure the lazy-engine defaults from the chemistry
         # config when a ReactionSystem is present.
         if rxn_system is not None and hasattr(rxn_system, "configure_engine"):
-            rxn_system.configure_engine(
-                use_activity=chemistry.use_activity,
-                activity_model=chemistry.activity_model,
-            )
+            rxn_system.configure_engine(activity_model=chemistry.activity_model)
 
         # ── 6. Boundaries ─────────────────────────────────────────────
         boundaries = []

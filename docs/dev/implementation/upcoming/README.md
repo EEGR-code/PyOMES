@@ -20,6 +20,17 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[ACTIVITY_MODEL_PARAMETER.md](ACTIVITY_MODEL_PARAMETER.md)** —
+  2026-09-25. Replaces the `use_activity: bool` + `activity_model: str` pair
+  with one `activity_model` parameter taking a name (`"ideal"`, `"davies"`,
+  `"sit"`) or a model object, across `make_activity_model`, both engines,
+  `ReactionSystem.configure_engine`, `StirredTankBuilder.chemistry()` and
+  `ChemistryConfig`. Removes `use_activity` everywhere (including
+  `ThermoFramework`) and the engines' `thermo=` argument; engines resolve the
+  model once at construction, and pick the ideal fast path by model type.
+  Pure refactor, verified by an engine-output fingerprint. Direction approved;
+  checklist in [ACTIVITY_MODEL_PARAMETER_CHECKLIST.md](ACTIVITY_MODEL_PARAMETER_CHECKLIST.md);
+  no branch or code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal

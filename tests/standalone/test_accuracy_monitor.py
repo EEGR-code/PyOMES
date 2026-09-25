@@ -366,7 +366,7 @@ class TestCheckIonicStrength:
         m = AccuracyMonitor()
         with warnings.catch_warnings(record=True) as buf:
             warnings.simplefilter("always")
-            m.check_ionic_strength(0.6, activity_model="davies", use_activity=True)
+            m.check_ionic_strength(0.6, activity_model="davies")
         assert _aw(buf) == 1
         assert _summary_counter["ionic_strength_davies"] == 1
 
@@ -376,8 +376,18 @@ class TestCheckIonicStrength:
         m = AccuracyMonitor()
         with warnings.catch_warnings(record=True) as buf:
             warnings.simplefilter("always")
-            # use_activity=False forces ideal regime regardless of model name
-            m.check_ionic_strength(0.15, activity_model="davies", use_activity=False)
+            m.check_ionic_strength(0.15, activity_model="ideal")
+        assert _aw(buf) == 1
+        assert _summary_counter["ionic_strength_ideal"] == 1
+
+    def test_ideal_model_object_uses_ideal_threshold(self):
+        from PyOMES.thermo import IdealLiquidModel
+        PyOMES.config.warnings.throttle = "always"
+        PyOMES.config.warnings.ionic_strength_ideal_threshold = 0.10
+        m = AccuracyMonitor()
+        with warnings.catch_warnings(record=True) as buf:
+            warnings.simplefilter("always")
+            m.check_ionic_strength(0.15, activity_model=IdealLiquidModel())
         assert _aw(buf) == 1
         assert _summary_counter["ionic_strength_ideal"] == 1
 
@@ -386,7 +396,7 @@ class TestCheckIonicStrength:
         m = AccuracyMonitor()
         with warnings.catch_warnings(record=True) as buf:
             warnings.simplefilter("always")
-            m.check_ionic_strength(10.0, activity_model="some_future_model", use_activity=True)
+            m.check_ionic_strength(10.0, activity_model="some_future_model")
         assert _aw(buf) == 0
 
     def test_none_no_op(self):
@@ -394,7 +404,7 @@ class TestCheckIonicStrength:
         m = AccuracyMonitor()
         with warnings.catch_warnings(record=True) as buf:
             warnings.simplefilter("always")
-            m.check_ionic_strength(None, activity_model="davies", use_activity=True)
+            m.check_ionic_strength(None, activity_model="davies")
         assert _aw(buf) == 0
 
 
@@ -543,7 +553,6 @@ class TestCVIntegration:
 
         class _StubEngine:
             activity_model = "davies"
-            use_activity = True
             def solve(self, **kw):
                 return {"IonicStrength": 0.1, "pH": 7.0, "logH": -7.0, "alphas": {}}
 
@@ -568,7 +577,6 @@ class TestEngineIonicStrength:
 
         class _HighIEngine:
             activity_model = "davies"
-            use_activity = True
             _accuracy_monitor = None  # set via attach_monitor below
             def solve(self, **kw):
                 # Mirror SpeciationPropertySolver's monitor hook
@@ -577,7 +585,6 @@ class TestEngineIonicStrength:
                     self._accuracy_monitor.check_ionic_strength(
                         out["IonicStrength"],
                         activity_model=self.activity_model,
-                        use_activity=self.use_activity,
                     )
                 return out
 
@@ -599,7 +606,6 @@ class TestEngineIonicStrength:
 
         class _HighIEngine:
             activity_model = "davies"
-            use_activity = True
             _accuracy_monitor = None
             def solve(self, **kw):
                 return {"IonicStrength": 0.8, "pH": 7.0, "logH": -7.0, "alphas": {}}

@@ -330,7 +330,7 @@ Three engines, same recipe as Section 3:
 - **`engine` (ideal)** — the engine used throughout this notebook; no
   activity correction, strictly valid only at infinite dilution.
 - **`engine_davies`** — identical reaction network, with
-  `use_activity=True, activity_model="davies"`.
+  `activity_model="davies"`.
 - **PHREEQC**, via `PHREEQCChemicalEquilibriumEngine` — `component_map`
   routes `H3PO4`→`P`, `NH3`→`N(-3)`, `CT_K`→`K`, `CT_Cl`→`Cl`. As noted
   above, this is PHREEQC running its own **nonideal** default (extended
@@ -348,7 +348,7 @@ already used to prime the engine. See
     code("phreeqc-point-code", """\
 if HAS_PHREEQC:
     engine_davies = NRChemicalEquilibriumEngine.from_reactions(
-        [water, p1, p2, p3, nh4], use_activity=True, activity_model="davies",
+        [water, p1, p2, p3, nh4], activity_model="davies",
     )
     engine_pq = PHREEQCChemicalEquilibriumEngine(
         {"H3PO4": CT_P * 1e3, "NH3": CT_N * 1e3, "CT_K": CT_P * 1e3, "CT_Cl": CT_N * 1e3},
@@ -734,7 +734,7 @@ M9-like point from Section 6a (`CT_P`, `CT_N`), solved 500 times each by
 all four engine/activity-model combinations from Sections 6a-6c:
 
 - **PyOMES ideal** (`engine`) — no activity correction.
-- **PyOMES Davies** (`engine_davies`) — `use_activity=True, activity_model="davies"`.
+- **PyOMES Davies** (`engine_davies`) — `activity_model="davies"`.
 - **PHREEQC default** (`engine_pq`) — `vitens.dat`'s WATEQ Debye-Hückel.
 - **PHREEQC ideal-equivalent** (`_solve_ideal_pq`) — the §6c `-gamma 1e6 0`
   trick (γ→1) against the matched-log-K minimal database.

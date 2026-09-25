@@ -44,10 +44,8 @@ class ThermoFramework:
 
     Derived properties
     ------------------
-    ``use_activity`` and ``activity_model`` are read-only properties derived
-    from ``liquid_activity``; they cannot be set.  The Bisection and NR
-    chemical-equilibrium engines copy them into their own attributes of the
-    same names.
+    ``activity_model`` is a read-only property: the ``name`` label of
+    ``liquid_activity`` (``"ideal"``, ``"davies"``, ``"sit"``, …).
     """
 
     liquid_activity: LiquidPhaseModel = field(default_factory=IdealLiquidModel)
@@ -56,11 +54,6 @@ class ThermoFramework:
     standard_P_atm: float = 1.0
 
     # ── Derived read-only properties ───────────────────────────────────
-
-    @property
-    def use_activity(self) -> bool:
-        """True when ``liquid_activity`` applies non-trivial corrections."""
-        return not isinstance(self.liquid_activity, IdealLiquidModel)
 
     @property
     def activity_model(self) -> str:

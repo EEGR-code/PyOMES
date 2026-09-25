@@ -707,8 +707,8 @@ inert 1:1 electrolyte (NaCl).\
 CT_CO2   = 0.01    # mol/L
 CT_NH3   = 0.005
 
-eng_ideal  = NRChemicalEquilibriumEngine.from_reactions(reactions, use_activity=False)
-eng_davies = NRChemicalEquilibriumEngine.from_reactions(reactions, use_activity=True, activity_model="davies")
+eng_ideal  = NRChemicalEquilibriumEngine.from_reactions(reactions, activity_model="ideal")
+eng_davies = NRChemicalEquilibriumEngine.from_reactions(reactions, activity_model="davies")
 
 NaCl_vals = np.linspace(0, 0.5, 25)   # 0 – 500 mmol/L background electrolyte
 
@@ -834,7 +834,7 @@ co2_second = EquilibriumReaction(
 )
 
 engine = NRChemicalEquilibriumEngine.from_reactions(
-    [water, co2_first, co2_second], use_activity=True, activity_model="davies"
+    [water, co2_first, co2_second], activity_model="davies"
 )
 print("Masters:    ", engine.tableau.masters)
 print("Secondaries:", [s.species_id for s in engine.tableau.secondaries])
@@ -1240,14 +1240,12 @@ as before.\
 engine = NRChemicalEquilibriumEngine.from_reactions(
     carb_rxns,
     precipitation_reactions=[calcite],
-    use_activity=True,
     activity_model="davies",
 )
 
 # Dissolved-only engine for comparison
 engine_dissolved = NRChemicalEquilibriumEngine.from_reactions(
     carb_rxns,
-    use_activity=True,
     activity_model="davies",
 )
 
@@ -1510,10 +1508,10 @@ nh3_rxn = EquilibriumReaction(
 
 engine_carb = NRChemicalEquilibriumEngine.from_reactions(
     [water, co2_first, co2_second],
-    use_activity=True, activity_model='davies')
+    activity_model='davies')
 engine_carb_nh3 = NRChemicalEquilibriumEngine.from_reactions(
     [water, co2_first, co2_second, nh3_rxn],
-    use_activity=True, activity_model='davies')
+    activity_model='davies')
 
 CaCO3_s = Species(id='CaCO3', atoms={'Ca':1,'C':1,'O':3}, charge=0, MW=100.086)
 calcite = EquilibriumReaction(
@@ -1523,7 +1521,7 @@ calcite = EquilibriumReaction(
 engine_precip = NRChemicalEquilibriumEngine.from_reactions(
     [water, co2_first, co2_second],
     precipitation_reactions=[calcite],
-    use_activity=True, activity_model='davies',
+    activity_model='davies',
 )
 
 T_K = 298.15

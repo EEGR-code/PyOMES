@@ -39,7 +39,7 @@ import numpy as np
 from scipy.optimize import brentq
 
 from .ionic_strength import ionic_strength_from_speciation
-from ....thermo import ActivityModel
+from ....thermo import ActivityModel, IdealLiquidModel
 from ....thermo.equilibrium_constants import vant_hoff_K
 
 
@@ -532,7 +532,7 @@ def solve_acid_base(
         return float(xs[i0])
 
     # Ideal fast path
-    if getattr(activity_model, "name", "ideal") == "ideal":
+    if isinstance(activity_model, IdealLiquidModel):
         I = 0.0
         gammas = gammas_from_I(I)
         K_eff = effective_constants(gammas)
@@ -613,7 +613,7 @@ def solve_acid_base(
 
         I = float(damping) * I + (1.0 - float(damping)) * I_new
 
-    if getattr(activity_model, "name", "ideal") != "ideal" and not converged:
+    if not isinstance(activity_model, IdealLiquidModel) and not converged:
         import warnings
         warnings.warn(
             f"Davies activity iteration did not converge after {max_outer} iterations "
@@ -657,7 +657,7 @@ def solve_acid_base(
     sp["gamma_OH"] = float(gammas["OH-"])
     sp["IonicStrength"] = float(ionic_strength_from_speciation(sp))
 
-    if getattr(activity_model, "name", "ideal") == "ideal":
+    if isinstance(activity_model, IdealLiquidModel):
         sp["pH"] = float(pH_conc)
     else:
         sp["pH"] = float(pH_act)
@@ -833,7 +833,7 @@ def solve_from_equilibrium_set(
     concentrations: Dict[str, float],
     strong_ions: Dict[str, float] = None,
     T_K: float = 308.15,
-    activity_model: "ActivityModel" = None,
+    activity_model: "ActivityModel",
     pH_min: float = -0.5,
     pH_max: float = 20.0,
     n_scan: int = 200,
@@ -870,8 +870,7 @@ def solve_from_equilibrium_set(
         pKa values in the EquilibriumSet should already be corrected
         to this temperature (the solver does NOT apply van 't Hoff).
     activity_model : ActivityModel
-        Activity coefficient model.  Use ``make_activity_model(False, "ideal")``
-        for ideal solution.
+        Activity coefficient model (e.g. ``IdealLiquidModel()``).
     pH_min, pH_max, n_scan, tol : float/int
         Root-finding parameters.
     logH_guess : float, optional
@@ -884,10 +883,7 @@ def solve_from_equilibrium_set(
         species concentrations, ``IonicStrength``, ``logH``, etc.
     """
     from .ionic_strength import ionic_strength_from_speciation
-    from ....thermo import make_activity_model as _make_am
 
-    if activity_model is None:
-        activity_model = _make_am(False, "ideal")
     if strong_ions is None:
         strong_ions = {}
 
@@ -996,7 +992,7 @@ def solve_from_equilibrium_set(
         return float(xs[int(np.argmin(np.abs(fs)))])
 
     # ── Ideal fast path ───────────────────────────────────────────
-    is_ideal = getattr(activity_model, "name", "ideal") == "ideal"
+    is_ideal = isinstance(activity_model, IdealLiquidModel)
 
     if is_ideal:
         pH_sol = solve_pH(residual, pH_lo, pH_hi)

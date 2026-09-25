@@ -173,7 +173,7 @@ class TestChemistry:
     def test_chemistry_forwarded(self):
         cv = (
             StirredTankBuilder()
-            .chemistry(use_activity=True, activity_model="davies")
+            .chemistry(activity_model="davies")
             .build()
         )
         # state-unification C4d: chemistry config now configures the

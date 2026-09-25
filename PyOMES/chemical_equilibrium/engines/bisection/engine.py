@@ -34,14 +34,14 @@ from __future__ import annotations
 import logging
 import warnings
 
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
 from .acid_base import solve_acid_base, solve_from_equilibrium_set
-from ....thermo import make_activity_model
+from ....thermo import ActivityModel, make_activity_model
 from ...protocols import EquilibriumResult
 
 
@@ -90,27 +90,28 @@ class BisectionChemicalEquilibriumEngine:
 
     Construct via :meth:`from_reactions` to bind a pre-built
     :class:`~PyOMES.chemical_equilibrium.engines.bisection.equilibria.EquilibriumSet`.
+
+    Parameters
+    ----------
+    activity_model : str or activity model object
+        ``"ideal"`` (default), ``"davies"``, ``"sit"``, or a model object such
+        as ``SITLiquidModel(epsilon=...)``. Resolved once, here, by
+        :func:`~PyOMES.thermo.make_activity_model`; the resolved object is
+        stored on :attr:`activity_model`.
+    T_C : float
+        Operating temperature (°C).  Default ``25.0``.
+    use_warmstart : bool
+        Start each solve from the previous solution.  Default ``True``.
     """
 
     def __init__(
         self,
         *,
-        use_activity: bool = False,
-        activity_model: str = "davies",
+        activity_model: Union[str, ActivityModel] = "ideal",
         T_C: float = 25.0,
-        thermo=None,
         use_warmstart: bool = True,
     ):
-        if thermo is not None:
-            self._liquid_activity = thermo.liquid_activity
-            use_activity = thermo.use_activity
-            activity_model = thermo.activity_model
-        else:
-            self._liquid_activity = None
-
-        self.use_activity = bool(use_activity)
-        self.activity_model = str(activity_model)
-        self.thermo = thermo
+        self.activity_model: ActivityModel = make_activity_model(activity_model)
         self.T_C = float(T_C)
         self.use_warmstart = bool(use_warmstart)
 
@@ -132,8 +133,7 @@ class BisectionChemicalEquilibriumEngine:
         cls,
         equilibrium_reactions,
         *,
-        activity_model: str = "davies",
-        use_activity: bool = False,
+        activity_model: Union[str, ActivityModel] = "ideal",
         T_K: float = 298.15,
         **engine_kwargs,
     ) -> "BisectionChemicalEquilibriumEngine":
@@ -183,8 +183,12 @@ class BisectionChemicalEquilibriumEngine:
         ----------
         equilibrium_reactions : iterable of EquilibriumConstraint
             Equilibrium constraints to incorporate. Order is preserved.
-        activity_model, use_activity, T_K : misc
-            Forwarded to :class:`BisectionChemicalEquilibriumEngine.__init__`.
+        activity_model : str or activity model object
+            ``"ideal"`` (default), ``"davies"``, ``"sit"`` or a model object;
+            forwarded to :class:`BisectionChemicalEquilibriumEngine.__init__`.
+        T_K : float
+            Reference temperature (K) for the ``EquilibriumSet``, and the
+            engine's operating temperature.
         **engine_kwargs : dict
             Additional keyword arguments to forward to
             :class:`BisectionChemicalEquilibriumEngine.__init__`.
@@ -264,10 +268,9 @@ class BisectionChemicalEquilibriumEngine:
 
         T_C = float(T_K) - 273.15
         engine = cls(
-            use_activity=use_activity,
             activity_model=activity_model,
             T_C=T_C,
-            **engine_kwargs,  # thermo, use_warmstart, etc.
+            **engine_kwargs,  # use_warmstart
         )
         engine._equilibrium_set = eq_set
         engine.cross_phase_constraints = tuple(cross_phase_constraints)
@@ -300,11 +303,7 @@ class BisectionChemicalEquilibriumEngine:
             if self._I_last is not None and "I_init" not in kwargs:
                 kwargs["I_init"] = self._I_last
 
-        am = (
-            self._liquid_activity
-            if self._liquid_activity is not None
-            else make_activity_model(self.use_activity, self.activity_model)
-        )
+        am = self.activity_model
         eq_set = kwargs.pop("equilibrium_set", None)
 
         if eq_set is not None:

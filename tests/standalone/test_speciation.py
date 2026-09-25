@@ -11,12 +11,11 @@ from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemic
 
 def _solve_simple(*, CT_TIC=0.0, acid_totals=None, acid_pKas=None,
                   CT_NH_T=0.0, CT_P=0.0, CT_Na=0.0, CT_K=0.0, CT_Cl=0.0,
-                  CT_SO4=0.0, use_activity=False, T_C=25.0,
+                  CT_SO4=0.0, activity_model="ideal", T_C=25.0,
                   **extra_ions):
     """Helper: create engine, solve, return the EquilibriumResult."""
     engine = BisectionChemicalEquilibriumEngine(
-        use_activity=use_activity,
-        activity_model="davies", T_C=T_C,
+        activity_model=activity_model, T_C=T_C,
     )
     out = engine.solve(
         acid_totals=acid_totals or {},
@@ -110,7 +109,7 @@ class TestCarbonateSystem:
         out = _solve_simple(
             CT_TIC=0.050,
             CT_Na=0.075,
-            use_activity=True,
+            activity_model="davies",
         )
         pH = float(out.pH)
         assert pH == pytest.approx(10.0, abs=0.3)
@@ -165,8 +164,7 @@ class TestActivityCorrections:
             CT_Na=0.5, CT_Cl=0.5,  # high salt
         )
 
-        engine_ideal = BisectionChemicalEquilibriumEngine(use_activity=False,
-                                         activity_model="ideal", T_C=25.0)
+        engine_ideal = BisectionChemicalEquilibriumEngine(activity_model="ideal", T_C=25.0)
         out_ideal = engine_ideal.solve(
             **base_kw, CT_TIC=0.0, CT_P=0.0, CT_NH_T=0.0,
             CT_K=0.0, CT_NO3=0.0, CT_SO4=0.0, CT_Mg=0.0, CT_Ca=0.0,
@@ -174,8 +172,7 @@ class TestActivityCorrections:
             assoc_K_basis="concentration",  # prevent engine override
         )
 
-        engine_davies = BisectionChemicalEquilibriumEngine(use_activity=True,
-                                          activity_model="davies", T_C=25.0)
+        engine_davies = BisectionChemicalEquilibriumEngine(activity_model="davies", T_C=25.0)
         out_davies = engine_davies.solve(
             **base_kw, CT_TIC=0.0, CT_P=0.0, CT_NH_T=0.0,
             CT_K=0.0, CT_NO3=0.0, CT_SO4=0.0, CT_Mg=0.0, CT_Ca=0.0,
@@ -200,7 +197,7 @@ class TestChemicalEquilibriumEngineCache:
     """Verify engine warm-start / caching behaviour."""
 
     def test_reset_cache(self):
-        engine = BisectionChemicalEquilibriumEngine(use_activity=False)
+        engine = BisectionChemicalEquilibriumEngine(activity_model="ideal")
         engine.solve(acid_totals={}, acid_pKas={}, CT_TIC=0.0, CT_P=0.0,
                      CT_NH_T=0.0, CT_Na=0.0, CT_Cl=0.0, CT_K=0.0,
                      CT_NO3=0.0, CT_SO4=0.0, CT_Mg=0.0, CT_Ca=0.0,
@@ -210,7 +207,7 @@ class TestChemicalEquilibriumEngineCache:
         assert engine._logH_last is None
 
     def test_repeated_solves_use_warm_start(self):
-        engine = BisectionChemicalEquilibriumEngine(use_activity=False)
+        engine = BisectionChemicalEquilibriumEngine(activity_model="ideal")
         kwargs = dict(
             acid_totals={"AceticAcid": 0.01},
             acid_pKas={"AceticAcid": 4.76},

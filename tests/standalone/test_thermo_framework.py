@@ -13,11 +13,6 @@ class TestThermoFrameworkConstruction:
         tf = ThermoFramework()
         assert isinstance(tf.liquid_activity, IdealLiquidModel)
 
-    def test_default_use_activity_false(self):
-        from PyOMES.thermo import ThermoFramework
-        tf = ThermoFramework()
-        assert tf.use_activity is False
-
     def test_default_activity_model_name(self):
         from PyOMES.thermo import ThermoFramework
         tf = ThermoFramework()
@@ -33,14 +28,12 @@ class TestThermoFrameworkConstruction:
         from PyOMES.thermo import ThermoFramework, DaviesLiquidModel
         tf = ThermoFramework(liquid_activity=DaviesLiquidModel())
         assert isinstance(tf.liquid_activity, DaviesLiquidModel)
-        assert tf.use_activity is True
         assert tf.activity_model == "davies"
 
     def test_sit_liquid_activity(self):
         from PyOMES.thermo import ThermoFramework
         from PyOMES.thermo import SITLiquidModel
         tf = ThermoFramework(liquid_activity=SITLiquidModel())
-        assert tf.use_activity is True
         assert tf.activity_model == "sit"
 
     def test_frozen(self):
@@ -53,8 +46,8 @@ class TestThermoFrameworkConstruction:
         from PyOMES.thermo import ThermoFramework, DaviesLiquidModel
         tf = ThermoFramework()
         tf2 = dataclasses.replace(tf, liquid_activity=DaviesLiquidModel())
-        assert tf2.use_activity is True
-        assert tf.use_activity is False  # original unchanged
+        assert tf2.activity_model == "davies"
+        assert tf.activity_model == "ideal"  # original unchanged
 
     def test_gas_eos_none_by_default(self):
         from PyOMES.thermo import ThermoFramework
@@ -105,45 +98,15 @@ class TestThermoFrameworkKwAtT:
         assert Kw_35 > 1e-14
 
 
-class TestChemicalEquilibriumEngineThermo:
-    def test_thermo_overrides_explicit_kwargs(self):
-        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
-        from PyOMES.thermo import ThermoFramework, DaviesLiquidModel
-        tf = ThermoFramework(liquid_activity=DaviesLiquidModel())
-        eng = BisectionChemicalEquilibriumEngine(
-            use_activity=False,       # overridden by thermo
-            activity_model="ideal",   # overridden by thermo
-            thermo=tf,
-        )
-        assert eng.use_activity is True
-        assert eng.activity_model == "davies"
-
-    def test_no_thermo_uses_explicit(self):
-        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
-        eng = BisectionChemicalEquilibriumEngine(use_activity=True, activity_model="ideal")
-        assert eng.use_activity is True
-        assert eng.activity_model == "ideal"
-
-    def test_thermo_liquid_activity_stored(self):
-        from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
-        from PyOMES.thermo import ThermoFramework, DaviesLiquidModel
-        model = DaviesLiquidModel()
-        tf = ThermoFramework(liquid_activity=model)
-        eng = BisectionChemicalEquilibriumEngine(thermo=tf)
-        assert eng._liquid_activity is model
-
-
 class TestThermoPresets:
     def test_thermo_ideal(self):
         from PyOMES.thermo.framework import THERMO_IDEAL
         from PyOMES.thermo import IdealLiquidModel
         assert isinstance(THERMO_IDEAL.liquid_activity, IdealLiquidModel)
-        assert THERMO_IDEAL.use_activity is False
         assert THERMO_IDEAL.activity_model == "ideal"
 
     def test_thermo_davies(self):
         from PyOMES.thermo.framework import THERMO_DAVIES
         from PyOMES.thermo import DaviesLiquidModel
         assert isinstance(THERMO_DAVIES.liquid_activity, DaviesLiquidModel)
-        assert THERMO_DAVIES.use_activity is True
         assert THERMO_DAVIES.activity_model == "davies"

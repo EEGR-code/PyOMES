@@ -62,8 +62,8 @@ class TestChemistryDatabaseExtend:
         from PyOMES.thermo import DaviesLiquidModel
         new_thermo = ThermoFramework(liquid_activity=DaviesLiquidModel())
         extended = base.extend(thermo=new_thermo)
-        assert extended.thermo.use_activity is True
-        assert base.thermo.use_activity is False
+        assert extended.thermo.activity_model == "davies"
+        assert base.thermo.activity_model == "ideal"
 
     def test_extend_without_args_copies(self):
         base = self._base()
@@ -120,7 +120,7 @@ class TestChemistryDatabaseExtendPreservesReactionSystemConfig:
         rs = ReactionSystem(
             [self._rxn("eq_CO2")], label="my_system", solver="newton_raphson",
         )
-        rs.configure_engine(use_activity=True, activity_model="sit")
+        rs.configure_engine(activity_model="sit")
         return ChemistryDatabase(thermo=ThermoFramework(), reactions=rs)
 
     def test_extend_preserves_solver_and_label(self):
@@ -132,10 +132,10 @@ class TestChemistryDatabaseExtendPreservesReactionSystemConfig:
     def test_extend_preserves_engine_config(self):
         base = self._base_with_configured_reactions()
         extended = base.extend(reactions=[self._rxn("eq_NH4")])
-        assert extended.reactions._engine_config == {
-            "use_activity": True,
-            "activity_model": "sit",
-        }
+        from PyOMES.thermo import SITLiquidModel
+        config = extended.reactions._engine_config
+        assert set(config) == {"activity_model"}
+        assert isinstance(config["activity_model"], SITLiquidModel)
 
     def test_extend_with_no_existing_reactions_uses_defaults(self):
         from PyOMES.databases.database import ChemistryDatabase

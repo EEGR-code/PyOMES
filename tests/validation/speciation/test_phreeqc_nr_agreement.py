@@ -51,7 +51,7 @@ def _make_nr_carbonate_engine():
         log_K=-10.329, total_id="CO2", label="co2_second",
     )
     return NRChemicalEquilibriumEngine.from_reactions(
-        [water, co2_first, co2_second], use_activity=True, activity_model="davies",
+        [water, co2_first, co2_second], activity_model="davies",
     )
 
 
@@ -73,7 +73,7 @@ def _make_nr_carbonate_nh3_engine():
         log_K=-9.252, total_id="NH3", label="nh3",
     )
     return NRChemicalEquilibriumEngine.from_reactions(
-        [water, co2_first, co2_second, nh3_rxn], use_activity=True, activity_model="davies",
+        [water, co2_first, co2_second, nh3_rxn], activity_model="davies",
     )
 
 

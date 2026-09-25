@@ -9,8 +9,8 @@ properties they use.
   the ``SIT_EPSILON`` and ``ION_CHARGES`` tables.
 - ``water_properties.py``: temperature-dependent water density, dielectric
   constant, Debye–Hückel ``A`` and the mol/L to mol/kg-water conversion.
-- ``factory.py``: :func:`make_activity_model`, which builds a model from a
-  ``(use_activity, activity_model)`` pair.
+- ``factory.py``: :func:`make_activity_model`, which turns an ``activity_model``
+  argument (``"ideal"``, ``"davies"``, ``"sit"`` or a model object) into a model.
 
 Nothing is re-exported here. The public names are exported from
 :mod:`PyOMES.thermo`, except ``DifferentiableLiquidModel`` and

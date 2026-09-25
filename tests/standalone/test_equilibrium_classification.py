@@ -242,7 +242,7 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
         calcite = _calcite_reaction()
         engine = NRChemicalEquilibriumEngine.from_reactions(
             self._carbonate_reactions() + [calcite],
-            use_activity=True, activity_model="davies",
+            activity_model="davies",
         )
         assert calcite in engine._precipitation_reactions
 
@@ -252,14 +252,14 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         engine_flat = NRChemicalEquilibriumEngine.from_reactions(
             self._carbonate_reactions() + [_calcite_reaction()],
-            use_activity=True, activity_model="davies",
+            activity_model="davies",
         )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             engine_kwarg = NRChemicalEquilibriumEngine.from_reactions(
                 self._carbonate_reactions(),
                 precipitation_reactions=[_calcite_reaction()],
-                use_activity=True, activity_model="davies",
+                activity_model="davies",
             )
         kwargs = dict(totals={"CO2": 0.010}, strong_ions={"CT_Ca": 0.002, "CT_Na": 0.005})
         out_flat = engine_flat.solve(**kwargs)
@@ -274,7 +274,7 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
             NRChemicalEquilibriumEngine.from_reactions(
                 self._carbonate_reactions(),
                 precipitation_reactions=[_calcite_reaction()],
-                use_activity=True, activity_model="davies",
+                activity_model="davies",
             )
 
     def test_no_solid_liquid_items_gives_no_precipitation_reactions(self):
@@ -294,7 +294,7 @@ class TestNRChemicalEquilibriumEngineAutoPrecipitation:
             engine = NRChemicalEquilibriumEngine.from_reactions(
                 self._carbonate_reactions() + [calcite],
                 precipitation_reactions=[other_mineral],
-                use_activity=True, activity_model="davies",
+                activity_model="davies",
             )
         assert calcite in engine._precipitation_reactions
         assert other_mineral in engine._precipitation_reactions
