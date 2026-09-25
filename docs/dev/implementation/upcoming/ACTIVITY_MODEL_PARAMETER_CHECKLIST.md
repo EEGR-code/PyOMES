@@ -93,7 +93,7 @@
       (`test_builder.py`, `test_configs.py`). Sanity: fingerprint identical; BSM2
       sentinels pass; suite green; `use_activity` absent from `PyOMES/`,
       `models/` and `tests/standalone/`.
-- [ ] **3. Notebooks and generators.** The 9 notebooks listed in the design note
+- [x] **3. Notebooks and generators.** The 9 notebooks listed in the design note
       (edit `source` only) and both `_generate_notebooks.py` scripts. Re-run
       `chemistry_database.ipynb` after changing its cell 6 to print and assert on
       `activity_model`. Sanity: every code cell of every edited notebook parses;
@@ -166,6 +166,29 @@ endings.
   dataclasses; nothing in `sit.py` assigns to `self`), so building the model
   once per engine instead of once per solve is equivalent, as the fingerprint
   confirms.
+
+**Checkpoint 3 (2026-09-25).** 9 notebooks and both generators edited (+26/−30
+lines). Notebooks were edited at the JSON level after checking that all 9
+re-serialise byte-for-byte, so only the targeted `source` lines changed; a script
+verified no saved output changed. Code cells: the pair became `activity_model=`
+(`02_multi_component_systems` got `activity_model="ideal"` for its
+`use_activity=False` engine). Prose: `01_bisection_engine_basics` and
+`02_nr_engine_basics` cell 8 describe the single argument;
+`chemistry_database` cell 5 no longer calls the properties "backward-compatible"
+(that was never accurate), and cell 6 prints and asserts on
+`thermo.activity_model`. Every code cell of every edited notebook parses.
+
+- **How the notebooks were run.** `nbclient` is not installed, so notebooks were
+  run by a scratchpad script that executes code cells in order in one namespace
+  (from the scratchpad directory, `MPLBACKEND=Agg`) and captures each cell's
+  stdout. `chemistry_database.ipynb` was run in full: cells 2, 4, 8 and 10
+  reproduced their saved output exactly, and only cell 6's saved text was
+  replaced (now `ideal` / `davies`). The other 8 notebooks were run from the
+  start up to their last edited cell, read-only: every cell with a saved output
+  (24 cells) printed exactly that output; `01_predict_ph_simple_liquid` has no
+  saved outputs and ran without error to cell 15. No notebook was regenerated.
+- Fingerprint identical (`c649ad00…a38876ac763`); suite 2130 passed; no
+  `use_activity` left in `PyOMES/`, `models/`, `tests/` or `docs/tutorials/`.
 
 ## Shipping
 
