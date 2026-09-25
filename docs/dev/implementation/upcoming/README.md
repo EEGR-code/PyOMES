@@ -20,17 +20,6 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
-- **[ACTIVITY_MODEL_PARAMETER.md](ACTIVITY_MODEL_PARAMETER.md)** —
-  2026-09-25. Replaces the `use_activity: bool` + `activity_model: str` pair
-  with one `activity_model` parameter taking a name (`"ideal"`, `"davies"`,
-  `"sit"`) or a model object, across `make_activity_model`, both engines,
-  `ReactionSystem.configure_engine`, `StirredTankBuilder.chemistry()` and
-  `ChemistryConfig`. Removes `use_activity` everywhere (including
-  `ThermoFramework`) and the engines' `thermo=` argument; engines resolve the
-  model once at construction, and pick the ideal fast path by model type.
-  Pure refactor, verified by an engine-output fingerprint. Direction approved;
-  checklist in [ACTIVITY_MODEL_PARAMETER_CHECKLIST.md](ACTIVITY_MODEL_PARAMETER_CHECKLIST.md);
-  no branch or code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
@@ -158,6 +147,29 @@ that still describe open work are "Open phases" and the pending stages in
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
+
+- `activity-model-parameter` (2026-09-25) — replaced the `use_activity: bool` +
+  `activity_model: str` pair with one `activity_model` argument that is a name
+  (`"ideal"`, `"davies"`, `"sit"`) or a model object such as
+  `SITLiquidModel(epsilon=...)`, in both engines, `ReactionSystem.configure_engine`,
+  `StirredTankBuilder.chemistry()`, `ChemistryConfig`, `AccuracyMonitor` and the
+  ADM1/BSM2 builders. `use_activity` is gone everywhere, including
+  `ThermoFramework`, and so is the engines' `thermo=` argument; no aliases. Engines
+  resolve the model once at construction, so a bad name, or an object with no
+  `gamma()`, fails immediately instead of at the first solve; the solvers pick
+  their ideal fast path by model type instead of by `name`, so a custom model can
+  no longer be taken for ideal. `solve_from_equilibrium_set`'s silent ideal
+  default is gone. `ChemistryConfig.to_dict()` keeps a model object as the object
+  (a named model still round-trips through JSON). Four checkpoints (the second
+  folded into the first so each commit stayed green); engine output bit-identical
+  throughout, checked by a fingerprint over four construction routes × three
+  models. Nine notebooks and both notebook generators updated by source edit only,
+  plus one notebook re-run. Found along the way and fixed: the builder, factory and
+  templates README usage examples passed a removed `speciation_level` argument and
+  could not run. Logged in `OPEN_WORK.md`: a CV's `chemistry_db` activity model
+  never reaches its speciation engine. Full suite green: 2130 passed, 0 failed.
+  Tag `activity-model-parameter-shipped`. See
+  [`../shipped/ACTIVITY_MODEL_PARAMETER_CHECKLIST.md`](../shipped/ACTIVITY_MODEL_PARAMETER_CHECKLIST.md).
 
 - `thermo-subfolder-structure` (2026-09-24) — grouped the 8 flat files in
   `PyOMES/thermo/` by phase: `liquid/` (`liquid_phase_model.py` split into

@@ -1,8 +1,14 @@
 # One `activity_model` parameter — Design Note
 
-> Design discussion, 2026-09-25. Checklist:
-> [`ACTIVITY_MODEL_PARAMETER_CHECKLIST.md`](ACTIVITY_MODEL_PARAMETER_CHECKLIST.md).
-> No branch or code yet. Written
+> **Status: Shipped 2026-09-25** — implemented on branch
+> `activity-model-parameter`, merged into `main` via `git merge --no-ff` as
+> commit `b22661f`, tagged `activity-model-parameter-shipped`. The checklist,
+> [`ACTIVITY_MODEL_PARAMETER_CHECKLIST.md`](ACTIVITY_MODEL_PARAMETER_CHECKLIST.md),
+> records the implementation and the decisions settled along the way (among
+> them `ChemistryConfig` accepting model objects, and the `gamma` check on model
+> objects); where the two differ, the checklist wins.
+
+> Design discussion, 2026-09-25. Written
 > from a planning conversation that picked up the `OPEN_WORK.md` entry
 > "`chemical_equilibrium`'s `use_activity`/`activity_model` split could be one
 > parameter". Direction approved by the repo owner the same day: **replace the

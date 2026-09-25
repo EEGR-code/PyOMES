@@ -1,10 +1,14 @@
 # Phase Kickoff Checklist — activity-model-parameter
 
+> **Status: Shipped 2026-09-25** — merged into `main` via `git merge --no-ff`
+> as commit `b22661f`, tagged `activity-model-parameter-shipped`. Full suite
+> green on the final tree: 2130 passed, 0 failed. Local feature branch deleted.
+
 > Checklist for [`ACTIVITY_MODEL_PARAMETER.md`](ACTIVITY_MODEL_PARAMETER.md), the
 > source of truth for motivation, design, inventory and decisions; do not restate
 > it here. Where this checklist and the note disagree, this checklist wins. See
-> [`README.md`](README.md)'s "Branching and tagging convention". Modelled on
-> [`../shipped/THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md`](../shipped/THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md).
+> [`README.md`](../upcoming/README.md)'s "Branching and tagging convention". Modelled on
+> [`THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md`](THERMO_SUBFOLDER_STRUCTURE_CHECKLIST.md).
 
 **Working rules**
 
@@ -218,13 +222,13 @@ unchanged.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
-- [ ] `git switch main`
-- [ ] `git merge --no-ff activity-model-parameter -m "Merge activity-model-parameter: <summary>"`
-- [ ] `git tag activity-model-parameter-shipped`
-- [ ] `git push origin main` and `git push origin activity-model-parameter-shipped`
-- [ ] `git branch -d activity-model-parameter`
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`,
+- [x] Full test suite green on the branch (2130 passed, 0 failed)
+- [x] `git switch main`
+- [x] `git merge --no-ff activity-model-parameter -m "Merge activity-model-parameter: <summary>"` (`b22661f`)
+- [x] `git tag activity-model-parameter-shipped`
+- [x] `git push origin main` and `git push origin activity-model-parameter-shipped`
+- [x] `git branch -d activity-model-parameter`
+- [x] Move the design note and this checklist to `docs/dev/implementation/shipped/`,
       add a "Shipped" banner to both
-- [ ] Update `docs/dev/implementation/upcoming/README.md`: remove the "Design
+- [x] Update `docs/dev/implementation/upcoming/README.md`: remove the "Design
       discussions" entry and add one to "Recently shipped"
