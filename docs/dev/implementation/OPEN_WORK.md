@@ -55,21 +55,6 @@ removing the separate boolean gate. Touches the builder, the three
 engines above, and their callers — worth scoping as its own small
 phase rather than a drive-by fix.
 
-## Leftover `FermenterBuilder` mentions in the D2C workshop and reactions tutorials
-
-Originally surfaced 2026-09-15 as part of the `stirred-tank-template`
-migration; re-audited 2026-09-19. The old `FermenterBuilder`/
-`FermenterFactory` names survive only as prose comparison points (the code
-runs correctly) in:
-
-- `docs/tutorials/D2C_workshop/raw_construction.py` — lines 8, 100, 381
-  (module docstring, a comment, and a printed demo banner).
-- `docs/tutorials/reactions/reaction_system.ipynb` — one comment ("…
-  FermenterBuilder uses by default").
-
-Both should say `StirredTankBuilder`. Sweep together; for the notebook,
-hand-edit the one cell rather than regenerating (see next entry).
-
 ## Regenerating tutorial notebooks can wipe baked outputs
 
 Found 2026-09-16, still applicable while the generator scripts exist
