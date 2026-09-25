@@ -1,4 +1,4 @@
-"""Tests for fermenter.properties.viscosity — viscosity model framework."""
+"""Tests for PyOMES.properties.viscosity — viscosity model framework."""
 
 import pytest
 import math

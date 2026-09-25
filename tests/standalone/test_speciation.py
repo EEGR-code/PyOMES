@@ -1,4 +1,4 @@
-"""Tests for fermenter.speciation — pH and aqueous chemistry solvers.
+"""Tests for the Bisection chemical-equilibrium engine — pH and aqueous chemistry.
 
 These tests validate speciation against known analytical solutions and
 published reference values.  No bioSTEAM dependency.

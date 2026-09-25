@@ -21,7 +21,7 @@ Key differences from the custom ``adm1.py`` model:
 
 Usage
 -----
->>> from PyOMES.models.adm1_bsm2 import (
+>>> from vlmodels.adm1.bsm2 import (
 ...     build_bsm2_reactions, build_bsm2_cv, seed_bsm2_strong_ions,
 ... )
 

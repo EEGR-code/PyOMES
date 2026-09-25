@@ -1,4 +1,4 @@
-"""Tests for fermenter.core — phases, interfaces, and ControlVolume."""
+"""Tests for PyOMES.core — phases, interfaces, and ControlVolume."""
 
 import pytest
 import math

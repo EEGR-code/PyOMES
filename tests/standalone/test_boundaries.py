@@ -1,4 +1,4 @@
-"""Tests for fermenter.core.boundaries — external boundary objects.
+"""Tests for PyOMES.core.boundaries — external boundary objects.
 
 Tests cover:
   - ExternalBoundary protocol compliance
