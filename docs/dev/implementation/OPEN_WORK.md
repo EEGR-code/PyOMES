@@ -19,23 +19,6 @@ A fix would call the property calculators from the simultaneous solvers' state
 snapshot (and from `compute_rhs`), which changes results for any model that
 registers a calculator and uses one of those solvers.
 
-## `tests/run_tests.py` imports a deleted `create_standalone_fermenter`
-
-Surfaced 2026-09-18 during a README.md audit. `tests/run_tests.py` still does
-`from PyOMES import PressureReliefController, PHController,
-create_standalone_fermenter` and calls it in `_fermenter_minimal()` /
-`_fermenter_full()`. That name was never restored after
-`cufermenter-sunset` (2026-06-01) — it isn't exported from
-`PyOMES/__init__.py` and doesn't exist under `models/vlmodels/`
-either, so this script currently fails on import. It isn't part of
-the pytest suite (`pyproject.toml`'s `testpaths` only covers
-`tests/standalone` and `tests/validation`), so it doesn't show up as
-a CI failure — likely why it's gone unnoticed. Needs its own pass:
-either migrate it to `StirredTankBuilder` (mirroring the
-`stirred-tank-template` migration already done for the tutorial
-notebooks) or delete it if it's fully superseded by
-`tests/standalone`.
-
 ## `chemical_equilibrium`'s `use_activity`/`activity_model` split could be one parameter
 
 Surfaced 2026-09-18 while checking

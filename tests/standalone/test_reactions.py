@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for the reactions framework (Stage 0).
-
-NOTE: Tests are written to be compatible with both pytest and the
-unittest-based runner in run_tests.py (which does not support
-pytest.warns or helper methods on test classes).
-"""
+"""Tests for the reactions framework."""
 import math
 import warnings
 import numpy as np
