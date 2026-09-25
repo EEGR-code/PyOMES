@@ -4,45 +4,20 @@ Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
 [`upcoming/README.md`](upcoming/README.md).
 
-## `docs/architecture.md` still describes deleted CUFermenter-era code
+## Property calculators run only under `SequentialAdvanceSolver`
 
-Surfaced 2026-09-15; re-audited against `main` 2026-09-19. The doc still
-frames several subpackages as a "CUFermenter island" awaiting the
-trigger-gated `CUFERMENTER_SUNSET` phase, but `cufermenter-sunset` already
-shipped 2026-06-01 (9,093 lines deleted, see
-[`shipped/CUFERMENTER_SUNSET.md`](shipped/CUFERMENTER_SUNSET.md)). The
-paths it names are largely gone, so the whole "CUFermenter island" framing
-is dead and should come out, not just be re-pathed:
-
-- **No longer exist:** `PyOMES/sim/`, `PyOMES/solvers/`,
-  `PyOMES/core/gl_equilibrium.py`, `PyOMES/control/{loops.py, system.py,
-  controllers/, actuators/, builders/}`, and `PyOMES/equilibria/` (deleted
-  entirely 2026-09-22; its two real files moved into `thermo/gas_eos.py`, see
-  below). Also `models/vlmodels/fermenter/` (only `adm1/`, `hplc/`,
-  `headspace.py` remain).
-- **Stale references to those:** the "Equilibrium pathways" section
-  (~lines 134–154, which presents `ProcessCoupledEquilibrator` +
-  `HenryEquilibriumInterface` as a live second pathway); mentions of `CUFermentationSpeciation`
-  (~lines 152, 253, 353); the Repository Layout tree (~lines 372–418).
-- **Also stale, not mentioned in the original entry:** the layout tree
-  still showed `PyOMES/speciation/` (~line 391), which was renamed to
-  `chemical_equilibrium/` at the close of `LAYER1_GAP_CLOSURE` (shipped
-  2026-07-03). **Partly fixed 2026-09-20:** `chemical-equilibrium-engines-subfolder`
-  (checkpoint 12) replaced that one block with the real
-  `chemical_equilibrium/` tree (including the new `engines/` layout) and added
-  a `thermo/` line. **Partly fixed 2026-09-22:** `chemistry-reactions-kinetics-cleanup`
-  (checkpoint 11, decision D4) moved `PyOMES/equilibria/`'s two real files
-  (`vle.py`, `peng_robinson.py`) into `thermo/gas_eos.py` and deleted the
-  package, so the "Equilibrium pathways" section's item 2
-  (`ProcessCoupledEquilibrator` + `HenryEquilibriumInterface`, presented as a
-  live second pathway) is gone rather than re-pathed, and the tree's
-  `equilibria/` line is removed rather than corrected. The rest of the tree
-  (the `sim/` and `solvers/` "CUFermenter island" entries, the
-  `CUFermentationSpeciation` mentions at ~244/344, and any other package that
-  is missing) still needs the re-derivation described below.
-
-Needs a pass that re-derives the Repository Layout and the equilibrium
-section from the actual tree rather than a line-by-line patch.
+Found 2026-09-25 while re-checking `docs/architecture.md` against the code, not
+fixed. `ControlVolume._run_property_calculators()` has one caller in the repo,
+`SequentialAdvanceSolver.solve_step` (`core/solvers.py:151`).
+`SimultaneousEulerSolver` and `SimultaneousAdaptiveSolver` never call it, and
+neither does `MonolithicODESolver`, which integrates every CV through
+`cv.compute_rhs()` instead of `advance()`. Under any of those three,
+`phase.properties` keeps whatever was last written (or stays empty), so a rate
+law reading `env.prop("viscosity")` sees a stale or missing value. The other
+system solvers are affected only through the step solver they hand each CV to.
+A fix would call the property calculators from the simultaneous solvers' state
+snapshot (and from `compute_rhs`), which changes results for any model that
+registers a calculator and uses one of those solvers.
 
 ## `tests/run_tests.py` imports a deleted `create_standalone_fermenter`
 
