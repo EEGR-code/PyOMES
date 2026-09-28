@@ -105,7 +105,7 @@
       `_pKa_NH4` (×3 files) and `_pKa_H2S` call the kernel with their own
       `ΔH / _R_J` (rounded R unchanged). Sanity: bit-identical by construction,
       confirmed; BSM2 sentinels pass unchanged; suite green.
-- [ ] **6. Guard test and close-out.** A guard test (style of
+- [x] **6. Guard test and close-out.** A guard test (style of
       `test_gas_constant_single_source.py`) fails on the pattern `1/T − 1/T_ref`
       in `PyOMES/` or `models/` outside `thermo/temperature_correction.py`, with a
       self-check that it catches every form found in the inventory. Delete the
@@ -233,6 +233,30 @@ stays theirs. Suite: 2139 passed, 0 failed; BSM2 sentinels (6) pass unchanged;
 engine fingerprint identical. Measurement: #12–#15 bit-identical. A sweep of
 `PyOMES/` and `models/` for the `1/T − 1/T_ref` pattern now finds only the kernel
 (`thermo/temperature_correction.py:41`): all 15 copies are gone.
+
+**Checkpoint 6 (2026-09-28).** New guard
+`tests/standalone/test_temperature_correction_single_source.py`: it walks each
+module's syntax tree in `PyOMES/` and `models/` for a difference of two
+reciprocals `1/a − 1/b` (literal 1 numerators, either order, any denominator) and
+requires exactly one, in the kernel. Self-checks cover every form the inventory
+found and the near-misses it must ignore (docstrings, comments, strings, sums,
+other numerators). Run against the pre-phase code (`d9bfa63`), the same scanner
+finds 16 occurrences in 11 files — the 15 inventory rows, #13 holding two — so it
+would have caught every copy. Tests are not scanned, on purpose (the references in
+`test_temperature_correction.py`); the guard's docstring says so. Suite: 2142
+passed, 0 failed (+3).
+
+`OPEN_WORK.md`: deleted the entry "A third van 't Hoff copy in
+`reactions/equilibrium/constraint.py` differs from `thermo` in the last bit"; the
+R-consumers list and the development-history note now name
+`temperature_correction.py`; "Sweep the package for each fundamental constant"
+records that the formula is single-source and guarded. Found while checking that
+last cross-reference: "No single source for water's physical constants" listed
+only `RaoultEquilibrium`'s vapour-pressure values, not the second set in
+`core/phases.py` (BSM2: 0.0313 bar, ΔH_vap/R = 5290 K; 2.6 % apart at 25 °C), which
+the design note said it covered; the entry now records both. Remaining
+`equilibrium_constants` mentions are history (that note, and the thermo phase's
+"Recently shipped" entry in `upcoming/README.md`).
 
 ## Shipping
 
