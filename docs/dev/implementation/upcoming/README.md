@@ -20,6 +20,23 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[HPLC_CV_GRAPH_TEMPLATE.md](HPLC_CV_GRAPH_TEMPLATE.md)** — 2026-09-28.
+  Draft plan for a `PyOMES/templates/hplc_column/` template that builds an HPLC
+  column as a CV graph run by `Simulation`, replacing the standalone
+  `models/vlmodels/hplc/column.py` once it reproduces that model's results. Each
+  cell is a `ControlVolume` with liquid and solid phases; retained solutes are
+  their own `Species`, taken up through a cross-phase kinetic reaction; retention
+  models (linear partition, Langmuir, competitive Langmuir) join the
+  partition-model family with van 't Hoff and Arrhenius temperature corrections.
+  Lists seven framework prerequisites found in the code (rate laws see only the
+  liquid phase, `SolidPhase` has no mass, the monolithic solver's right-hand side
+  omits boundaries and interfaces, link fluxes into undeclared slots are dropped
+  silently, no Jacobian sparsity, a single-CV temperature profile, boundaries not
+  given the time). A later performance track compiles the CV graph into arrays
+  (structural grouping, solver-internal padding, a species reachability pass),
+  measured at about 50× slower per evaluation than the standalone column without
+  it. Ten open questions, mostly on the template's set-up information. No
+  checklist or code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
