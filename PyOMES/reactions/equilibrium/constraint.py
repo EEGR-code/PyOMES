@@ -8,7 +8,8 @@ Van 't Hoff enthalpy and the reference temperature. Both
 named interphase constraints in :mod:`PyOMES.reactions.equilibrium.interphase`
 satisfy it without sharing a base class.
 
-- :func:`vant_hoff_log_K` returns ``log_K`` corrected to a temperature.
+- :func:`constraint_log_K_at` returns a constraint's ``log_K`` corrected to a
+  temperature (van 't Hoff, via :mod:`PyOMES.thermo.temperature_correction`).
 - :func:`classify_equilibrium_constraint` sorts a constraint into
   ``"acid_base"``, ``"gas_liquid"`` or ``"solid_liquid"`` from the phase tags
   of its stoichiometry.
@@ -22,14 +23,11 @@ carries acid-base pKa semantics.
 
 from __future__ import annotations
 
-import math
 from typing import Literal, Optional, Protocol, Sequence, runtime_checkable
 
-from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL_K
+from PyOMES.thermo.temperature_correction import vant_hoff_log_K
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
 from PyOMES.reactions._shared import phases_from_entries
-
-_LOG10_E = 1.0 / math.log(10.0)
 
 
 @runtime_checkable
@@ -39,7 +37,7 @@ class EquilibriumConstraint(Protocol):
     Any type exposing these four attributes — a stoichiometry, a
     reference-temperature ``log_K``, an optional Van 't Hoff
     ``dH_J_per_mol``, and the reference temperature they were measured
-    at — can be routed through :func:`vant_hoff_log_K` and the
+    at — can be routed through :func:`constraint_log_K_at` and the
     equilibrium-classification/tableau-building machinery in
     ``PyOMES.chemical_equilibrium``, regardless of whether it also satisfies
     :class:`~PyOMES.chemistry.partition.PartitionModel` (as
@@ -51,7 +49,7 @@ class EquilibriumConstraint(Protocol):
     *reference* mass-action constant (at ``T_ref_K``) — not methods.
     Composition-dependent corrections (``γ_i``, ``φ_i``) are not part
     of this protocol; temperature correction is handled separately by
-    :func:`vant_hoff_log_K`.
+    :func:`constraint_log_K_at`.
     """
 
     stoichiometry: Sequence[StoichiometryEntry]
@@ -60,22 +58,18 @@ class EquilibriumConstraint(Protocol):
     T_ref_K: float
 
 
-def vant_hoff_log_K(constraint: EquilibriumConstraint, T_K: float) -> float:
-    """Van 't Hoff temperature-corrected log10(K) for any EquilibriumConstraint.
+def constraint_log_K_at(constraint: EquilibriumConstraint, T_K: float) -> float:
+    """log10(K) of any EquilibriumConstraint at ``T_K``.
 
-    Returns ``constraint.log_K`` unchanged when ``dH_J_per_mol`` is
+    Applies the van 't Hoff correction to the constraint's ``log_K``,
+    ``dH_J_per_mol`` and ``T_ref_K`` through
+    :func:`PyOMES.thermo.temperature_correction.vant_hoff_log_K`, so
+    ``constraint.log_K`` comes back unchanged when ``dH_J_per_mol`` is
     ``None``/~0 or when ``T_K`` is at the reference temperature.
     """
-    log_K_ref = float(constraint.log_K)
-    dH = constraint.dH_J_per_mol
-    T_ref_K = float(constraint.T_ref_K)
-    if dH is None or abs(dH) < 1e-30:
-        return log_K_ref
-    if abs(T_K - T_ref_K) < 1e-10:
-        return log_K_ref
-    # ln K(T) = ln K(T_ref) − (ΔH/R) (1/T − 1/T_ref)
-    delta_ln_K = -(float(dH) / _R_J_MOL_K) * (1.0 / float(T_K) - 1.0 / T_ref_K)
-    return log_K_ref + delta_ln_K * _LOG10_E
+    return vant_hoff_log_K(
+        constraint.log_K, constraint.dH_J_per_mol, T_K, float(constraint.T_ref_K),
+    )
 
 
 def classify_equilibrium_constraint(

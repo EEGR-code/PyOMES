@@ -2,7 +2,7 @@
 """Tests for EquilibriumConstraint protocol and the *Equilibrium sibling types (CP1).
 
 Covers:
-- EquilibriumReaction conformance to EquilibriumConstraint + vant_hoff_log_K
+- EquilibriumReaction conformance to EquilibriumConstraint + constraint_log_K_at
   correctness against manual van't Hoff math.
 - HenryEquilibrium / RaoultEquilibrium / KspEquilibrium: isinstance of both
   PartitionModel and EquilibriumConstraint; log_K / dH_J_per_mol manual
@@ -50,28 +50,28 @@ class TestEquilibriumReactionConformance:
         assert rxn.dH_J_per_mol is None
 
     def test_vant_hoff_no_dH_returns_log_K_unchanged(self):
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
         rxn = self._rxn()
-        assert vant_hoff_log_K(rxn, 350.0) == pytest.approx(rxn.log_K)
+        assert constraint_log_K_at(rxn, 350.0) == pytest.approx(rxn.log_K)
 
     def test_vant_hoff_at_reference_temperature_returns_log_K(self):
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
         rxn = self._rxn(dH_J_per_mol=55800.0)
-        assert vant_hoff_log_K(rxn, rxn.T_ref_K) == pytest.approx(rxn.log_K)
+        assert constraint_log_K_at(rxn, rxn.T_ref_K) == pytest.approx(rxn.log_K)
 
     def test_vant_hoff_matches_manual_calculation(self):
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
         dH = 55800.0  # J/mol, water autoionization (endothermic)
         rxn = self._rxn(dH_J_per_mol=dH)
         T_K = 323.15
         delta_ln_K = -(dH / _R_J_MOL_K) * (1.0 / T_K - 1.0 / _T_REF)
         expected = rxn.log_K + delta_ln_K / math.log(10.0)
-        assert vant_hoff_log_K(rxn, T_K) == pytest.approx(expected, rel=1e-12)
+        assert constraint_log_K_at(rxn, T_K) == pytest.approx(expected, rel=1e-12)
 
     def test_vant_hoff_endothermic_increases_log_K_with_temperature(self):
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
         rxn = self._rxn(dH_J_per_mol=55800.0)
-        assert vant_hoff_log_K(rxn, 323.15) > vant_hoff_log_K(rxn, _T_REF)
+        assert constraint_log_K_at(rxn, 323.15) > constraint_log_K_at(rxn, _T_REF)
 
 
 # ── HenryEquilibrium ──────────────────────────────────────────────────────────
@@ -133,12 +133,12 @@ class TestHenryEquilibriumConformance:
         assert hp.stoichiometry == ()
 
     def test_vant_hoff_matches_kH_temperature_dependence(self):
-        """vant_hoff_log_K(hp, T) must agree with the native _kH_mol_L_atm(T) path."""
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        """constraint_log_K_at(hp, T) must agree with the native _kH_mol_L_atm(T) path."""
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
         hp = self._henry()
         T_K = 315.0
         expected = math.log10(hp._kH_mol_L_atm(T_K))
-        assert vant_hoff_log_K(hp, T_K) == pytest.approx(expected, rel=1e-9)
+        assert constraint_log_K_at(hp, T_K) == pytest.approx(expected, rel=1e-9)
 
 
 # ── RaoultEquilibrium ─────────────────────────────────────────────────────────
@@ -243,9 +243,9 @@ class TestKspEquilibriumSingleIon:
 
     def test_equilibrium_a_moles_matches_formula(self):
         ksp = self._ksp(dH_J_per_mol=12000.0)
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
         T_K = 310.0
-        Ksp_T = 10.0 ** vant_hoff_log_K(ksp, T_K)
+        Ksp_T = 10.0 ** constraint_log_K_at(ksp, T_K)
         n_liq = ksp.equilibrium_a_moles(n_total=1.0, capacity_a=2.0, capacity_b=1.0, T_K=T_K)
         assert n_liq == pytest.approx(min(1.0, Ksp_T * 2.0), rel=1e-9)
 

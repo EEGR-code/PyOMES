@@ -56,18 +56,18 @@
 
 ## Pre-flight
 
-- [ ] `git status -sb` clean apart from this phase's docs (the design note, this
+- [x] `git status -sb` clean apart from this phase's docs (the design note, this
       checklist and the `upcoming/README.md` entry)
-- [ ] `git log origin/main..main --oneline` empty
-- [ ] Branch created off current `main`: `git switch -c vant-hoff-single-source`
-- [ ] Those docs committed on the branch as the first commit
-- [ ] Baseline full suite recorded here (pass / fail / skip counts)
-- [ ] Baseline measurement: the script's "old" values captured for every copy
+- [x] `git log origin/main..main --oneline` empty
+- [x] Branch created off current `main`: `git switch -c vant-hoff-single-source`
+- [x] Those docs committed on the branch as the first commit (`d9bfa63`)
+- [x] Baseline full suite recorded here (pass / fail / skip counts)
+- [x] Baseline measurement: the script's "old" values captured for every copy
       #1–#15, and the engine fingerprint recorded
 
 ## Checkpoints
 
-- [ ] **1. Kernel, module and the reactions copies.** New
+- [x] **1. Kernel, module and the reactions copies.** New
       `thermo/temperature_correction.py`: the kernel (`ln_correction`, E/R in K)
       and `vant_hoff_K`, `vant_hoff_log_K` moved from `equilibrium_constants.py`
       unchanged in behaviour, plus the Henry-constant function and
@@ -119,8 +119,53 @@
 
 ## Notes
 
-<!-- Baseline counts, measurements, deviations and findings go here as each
-checkpoint lands. -->
+**Pre-flight (2026-09-28, on `d9bfa63`).** Baseline suite: 2130 passed, 0
+failed, 166 warnings. Engine fingerprint (`activity_fingerprint.py --style new`):
+`c649ad00…a38876ac763` over 1,452 values, unchanged from the previous phase.
+
+Baseline measurement (`vh_measure.py capture`, scratchpad, not committed): 26,338
+cases, 27,244 values, covering every copy #1–#15 through its real code path; #3
+and #4, which compute inline, are read back from the curves `plot_vant_hoff` and
+`plot_speciation` draw. A second run compares identical, so the measurement is
+repeatable. It also resolves the differences the design note predicts, from the
+baseline alone:
+
+- #1 vs #2 (the log10(e) constant): 899 of 4,520 values differ, by at most
+  3.55e-15 in log10 K.
+- #1 vs #5 (the 0.01 K skip, as pKa): inside the band, up to 4.65e-4 (at the
+  grid's largest enthalpy, 80 kJ/mol; 2.9e-4 at 50 kJ/mol); elsewhere at most
+  3.55e-15, i.e. arithmetic only.
+
+**Checkpoint 1 (2026-09-28).** Suite: 2139 passed, 0 failed (+9, all new tests in
+`test_temperature_correction.py`). Engine fingerprint identical
+(`c649ad00…a38876ac763`). `PyOMES.thermo.equilibrium_constants` no longer
+imports. Measurement against the baseline:
+
+- #1 `vant_hoff_K`, `vant_hoff_log_K`: bit-identical after the move.
+- #2 (now `constraint_log_K_at`): 899 of 4,520 values differ, at most 3.55e-15
+  in log10 K — exactly the 899 values where #1 and #2 differed at baseline, so #2
+  now equals #1. Arithmetic (the log10(e) constant).
+- #3 `plot_vant_hoff`: 42 of 303 curve values differ, at most 8.9e-16; #4
+  `plot_speciation`: 62 of 612 fraction values, at most 5.6e-16. Arithmetic
+  (÷R then ×log10(e) instead of ÷(R·ln 10)).
+- #5–#15: untouched, 0 differ.
+
+Implementation notes:
+
+- `vant_hoff_delta_ln_K` is replaced by the kernel `ln_correction(E_over_R_K, T_K,
+  T_ref_K)` (it had no caller outside its own tests). `vant_hoff_K` and
+  `vant_hoff_log_K` keep their exact arithmetic, including `vant_hoff_K`'s
+  `np.exp`; `henry_constant`, `clausius_clapeyron` and `arrhenius_factor` use
+  `math.exp`, as the copies they replace do, so checkpoints 4–5 can be
+  bit-identical. Their tests compare with each copy's written-out expression
+  exactly.
+- `plot_vant_hoff` calls `vant_hoff_log_K` once per grid point: the curve is over
+  an array, and `vant_hoff_log_K`'s edge checks take one temperature.
+- `arrhenius_factor` is exported from `PyOMES.reactions` with the rate laws.
+- **Deviation:** `docs/architecture.md`'s `thermo/` tree line (planned for
+  checkpoint 6) is updated here, because it named a file this checkpoint deletes.
+  The layering test's synthetic self-check string for `interphase` was also
+  updated to the new name.
 
 ## Shipping
 

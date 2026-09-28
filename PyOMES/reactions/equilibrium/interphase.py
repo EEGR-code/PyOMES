@@ -46,7 +46,7 @@ from PyOMES.chemistry.partition import _kH_mol_L_atm_from_ref
 from PyOMES.chemistry.species import Species
 from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL
 from PyOMES.units import R_L_ATM_PER_MOL_K
-from .constraint import vant_hoff_log_K
+from .constraint import constraint_log_K_at
 from PyOMES.reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
 
 
@@ -469,7 +469,7 @@ class KspEquilibrium:
                 "dissolved species); multi-ion Ksp requires the "
                 "active-set NR solver."
             )
-        Ksp_T = 10.0 ** vant_hoff_log_K(self, T_K)
+        Ksp_T = 10.0 ** constraint_log_K_at(self, T_K)
         return min(n_total, Ksp_T * capacity_a)
 
     def __repr__(self) -> str:

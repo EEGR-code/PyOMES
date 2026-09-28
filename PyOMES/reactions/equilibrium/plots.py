@@ -8,10 +8,9 @@ installation.
 
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from PyOMES.units import R_J_PER_MOL_K as _R_GAS  # J / (mol · K)
+from PyOMES.thermo.temperature_correction import vant_hoff_log_K
 
 if TYPE_CHECKING:
     from .reaction import EquilibriumReaction
@@ -96,9 +95,10 @@ def plot_vant_hoff(
     T_C   = T_arr - 273.15
 
     if rxn.dH_J_per_mol is not None:
-        log_K_arr = rxn.log_K + (rxn.dH_J_per_mol / (_R_GAS * math.log(10))) * (
-            1.0 / rxn.T_ref_K - 1.0 / T_arr
-        )
+        log_K_arr = np.array([
+            vant_hoff_log_K(rxn.log_K, rxn.dH_J_per_mol, float(T), rxn.T_ref_K)
+            for T in T_arr
+        ])
         temperature_dependent = True
     else:
         log_K_arr = np.full_like(T_arr, rxn.log_K)
@@ -319,9 +319,7 @@ def plot_speciation(
     pKas: List[float] = []
     for log_K, rxn in zip(log_Ks, chain_rxns):
         if T_K is not None and rxn.dH_J_per_mol is not None:
-            log_K_T = log_K + (rxn.dH_J_per_mol / (_R_GAS * math.log(10))) * (
-                1.0 / rxn.T_ref_K - 1.0 / T_K
-            )
+            log_K_T = vant_hoff_log_K(log_K, rxn.dH_J_per_mol, T_K, rxn.T_ref_K)
         else:
             log_K_T = log_K
         pKas.append(-log_K_T)  # pKa = -log10(Ka)

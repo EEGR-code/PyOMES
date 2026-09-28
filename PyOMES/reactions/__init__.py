@@ -64,6 +64,7 @@ from .kinetic.rate_laws import (
     Moser,
     Blackman,
     DualSubstrateMonod,
+    arrhenius_factor,
 )
 
 __all__ = [
@@ -99,4 +100,6 @@ __all__ = [
     "Moser",
     "Blackman",
     "DualSubstrateMonod",
+    # Temperature dependence of rates
+    "arrhenius_factor",
 ]

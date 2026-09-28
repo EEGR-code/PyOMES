@@ -40,7 +40,7 @@ from scipy.optimize import brentq
 
 from .ionic_strength import ionic_strength_from_speciation
 from ....thermo import ActivityModel, IdealLiquidModel
-from ....thermo.equilibrium_constants import vant_hoff_K
+from ....thermo.temperature_correction import vant_hoff_K
 
 
 # Charges for common ions (used for gamma application and a few computed keys)

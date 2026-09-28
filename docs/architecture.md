@@ -431,7 +431,8 @@ PyOMES/
       phreeqc.py                 # PHREEQCChemicalEquilibriumEngine (optional phreeqpython)
   thermo/                        # Stateless models and conventions (no solvers; depends only on units.py)
     framework.py                 # ThermoFramework (liquid_activity + gas_eos), THERMO_IDEAL, THERMO_DAVIES
-    equilibrium_constants.py     # van 't Hoff helpers (vant_hoff_K, vant_hoff_log_K)
+    temperature_correction.py    # exp(−(E/R)(1/T − 1/T_ref)) in one place: van 't Hoff
+                                 # (vant_hoff_K, vant_hoff_log_K, henry_constant), clausius_clapeyron
     liquid/                      # protocols.py (LiquidPhaseModel, ActivityModel, DifferentiableLiquidModel),
                                  # ideal.py, davies.py, sit.py (activity models), water_properties.py,
                                  # factory.py (make_activity_model)

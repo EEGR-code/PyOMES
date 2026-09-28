@@ -37,8 +37,26 @@ Usage standalone
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Callable, Protocol, runtime_checkable
+
+from PyOMES.thermo.temperature_correction import ln_correction
+
+
+# ════════════════════════════════════════════════════════════════════════
+#  Temperature dependence
+# ════════════════════════════════════════════════════════════════════════
+
+def arrhenius_factor(Ea_over_R_K: float, T_K: float, T_ref_K: float) -> float:
+    """Arrhenius factor ``k(T) / k(T_ref)`` for an activation energy ``Ea/R`` (K).
+
+    ``exp(−(Ea/R) · (1/T − 1/T_ref))``: multiply a rate constant known at
+    ``T_ref_K`` by this to get it at ``T_K``. The exponent is
+    :func:`PyOMES.thermo.temperature_correction.ln_correction`, the relation
+    van 't Hoff and Clausius–Clapeyron use too.
+    """
+    return math.exp(ln_correction(Ea_over_R_K, T_K, T_ref_K))
 
 
 # ════════════════════════════════════════════════════════════════════════
