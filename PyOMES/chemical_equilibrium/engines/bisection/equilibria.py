@@ -51,6 +51,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
+from ....thermo.temperature_correction import ln_correction
 from ....units import R_J_PER_MOL_K as _R_J
 
 _VALID_CATEGORIES = ("acid", "cation_acid", "inorganic_acid", "strong_ion")
@@ -129,7 +130,7 @@ class EquilibriumDef:
         """Compute all pKa(s) at temperature T_K."""
         if self.correction == "none":
             return self.pKas
-        if abs(T_K - self.T_ref_K) < 0.01:
+        if abs(T_K - self.T_ref_K) < 1e-10:
             return self.pKas
         result = []
         for pKa_ref, dH in zip(self.pKas, self.dH_J_per_mol):
@@ -137,8 +138,7 @@ class EquilibriumDef:
                 result.append(pKa_ref)
             else:
                 Ka_ref = 10.0 ** (-pKa_ref)
-                Ka_T = Ka_ref * math.exp(
-                    -dH / _R_J * (1.0 / T_K - 1.0 / self.T_ref_K))
+                Ka_T = Ka_ref * math.exp(ln_correction(dH / _R_J, T_K, self.T_ref_K))
                 result.append(-math.log10(max(Ka_T, 1e-30)))
         return tuple(result)
 
@@ -167,10 +167,9 @@ class WaterDef:
         Kw_ref = 10.0 ** (-self.pKw)
         if self.correction == "none" or abs(self.dH_J_per_mol) < 1e-10:
             return Kw_ref
-        if abs(T_K - self.T_ref_K) < 0.01:
+        if abs(T_K - self.T_ref_K) < 1e-10:
             return Kw_ref
-        return Kw_ref * math.exp(
-            -self.dH_J_per_mol / _R_J * (1.0 / T_K - 1.0 / self.T_ref_K))
+        return Kw_ref * math.exp(ln_correction(self.dH_J_per_mol / _R_J, T_K, self.T_ref_K))
 
     def pKw_at_T(self, T_K: float) -> float:
         return -math.log10(max(self.Kw_at_T(T_K), 1e-30))

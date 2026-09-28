@@ -85,7 +85,7 @@
       Sanity: `vant_hoff_K`/`vant_hoff_log_K` bit-identical to the old ones;
       measured shifts for #2–4 are arithmetic only; suite green; the old module
       path fails to import.
-- [ ] **2. Bisection engine** (#5–6: `EquilibriumDef.pKas_at_T`,
+- [x] **2. Bisection engine** (#5–6: `EquilibriumDef.pKas_at_T`,
       `WaterDef.Kw_at_T`). Call the kernel through `vant_hoff_K`; keep their
       `correction == "none"` switch and the `max(Ka, 1e-30)` clamp; drop the
       0.01 K skip. Sanity: outside the 0.01 K band, shifts arithmetic only; inside
@@ -116,6 +116,14 @@
       `equilibrium_constants.py:16`; `docs/architecture.md`'s `thermo/` tree line.
       Sanity: repo-wide sweep for `equilibrium_constants` and for the pattern;
       relative links resolve; suite green.
+- [ ] **7. Rename the test references.** In
+      `tests/standalone/test_temperature_correction.py`, `_legacy_vant_hoff_K` →
+      `_reference_vant_hoff_K`, `_legacy_vant_hoff_log_K` →
+      `_reference_vant_hoff_log_K`, and `TestBitIdenticalToLegacy` →
+      `TestBitIdenticalToReference`. They are independent written-out formulas that
+      pin the kernel's arithmetic bit for bit, not leftovers; "legacy" dates from the
+      earlier refactor they once guarded. Test-only. Sanity: no `_legacy_` left in
+      the file; that test file and the full suite pass.
 
 ## Notes
 
@@ -166,6 +174,34 @@ Implementation notes:
   checkpoint 6) is updated here, because it named a file this checkpoint deletes.
   The layering test's synthetic self-check string for `interphase` was also
   updated to the new name.
+
+**Checkpoint 2 (2026-09-28).** `EquilibriumDef.pKas_at_T` and `WaterDef.Kw_at_T`
+take their exponent from `ln_correction`; the 0.01 K skip is gone. Suite: 2139
+passed, 0 failed; BSM2 sentinels (6) pass unchanged; engine fingerprint identical
+(the engines solve at exactly T_ref and at 37 °C, both outside the band).
+Measurement:
+
+- #5 `pKas_at_T`: elsewhere 0 of 4,200 differ (bit-identical); inside the band
+  210 of 320 differ, at most 4.65e-4 in pKa — the same 210 values and size the
+  pre-flight #1-vs-#5 comparison predicted. Checked against the exact formula:
+  every band value now equals `-vant_hoff_log_K(...)` to within 1.8e-15 (the
+  Ka ↔ pKa round trip).
+- #6 `Kw_at_T`: elsewhere 0 of 840 differ; inside the band 42 of 64, at most
+  1.07e-3 relative (the same shift in K space: 4.65e-4 × ln 10).
+- Every other copy unchanged.
+
+Deviations from this checkpoint's wording, both to keep the attribution clean:
+
+- The copies call the kernel `ln_correction` directly with `math.exp`, not
+  `vant_hoff_K`, which uses `np.exp`: the two are not guaranteed equal in the last
+  bit, and calling the kernel keeps everything outside the band bit-identical.
+  The formula still lives only in the kernel.
+- The 0.01 K skip is replaced by the kernel's own 1e-10 K rule (as in
+  `vant_hoff_log_K`), not removed outright: at T exactly equal to T_ref the
+  correction is exactly zero, but `pKas_at_T` converts pKa → Ka → pKa, and that
+  round trip is not exact in floating point (4.76 can come back as
+  4.760000000000001), which would shift every solve at 25 °C in the last bit for
+  no physical reason.
 
 ## Shipping
 
