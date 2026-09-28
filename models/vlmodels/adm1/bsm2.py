@@ -47,6 +47,7 @@ from PyOMES.reactions import (
     KineticReaction, EquilibriumReaction, ReactionSystem, StoichiometryEntry,
 )
 from PyOMES.chemistry.species import Species
+from PyOMES.thermo.temperature_correction import ln_correction
 from PyOMES.chemistry.common_species import (
     H_plus, OH_minus, H2O as H2O_sp,
     CO2 as CO2_sp, HCO3_minus,
@@ -328,7 +329,7 @@ _R_J = 8.31446
 
 def _pKa_NH4(T_K):
     Ka_ref = 10.0 ** (-9.25)
-    Ka_T = Ka_ref * math.exp(-(51965.0 / _R_J) * (1.0 / T_K - 1.0 / 298.15))
+    Ka_T = Ka_ref * math.exp(ln_correction(51965.0 / _R_J, T_K, 298.15))
     return -math.log10(max(Ka_T, 1e-30))
 
 

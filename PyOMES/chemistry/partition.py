@@ -19,10 +19,10 @@ The partition_ratio() return value selects the solver path in KineticGasLiquidLi
 """
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Protocol, runtime_checkable
 
+from ..thermo.temperature_correction import henry_constant
 from ..units import R_L_ATM_PER_MOL_K
 
 
@@ -107,7 +107,7 @@ class MultispeciesPartitionModel(Protocol):
 def _kH_mol_L_atm_from_ref(H_ref: float, dlnH: float, T_K: float, T_ref: float) -> float:
     """Convert Sander kH (mol m⁻³ Pa⁻¹) to mol/(L·atm) and apply van 't Hoff."""
     H_mol_L_atm = (H_ref / 1000.0) * 101325.0
-    return H_mol_L_atm * math.exp(dlnH * (1.0 / T_K - 1.0 / T_ref))
+    return henry_constant(H_mol_L_atm, dlnH, T_K, T_ref)
 
 
 @dataclass(frozen=True)

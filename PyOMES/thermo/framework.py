@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from ..units import R_J_PER_MOL_K as _R_J
+from .temperature_correction import ln_correction
 from .liquid.protocols import LiquidPhaseModel
 from .liquid.ideal import IdealLiquidModel
 from .liquid.davies import DaviesLiquidModel
@@ -82,12 +83,10 @@ class ThermoFramework:
         T_ref_K : float
             Reference temperature (K).  Default 298.15 K.
         """
-        if abs(dH_J_per_mol) < 1e-12 or abs(T_K - T_ref_K) < 0.01:
+        if abs(dH_J_per_mol) < 1e-12 or abs(T_K - T_ref_K) < 1e-10:
             return pKa_ref
         Ka_ref = 10.0 ** (-pKa_ref)
-        Ka_T = Ka_ref * math.exp(
-            -dH_J_per_mol / _R_J * (1.0 / T_K - 1.0 / T_ref_K)
-        )
+        Ka_T = Ka_ref * math.exp(ln_correction(dH_J_per_mol / _R_J, T_K, T_ref_K))
         return -math.log10(max(Ka_T, 1e-30))
 
     def Kw_at_T(self, T_K: float, T_ref_K: float = 298.15) -> float:
@@ -97,11 +96,9 @@ class ThermoFramework:
         """
         _DH_W = 55900.0
         Kw_ref = 1e-14
-        if abs(T_K - T_ref_K) < 0.01:
+        if abs(T_K - T_ref_K) < 1e-10:
             return Kw_ref
-        return Kw_ref * math.exp(
-            -_DH_W / _R_J * (1.0 / T_K - 1.0 / T_ref_K)
-        )
+        return Kw_ref * math.exp(ln_correction(_DH_W / _R_J, T_K, T_ref_K))
 
 
 # Pre-built instances — import these rather than constructing ThermoFramework

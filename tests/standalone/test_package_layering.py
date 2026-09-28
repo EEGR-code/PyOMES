@@ -1,9 +1,10 @@
 """Guards on which ``PyOMES`` packages and modules may import which.
 
-- ``PyOMES/chemistry/`` depends on nothing in ``PyOMES`` except ``units``.
-  ``chemistry/`` holds species declarations and the phase-partition protocols.
-  It sits below ``reactions/``, ``core/`` and everything else, so no module in it
-  may import from them.
+- ``PyOMES/chemistry/`` depends on nothing in ``PyOMES`` except ``units`` and
+  ``thermo``. ``chemistry/`` holds species declarations and the phase-partition
+  protocols. It sits below ``reactions/``, ``core/`` and everything else, so no
+  module in it may import from them; ``thermo/`` imports only ``units``, so the
+  order units → thermo → chemistry stays acyclic.
 - Inside ``PyOMES/reactions/``, the ``kinetic/`` and ``equilibrium/`` folders stay
   separate. Neither imports the other, ``blackbox.py`` imports neither, neither
   imports ``reaction_system`` except under ``if TYPE_CHECKING:``, and neither
@@ -12,7 +13,7 @@
   their own folder.
 - Inside ``PyOMES/thermo/``, the ``liquid/`` and ``gas/`` folders stay separate.
   A module in either may import from ``PyOMES.thermo`` only within its own
-  folder: not the other folder, not ``framework`` or ``equilibrium_constants``,
+  folder: not the other folder, not ``framework`` or ``temperature_correction``,
   and not the ``PyOMES.thermo`` package root (nor the ``PyOMES`` root, which
   imports all of ``thermo/``). Imports from outside ``PyOMES.thermo``, such as
   ``units``, are not restricted by this rule.
@@ -35,7 +36,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "PyOMES"
 LAYER = "chemistry"
-ALLOWED = {"chemistry", "units"}
+ALLOWED = {"chemistry", "thermo", "units"}
 
 REACTIONS = f"{PACKAGE}.reactions"
 KINETIC = f"{REACTIONS}.kinetic"
@@ -186,7 +187,7 @@ def test_detector_catches_every_import_form():
     assert found("import math\nfrom dataclasses import dataclass\nimport numpy") == set()
 
 
-def test_chemistry_imports_only_units():
+def test_chemistry_imports_only_units_and_thermo():
     pkg_dir = REPO_ROOT / PACKAGE / LAYER
     files = sorted(p for p in pkg_dir.rglob("*.py") if "__pycache__" not in p.parts)
     assert (pkg_dir / "partition.py") in files, "layer directory not found or empty"
@@ -237,7 +238,7 @@ def test_reactions_layout_detector_catches_every_crossing():
     assert bad("from PyOMES.reactions.stoichiometry import S", builder) == 0
     assert bad("from PyOMES.reactions.environment import E\nfrom PyOMES.reactions._shared import f", builder) == 0
     assert bad("from .rate_laws import Monod\nfrom .reaction import K", builder) == 0
-    assert bad("from .constraint import vant_hoff_log_K", "PyOMES.reactions.equilibrium.interphase") == 0
+    assert bad("from .constraint import constraint_log_K_at", "PyOMES.reactions.equilibrium.interphase") == 0
     assert bad("from PyOMES.chemistry.species import S\nfrom PyOMES.units import R\nimport math", plots) == 0
     assert bad("from .environment import E", "PyOMES.reactions.blackbox") == 0
     # Files outside the three places the rule covers are not checked.
@@ -288,10 +289,10 @@ def test_thermo_layout_detector_catches_every_crossing():
     assert bad("if TYPE_CHECKING:\n    from ..gas.protocols import GasEOS", davies) == 1
     assert bad("from ..liquid.water_properties import water_kg_per_L", pr) == 1
     assert bad("from ..liquid import factory", "PyOMES.thermo.gas", True) == 1
-    # framework, equilibrium_constants and the package roots.
+    # framework, temperature_correction and the package roots.
     assert bad("from ..framework import ThermoFramework", davies) == 1
     assert bad("if TYPE_CHECKING:\n    from PyOMES.thermo.framework import ThermoFramework", pr) == 1
-    assert bad("from ..equilibrium_constants import vant_hoff_K", davies) == 1
+    assert bad("from ..temperature_correction import vant_hoff_K", davies) == 1
     assert bad("from PyOMES.thermo import DaviesLiquidModel", "PyOMES.thermo.liquid.factory") == 1
     assert bad("import PyOMES.thermo", pr) == 1
     assert bad("from PyOMES import thermo", pr) == 1
@@ -327,7 +328,7 @@ def test_thermo_liquid_and_gas_stay_separate():
 
     assert not offenders, (
         f"{PACKAGE}/thermo/liquid/ and gas/ may import from {PACKAGE}.thermo only within "
-        "their own folder: not each other, framework, equilibrium_constants or the package "
+        "their own folder: not each other, framework, temperature_correction or the package "
         "root (all import depths counted). Offenders: "
         + "; ".join(f"{f} -> {', '.join(p)}" for f, p in offenders.items())
     )

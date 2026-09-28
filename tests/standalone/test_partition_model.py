@@ -396,11 +396,11 @@ class TestRaoultCustomParameters:
         assert rp.T_ref_K == pytest.approx(300.0)
 
     def test_constraint_role_agrees_with_partition_role_at_any_temperature(self):
-        """vant_hoff_log_K(rp, T) must equal -log10(P_sat(T)) for custom constants."""
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        """constraint_log_K_at(rp, T) must equal -log10(P_sat(T)) for custom constants."""
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
         rp = self._custom()
         for T in (285.0, 300.0, 340.0):
-            assert vant_hoff_log_K(rp, T) == pytest.approx(-math.log10(rp.P_sat(T)), rel=1e-9)
+            assert constraint_log_K_at(rp, T) == pytest.approx(-math.log10(rp.P_sat(T)), rel=1e-9)
 
     def test_other_solvent_with_species_objects(self):
         from PyOMES.chemistry.species import Species

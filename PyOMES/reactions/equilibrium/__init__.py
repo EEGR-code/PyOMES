@@ -2,7 +2,7 @@
 """Equilibrium reactions: algebraic constraints with an equilibrium constant.
 
 - ``constraint.py``: the :class:`EquilibriumConstraint` protocol every
-  equilibrium below satisfies, with :func:`vant_hoff_log_K` and
+  equilibrium below satisfies, with :func:`constraint_log_K_at` and
   :func:`classify_equilibrium_constraint`.
 - ``reaction.py``: :class:`EquilibriumReaction`, the general mass-action
   equilibrium.

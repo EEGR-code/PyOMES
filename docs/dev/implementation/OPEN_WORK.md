@@ -80,56 +80,6 @@ Switching both to `water_kg_per_L` would change results only at such
 temperatures, so it was left out of the pure-refactor phase; it is a one-line
 change in each method if wanted.
 
-## A third van 't Hoff copy in `reactions/equilibrium/constraint.py` differs from `thermo` in the last bit
-
-Surfaced 2026-09-20 during `chemical-equilibrium-engines-subfolder`
-checkpoint 7, which merged `acid_base._vant_hoff_K` and
-`nr_tableau._vant_hoff_log_K` into `PyOMES/thermo/equilibrium_constants.py`.
-`reactions/equilibrium/constraint.py:63` `vant_hoff_log_K(constraint, T_K)` has the same
-maths and the same edge-case rules as `thermo.equilibrium_constants.vant_hoff_log_K`,
-but converts ln K to log10 K with `_LOG10_E = 1.0 / math.log(10.0)`
-(`0.43429448190325176`), while the `nr_tableau` version — now the `thermo` one —
-uses `np.log10(np.e)` (`0.4342944819032518`). They differ by 1 ulp, so folding
-one into the other changes about a fifth of corrected values by up to ~4e-15 in
-log10 K (measured on 20,000 random cases). That is negligible physically but is
-a numerical change, so it was left out of a pure-refactor phase.
-
-To finish the de-duplication: make `reactions.equilibrium.constraint.vant_hoff_log_K` a
-thin wrapper that calls `thermo.equilibrium_constants.vant_hoff_log_K(
-constraint.log_K, constraint.dH_J_per_mol, T_K, constraint.T_ref_K)`, accept
-the 1-ulp shift, and re-run the suite (including `test_equilibrium_constraint.py`
-and the BSM2 sentinels) to confirm nothing depends on the last bit. Also rename
-one of the two same-named functions if the wrapper is not kept, to avoid two
-`vant_hoff_log_K` with different signatures.
-
-**Update 2026-09-22 (`chemistry-reactions-kinetics-cleanup` audit, 2026-09-21):**
-that phase's audit counted at least nine mass-action/van 't Hoff correction
-copies across `chemistry/`, `reactions/`, `thermo/` (this entry and the
-ADM1/BSM2 one below already covered some of them) plus four more in `models/`,
-estimating seven left in the package after the phase — an estimate, not a
-re-checked invariant. What did happen, checked directly: deleting
-`chemistry/thermo_params.py` at checkpoint 7 (2026-09-22, decision D3 — its
-`AcidDefinition.pKas_at_T`/`WaterDefinition.Kw_at_T` had no consumer) removed
-two copies outright; `chemical_equilibrium/engines/bisection/equilibria.py`'s own
-`EquilibriumDef.pKas_at_T`/`WaterDef.Kw_at_T` (same formula, real consumer)
-survived unmerged, just repointed to import `R_J_PER_MOL_K` from `units.py`
-directly; checkpoint 4's D8 fix separately collapsed a duplicate inside
-`chemistry/partition.py` (`HenryEquilibrium._kH_mol_L_atm`, since moved to
-`reactions/equilibrium/interphase.py`, delegates to `chemistry/partition.py`'s
-module-level `_kH_mol_L_atm_from_ref` instead of repeating it, so that
-pair counts as one implementation, not two — though it is a Henry-constant
-correction, not a pKa/Kw one, so whether the original count included it isn't
-clear from the audit text). A quick recount by function (not by line) after
-the phase, restricted to distinct `math.exp(-dH/R * (1/T - 1/T_ref))`-shaped
-implementations, finds eight in `chemistry/`+`reactions/`+`thermo/`
-(`equilibria.py` ×2, `partition.py` ×2 (now one each in `chemistry/partition.py`
-and `reactions/equilibrium/interphase.py`), `reactions/equilibrium/constraint.py` ×1,
-`thermo/equilibrium_constants.py` ×1 canonical, `thermo/framework.py` ×2) —
-close to, not exactly, the audit's "seven" estimate; not reconciled further
-here. Not fixed in that phase either way (Part A/B were pure-refactor,
-numerics-changing consolidation was explicitly out of scope) — the
-de-duplication described above is still the fix.
-
 ## Let a simulation set the value of physical constants such as `R`
 
 Raised 2026-09-20 while planning Part D of
@@ -154,7 +104,7 @@ paths: `Phase.pressure` / partial-pressure maths in `core/phases.py`,
 `core/boundaries.py`, `core/solvers.py`, `chemical_equilibrium/engines/nr/solver.py`,
 `thermo/gas/ideal.py`, `thermo/gas/peng_robinson.py`, `chemistry/partition.py`,
 `reactions/equilibrium/interphase.py`, `thermo/framework.py` and
-`thermo/equilibrium_constants.py`.
+`thermo/temperature_correction.py`.
 
 **Design sketch (not decided).**
 
@@ -204,7 +154,9 @@ label), excluding `chemical_equilibrium/`: **108 lines in 32 files** under
 ("folded gas-liquid row (CP1/CP2 of `LAYER1_GAP_CLOSURE`)").
 **Update 2026-09-24:** `thermo/` is down to 1 line (`thermo-subfolder-structure`
 rewrote the other 7 docstring lines when it moved them); the one left,
-`equilibrium_constants.py:16`, points at this file on purpose.
+`equilibrium_constants.py:16`, pointed at this file on purpose. **Update
+2026-09-28:** that module was replaced by `thermo/temperature_correction.py`,
+whose docstring has no such pointer.
 
 **Tests have the same problem, and worse in the file names.** Module
 docstrings read "Tests for CP2 of LAYER1_GAP_CLOSURE…", and several files are
@@ -410,7 +362,12 @@ that matches may be a fitted-formula coefficient and not the constant):
 Not yet surveyed: water density and other water properties, conversion factors such
 as 1000 L/m3, `ln(10)`, and the temperature-dependence coefficients of vapour
 pressure and Henry constants (these are data, not constants, and belong in
-`thermo/`, but should be checked for a second copy).
+`thermo/`, but should be checked for a second copy). The temperature-correction
+*formula* they feed is already single-source: it is written only in
+`thermo/temperature_correction.py`, and
+`tests/standalone/test_temperature_correction_single_source.py` fails on a new copy.
+The two water vapour-pressure parameter sets still differ (see "No single source for
+water's physical constants").
 
 Suggested approach, reusing the R guard: for each constant, define it once in
 `units.py` (derive dependent values from one literal, as R does), find copies by
@@ -688,6 +645,15 @@ enthalpy of vaporisation at 25 °C) so a caller can refer to them, and route the
 three `C_water` copies through one value. The second is not a pure refactor: the
 engine's derived value is 1000 / 18.015 = 55.5093, which differs from the 55.51
 literals by about 1.3e-5 relative, so results move slightly wherever they are unified.
+
+**Also (noted 2026-09-28): two water vapour-pressure parameter sets.** Besides
+`RaoultEquilibrium`'s defaults above (P_sat = 0.03169 atm, ΔH_vap = 44 011 J/mol,
+at 298.15 K), `core/phases.py` has its own for the headspace water vapour pressure
+(`water_vapour_P_sat_atm`): the BSM2 values P_sat = 0.0313 bar (= 0.03089 atm) and
+ΔH_vap/R = 5290 K (≈ 43 983 J/mol), at 298.15 K, chosen for BSM2 compatibility. The two
+differ by about 2.6 % in P_sat at 25 °C. Both now go through the same
+`clausius_clapeyron` function, so only the data differs; which set is canonical, and
+whether BSM2 compatibility needs its own, is undecided.
 
 ## `ReactionBuilder.aerobic_growth` doesn't check the derived yield is achievable
 

@@ -44,7 +44,7 @@ from .solver import (
     _build_gammas, _compute_concentrations, _residual_and_jacobian,
 )
 from ....thermo import ActivityModel, make_activity_model
-from ....thermo.equilibrium_constants import vant_hoff_log_K
+from ....thermo.temperature_correction import vant_hoff_log_K
 from ...protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
 
 logger = logging.getLogger(__name__)

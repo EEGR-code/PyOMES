@@ -159,12 +159,12 @@ class TestOldBugStructurallyImpossible:
         PartitionModel-role kH(T) and the EquilibriumConstraint-role
         log_K/dH_J_per_mol are both always read from the same H_ref/dlnH
         fields — there is no second set of numbers to fall out of sync."""
-        from PyOMES.reactions.equilibrium.constraint import vant_hoff_log_K
+        from PyOMES.reactions.equilibrium.constraint import constraint_log_K_at
 
         co2 = _co2_henry(H_ref=3.4e-4, dlnH=2400.0)
         for T_K in (280.0, 298.15, 320.0, 350.0):
             kH_direct = co2._kH_mol_L_atm(T_K)  # PartitionModel-role computation
-            log_K_via_constraint = vant_hoff_log_K(co2, T_K)  # EquilibriumConstraint role
+            log_K_via_constraint = constraint_log_K_at(co2, T_K)  # EquilibriumConstraint role
             assert log_K_via_constraint == pytest.approx(
                 math.log10(kH_direct), rel=1e-9
             )
