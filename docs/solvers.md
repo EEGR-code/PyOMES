@@ -379,13 +379,13 @@ PyOMES.config.warnings = PyOMES.WarningConfig.production()
 warnings.simplefilter("error", PyOMES.AccuracyWarning)
 ```
 
-In CI / batch runs, the `VLSIM_WARNINGS` environment variable
+In CI / batch runs, the `PYOMES_WARNINGS` environment variable
 selects from flat presets:
 
 ```bash
-$ VLSIM_WARNINGS=silent     python run.py    # all AccuracyWarning suppressed
-$ VLSIM_WARNINGS=verbose    python run.py    # every check emits every step
-$ VLSIM_WARNINGS=production python run.py    # first 3 per category, then summary
+$ PYOMES_WARNINGS=silent     python run.py    # all AccuracyWarning suppressed
+$ PYOMES_WARNINGS=verbose    python run.py    # every check emits every step
+$ PYOMES_WARNINGS=production python run.py    # first 3 per category, then summary
 ```
 
 After a run, `PyOMES.print_accuracy_summary()` and

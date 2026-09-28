@@ -13,7 +13,7 @@ Two translation layers bridge the naming conventions:
   e.g. ``{"CO2": "C", "NH3": "N(-3)", "H2S": "S(-2)", "SO4": "S(6)"}``.
 - **Output** (`species_map`): PHREEQC species name → PyOMES species name,
   applied to every key in ``sol.species`` before writing back to ``phase.n_mol``.
-  The built-in default :func:`phreeqc_to_vlsim` converts charge-number notation
+  The built-in default :func:`phreeqc_to_pyomes` converts charge-number notation
   (``Ca+2``) to repeated-symbol notation (``Ca++``) and applies a small
   exceptions dict for species like ``Fe+2`` → ``Fe2+``.
 
@@ -56,7 +56,7 @@ _CHARGE_REGEX = re.compile(r"^(.*?)([+-])(\d+)$")
 _OXIDATION_STATE_RE = re.compile(r"\([^)]+\)")
 
 
-def phreeqc_to_vlsim(phreeqc_name: str) -> str:
+def phreeqc_to_pyomes(phreeqc_name: str) -> str:
     """Convert a PHREEQC species name to the PyOMES naming convention.
 
     Rules applied in order:
@@ -111,7 +111,7 @@ class PHREEQCChemicalEquilibriumEngine:
         ``(phreeqc_name: str) -> species_id: str``.  Applied to every key in
         ``sol.species`` when building the output dict and the
         algebraic-species cache.  Pass ``None`` to disable translation (PHREEQC
-        names are used verbatim).  Default: :func:`phreeqc_to_vlsim`.
+        names are used verbatim).  Default: :func:`phreeqc_to_pyomes`.
     T_C : float
         Operating temperature (°C).  Default 25.0.
     use_warmstart : bool
@@ -127,7 +127,7 @@ class PHREEQCChemicalEquilibriumEngine:
         components: Dict[str, float],
         *,
         component_map: Dict[str, str],
-        species_map: Optional[Callable[[str], str]] = phreeqc_to_vlsim,
+        species_map: Optional[Callable[[str], str]] = phreeqc_to_pyomes,
         T_C: float = 25.0,
         use_warmstart: bool = True,
     ) -> None:
@@ -298,12 +298,12 @@ class PHREEQCChemicalEquilibriumEngine:
             "IonicStrength": float(sol.I),
         }
         for phreeqc_name, conc_mol_L in sol.species.items():
-            vlsim_name = (
+            pyomes_name = (
                 self.species_map(phreeqc_name)
                 if self.species_map is not None
                 else phreeqc_name
             )
-            out[vlsim_name] = float(conc_mol_L)
+            out[pyomes_name] = float(conc_mol_L)
         return out
 
     def _read_from_phases(self, phases) -> Dict[str, float]:

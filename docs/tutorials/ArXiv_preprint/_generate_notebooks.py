@@ -531,8 +531,8 @@ Cl- = Cl-
 END
 \"\"\"
     _db_dir = Path(tempfile.gettempdir())
-    (_db_dir / "vlsim_ideal_phosphate_ammonium.dat").write_text(_IDEAL_DB)
-    pp_ideal = _RawPhreeqPython(database="vlsim_ideal_phosphate_ammonium.dat",
+    (_db_dir / "pyomes_ideal_phosphate_ammonium.dat").write_text(_IDEAL_DB)
+    pp_ideal = _RawPhreeqPython(database="pyomes_ideal_phosphate_ammonium.dat",
                                  database_directory=_db_dir)
 
     def _solve_ideal_pq(ct_p, ct_n):

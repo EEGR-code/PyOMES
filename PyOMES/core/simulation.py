@@ -442,9 +442,9 @@ class Simulation:
         # PyOMES version
         try:
             from importlib.metadata import version as _pkg_ver
-            vlsim_version = _pkg_ver("PyOMES")
+            pyomes_version = _pkg_ver("PyOMES")
         except Exception:
-            vlsim_version = "unknown"
+            pyomes_version = "unknown"
 
         # BLAS info
         import numpy as np_mod
@@ -456,7 +456,7 @@ class Simulation:
         manifest = {
             "schema_version": 1,
             "mode": mode,
-            "vlsim_version": vlsim_version,
+            "pyomes_version": pyomes_version,
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "t_h": float(self._t_h),
             "compression": compression,
@@ -563,7 +563,7 @@ class Simulation:
                 current_version = _pkg_ver("PyOMES")
             except Exception:
                 current_version = "unknown"
-            saved_version = manifest.get("vlsim_version", "unknown")
+            saved_version = manifest.get("pyomes_version", "unknown")
             if saved_version != current_version:
                 msg = (
                     f"PyOMES version mismatch: checkpoint was saved with "

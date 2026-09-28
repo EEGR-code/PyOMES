@@ -22,7 +22,7 @@ its own module docstring with more detail than is repeated here.
 | [`thermo/`](thermo/) | `ThermoFramework` and van 't Hoff helpers at the top level; [`liquid/`](thermo/liquid/) holds the liquid-phase activity models (`IdealLiquidModel`, `DaviesLiquidModel`, `SITLiquidModel`) and the water property correlations they use, which back `chemical_equilibrium/`; [`gas/`](thermo/gas/) holds the gas-phase equations of state (`IdealGasEOS`, `PengRobinsonEOS`). |
 | [`compounds.py`](compounds.py) | `ChemicalRegistry` / `Chemical` — standalone named-compound database (molecular weights, atom compositions), decoupled from `Species`. Backs the stirred-tank template's default organism/substrate composition lookup. |
 | [`units.py`](units.py) | Shared unit conversions and physical constants. |
-| [`config.py`](config.py) | Package-level accuracy-warning thresholds and throttling, configurable via the `VLSIM_WARNINGS` environment variable. |
+| [`config.py`](config.py) | Package-level accuracy-warning thresholds and throttling, configurable via the `PYOMES_WARNINGS` environment variable. |
 
 For concrete, runnable models built on top of this library (anaerobic
 digestion, HPLC columns), see the separate [`models/`](../models/)

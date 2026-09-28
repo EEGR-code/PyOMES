@@ -2,7 +2,7 @@
 
 Holds the global ``config`` singleton with accuracy-warning
 thresholds and throttle behaviour. Initialised from the
-``VLSIM_WARNINGS`` environment variable at import time (flat
+``PYOMES_WARNINGS`` environment variable at import time (flat
 presets only — ``silent`` / ``verbose`` / ``production``).
 
 Fine-grained tuning is via attribute assignment:
@@ -17,7 +17,7 @@ Or via a preset constructor:
 
 CI / batch usage:
 
-    $ VLSIM_WARNINGS=silent python run_simulation.py
+    $ PYOMES_WARNINGS=silent python run_simulation.py
 """
 
 from __future__ import annotations
@@ -84,7 +84,7 @@ class Config:
 
 
 def _warning_config_from_env() -> WarningConfig:
-    """Construct a ``WarningConfig`` from the ``VLSIM_WARNINGS``
+    """Construct a ``WarningConfig`` from the ``PYOMES_WARNINGS``
     environment variable, if set.
 
     Recognised values (case-insensitive, whitespace-stripped):
@@ -92,7 +92,7 @@ def _warning_config_from_env() -> WarningConfig:
     treated as unset. Unknown values emit a single ``UserWarning``
     and fall back to the default config.
     """
-    raw = os.environ.get("VLSIM_WARNINGS")
+    raw = os.environ.get("PYOMES_WARNINGS")
     if raw is None:
         return WarningConfig()
     preset = raw.strip().lower()
@@ -105,7 +105,7 @@ def _warning_config_from_env() -> WarningConfig:
     if preset == "production":
         return WarningConfig.production()
     warnings.warn(
-        f"VLSIM_WARNINGS={raw!r}: unknown preset. "
+        f"PYOMES_WARNINGS={raw!r}: unknown preset. "
         f"Expected one of 'silent', 'verbose', 'production'. "
         f"Falling back to default WarningConfig.",
         UserWarning,

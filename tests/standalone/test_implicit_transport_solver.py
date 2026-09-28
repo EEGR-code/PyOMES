@@ -2,7 +2,7 @@
 """Tests for Phase D — IMPLICIT_TRANSPORT.
 
 Covers:
-- ImplicitTransportSystemSolver importable from vlsim.core
+- ImplicitTransportSystemSolver importable from PyOMES.core
 - SystemSolver protocol satisfied
 - _assemble_transport_matrix: shape, AdvectiveLink entries, DiffusiveLink entries
 - 2-CV advective: mass conserved; non-negative at CFL-violating dt_h

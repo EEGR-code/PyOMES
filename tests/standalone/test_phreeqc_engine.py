@@ -3,7 +3,7 @@
 
 Structure
 ---------
-TestNameTranslation     — phreeqc_to_vlsim and _strip_oxidation_state;
+TestNameTranslation     — phreeqc_to_pyomes and _strip_oxidation_state;
                           no phreeqpython dependency, always runs.
 TestImportError         — PHREEQCChemicalEquilibriumEngine raises ImportError when phreeqpython
                           is absent; uses monkeypatch, always runs.
@@ -20,7 +20,7 @@ import pytest
 from PyOMES.chemical_equilibrium.engines.phreeqc import (
     PHREEQCChemicalEquilibriumEngine,
     _strip_oxidation_state,
-    phreeqc_to_vlsim,
+    phreeqc_to_pyomes,
 )
 
 
@@ -29,62 +29,62 @@ from PyOMES.chemical_equilibrium.engines.phreeqc import (
 # ---------------------------------------------------------------------------
 
 class TestNameTranslation:
-    """phreeqc_to_vlsim: exceptions, structural regex, and pass-through."""
+    """phreeqc_to_pyomes: exceptions, structural regex, and pass-through."""
 
     # Exceptions dict
     def test_fe2_exception(self):
-        assert phreeqc_to_vlsim("Fe+2") == "Fe2+"
+        assert phreeqc_to_pyomes("Fe+2") == "Fe2+"
 
     def test_fe3_exception(self):
-        assert phreeqc_to_vlsim("Fe+3") == "Fe3+"
+        assert phreeqc_to_pyomes("Fe+3") == "Fe3+"
 
     # Structural regex: X+N → X + "+" * N
     def test_ca_plus2(self):
-        assert phreeqc_to_vlsim("Ca+2") == "Ca++"
+        assert phreeqc_to_pyomes("Ca+2") == "Ca++"
 
     def test_mg_plus2(self):
-        assert phreeqc_to_vlsim("Mg+2") == "Mg++"
+        assert phreeqc_to_pyomes("Mg+2") == "Mg++"
 
     def test_ba_plus2(self):
-        assert phreeqc_to_vlsim("Ba+2") == "Ba++"
+        assert phreeqc_to_pyomes("Ba+2") == "Ba++"
 
     # Structural regex: X-N → X + "-" * N
     def test_so4_minus2(self):
-        assert phreeqc_to_vlsim("SO4-2") == "SO4--"
+        assert phreeqc_to_pyomes("SO4-2") == "SO4--"
 
     def test_co3_minus2(self):
-        assert phreeqc_to_vlsim("CO3-2") == "CO3--"
+        assert phreeqc_to_pyomes("CO3-2") == "CO3--"
 
     def test_hpo4_minus2(self):
-        assert phreeqc_to_vlsim("HPO4-2") == "HPO4--"
+        assert phreeqc_to_pyomes("HPO4-2") == "HPO4--"
 
     def test_po4_minus3(self):
-        assert phreeqc_to_vlsim("PO4-3") == "PO4---"
+        assert phreeqc_to_pyomes("PO4-3") == "PO4---"
 
     # Pass-through: singly charged (no digit suffix)
     def test_h_plus_passthrough(self):
-        assert phreeqc_to_vlsim("H+") == "H+"
+        assert phreeqc_to_pyomes("H+") == "H+"
 
     def test_oh_minus_passthrough(self):
-        assert phreeqc_to_vlsim("OH-") == "OH-"
+        assert phreeqc_to_pyomes("OH-") == "OH-"
 
     def test_na_plus_passthrough(self):
-        assert phreeqc_to_vlsim("Na+") == "Na+"
+        assert phreeqc_to_pyomes("Na+") == "Na+"
 
     def test_cl_minus_passthrough(self):
-        assert phreeqc_to_vlsim("Cl-") == "Cl-"
+        assert phreeqc_to_pyomes("Cl-") == "Cl-"
 
     def test_hco3_minus_passthrough(self):
-        assert phreeqc_to_vlsim("HCO3-") == "HCO3-"
+        assert phreeqc_to_pyomes("HCO3-") == "HCO3-"
 
     def test_nh4_plus_passthrough(self):
-        assert phreeqc_to_vlsim("NH4+") == "NH4+"
+        assert phreeqc_to_pyomes("NH4+") == "NH4+"
 
     # Neutral species (no charge suffix at all)
     def test_neutral_species_passthrough(self):
-        assert phreeqc_to_vlsim("CO2") == "CO2"
-        assert phreeqc_to_vlsim("NH3") == "NH3"
-        assert phreeqc_to_vlsim("H2O") == "H2O"
+        assert phreeqc_to_pyomes("CO2") == "CO2"
+        assert phreeqc_to_pyomes("NH3") == "NH3"
+        assert phreeqc_to_pyomes("H2O") == "H2O"
 
 
 class TestStripOxidationState:
@@ -203,7 +203,7 @@ class TestSolveOutput:
         sp = out.species_mol_L
         assert "HCO3-" in sp or "CO3--" in sp or "CO2" in sp
 
-    def test_vlsim_naming_applied(self, carbonate_engine):
+    def test_pyomes_naming_applied(self, carbonate_engine):
         out = carbonate_engine.solve(totals={"CO2": 0.010})
         # PHREEQC uses "CO3-2"; species_map should convert to "CO3--"
         assert "CO3-2" not in out.species_mol_L, "PHREEQC raw name should be translated"
@@ -244,7 +244,7 @@ class TestAlgebraicSpecies:
         alg = carbonate_engine.algebraic_species()
         assert "CO3--" in alg, f"algebraic_species={alg}"
 
-    def test_vlsim_names_only(self, carbonate_engine):
+    def test_pyomes_names_only(self, carbonate_engine):
         alg = carbonate_engine.algebraic_species()
         for sp in alg:
             assert "CO3-2" != sp, "PHREEQC raw name CO3-2 should be translated"
