@@ -1,6 +1,6 @@
 """Tests for PyOMES.thermo.temperature_correction and arrhenius_factor.
 
-The ``_legacy_*`` functions below write the van 't Hoff formulas out in full,
+The ``_reference_*`` functions below write the van 't Hoff formulas out in full,
 as independent references, so ``vant_hoff_K`` and ``vant_hoff_log_K`` are
 pinned to *exact* (bit-for-bit) equality, not just approximate agreement.
 """
@@ -26,7 +26,7 @@ from PyOMES.units import R_J_PER_MOL_K
 _LOG10_E = np.log10(np.e)
 
 
-def _legacy_vant_hoff_K(K_ref, dH_J_per_mol, T_K, T_ref_K=298.15):
+def _reference_vant_hoff_K(K_ref, dH_J_per_mol, T_K, T_ref_K=298.15):
     K_ref = float(K_ref)
     dH_J_per_mol = float(dH_J_per_mol)
     T_K = float(T_K)
@@ -40,7 +40,7 @@ def _legacy_vant_hoff_K(K_ref, dH_J_per_mol, T_K, T_ref_K=298.15):
     return float(K_ref * np.exp(-(dH_J_per_mol / R_J_PER_MOL_K) * (1.0 / T_K - 1.0 / T_ref_K)))
 
 
-def _legacy_vant_hoff_log_K(log_K_ref, dH_J_per_mol, T_K, T_ref_K):
+def _reference_vant_hoff_log_K(log_K_ref, dH_J_per_mol, T_K, T_ref_K):
     if dH_J_per_mol is None or abs(dH_J_per_mol) < 1e-30:
         return float(log_K_ref)
     if abs(T_K - T_ref_K) < 1e-10:
@@ -56,17 +56,17 @@ _TEMPS = [273.15, 278.15, 288.15, 298.15, 310.15, 323.15, 373.15]
 _T_REFS = [298.15, 293.15]
 
 
-class TestBitIdenticalToLegacy:
-    def test_vant_hoff_K_matches_legacy_exactly(self):
+class TestBitIdenticalToReference:
+    def test_vant_hoff_K_matches_reference_exactly(self):
         for K, dH, T, Tr in itertools.product(_K_REFS, _DHS, _TEMPS, _T_REFS):
-            assert vant_hoff_K(K, dH, T, Tr) == _legacy_vant_hoff_K(K, dH, T, Tr)
+            assert vant_hoff_K(K, dH, T, Tr) == _reference_vant_hoff_K(K, dH, T, Tr)
 
     def test_vant_hoff_K_default_reference_temperature(self):
-        assert vant_hoff_K(1e-14, 55830.0, 310.15) == _legacy_vant_hoff_K(1e-14, 55830.0, 310.15)
+        assert vant_hoff_K(1e-14, 55830.0, 310.15) == _reference_vant_hoff_K(1e-14, 55830.0, 310.15)
 
-    def test_vant_hoff_log_K_matches_legacy_exactly(self):
+    def test_vant_hoff_log_K_matches_reference_exactly(self):
         for lk, dH, T, Tr in itertools.product(_LOG_KS, _DHS + [None], _TEMPS, _T_REFS):
-            assert vant_hoff_log_K(lk, dH, T, Tr) == _legacy_vant_hoff_log_K(lk, dH, T, Tr)
+            assert vant_hoff_log_K(lk, dH, T, Tr) == _reference_vant_hoff_log_K(lk, dH, T, Tr)
 
 
 class TestVantHoffK:

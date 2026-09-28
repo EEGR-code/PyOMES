@@ -116,7 +116,7 @@
       `equilibrium_constants.py:16`; `docs/architecture.md`'s `thermo/` tree line.
       Sanity: repo-wide sweep for `equilibrium_constants` and for the pattern;
       relative links resolve; suite green.
-- [ ] **7. Rename the test references.** In
+- [x] **7. Rename the test references.** In
       `tests/standalone/test_temperature_correction.py`, `_legacy_vant_hoff_K` →
       `_reference_vant_hoff_K`, `_legacy_vant_hoff_log_K` →
       `_reference_vant_hoff_log_K`, and `TestBitIdenticalToLegacy` →
@@ -257,6 +257,16 @@ only `RaoultEquilibrium`'s vapour-pressure values, not the second set in
 the design note said it covered; the entry now records both. Remaining
 `equilibrium_constants` mentions are history (that note, and the thermo phase's
 "Recently shipped" entry in `upcoming/README.md`).
+
+**Checkpoint 7 (2026-09-28).** In `test_temperature_correction.py`:
+`_legacy_vant_hoff_K` → `_reference_vant_hoff_K`, `_legacy_vant_hoff_log_K` →
+`_reference_vant_hoff_log_K`, `TestBitIdenticalToLegacy` →
+`TestBitIdenticalToReference`, plus three mentions this checkpoint's list did not
+name: the module docstring's ``_legacy_*`` and the two methods
+`test_vant_hoff_K_matches_legacy_exactly` / `test_vant_hoff_log_K_matches_legacy_exactly`
+(now `…_matches_reference_exactly`). No "legacy" left in the file and no reference
+to the old names anywhere else. That file: 32 passed; suite: 2142 passed, 0
+failed.
 
 ## Shipping
 
