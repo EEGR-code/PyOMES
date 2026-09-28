@@ -91,7 +91,7 @@
       0.01 K skip. Sanity: outside the 0.01 K band, shifts arithmetic only; inside
       it, the shift equals the previously skipped correction; engine fingerprint
       and BSM2 sentinels recorded; suite green.
-- [ ] **3. `ThermoFramework`** (#7–8): `pKa_at_T`, `Kw_at_T` as thin callers of
+- [x] **3. `ThermoFramework`** (#7–8): `pKa_at_T`, `Kw_at_T` as thin callers of
       the kernel, 0.01 K skip dropped. Sanity as checkpoint 2;
       `chemistry_database.ipynb` re-run if its saved output shows a changed value.
 - [ ] **4. Henry and vapour pressure** (#9–11). `test_package_layering.py`: the
@@ -202,6 +202,18 @@ Deviations from this checkpoint's wording, both to keep the attribution clean:
   round trip is not exact in floating point (4.76 can come back as
   4.760000000000001), which would shift every solve at 25 °C in the last bit for
   no physical reason.
+
+**Checkpoint 3 (2026-09-28).** `ThermoFramework.pKa_at_T` and `Kw_at_T` take
+their exponent from `ln_correction`, with the same two choices as checkpoint 2
+(`math.exp`; 0.01 K rule → 1e-10 K). Suite: 2139 passed, 0 failed; engine
+fingerprint identical. Measurement:
+
+- #7 `pKa_at_T`: elsewhere 0 of 4,200 differ; band 210 of 320, at most 4.65e-4 in
+  pKa; every band value equals the exact formula to within 1.78e-15.
+- #8 `Kw_at_T` (fixed ΔH = 55 900 J/mol): elsewhere 0 of 105 differ; band 6 of 8,
+  at most 7.49e-4 relative (4.65e-4 × ln 10 × 55.9/80, as expected).
+- `chemistry_database.ipynb` calls `pKa_at_T` only at 308.15 K, outside the band,
+  so its saved output is unchanged and it was not re-run.
 
 ## Shipping
 
