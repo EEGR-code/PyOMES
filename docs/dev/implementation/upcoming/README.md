@@ -20,6 +20,20 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[VANT_HOFF_SINGLE_SOURCE.md](VANT_HOFF_SINGLE_SOURCE.md)** —
+  2026-09-28. The relation X(T) = X_ref·exp(−(E/R)(1/T − 1/T_ref)) is written out
+  by hand in 15 places (van 't Hoff for K, pKa, Kw, Ksp and Henry constants;
+  Clausius–Clapeyron for water vapour pressure; Arrhenius in ADM1). All are
+  mathematically correct but differ in arithmetic order and edge rules. Proposes
+  one kernel in `thermo/`, in terms of E/R, with named wrappers that every copy
+  calls, a guard test against new copies, and `chemistry/` allowed to import
+  `thermo/`. Most shifts are last-bit arithmetic; one is a deliberate change of
+  formulation (dropping a 0.01 K skip around T_ref in the Bisection engine and
+  `ThermoFramework`). Absorbs the `OPEN_WORK.md` entry on the `constraint.py`
+  copy. Direction approved; kernel in `thermo/temperature_correction.py`,
+  `arrhenius_factor` in `reactions/kinetic/rate_laws.py`; checklist in
+  [VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md](VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md);
+  no branch or code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
