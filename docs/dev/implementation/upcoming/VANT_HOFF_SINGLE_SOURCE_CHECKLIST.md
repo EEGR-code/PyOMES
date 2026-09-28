@@ -94,7 +94,7 @@
 - [x] **3. `ThermoFramework`** (#7–8): `pKa_at_T`, `Kw_at_T` as thin callers of
       the kernel, 0.01 K skip dropped. Sanity as checkpoint 2;
       `chemistry_database.ipynb` re-run if its saved output shows a changed value.
-- [ ] **4. Henry and vapour pressure** (#9–11). `test_package_layering.py`: the
+- [x] **4. Henry and vapour pressure** (#9–11). `test_package_layering.py`: the
       `chemistry/` rule becomes `{chemistry, thermo, units}`, with its docstring.
       `chemistry/partition.py` `_kH_mol_L_atm_from_ref` keeps its unit conversion
       and calls the Henry-constant function; `RaoultEquilibrium.P_sat` and
@@ -214,6 +214,16 @@ fingerprint identical. Measurement:
   at most 7.49e-4 relative (4.65e-4 × ln 10 × 55.9/80, as expected).
 - `chemistry_database.ipynb` calls `pKa_at_T` only at 308.15 K, outside the band,
   so its saved output is unchanged and it was not re-run.
+
+**Checkpoint 4 (2026-09-28).** `chemistry/partition.py`'s
+`_kH_mol_L_atm_from_ref` keeps its unit conversion and calls `henry_constant`;
+`RaoultEquilibrium.P_sat` and `core/phases.water_vapour_P_sat_atm` call
+`clausius_clapeyron` with their own parameters (unchanged). The layering test's
+`chemistry/` rule now allows `thermo` (docstring updated; the test is renamed
+`test_chemistry_imports_only_units_and_thermo`). Suite: 2139 passed, 0 failed;
+layering and import-graph-acyclic tests pass; engine fingerprint identical.
+Measurement: #9, #10 and #11 bit-identical (0 of 1,356, 113 and 113 values
+differ), as the exact-expression tests from checkpoint 1 predicted.
 
 ## Shipping
 

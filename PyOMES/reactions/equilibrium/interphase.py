@@ -44,6 +44,7 @@ from typing import Dict, Optional, Sequence, Tuple, Union
 from PyOMES.chemistry import common_species
 from PyOMES.chemistry.partition import _kH_mol_L_atm_from_ref
 from PyOMES.chemistry.species import Species
+from PyOMES.thermo.temperature_correction import clausius_clapeyron
 from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from .constraint import constraint_log_K_at
@@ -281,9 +282,7 @@ class RaoultEquilibrium:
 
     def P_sat(self, T_K: float) -> float:
         """Saturation pressure of pure water (atm) at T_K via Clausius-Clapeyron."""
-        return self.P_sat_ref * math.exp(
-            -self.dH_vap / _R_J_MOL * (1.0 / T_K - 1.0 / self.T_ref)
-        )
+        return clausius_clapeyron(self.P_sat_ref, self.dH_vap / _R_J_MOL, T_K, self.T_ref)
 
     def partition_ratio(
         self,

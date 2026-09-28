@@ -1,9 +1,10 @@
 """Guards on which ``PyOMES`` packages and modules may import which.
 
-- ``PyOMES/chemistry/`` depends on nothing in ``PyOMES`` except ``units``.
-  ``chemistry/`` holds species declarations and the phase-partition protocols.
-  It sits below ``reactions/``, ``core/`` and everything else, so no module in it
-  may import from them.
+- ``PyOMES/chemistry/`` depends on nothing in ``PyOMES`` except ``units`` and
+  ``thermo``. ``chemistry/`` holds species declarations and the phase-partition
+  protocols. It sits below ``reactions/``, ``core/`` and everything else, so no
+  module in it may import from them; ``thermo/`` imports only ``units``, so the
+  order units → thermo → chemistry stays acyclic.
 - Inside ``PyOMES/reactions/``, the ``kinetic/`` and ``equilibrium/`` folders stay
   separate. Neither imports the other, ``blackbox.py`` imports neither, neither
   imports ``reaction_system`` except under ``if TYPE_CHECKING:``, and neither
@@ -35,7 +36,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "PyOMES"
 LAYER = "chemistry"
-ALLOWED = {"chemistry", "units"}
+ALLOWED = {"chemistry", "thermo", "units"}
 
 REACTIONS = f"{PACKAGE}.reactions"
 KINETIC = f"{REACTIONS}.kinetic"
@@ -186,7 +187,7 @@ def test_detector_catches_every_import_form():
     assert found("import math\nfrom dataclasses import dataclass\nimport numpy") == set()
 
 
-def test_chemistry_imports_only_units():
+def test_chemistry_imports_only_units_and_thermo():
     pkg_dir = REPO_ROOT / PACKAGE / LAYER
     files = sorted(p for p in pkg_dir.rglob("*.py") if "__pycache__" not in p.parts)
     assert (pkg_dir / "partition.py") in files, "layer directory not found or empty"

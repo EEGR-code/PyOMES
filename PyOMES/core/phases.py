@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Protocol, runtime_checkable
 
 from ..control.descriptors import MutableScalar as _MS
+from ..thermo.temperature_correction import clausius_clapeyron
 from ..units import R_L_ATM_PER_MOL_K
 
 
@@ -61,8 +62,6 @@ def _require_non_negative(name: str, value: float) -> float:
 # Both agree to <1% across 20–40°C.  Clausius-Clapeyron is the default
 # for BSM2 compatibility.
 
-import math as _math
-
 # BSM2 Clausius-Clapeyron parameters
 _CC_P_REF_BAR = 0.0313          # P_sat at T_ref (bar)
 _CC_T_REF_K = 298.15            # reference temperature (K)
@@ -95,8 +94,7 @@ def water_vapour_P_sat_atm(T_K: float, method: str = "clausius_clapeyron") -> fl
     0.05494...
     """
     if method == "clausius_clapeyron":
-        P_bar = _CC_P_REF_BAR * _math.exp(
-            _CC_DH_VAP_OVER_R * (1.0 / _CC_T_REF_K - 1.0 / float(T_K)))
+        P_bar = clausius_clapeyron(_CC_P_REF_BAR, _CC_DH_VAP_OVER_R, float(T_K), _CC_T_REF_K)
         return P_bar * _BAR_TO_ATM
     elif method == "antoine":
         T_C = float(T_K) - 273.15
