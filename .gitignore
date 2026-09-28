@@ -206,9 +206,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Claude Code local session state, memory, and worktrees.
-# Contains personal session memory and is not project content.
-.claude/
+# Claude Code: shared project settings and skills are committed; personal
+# settings (settings.local.json), worktrees and anything else stay local.
+.claude/*
+!.claude/settings.json
+!.claude/skills/
 
 # Figures exported by demo notebooks (regenerate by re-running the notebook)
 docs/tutorials/**/figures/
