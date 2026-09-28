@@ -101,7 +101,7 @@
       `core/phases.water_vapour_P_sat_atm` call `clausius_clapeyron` (their
       parameter values unchanged). Sanity: bit-identical by construction, confirmed
       by measurement; suite green; import graph still acyclic.
-- [ ] **5. Models** (#12–15). ADM1 `_arrhenius` calls `arrhenius_factor`;
+- [x] **5. Models** (#12–15). ADM1 `_arrhenius` calls `arrhenius_factor`;
       `_pKa_NH4` (×3 files) and `_pKa_H2S` call the kernel with their own
       `ΔH / _R_J` (rounded R unchanged). Sanity: bit-identical by construction,
       confirmed; BSM2 sentinels pass unchanged; suite green.
@@ -224,6 +224,15 @@ fingerprint identical. Measurement:
 layering and import-graph-acyclic tests pass; engine fingerprint identical.
 Measurement: #9, #10 and #11 bit-identical (0 of 1,356, 113 and 113 values
 differ), as the exact-expression tests from checkpoint 1 predicted.
+
+**Checkpoint 5 (2026-09-28).** ADM1's `_arrhenius` keeps its guard and calls
+`arrhenius_factor` (imported from `PyOMES.reactions`); the four pKa functions
+(`adm1/base.py` `_pKa_NH4`, `_pKa_H2S`; `bsm2.py` and `bsm2_direct.py`
+`_pKa_NH4`) call `ln_correction` with their own `ΔH / _R_J`, so the rounded R
+stays theirs. Suite: 2139 passed, 0 failed; BSM2 sentinels (6) pass unchanged;
+engine fingerprint identical. Measurement: #12–#15 bit-identical. A sweep of
+`PyOMES/` and `models/` for the `1/T − 1/T_ref` pattern now finds only the kernel
+(`thermo/temperature_correction.py:41`): all 15 copies are gone.
 
 ## Shipping
 

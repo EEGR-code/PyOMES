@@ -39,6 +39,7 @@ from vlmodels.adm1.bsm2 import (
     _thod, _atoms, _nC, _nN,
 )
 from PyOMES.reactions.environment import ReactionEnvironment
+from PyOMES.thermo.temperature_correction import ln_correction
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -274,7 +275,7 @@ _R_J = 8.31446
 
 def _pKa_NH4(T_K):
     Ka_ref = 10.0 ** (-9.25)
-    Ka_T = Ka_ref * math.exp(-(51965.0 / _R_J) * (1.0 / T_K - 1.0 / 298.15))
+    Ka_T = Ka_ref * math.exp(ln_correction(51965.0 / _R_J, T_K, 298.15))
     return -math.log10(max(Ka_T, 1e-30))
 
 

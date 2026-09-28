@@ -42,9 +42,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyOMES.reactions import (
     KineticReaction, EquilibriumReaction, ReactionSystem, StoichiometryEntry,
+    arrhenius_factor,
 )
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.common_species import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
+from PyOMES.thermo.temperature_correction import ln_correction
 
 logger = logging.getLogger(__name__)
 
@@ -472,16 +474,16 @@ def _get_pH_from_env(env):
 
 def _arrhenius(T_K, Ea_R, T_ref_K):
     if Ea_R <= 0.0 or T_K <= 0.0: return 1.0
-    return math.exp(Ea_R * (1.0 / T_ref_K - 1.0 / T_K))
+    return arrhenius_factor(Ea_R, T_K, T_ref_K)
 
 def _pKa_NH4(T_K):
     Ka_ref = 10.0 ** (-9.25)
-    Ka_T = Ka_ref * math.exp(-(51965.0 / _R_J) * (1.0 / T_K - 1.0 / 298.15))  # BSM2-corrected
+    Ka_T = Ka_ref * math.exp(ln_correction(51965.0 / _R_J, T_K, 298.15))  # BSM2-corrected
     return -math.log10(max(Ka_T, 1e-30))
 
 def _pKa_H2S(T_K):
     Ka_ref = 10.0 ** (-7.0)
-    Ka_T = Ka_ref * math.exp(-(20000.0 / _R_J) * (1.0 / T_K - 1.0 / 298.15))
+    Ka_T = Ka_ref * math.exp(ln_correction(20000.0 / _R_J, T_K, 298.15))
     return -math.log10(max(Ka_T, 1e-30))
 
 
