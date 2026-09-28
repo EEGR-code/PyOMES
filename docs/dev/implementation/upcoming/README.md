@@ -20,20 +20,6 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
-- **[VANT_HOFF_SINGLE_SOURCE.md](VANT_HOFF_SINGLE_SOURCE.md)** —
-  2026-09-28. The relation X(T) = X_ref·exp(−(E/R)(1/T − 1/T_ref)) is written out
-  by hand in 15 places (van 't Hoff for K, pKa, Kw, Ksp and Henry constants;
-  Clausius–Clapeyron for water vapour pressure; Arrhenius in ADM1). All are
-  mathematically correct but differ in arithmetic order and edge rules. Proposes
-  one kernel in `thermo/`, in terms of E/R, with named wrappers that every copy
-  calls, a guard test against new copies, and `chemistry/` allowed to import
-  `thermo/`. Most shifts are last-bit arithmetic; one is a deliberate change of
-  formulation (dropping a 0.01 K skip around T_ref in the Bisection engine and
-  `ThermoFramework`). Absorbs the `OPEN_WORK.md` entry on the `constraint.py`
-  copy. Direction approved; kernel in `thermo/temperature_correction.py`,
-  `arrhenius_factor` in `reactions/kinetic/rate_laws.py`; checklist in
-  [VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md](VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md);
-  no branch or code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
   2026-09-22. Surfaced while investigating whether `chemistry/
   common_species.py` should move to `PyOMES/databases/`: three internal
@@ -161,6 +147,23 @@ that still describe open work are "Open phases" and the pending stages in
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
+
+- `vant-hoff-single-source` (2026-09-28) — the relation
+  X(T) = X_ref·exp(−(E/R)(1/T − 1/T_ref)), written out by hand in 15 places, now
+  lives once, as `ln_correction` in the new `thermo/temperature_correction.py`
+  (which replaces `equilibrium_constants.py`), with wrappers `vant_hoff_K`,
+  `vant_hoff_log_K`, `henry_constant`, `clausius_clapeyron`, and `arrhenius_factor`
+  in `reactions/kinetic/rate_laws.py`. Every former copy calls it, including the
+  Bisection engine, `ThermoFramework`, the Henry and vapour-pressure code and the
+  ADM1/BSM2 models (which keep their rounded R as their own data); the
+  `constraint.py` copy became `constraint_log_K_at`. A guard test fails on any new
+  copy. `chemistry/` may now import `thermo/`. Seven checkpoints, each measured:
+  results are bit-identical or move by last-bit arithmetic only, except within
+  0.01 K of T_ref, where a skip in four copies is replaced by the exact
+  correction (up to 4.7e-4 in pKa). Engine fingerprint and BSM2 sentinels
+  unchanged. Full suite green: 2142 passed, 0 failed. Tag
+  `vant-hoff-single-source-shipped`. See
+  [`../shipped/VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md`](../shipped/VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md).
 
 - `activity-model-parameter` (2026-09-25) — replaced the `use_activity: bool` +
   `activity_model: str` pair with one `activity_model` argument that is a name

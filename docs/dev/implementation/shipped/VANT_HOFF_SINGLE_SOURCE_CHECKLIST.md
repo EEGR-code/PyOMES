@@ -1,11 +1,15 @@
 # Phase Kickoff Checklist — vant-hoff-single-source
 
+> **Status: Shipped 2026-09-28** — merged into `main` via `git merge --no-ff`
+> as commit `90c5915`, tagged `vant-hoff-single-source-shipped`. Full suite green
+> on the final tree: 2142 passed, 0 failed. Local feature branch deleted.
+
 > Checklist for [`VANT_HOFF_SINGLE_SOURCE.md`](VANT_HOFF_SINGLE_SOURCE.md), the
 > source of truth for motivation, inventory (copies #1–#15), design and decisions;
 > do not restate it here. Where this checklist and the note disagree, this
-> checklist wins. See [`README.md`](README.md)'s "Branching and tagging
+> checklist wins. See [`README.md`](../upcoming/README.md)'s "Branching and tagging
 > convention". Modelled on
-> [`../shipped/ACTIVITY_MODEL_PARAMETER_CHECKLIST.md`](../shipped/ACTIVITY_MODEL_PARAMETER_CHECKLIST.md).
+> [`ACTIVITY_MODEL_PARAMETER_CHECKLIST.md`](ACTIVITY_MODEL_PARAMETER_CHECKLIST.md).
 
 **Working rules**
 
@@ -270,13 +274,13 @@ failed.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
-- [ ] `git switch main`
-- [ ] `git merge --no-ff vant-hoff-single-source -m "Merge vant-hoff-single-source: <summary>"`
-- [ ] `git tag vant-hoff-single-source-shipped`
-- [ ] `git push origin main` and `git push origin vant-hoff-single-source-shipped`
-- [ ] `git branch -d vant-hoff-single-source`
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`,
+- [x] Full test suite green on the branch (2142 passed, 0 failed)
+- [x] `git switch main`
+- [x] `git merge --no-ff vant-hoff-single-source -m "Merge vant-hoff-single-source: <summary>"` (`90c5915`)
+- [x] `git tag vant-hoff-single-source-shipped`
+- [x] `git push origin main` and `git push origin vant-hoff-single-source-shipped`
+- [x] `git branch -d vant-hoff-single-source`
+- [x] Move the design note and this checklist to `docs/dev/implementation/shipped/`,
       add a "Shipped" banner to both
-- [ ] Update `docs/dev/implementation/upcoming/README.md`: remove the "Design
+- [x] Update `docs/dev/implementation/upcoming/README.md`: remove the "Design
       discussions" entry and add one to "Recently shipped"

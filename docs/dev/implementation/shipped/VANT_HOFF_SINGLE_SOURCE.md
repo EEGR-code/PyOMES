@@ -1,8 +1,14 @@
 # One source for the van 't Hoff relation — Design Note
 
-> Design discussion, 2026-09-28. Checklist:
-> [`VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md`](VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md).
-> No branch or code yet. Written
+> **Status: Shipped 2026-09-28** — implemented on branch
+> `vant-hoff-single-source`, merged into `main` via `git merge --no-ff` as commit
+> `90c5915`, tagged `vant-hoff-single-source-shipped`. The checklist,
+> [`VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md`](VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md),
+> records the implementation, every measured shift and the deviations settled
+> along the way (among them: the 0.01 K skip replaced by the kernel's 1e-10 K rule
+> rather than removed outright); where the two differ, the checklist wins.
+
+> Design discussion, 2026-09-28. Written
 > from a planning conversation that started from the `OPEN_WORK.md` entry "A
 > third van 't Hoff copy in `reactions/equilibrium/constraint.py` differs from
 > `thermo` in the last bit". Direction approved by the repo owner the same day:
