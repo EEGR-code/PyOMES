@@ -4,6 +4,37 @@ Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
 [`upcoming/README.md`](upcoming/README.md).
 
+## `03_phreeqc_engine_basics.ipynb` describes a warmstart drift the engine no longer has
+
+Found 2026-09-28 when re-running the notebook after renaming `phreeqc_to_pyomes`,
+not fixed. `PHREEQCChemicalEquilibriumEngine` builds a fresh PHREEQC solution
+for every `solve()`; `use_warmstart` is kept only so existing callers can still
+pass it. The notebook's Section 4 ("Gotcha: warmstart drifts from a fresh
+solve"), the `reset_cache()` note in Section 5 and the "Warmstart gotcha" row in
+the summary still describe the older incremental `sol.change(...)` path, and
+three stored outputs come from it. A re-run prints a warm/cold `|diff|` of
+0.0000 at every total instead of the stored 0.02–0.09, and the Section 2 solve
+gives pH 6.1331 instead of the stored 7.2865, with different species
+concentrations in Section 3. Fixing it means rewriting those markdown cells to
+match the engine and re-saving the outputs.
+
+## `vlmodels` still carries the former project name
+
+Found 2026-09-28 while removing the former project name `vlsim` from the
+package, tests and tutorials; the models package was left out of that change.
+The "vl" in `vlmodels` (`models/`) is the same prefix. Renaming it means moving
+`models/vlmodels/` (a plain filesystem move, staged as `CLAUDE.md` describes),
+changing the package name in `models/pyproject.toml` and `models/setup.py`, the
+package's own references (one import in `adm1/bsm2_direct.py`, docstring
+examples in `adm1/` and `hplc/`), the imports in
+`tests/standalone/test_bsm2_reference.py`, `test_hplc_column.py` and
+`test_simulation.py`, the path keys in `test_gas_constant_single_source.py`, a
+docstring in `PyOMES/numerics/spatial.py`, and the mentions in `README.md`,
+`models/README.md`, `docs/architecture.md`, `CLAUDE.md` and the open planning
+docs; then reinstalling with `python -m pip install -e ./models`. The HPLC
+template plan ([`upcoming/HPLC_CV_GRAPH_TEMPLATE.md`](upcoming/HPLC_CV_GRAPH_TEMPLATE.md))
+retires `models/vlmodels/hplc/`, which would shrink the rename if it ships first.
+
 ## Property calculators run only under `SequentialAdvanceSolver`
 
 Found 2026-09-25 while re-checking `docs/architecture.md` against the code, not
@@ -231,17 +262,6 @@ Restorable from the last commit before the deletion, `076f6b4`:
 the test file. If entry-level activity diagnostics are wanted later, a batch
 function designed for that job (γ for the whole liquid composition computed once,
 not once per entry) is a better starting point than reviving this one.
-
-## Rename `phreeqc_to_vlsim` (and drop the old project name `vlsim`)
-
-`chemical_equilibrium/engines/phreeqc.py` still names PyOMES's former project
-name in a public function, `phreeqc_to_vlsim`, which is also the default
-`species_map`, and in a local variable `vlsim_name`. Checkpoint 12b reworded the
-docs but kept the names, because renaming is a code change. It is also imported
-by `tests/standalone/test_phreeqc_engine.py` and used by the
-`03_phreeqc_engine_basics.ipynb` tutorial. With no outside users a rename
-without an alias is cheap (for example `phreeqc_to_pyomes`): one module, one
-test file, one notebook.
 
 ## No engine emits a high-ionic-strength warning
 

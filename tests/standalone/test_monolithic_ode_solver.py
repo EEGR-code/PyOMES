@@ -33,7 +33,7 @@ CP4 — Event loop + ZOH cache
   - Non-periodic controller fires at macro-step endpoint
 
 CP5 — method param + export
-  - MonolithicODESolver importable from vlsim.core
+  - MonolithicODESolver importable from PyOMES.core
   - method="LSODA" accepted and stable on stiff system
   - default_period_h=None raises ValueError for undeclared controller
   - default_period_h=float used for undeclared controller

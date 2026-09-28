@@ -3,7 +3,7 @@
 
 Covers:
 - ``WarningConfig`` defaults + classmethod presets.
-- ``VLSIM_WARNINGS`` env-var loading (silent / verbose /
+- ``PYOMES_WARNINGS`` env-var loading (silent / verbose /
   production / empty / unknown).
 - ``AccuracyMonitor`` per-check methods (positive / negative /
   no-op input handling for each of six checks).
@@ -88,35 +88,35 @@ class TestWarningConfig:
 class TestEnvVar:
 
     def test_silent(self, monkeypatch):
-        monkeypatch.setenv("VLSIM_WARNINGS", "silent")
+        monkeypatch.setenv("PYOMES_WARNINGS", "silent")
         assert _warning_config_from_env().throttle == "silent"
 
     def test_verbose_case_insensitive(self, monkeypatch):
-        monkeypatch.setenv("VLSIM_WARNINGS", "VERBOSE")
+        monkeypatch.setenv("PYOMES_WARNINGS", "VERBOSE")
         assert _warning_config_from_env().throttle == "always"
 
     def test_production_whitespace_trimmed(self, monkeypatch):
-        monkeypatch.setenv("VLSIM_WARNINGS", "  production  ")
+        monkeypatch.setenv("PYOMES_WARNINGS", "  production  ")
         cfg = _warning_config_from_env()
         assert cfg.throttle == "first_N"
         assert cfg.first_N == 3
 
     def test_empty_string_falls_through(self, monkeypatch):
-        monkeypatch.setenv("VLSIM_WARNINGS", "")
+        monkeypatch.setenv("PYOMES_WARNINGS", "")
         assert _warning_config_from_env().throttle == "once"  # default
 
     def test_unset_uses_default(self, monkeypatch):
-        monkeypatch.delenv("VLSIM_WARNINGS", raising=False)
+        monkeypatch.delenv("PYOMES_WARNINGS", raising=False)
         assert _warning_config_from_env().throttle == "once"
 
     def test_unknown_value_warns_and_defaults(self, monkeypatch):
-        monkeypatch.setenv("VLSIM_WARNINGS", "bogus")
+        monkeypatch.setenv("PYOMES_WARNINGS", "bogus")
         with warnings.catch_warnings(record=True) as buf:
             warnings.simplefilter("always")
             cfg = _warning_config_from_env()
         assert cfg.throttle == "once"  # fell back to default
         msgs = [str(w.message) for w in buf if issubclass(w.category, UserWarning)]
-        assert any("VLSIM_WARNINGS" in m and "bogus" in m for m in msgs)
+        assert any("PYOMES_WARNINGS" in m and "bogus" in m for m in msgs)
 
 
 # ════════════════════════════════════════════════════════════════════

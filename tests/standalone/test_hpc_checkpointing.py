@@ -74,13 +74,13 @@ class TestSaveCheckpointData:
         assert (tmp_path / "a" / "b" / "ckpt" / "simulation.pkl").exists()
 
     def test_manifest_has_all_required_fields(self, tmp_path):
-        """manifest.json contains schema_version, mode, vlsim_version,
+        """manifest.json contains schema_version, mode, pyomes_version,
         timestamp, t_h, compression, and blas_info."""
         sim = _make_sim()
         sim.run(tau_h=1.0, n_steps=4)
         sim.save_checkpoint(tmp_path / "ckpt", mode="data")
         manifest = json.loads((tmp_path / "ckpt" / "manifest.json").read_text())
-        for field in ("schema_version", "mode", "vlsim_version",
+        for field in ("schema_version", "mode", "pyomes_version",
                       "timestamp", "t_h", "compression", "blas_info"):
             assert field in manifest, f"manifest missing field {field!r}"
 
@@ -214,25 +214,25 @@ class TestLoadCheckpointData:
         assert loaded.checkpoint_t_h == pytest.approx(sim._t_h)
 
     def test_verify_skip_ignores_version_mismatch(self, tmp_path):
-        """verify='skip' loads successfully even when vlsim_version is wrong."""
+        """verify='skip' loads successfully even when pyomes_version is wrong."""
         from PyOMES.core import Simulation
         sim = _make_sim()
         sim.run(tau_h=0.1, n_steps=2)
         ckpt = self._save(tmp_path, sim)
         manifest = json.loads((ckpt / "manifest.json").read_text())
-        manifest["vlsim_version"] = "0.0.0-bogus"
+        manifest["pyomes_version"] = "0.0.0-bogus"
         (ckpt / "manifest.json").write_text(json.dumps(manifest))
         loaded = Simulation.load_checkpoint(ckpt, verify="skip")
         assert loaded.checkpoint_t_h == pytest.approx(sim._t_h)
 
     def test_verify_strict_raises_on_version_mismatch(self, tmp_path):
-        """verify='strict' raises RuntimeError when vlsim_version differs."""
+        """verify='strict' raises RuntimeError when pyomes_version differs."""
         from PyOMES.core import Simulation
         sim = _make_sim()
         sim.run(tau_h=0.1, n_steps=2)
         ckpt = self._save(tmp_path, sim)
         manifest = json.loads((ckpt / "manifest.json").read_text())
-        manifest["vlsim_version"] = "0.0.0-bogus"
+        manifest["pyomes_version"] = "0.0.0-bogus"
         (ckpt / "manifest.json").write_text(json.dumps(manifest))
         with pytest.raises(RuntimeError, match="version mismatch"):
             Simulation.load_checkpoint(ckpt, verify="strict")
@@ -245,7 +245,7 @@ class TestLoadCheckpointData:
         sim.run(tau_h=0.1, n_steps=2)
         ckpt = self._save(tmp_path, sim)
         manifest = json.loads((ckpt / "manifest.json").read_text())
-        manifest["vlsim_version"] = "0.0.0-bogus"
+        manifest["pyomes_version"] = "0.0.0-bogus"
         (ckpt / "manifest.json").write_text(json.dumps(manifest))
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
@@ -256,7 +256,7 @@ class TestLoadCheckpointData:
         assert loaded.checkpoint_t_h == pytest.approx(sim._t_h)
 
     def test_verify_strict_does_not_raise_when_versions_match(self, tmp_path):
-        """verify='strict' is silent when vlsim_version in manifest equals current."""
+        """verify='strict' is silent when pyomes_version in manifest equals current."""
         from PyOMES.core import Simulation
         sim = _make_sim()
         sim.run(tau_h=0.1, n_steps=2)
@@ -281,7 +281,7 @@ class TestLoadCheckpointData:
         ckpt.mkdir()
         manifest = {
             "schema_version": 1, "mode": "data", "t_h": 0.0,
-            "compression": "none", "vlsim_version": "unknown",
+            "compression": "none", "pyomes_version": "unknown",
             "timestamp": "2026-01-01T00:00:00Z", "blas_info": "x",
         }
         (ckpt / "manifest.json").write_text(json.dumps(manifest))

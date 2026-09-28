@@ -537,11 +537,11 @@ def _collect_run_metadata() -> Dict[str, str]:
 
     try:
         from importlib.metadata import version as _pkg_ver
-        vlsim_version = _pkg_ver("PyOMES")
+        pyomes_version = _pkg_ver("PyOMES")
     except Exception:
-        vlsim_version = "unknown"
+        pyomes_version = "unknown"
     return {
-        "vlsim_version": vlsim_version,
+        "pyomes_version": pyomes_version,
         "python_version": sys.version,
         "platform": platform.platform(),
         "omp_num_threads": os.environ.get("OMP_NUM_THREADS", "1"),
