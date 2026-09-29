@@ -29,7 +29,7 @@ from .lifecycle import RunContext, _LockableList, raise_if_running
 from .links import CVLink, LinkFlowRecord
 from .recorder import BatchRecorder
 from .snapshot import CVSnapshot, build_cv_snapshot, build_simulation_snapshot
-from ..control.actions import ControlAction, ProfileRecord
+from PyOMES.control.actions import ControlAction, ProfileRecord
 
 
 class Simulation:
@@ -1006,8 +1006,8 @@ class Simulation:
         Unknown or malformed paths raise
         :exc:`~PyOMES.control.param_path.ParamPathError` (Q3).
         """
-        from ..control.param_path import ParamPath, ParamPathError
-        from ..control.descriptors import MutableScalar, MutableDict, _DictItemRef
+        from PyOMES.control.param_path import ParamPath, ParamPathError
+        from PyOMES.control.descriptors import MutableScalar, MutableDict, _DictItemRef
 
         if isinstance(path, str):
             self._walk_and_write(cv, ParamPath.parse(path), value)
@@ -1059,7 +1059,7 @@ class Simulation:
         self, cv: ControlVolume, path: Any, value: Any,
     ) -> None:
         """Walk *path* from *cv* and write *value* at the leaf."""
-        from ..control.param_path import (
+        from PyOMES.control.param_path import (
             ParamPath, ParamPathError,
             AttrSegment, ListSelector, IndexSelector,
             _get_class_registry,
@@ -1099,8 +1099,8 @@ class Simulation:
            exists on *target* → call it.
         4. No writable path found → :exc:`~PyOMES.control.param_path.ParamPathError`.
         """
-        from ..control.param_path import ParamPathError
-        from ..control.descriptors import MutableScalar, MutableDict
+        from PyOMES.control.param_path import ParamPathError
+        from PyOMES.control.descriptors import MutableScalar, MutableDict
 
         if isinstance(target, dict):
             target[attr_name] = value
@@ -1236,7 +1236,7 @@ class Simulation:
             result.apply_to_phases(cv.phases)
         except (TypeError, ValueError, AttributeError, KeyError) as exc:
             import warnings
-            from ..monitoring.accuracy import AccuracyWarning
+            from PyOMES.monitoring.accuracy import AccuracyWarning
             warnings.warn(
                 f"Initial speciation solve failed for CV {cv.label!r}: {exc}. "
                 f"pH[0] and I[0] will be NaN; the run will continue.",

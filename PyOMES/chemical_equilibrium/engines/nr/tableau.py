@@ -40,7 +40,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from ....thermo.temperature_correction import vant_hoff_log_K
+from PyOMES.thermo.temperature_correction import vant_hoff_log_K
 
 logger = logging.getLogger(__name__)
 

@@ -650,7 +650,7 @@ class SimultaneousAdaptiveSolver:
 
         # Phase 5 — detect gray-box capability for analytical Jacobian
         import warnings as _warnings
-        from ..chemical_equilibrium.protocols import GrayBoxEngineProtocol
+        from PyOMES.chemical_equilibrium.protocols import GrayBoxEngineProtocol
         _JAC_METHODS = frozenset({"BDF", "Radau", "LSODA"})
         _engine_is_graybox = (
             has_speciation
@@ -690,7 +690,7 @@ class SimultaneousAdaptiveSolver:
 
         # Import ReactionEnvironment once
         if has_rxn:
-            from ..reactions.environment import ReactionEnvironment
+            from PyOMES.reactions.environment import ReactionEnvironment
 
         # Frozen-speciation cache (when freeze_speciation=True, the
         # engine solve runs once at the first f() call and the

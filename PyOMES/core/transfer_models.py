@@ -54,7 +54,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..chemistry.partition import PartitionModel
+    from PyOMES.chemistry.partition import PartitionModel
 
 _VALID_TRANSFER_BASES = frozenset({"total", "molecular"})
 

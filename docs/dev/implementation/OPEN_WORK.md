@@ -730,14 +730,3 @@ A candidate for deletion, together with the `else` branch of
 if nothing else needs them, the generic-key half of the suffix rule described
 under the ionic-strength duplication entry above. Check the tests that build
 generic keys directly (`test_speciation.py`) before removing anything.
-
-## Relative imports three or more dots deep
-
-Found 2026-09-23 while moving `EquilibriumSet`, not fixed. 11 lines across 6
-files use `from ....thermo import ...`-style imports, all in
-`chemical_equilibrium/engines/bisection/` and `chemical_equilibrium/engines/nr/`,
-where the extra nesting level made them long. The rest of the package
-(`control/`, `templates/stirred_tank/`) uses absolute
-`from PyOMES.… import …`, as do the engines' lazy imports of `PyOMES.reactions`.
-Both work with the editable install. Converting the 11 lines is mechanical; pick one convention if the package ever gets a style
-pass.

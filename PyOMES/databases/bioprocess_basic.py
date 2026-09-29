@@ -21,17 +21,17 @@ Usage::
 """
 from __future__ import annotations
 
-from ..chemistry.common_species import (
+from PyOMES.chemistry.common_species import (
     H_plus,
     H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
     HSO4_minus, SO4_2minus,
     K_plus, Cl_minus, Na_plus,
 )
-from ..chemistry.species import Species
-from ..reactions.equilibrium.reaction import EquilibriumReaction
-from ..reactions.equilibrium.interphase import HenryEquilibrium
-from ..reactions.reaction_system import ReactionSystem
-from ..reactions.stoichiometry import StoichiometryEntry
+from PyOMES.chemistry.species import Species
+from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
+from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
+from PyOMES.reactions.reaction_system import ReactionSystem
+from PyOMES.reactions.stoichiometry import StoichiometryEntry
 from .aqueous import AQUEOUS_DEFAULT
 
 _T_REF_K = 298.15

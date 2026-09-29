@@ -13,15 +13,15 @@ Usage::
 from __future__ import annotations
 
 from .database import ChemistryDatabase
-from ..chemistry.common_species import (
+from PyOMES.chemistry.common_species import (
     H_plus, OH_minus, H2O,
     CO2, HCO3_minus, CO3_2minus,
     NH3, NH4_plus,
 )
-from ..reactions.equilibrium.reaction import EquilibriumReaction
-from ..reactions.reaction_system import ReactionSystem
-from ..reactions.stoichiometry import StoichiometryEntry
-from ..thermo.framework import ThermoFramework
+from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
+from PyOMES.reactions.reaction_system import ReactionSystem
+from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from PyOMES.thermo.framework import ThermoFramework
 
 # BSM2-canonical pKa and dH values (Rosen & Jeppsson 2006)
 _PKW = 14.0

@@ -46,8 +46,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from .tableau import NRTableau, SecondaryEntry
-from ....thermo import IdealLiquidModel
-from ....units import R_L_ATM_PER_MOL_K
+from PyOMES.thermo import IdealLiquidModel
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 logger = logging.getLogger(__name__)
 

@@ -43,9 +43,9 @@ from .solver import (
     NRSolverCache, _gamma_safe, solve_nr,
     _build_gammas, _compute_concentrations, _residual_and_jacobian,
 )
-from ....thermo import ActivityModel, make_activity_model
-from ....thermo.temperature_correction import vant_hoff_log_K
-from ...protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
+from PyOMES.thermo import ActivityModel, make_activity_model
+from PyOMES.thermo.temperature_correction import vant_hoff_log_K
+from PyOMES.chemical_equilibrium.protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
 
 logger = logging.getLogger(__name__)
 

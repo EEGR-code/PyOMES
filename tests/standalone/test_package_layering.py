@@ -17,6 +17,9 @@
   and not the ``PyOMES.thermo`` package root (nor the ``PyOMES`` root, which
   imports all of ``thermo/``). Imports from outside ``PyOMES.thermo``, such as
   ``units``, are not restricted by this rule.
+- Inside ``PyOMES/``, a relative import names only the module's own folder
+  (``from .x import y``). An import from anywhere above that folder is absolute
+  (``from PyOMES.x import y``), so no relative import has two or more dots.
 
 Unlike ``test_import_graph_acyclic.py``, which counts only imports that run at
 import time, these count *every* import statement at any depth: inside function
@@ -157,6 +160,15 @@ def _thermo_layout_violations(source: str, module: str, is_package: bool) -> lis
         elif _within(target, THERMO) and not _within(target, own):
             out.append(f"{stmt} (leaves {own.rsplit('.', 1)[1]}/ inside thermo/)")
     return out
+
+
+def _parent_relative_imports(source: str) -> list:
+    """Relative imports of two or more dots in *source*, at any depth."""
+    return [
+        f"line {node.lineno}: from {'.' * node.level}{node.module or ''} import ..."
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.ImportFrom) and node.level > 1
+    ]
 
 
 def test_detector_catches_every_import_form():
@@ -330,5 +342,41 @@ def test_thermo_liquid_and_gas_stay_separate():
         f"{PACKAGE}/thermo/liquid/ and gas/ may import from {PACKAGE}.thermo only within "
         "their own folder: not each other, framework, temperature_correction or the package "
         "root (all import depths counted). Offenders: "
+        + "; ".join(f"{f} -> {', '.join(p)}" for f, p in offenders.items())
+    )
+
+
+def test_parent_relative_import_detector_catches_every_form():
+    # Self-check for the sibling-relative rule, as above.
+    def bad(src):
+        return len(_parent_relative_imports(src))
+
+    # Two or more dots, in every form and at any depth.
+    assert bad("from ..units import R") == 1
+    assert bad("from .. import units") == 1
+    assert bad("from ....thermo import ThermoFramework") == 1
+    assert bad("def f():\n    from ..core import X") == 1
+    assert bad("class C:\n    def m(self):\n        from ...protocols import P") == 1
+    assert bad("if TYPE_CHECKING:\n    from ..thermo import X") == 1
+    # Allowed: the own folder, and absolute imports.
+    assert bad("from .species import S\nfrom . import common_species") == 0
+    assert bad("from PyOMES.units import R\nimport math") == 0
+
+
+def test_imports_above_own_folder_are_absolute():
+    pkg_dir = REPO_ROOT / PACKAGE
+    files = sorted(p for p in pkg_dir.rglob("*.py") if "__pycache__" not in p.parts)
+    assert pkg_dir / "__init__.py" in files, "package directory not found"
+
+    offenders = {}
+    for path in files:
+        problems = _parent_relative_imports(path.read_text(encoding="utf-8"))
+        if problems:
+            offenders[path.relative_to(REPO_ROOT).as_posix()] = problems
+
+    assert not offenders, (
+        f"Inside {PACKAGE}/, import from the module's own folder with 'from .x import y' "
+        f"and from anywhere above it with 'from {PACKAGE}.x import y'; relative imports "
+        "of two or more dots are not allowed (all import depths counted). Offenders: "
         + "; ".join(f"{f} -> {', '.join(p)}" for f, p in offenders.items())
     )

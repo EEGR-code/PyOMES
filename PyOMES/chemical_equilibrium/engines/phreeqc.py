@@ -41,7 +41,7 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Dict, FrozenSet, Optional
 
-from ..protocols import EquilibriumResult
+from PyOMES.chemical_equilibrium.protocols import EquilibriumResult
 
 # ---------------------------------------------------------------------------
 # Name-translation utilities (no phreeqpython dependency)

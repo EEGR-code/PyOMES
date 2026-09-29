@@ -258,7 +258,7 @@ class ControlVolume:
         # stoichiometry (e.g. a bare BlackBoxReactionModel attached
         # directly without wrapping in a ReactionSystem).
         if self.reaction_system is not None:
-            from ..chemistry.species_check import check_species_consistency
+            from PyOMES.chemistry.species_check import check_species_consistency
             rxns = getattr(self.reaction_system, "reactions", None)
             if rxns is None and hasattr(self.reaction_system, "stoichiometry"):
                 rxns = [self.reaction_system]
@@ -288,7 +288,7 @@ class ControlVolume:
         # re-instantiation. state-unification C4d: monitor attaches
         # via cv.reaction_system.attach_monitor(monitor), which
         # propagates to the speciation engine on first build.
-        from ..monitoring import AccuracyMonitor, ConservationMonitor
+        from PyOMES.monitoring import AccuracyMonitor, ConservationMonitor
         self._accuracy_monitor = AccuracyMonitor()
         if self.reaction_system is not None and hasattr(
             self.reaction_system, "attach_monitor"
@@ -702,7 +702,7 @@ class ControlVolume:
         """
         if self.reaction_system is None:
             return {}
-        from ..reactions.environment import ReactionEnvironment
+        from PyOMES.reactions.environment import ReactionEnvironment
 
         liq = self.phases.get("liquid")
         if liq is not None:
@@ -882,8 +882,8 @@ class ControlVolume:
         """Return ``{id: Species}`` for every Species declared in
         ``PyOMES.chemistry.common_species``.  Lazy import avoids
         circular-import risk at module load time."""
-        from ..chemistry import common_species as _cs
-        from ..chemistry.species import Species
+        from PyOMES.chemistry import common_species as _cs
+        from PyOMES.chemistry.species import Species
         return {obj.id: obj for obj in vars(_cs).values() if isinstance(obj, Species)}
 
     # ── Property calculators (state-unification C5) ────────────────────
@@ -945,7 +945,7 @@ class ControlVolume:
         -------
         ReactionEnvironment
         """
-        from ..reactions.environment import ReactionEnvironment
+        from PyOMES.reactions.environment import ReactionEnvironment
 
         # Liquid phase concentrations (mol/L)
         concentrations: Dict[str, float] = {}
@@ -1053,7 +1053,7 @@ class ControlVolume:
             return self._species_vector_map_cache
 
         # Discover species from a dummy evaluation
-        from ..reactions.environment import ReactionEnvironment
+        from PyOMES.reactions.environment import ReactionEnvironment
         dummy_env = ReactionEnvironment(T_K=298.15, V_L=1.0)
         try:
             dummy_sources = self.reaction_system.compute_rates(dummy_env)

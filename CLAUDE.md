@@ -62,6 +62,9 @@ rules on top of these; they do not need to repeat them.
 - The package has no outside users yet. When something moves or is renamed, old
   import paths stop working: no shims, aliases or re-exports. Update every
   importer, including notebooks and `models/`.
+- Inside `PyOMES/`, import from a module's own folder with `from .x import y`
+  and from anywhere above it with `from PyOMES.x import y`; never two or more
+  dots. `tests/standalone/test_package_layering.py` enforces this.
 - Before calling anything unused or safe to delete, search the whole repo across
   all file types (`.py`, `.ipynb`, `.md`, config, runner scripts), check for
   dynamic lookups, and say what was searched.

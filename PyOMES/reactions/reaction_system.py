@@ -45,8 +45,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence, Union
 
-from ..chemistry.species_check import check_species_consistency
-from ..thermo import ActivityModel, make_activity_model
+from PyOMES.chemistry.species_check import check_species_consistency
+from PyOMES.thermo import ActivityModel, make_activity_model
 from .equilibrium.constraint import EquilibriumConstraint, classify_equilibrium_constraint
 from .kinetic.reaction import KineticReaction
 from .blackbox import BlackBoxReactionModel
@@ -258,7 +258,7 @@ class ReactionSystem:
             )
             if not equilibria:
                 return None
-            from ..chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
+            from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
             self._engine = NRChemicalEquilibriumEngine.from_reactions(
                 equilibria,
                 activity_model=self._engine_config["activity_model"],
@@ -269,7 +269,7 @@ class ReactionSystem:
             )
             if not equilibria:
                 return None
-            from ..chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
+            from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
             self._engine = BisectionChemicalEquilibriumEngine.from_reactions(
                 equilibria,
                 activity_model=self._engine_config["activity_model"],

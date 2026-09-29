@@ -22,8 +22,8 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
-from ..chemistry import common_species as _cs_mod
-from ..chemistry.species import Species
+from PyOMES.chemistry import common_species as _cs_mod
+from PyOMES.chemistry.species import Species
 
 
 class StoichiometryError(ValueError):

@@ -130,7 +130,7 @@ class TemperatureRamp:
     label: str = "temperature_ramp"
 
     def apply(self, t_h: float, sim: Any) -> ProfileRecord:
-        from ..control.descriptors import MutableScalar
+        from PyOMES.control.descriptors import MutableScalar
         T_K = _interp_waypoints(t_h, self.waypoints)
         cv = sim.cvs.get(self.target_cv_key)
         targets: dict = {}
@@ -190,7 +190,7 @@ class VVMSchedule:
         if cv is not None:
             for boundary in cv.boundaries:
                 if isinstance(boundary, GasFeed):
-                    from ..control.descriptors import MutableScalar
+                    from PyOMES.control.descriptors import MutableScalar
                     _d = type(boundary).__dict__.get("vvm_min")
                     if isinstance(_d, MutableScalar):
                         _d._set_unchecked(boundary, float(vvm))

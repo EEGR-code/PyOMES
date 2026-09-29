@@ -22,9 +22,9 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Protocol, runtime_checkable
 
-from ..control.descriptors import MutableScalar as _MS
-from ..thermo.temperature_correction import clausius_clapeyron
-from ..units import R_L_ATM_PER_MOL_K
+from PyOMES.control.descriptors import MutableScalar as _MS
+from PyOMES.thermo.temperature_correction import clausius_clapeyron
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 
 def _require_positive(name: str, value: float) -> float:

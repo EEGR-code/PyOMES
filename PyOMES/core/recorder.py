@@ -24,7 +24,7 @@ import numpy as np
 from .interfaces import AdvanceResult
 from .links import LinkFlowRecord
 from .boundaries import ExternalFluxRecord
-from ..control.actions import ControlAction, ProfileRecord
+from PyOMES.control.actions import ControlAction, ProfileRecord
 
 
 # ════════════════════════════════════════════════════════════════════════
