@@ -38,7 +38,7 @@ import types
 from dataclasses import dataclass, field
 from typing import Mapping, Optional
 
-from ..units import ATOMIC_WEIGHTS
+from PyOMES.units import ATOMIC_WEIGHTS
 
 
 class SpeciesConflictError(ValueError):

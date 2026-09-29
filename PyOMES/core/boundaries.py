@@ -29,9 +29,9 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
-from ..units import R_L_ATM_PER_MOL_K
+from PyOMES.units import R_L_ATM_PER_MOL_K
 from .phases import GasPhase, LiquidPhase, Phase
-from ..control.descriptors import MutableDict as _MutableDict, MutableScalar as _MS
+from PyOMES.control.descriptors import MutableDict as _MutableDict, MutableScalar as _MS
 
 
 # ════════════════════════════════════════════════════════════════════════

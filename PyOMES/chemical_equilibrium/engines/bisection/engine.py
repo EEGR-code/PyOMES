@@ -41,8 +41,8 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 from .acid_base import solve_acid_base, solve_from_equilibrium_set
-from ....thermo import ActivityModel, make_activity_model
-from ...protocols import EquilibriumResult
+from PyOMES.thermo import ActivityModel, make_activity_model
+from PyOMES.chemical_equilibrium.protocols import EquilibriumResult
 
 
 # Special-case total_key mapping for species whose tracking key deviates

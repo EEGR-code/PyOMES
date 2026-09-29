@@ -16,7 +16,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
-from ..units import R_J_PER_MOL_K as _R_J
+from PyOMES.units import R_J_PER_MOL_K as _R_J
 from .temperature_correction import ln_correction
 from .liquid.protocols import LiquidPhaseModel
 from .liquid.ideal import IdealLiquidModel

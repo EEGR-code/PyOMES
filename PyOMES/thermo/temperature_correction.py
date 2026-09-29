@@ -28,7 +28,7 @@ from typing import Optional
 
 import numpy as np
 
-from ..units import R_J_PER_MOL_K as _R_J_MOL_K
+from PyOMES.units import R_J_PER_MOL_K as _R_J_MOL_K
 
 _LOG10_E = np.log10(np.e)        # 1/ln(10), used to convert ln K to log10 K
 

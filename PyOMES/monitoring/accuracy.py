@@ -21,7 +21,7 @@ import warnings
 from collections import Counter
 from typing import Optional, Set, Union
 
-from ..thermo import ActivityModel, IdealLiquidModel
+from PyOMES.thermo import ActivityModel, IdealLiquidModel
 
 
 class AccuracyWarning(UserWarning):

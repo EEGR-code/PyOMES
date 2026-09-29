@@ -44,7 +44,7 @@ import warnings
 from collections import Counter
 from typing import Dict, List, Optional, Set
 
-from ..chemistry.species import Species
+from PyOMES.chemistry.species import Species
 
 
 class ConservationWarning(UserWarning):

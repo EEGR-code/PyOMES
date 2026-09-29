@@ -93,8 +93,8 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Sequence, Union
 
-from ..control.descriptors import MutableDict as _MutableDict
-from ..chemistry.partition import PartitionModel
+from PyOMES.control.descriptors import MutableDict as _MutableDict
+from PyOMES.chemistry.partition import PartitionModel
 
 
 

@@ -51,8 +51,8 @@ import math
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
-from ....thermo.temperature_correction import ln_correction
-from ....units import R_J_PER_MOL_K as _R_J
+from PyOMES.thermo.temperature_correction import ln_correction
+from PyOMES.units import R_J_PER_MOL_K as _R_J
 
 _VALID_CATEGORIES = ("acid", "cation_acid", "inorganic_acid", "strong_ion")
 _VALID_CORRECTIONS = ("none", "van_t_hoff")

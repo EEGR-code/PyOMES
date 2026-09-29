@@ -29,11 +29,11 @@ Usage::
 """
 from __future__ import annotations
 
-from ..chemistry.common_species import H_plus, H2S, HS_minus
-from ..reactions.equilibrium.reaction import EquilibriumReaction
-from ..reactions.equilibrium.interphase import HenryEquilibrium
-from ..reactions.reaction_system import ReactionSystem
-from ..reactions.stoichiometry import StoichiometryEntry
+from PyOMES.chemistry.common_species import H_plus, H2S, HS_minus
+from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
+from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
+from PyOMES.reactions.reaction_system import ReactionSystem
+from PyOMES.reactions.stoichiometry import StoichiometryEntry
 from .bioprocess_basic import BIOPROCESS_BASIC
 
 _T_REF_K = 298.15

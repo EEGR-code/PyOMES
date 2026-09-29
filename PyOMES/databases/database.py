@@ -23,12 +23,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, Optional, TYPE_CHECKING
 
-from ..reactions.reaction_system import ReactionSystem
+from PyOMES.reactions.reaction_system import ReactionSystem
 
 if TYPE_CHECKING:
-    from ..chemistry.species import Species
-    from ..chemistry.partition import PartitionModel
-    from ..thermo.framework import ThermoFramework
+    from PyOMES.chemistry.species import Species
+    from PyOMES.chemistry.partition import PartitionModel
+    from PyOMES.thermo.framework import ThermoFramework
 
 
 @dataclass(frozen=True)

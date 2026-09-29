@@ -22,8 +22,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Protocol, runtime_checkable
 
-from ..thermo.temperature_correction import henry_constant
-from ..units import R_L_ATM_PER_MOL_K
+from PyOMES.thermo.temperature_correction import henry_constant
+from PyOMES.units import R_L_ATM_PER_MOL_K
 
 
 @runtime_checkable
