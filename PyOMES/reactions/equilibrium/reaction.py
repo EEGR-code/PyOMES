@@ -54,7 +54,6 @@ from PyOMES.reactions._shared import (
     show_balance_from_entries,
     species_ids_from_entries,
 )
-from .plots import plot_vant_hoff
 
 
 class EquilibriumReaction:
@@ -190,48 +189,6 @@ class EquilibriumReaction:
         skips them silently.
         """
         return is_cross_phase_from_entries(self.stoichiometry)
-
-    def plot_vant_hoff(
-        self,
-        *,
-        T_range_K: tuple = (273.15, 373.15),
-        n_points: int = 200,
-        ax=None,
-        show_pka: bool = True,
-        title: Optional[str] = None,
-    ) -> tuple:
-        """Plot the Van 't Hoff temperature dependence of this reaction.
-
-        Delegates to :func:`PyOMES.reactions.equilibrium.plots.plot_vant_hoff`.
-        Matplotlib is imported lazily — the reactions package does not
-        require a display environment.
-
-        Parameters
-        ----------
-        T_range_K : (float, float)
-            Temperature range in Kelvin.  Default 0 – 100 °C.
-        n_points : int
-            Number of curve points.  Default 200.
-        ax : matplotlib Axes, optional
-            Axes to draw on; a new figure is created when ``None``.
-        show_pka : bool
-            Add a secondary pKa axis.  Default ``True``.
-        title : str, optional
-            Axes title; defaults to ``self.label``.
-
-        Returns
-        -------
-        fig, ax
-            The matplotlib Figure and primary Axes.
-        """
-        return plot_vant_hoff(
-            self,
-            T_range_K=T_range_K,
-            n_points=n_points,
-            ax=ax,
-            show_pka=show_pka,
-            title=title,
-        )
 
     def show_stoichiometry(self) -> None:
         """Print the reaction stoichiometry in human-readable string format."""

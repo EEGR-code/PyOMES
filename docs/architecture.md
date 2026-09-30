@@ -417,8 +417,7 @@ PyOMES/
     equilibrium/                 # constraint.py (EquilibriumConstraint, vant_hoff_log_K,
                                  # classify_equilibrium_constraint), reaction.py (EquilibriumReaction:
                                  # log_K, single- and cross-phase), interphase.py (HenryEquilibrium,
-                                 # RaoultEquilibrium, KspEquilibrium), plots.py (plot_vant_hoff,
-                                 # plot_speciation)
+                                 # RaoultEquilibrium, KspEquilibrium), plots.py (plot_speciation)
   chemical_equilibrium/          # Aqueous equilibrium solvers (acid-base, complexation, folded gas-liquid
                                  # and precipitation rows) built on thermo/'s activity models
     protocols.py                 # Engine protocols, EquilibriumResult

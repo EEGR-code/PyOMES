@@ -689,25 +689,6 @@ non-physical. A fix would check the sign of the derived `nO2`/`nCO2` (or a
 thermodynamic yield bound) and raise or warn when the requested yield isn't
 achievable by aerobic respiration.
 
-## Two small loose ends from the `chemistry-reactions-kinetics-cleanup` audit
-
-Logged 2026-09-21/22, not built — grouped here because each is small and
-independent, not because they are related to each other.
-
-- **Molar-mass unification.** Now part of
-  [EXPLICIT_SPECIES_RESOLUTION.md](upcoming/EXPLICIT_SPECIES_RESOLUTION.md)
-  (Phase 1 deletes `compounds.py`'s `Chemical` and moves its compounds into
-  a database as `Species`). Re-audited 2026-09-30: two same-id
-  disagreements remain (NH4Cl and KH2PO4, both 0.002 g/mol), and no
-  disagreement can reach simulation results today.
-- **`plot_vant_hoff` has no caller.** `reactions/equilibrium/plots.py`'s `plot_vant_hoff`
-  (and `reactions/equilibrium/reaction.py`'s `EquilibriumReaction.plot_vant_hoff`
-  wrapper) has no caller anywhere in the repo — no pytest coverage, no
-  notebook use. A candidate for deletion in a future pass; left alone here
-  since trimming plotting helpers wasn't this phase's scope. `plots.py` now
-  has its own `plots` extra (`pyproject.toml`, checkpoint 16 of the same
-  phase) if it is kept.
-
 ## Deprecated `{name}_HA` fallback is unreachable from repo code
 
 Found 2026-09-23 while deleting `EquilibriumSet.bsm2_default()`, not fixed.

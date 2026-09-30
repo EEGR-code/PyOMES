@@ -9,8 +9,7 @@
 - ``interphase.py``: :class:`HenryEquilibrium`, :class:`RaoultEquilibrium`
   and :class:`KspEquilibrium`, named physical-law constraints relating one
   species across two phases, which double as ``PartitionModel`` instances.
-- ``plots.py``: Van 't Hoff and speciation plots (matplotlib, imported
-  lazily).
+- ``plots.py``: speciation plots (matplotlib, imported lazily).
 
 Nothing is re-exported here; the public names are exported from
 :mod:`PyOMES.reactions`.
