@@ -167,7 +167,7 @@ This table groups ~60 test modules thematically rather than listing all of them 
 |-------|--------------|---------|
 | `phreeqc` | `phreeqpython>=1.6` | PHREEQC-backed chemistry comparisons and validation |
 | `export` | `pandas`, `pyarrow` | Tabular export workflows |
-| `plots` | `matplotlib` | `PyOMES.reactions.equilibrium.plots` — speciation/Van 't Hoff plotting helpers |
+| `plots` | `matplotlib` | `PyOMES.reactions.equilibrium.plots` — speciation plotting helper |
 | `test` | `pytest`, `pandas`, `pyarrow`, `phreeqpython>=1.6` | Development and validation suite |
 | `all` | `phreeqpython>=1.6`, `pandas`, `pyarrow`, `matplotlib` | All optional runtime features |
 
