@@ -261,7 +261,7 @@ class ReactionBuilder:
         Ko2_gL : float or None
             O₂ half-saturation constant (g/L).  When provided, multiplies
             µ by ``O2_gL / (Ko2_gL + O2_gL)`` where ``O2_gL`` is derived
-            from ``env.concentrations[o2.id] * 32.0``.  Pass ``None``
+            from ``env.concentrations[o2.id] * o2.MW``.  Pass ``None``
             (default) to omit the O₂ Monod term entirely.  ``Ko2_gL=0.0``
             with zero O₂ present returns a rate of 0.0 rather than raising
             (the 0/0 case is guarded).
@@ -300,7 +300,7 @@ class ReactionBuilder:
             kin = DualSubstrateMonod(
                 mu_max=mu_max_per_h, Ks=Ks_gL,
                 secondary_id=o2.id, Ko=Ko2_gL,
-                secondary_in_mol_L=False, secondary_MW=32.0,
+                secondary_in_mol_L=False, secondary_MW=float(o2.MW),
             )
         rate_fn = kin.make_rate_fn(
             organism_id=biomass.id,

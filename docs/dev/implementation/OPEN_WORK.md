@@ -662,8 +662,8 @@ Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 12
 (decisions D5/D6). `reactions/kinetic/rate_laws.py`'s `DualSubstrateMonod` takes
 exactly one secondary species through four scalar arguments (`secondary_id`,
 `Ko`, `secondary_in_mol_L`, `secondary_MW`), and
-`ReactionBuilder.monod_aerobic_growth` exposes only an O2 term (`Ko2_gL`)
-with the id `"O2"` fixed. Neither extends to a second or third limiting
+`ReactionBuilder.monod_aerobic_growth` exposes only an O2 term (`Ko2_gL`,
+on the O2 `Species` it is given). Neither extends to a second or third limiting
 species (e.g. NH3 or a phosphate source) without a new class or a new
 argument.
 

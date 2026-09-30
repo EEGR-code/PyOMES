@@ -141,10 +141,13 @@
       32.0 g/mol until checkpoint 6. Every caller updated (listed in the
       notes). Sanity: stoichiometry unchanged; suite green; measurement and
       the edited notebooks unchanged.
-- [ ] **6. O2 molar mass in `monod_aerobic_growth`.** The O2 Monod term
-      converts O2 to g/L with `o2.MW` (31.998) instead of 32.0. Sanity: the
-      shift in models using `Ko2_gL` is measured and recorded (the D2C
-      Example1/2 notebooks, ArXiv 03, and any test using `Ko2_gL`); suite green.
+- [x] **6. O2 molar mass in `monod_aerobic_growth`.** The O2 Monod term
+      converts O2 to g/L with `o2.MW` (31.998) instead of 32.0.
+      `DualSubstrateMonod` loses its O2 defaults: `secondary_id` is required
+      (keyword-only) and `secondary_MW` is required when
+      `secondary_in_mol_L=False`. Sanity: the shift in models using `Ko2_gL`
+      is measured and recorded (the D2C Example1/2 notebooks, ArXiv 03, and
+      any test using `Ko2_gL`); suite green.
 - [ ] **7. Template takes the model's chemistry; no default database.**
       `StirredTankBuilder` and `StirredTankFactory.create_volume` take
       `species=` / `reactions=` / `chemistry_db=`; the `AD_BASIC` fallback
@@ -506,6 +509,36 @@ column (wall clock). ArXiv 03 saves a figure under
 
 Suite: 2159 passed, 2 xfailed, 0 failed (+2). Measurement: 0 values differ in
 all five cases.
+
+**Checkpoint 6 (2026-09-30).** Decided with the repo owner: `DualSubstrateMonod`'s
+own O2 defaults (`secondary_id="O2"`, `secondary_MW=32.0`) go in the same
+checkpoint.
+
+- `builder.py`: `monod_aerobic_growth` passes `secondary_MW=float(o2.MW)`;
+  docstring says `o2.MW`.
+- `rate_laws.py`: `secondary_id` is `field(kw_only=True)` with no default;
+  `secondary_MW` defaults to `None`, and `__post_init__` raises when
+  `secondary_in_mol_L=False` without it; `make_rate_fn` only converts when it
+  is used. Docstring updated. Its only non-test caller (`monod_aerobic_growth`)
+  already passed both.
+- `test_rate_laws.py`: the frozen reference `_reference_monod_rate_fn` takes
+  `MW_O2` explicitly (no 32.0 default); the O2-path fingerprint passes the O2
+  `Species`' MW and stays bit-identical on its 500-point grid; the zero-`Ko2`
+  edge test passes `MW_O2` too. Two new tests: `secondary_id` is required, and
+  g/L conversion without `secondary_MW` raises.
+- `OPEN_WORK.md`: the "Mapping-based parameters" entry no longer says the O2
+  id is fixed.
+
+Measured shift, notebooks run against the `HEAD` export (no measurement case
+uses `Ko2_gL`; all five are unchanged): ArXiv 03 steady-state substrate
+0.5385 -> 0.5386 g/L and, at D = 0.24/h, 2.4343 -> 2.4344 g/L (its other
+differing lines are the wall-clock "Run Time, ms" column); D2C Example1
+productivity 0.0734 -> 0.0733 g/L/h; D2C Example2 final biomass 11.091 ->
+11.092 g/L. Every other printed line identical. That is the size expected
+from moving the O2 term's g/L by 6e-5 relative. Saved outputs in those
+notebooks are not re-saved.
+
+Suite: 2161 passed, 2 xfailed, 0 failed (+2).
 
 **Before checkpoint 10: what `reactions=` means on a `ControlVolume`.** The CV
 already takes `reaction_system=`. To agree before checkpoint 10 starts:

@@ -38,8 +38,8 @@ Usage standalone
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
-from typing import Callable, Protocol, runtime_checkable
+from dataclasses import dataclass, field
+from typing import Callable, Optional, Protocol, runtime_checkable
 
 from PyOMES.thermo.temperature_correction import ln_correction
 
@@ -460,24 +460,33 @@ class DualSubstrateMonod(_KineticsBase):
         Substrate half-saturation constant (g_substrate/L).
     secondary_id : str
         Species ID of the second limiting substrate (e.g. ``"O2"``).
+        Required, keyword-only.
     Ko : float
         Second substrate half-saturation constant (mol/L for dissolved
         gases, g/L for other substrates).
     secondary_in_mol_L : bool
         If True, the secondary substrate concentration is read in mol/L
         directly (appropriate for dissolved gases like O₂).  If False,
-        converted from mol/L to g/L using MW.
-    secondary_MW : float
-        Molecular weight of secondary substrate (only used if
-        secondary_in_mol_L is False).
+        converted from mol/L to g/L using ``secondary_MW``.
+    secondary_MW : float or None
+        Molecular weight of the secondary substrate (g/mol). Required
+        when ``secondary_in_mol_L`` is False; unused otherwise.
     """
 
     mu_max: float = 0.5
     Ks: float = 5e-3
-    secondary_id: str = "O2"
+    secondary_id: str = field(kw_only=True)
     Ko: float = 1e-5           # mol/L for dissolved O₂
     secondary_in_mol_L: bool = True
-    secondary_MW: float = 32.0
+    secondary_MW: Optional[float] = None
+
+    def __post_init__(self):
+        if not self.secondary_in_mol_L and self.secondary_MW is None:
+            raise ValueError(
+                f"DualSubstrateMonod: secondary_in_mol_L=False converts "
+                f"{self.secondary_id!r} to g/L, which needs secondary_MW "
+                "(e.g. the secondary Species' MW)."
+            )
 
     @property
     def label(self) -> str:
@@ -508,7 +517,7 @@ class DualSubstrateMonod(_KineticsBase):
         sec_id = str(self.secondary_id)
         Ko = float(self.Ko)
         sec_mol = bool(self.secondary_in_mol_L)
-        sec_mw = float(self.secondary_MW)
+        sec_mw = float(self.secondary_MW) if not sec_mol else None
 
         def rate_fn(env):
             C_S = env.concentrations.get(sub_id, 0.0)
