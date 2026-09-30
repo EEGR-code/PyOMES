@@ -13,11 +13,18 @@
   checkpoint: the yeast molar masses (checkpoint 6) and the Bisection engine's
   write-back (checkpoint 8). Every checkpoint measures and records; an
   unexplained shift stops the checkpoint.
-- **Measurement.** A scratchpad script (not committed) builds and runs, from a
-  fixed configuration: the stirred-tank template (a batch and a fed-batch tank
-  with Monod growth on acetic acid, pH control on), ADM1 and BSM2 (short runs).
-  It records every phase's `n_mol` trajectory and pH, and reports per model the
-  number of differing values and the maximum absolute and relative shift. The
+- **Measurement.** A scratchpad script (`species_fingerprint.py`, not
+  committed) builds and runs five fixed cases: the stirred-tank template as a
+  batch and a fed-batch tank (Monod growth on acetic acid, pH and DO control
+  configured, 2 h in 100 steps); `docs/tutorials/D2C_workshop/raw_construction.py`'s
+  `build()` (acetate and phosphate equilibria, CO2 partition, `PHController`
+  dosing H3PO4 and NaOH; 1 h in 200 steps); ADM1 (0.2 h in 8 steps); and BSM2
+  as in `test_bsm2_reference.py` (100 × 0.01 h). It records every phase's
+  `n_mol` trajectory, pH and the warnings raised by category, and reports per
+  case the number of differing values and the maximum absolute and relative
+  shift. Initial amounts are in mol, so a molar-mass change shows only where
+  the model uses the molar mass. The script's build functions are the only
+  part that follows API changes; each change is recorded in the notes. The
   six BSM2 sentinel tests are the regression check for BSM2.
 - **Fallback recorder.** The pytest plugin used for the audits (scratchpad,
   `-p audit_plugin`) is re-run after each fallback removal to confirm the
@@ -56,10 +63,10 @@
 - [x] Branch created off current `main`: `explicit-species-resolution`
 - [x] Design note updated with the audits and settled questions and committed
       on the branch (`8a0b7cb`)
-- [ ] This checklist committed on the branch
-- [ ] `git status -sb` clean
-- [ ] Baseline full suite recorded here (pass / fail / skip counts)
-- [ ] Baseline measurement captured (stirred tank, ADM1, BSM2)
+- [x] This checklist committed on the branch (`8014a50`)
+- [x] `git status -sb` clean
+- [x] Baseline full suite recorded here (pass / fail / skip counts)
+- [x] Baseline measurement captured (stirred tank, D2C script, ADM1, BSM2)
 
 ## Checkpoints
 
@@ -199,6 +206,24 @@
       phase resolves. Sanity: relative links resolve; suite green.
 
 ## Notes
+
+**Pre-flight (2026-09-30, on `8014a50`).** Baseline suite: 2144 passed, 0
+failed, 166 warnings. Baseline measurement (`baseline.json`, scratchpad); a
+second capture compares identical, so the measurement is repeatable:
+
+| Case | Series | Values | Warnings |
+|---|---|---|---|
+| `d2c_raw` | 26 | 5,226 | none |
+| `st_batch` | 10 | 1,010 | 1 `AccuracyWarning` |
+| `st_fedbatch` | 10 | 1,010 | 1 `AccuracyWarning` |
+| `adm1` | 56 | 504 | 2 `ConservationWarning` |
+| `bsm2` | 45 | 4,500 | 1 `AccuracyWarning`, 10 `ConservationWarning` |
+
+The two stirred-tank cases have pH NaN at every step and no Na+: the template
+tank carries no acid-base equilibria (the database is used only for partition
+models), so its configured pH controller never doses. They still cover growth,
+gas transfer and the template's name resolution; `d2c_raw` covers equilibria
+and NaOH dosing (pH 3.23 → 5.00, Na+ 0 → 0.0196 mol). Logged in `OPEN_WORK.md`.
 
 **Before checkpoint 7: what `reactions=` means on a `ControlVolume`.** The CV
 already takes `reaction_system=`. To agree before checkpoint 7 starts:

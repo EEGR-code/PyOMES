@@ -4,7 +4,7 @@ Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
 [`upcoming/README.md`](upcoming/README.md).
 
-## Two findings from the explicit-species-resolution audits
+## Three findings from the explicit-species-resolution audits
 
 Found 2026-09-30 while running the audits in
 [`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](upcoming/EXPLICIT_SPECIES_RESOLUTION.md),
@@ -19,6 +19,14 @@ not fixed.
   docstring says the Henry constant comes from `_HENRY_PARAMS`, which the
   `partition-model` phase deleted; it now comes from the database's
   partition models.
+- **The stirred-tank template's pH controller never doses.** A tank built by
+  `StirredTankBuilder` carries no acid-base equilibria: the database is used
+  only for partition models, and the reaction system is the growth reaction
+  alone. So `pH` is NaN at every step and a `PHController` configured on it
+  adds nothing. Measured on the fed-batch tutorial's configuration
+  (`docs/tutorials/templates/fed_batch_fermenter.py`, 2 h): no Na+ ever
+  appears. The batch, CSTR and microplate tutorials configure the same
+  controller on the same kind of tank.
 
 ## Four small findings from the molar-mass and `plot_vant_hoff` audit
 
