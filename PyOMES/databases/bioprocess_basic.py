@@ -4,6 +4,9 @@
 Extends :data:`AQUEOUS_DEFAULT` with:
 
 - Phosphate and bisulfate equilibrium ladders.
+- Species for aerobic growth models: the organic acids used as substrates
+  (acetic, propionic, butyric and citric acid), yeast biomass (:data:`Yeast`,
+  CHNO, and :data:`Yeast_CHO`), and the gases O2 and N2.
 
 The lump salt species :data:`NH4Cl`, :data:`KH2PO4`, and :data:`NaOH` are
 defined as :class:`~PyOMES.chemistry.Species` objects so that their molar
@@ -43,6 +46,23 @@ NH4Cl  = Species(id="NH4Cl",  atoms={"N": 1, "H": 4, "Cl": 1},       charge=0)
 KH2PO4 = Species(id="KH2PO4", atoms={"K": 1, "H": 2, "P": 1, "O": 4}, charge=0)
 NaOH   = Species(id="NaOH",   atoms={"Na": 1, "O": 1, "H": 1},        charge=0)
 
+# ---------------------------------------------------------------------------
+# Substrates, biomass and gases for aerobic growth
+# ---------------------------------------------------------------------------
+AceticAcid    = Species(id="AceticAcid",    atoms={"C": 2, "H": 4, "O": 2})
+PropionicAcid = Species(id="PropionicAcid", atoms={"C": 3, "H": 6, "O": 2})
+ButyricAcid   = Species(id="ButyricAcid",   atoms={"C": 4, "H": 8, "O": 2})
+CitricAcid    = Species(id="CitricAcid",    atoms={"C": 6, "H": 8, "O": 7})
+
+# Yeast biomass, one C-mol. The explicit MWs are the values the stirred-tank
+# template has always used; they sit above the formula weights (24.834 and
+# 22.593) and have no recorded source.
+Yeast     = Species(id="Yeast",     atoms={"C": 1, "H": 1.61, "O": 0.56, "N": 0.16}, MW=26.868)
+Yeast_CHO = Species(id="Yeast_CHO", atoms={"C": 1, "H": 1.61, "O": 0.56},            MW=24.626)
+
+O2 = Species(id="O2", atoms={"O": 2})
+N2 = Species(id="N2", atoms={"N": 2})
+
 _EXTRA_SPECIES = {
     "H3PO4":  H3PO4,
     "H2PO4-": H2PO4_minus,
@@ -53,6 +73,14 @@ _EXTRA_SPECIES = {
     "K+":     K_plus,
     "Cl-":    Cl_minus,
     "Na+":    Na_plus,
+    "AceticAcid":    AceticAcid,
+    "PropionicAcid": PropionicAcid,
+    "ButyricAcid":   ButyricAcid,
+    "CitricAcid":    CitricAcid,
+    "Yeast":         Yeast,
+    "Yeast_CHO":     Yeast_CHO,
+    "O2":            O2,
+    "N2":            N2,
 }
 
 _EXTRA_REACTIONS = ReactionSystem([

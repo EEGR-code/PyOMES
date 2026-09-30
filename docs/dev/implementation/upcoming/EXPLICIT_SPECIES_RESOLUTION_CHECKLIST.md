@@ -120,7 +120,7 @@
 
 ### Stirred-tank template and `Chemical`
 
-- [ ] **4. Species for the template's compounds.** In the database modules
+- [x] **4. Species for the template's compounds.** In the database modules
       (not `common_species`): Yeast, Yeast_CHO, AceticAcid, PropionicAcid,
       ButyricAcid, CitricAcid, O2 and N2 in the bioprocess database; CH4 and
       H2 in the anaerobic-digestion database. Yeast and Yeast_CHO keep the
@@ -423,6 +423,36 @@ test's charge warnings and one BSM2 `ConservationWarning`). Logged in
 hard-coded `"H2O"` / `"H+"` / `"OH-"` ids (settles the checkpoint 2 finding);
 BSM2's nitrogen inhibition reading molecular NH3 as total nitrogen; the silent
 floors.
+
+**Checkpoint 4 (2026-09-30).** `databases/bioprocess_basic.py` defines and
+lists `AceticAcid`, `PropionicAcid`, `ButyricAcid`, `CitricAcid`, `Yeast`,
+`Yeast_CHO`, `O2` and `N2`; `databases/anaerobic_digestion.py` defines and lists
+`CH4` and `H2` (and now imports `Species`). Module docstrings updated. MW from
+atoms except `Yeast` (26.868) and `Yeast_CHO` (24.626), whose comment says
+they are the template's long-standing values, above the formula weights, with
+no recorded source.
+
+Against `ChemicalRegistry.default()`: every atom composition equal; MW exactly
+equal except `PropionicAcid` (+1.4e-14, last bit: the registry's 74.079 vs the
+computed 74.07900000000001) and `CitricAcid` (192.123 vs 192.124, as settled).
+Both will reach the template at checkpoint 7; the propionic one shows up only
+at roundoff in `test_builder.py`'s two-substrate case.
+
+Registry ids with no `Species` in any database: the `Water` alias (the
+database uses `H2O`) and 21 salts, acids and bases (`(NH4)2SO4`,
+`AmmoniumMolybdate`, `AmmoniumSulfate`, `CaCl2`, `CaSO4`, `CoCl2`, `H2SO4`,
+`HCl`, `KCl`, `KH2PO4`, `KOH`, `MgSO4`, `MnCl2`, `NH4Cl`, `Na2HPO4`, `Na2SO4`,
+`NaCl`, `NaH2PO4`, `NaHCO3`, `NaOH`, `ZnSO4`). No repo caller reaches any of
+them through the template: its registry lookups are `Yeast`, `AceticAcid`,
+`PropionicAcid` and the default N source `NH3` (swept across `.py`, `.ipynb`,
+`.md`); `E_coli` and `Glucose` always come with explicit atoms and MW.
+`NH4Cl`, `KH2PO4` and `NaOH` are defined in `bioprocess_basic.py` but not listed
+in its species; left for checkpoint 14's "every species it offers".
+
+`docs/tutorials/reactions/chemistry_database.ipynb` prints the extended
+database's species count: its saved output says 21, a run now gives 30 (not
+re-saved). Suite: 2157 passed, 2 xfailed, 0 failed. Measurement: 0 values
+differ in all five cases.
 
 **Before checkpoint 9: what `reactions=` means on a `ControlVolume`.** The CV
 already takes `reaction_system=`. To agree before checkpoint 9 starts:
