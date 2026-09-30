@@ -19,8 +19,9 @@
   databases define their own species; a database is used where the point is
   the database route.
 - Results are unchanged by rule, with two named exceptions, each in its own
-  checkpoint: the Bisection engine's write-back (checkpoint 3) and the yeast
-  molar masses (checkpoint 8). Every checkpoint measures and records; an
+  checkpoint: the Bisection engine's write-back (checkpoint 3), the O2 molar
+  mass in `monod_aerobic_growth` (checkpoint 6) and the yeast molar masses
+  (checkpoint 9). Every checkpoint measures and records; an
   unexplained shift stops the checkpoint.
 - **Measurement.** A scratchpad script (`species_fingerprint.py`, not
   committed) builds and runs five fixed cases: the stirred-tank template as a
@@ -130,14 +131,21 @@
       in the notes. Sanity: each new `Species` equals the registry entry's
       atoms, and its MW equals the registry's except CitricAcid (−0.001);
       suite green; measurement unchanged.
-- [ ] **5. `aerobic_growth` takes `Species`.** All six participants (substrate,
-      biomass, N source, O2, CO2, H2O) are `Species` arguments; the separate
-      id / atoms / MW arguments and `species_overrides` go, as does the
-      `common_species` import and the local `O2`. Every caller updated
-      (the factory, tests, notebooks; listed in the notes). Sanity: the built
-      stoichiometry is identical entry by entry for the template's default
-      configurations; suite green; measurement unchanged.
-- [ ] **6. Template takes the model's chemistry; no default database.**
+- [x] **5. `aerobic_growth` takes `Species`.** `aerobic_growth(substrate,
+      biomass, *, o2, co2, h2o, yield_gX_gS, rate_fn, balance, n_source, label)`
+      and `monod_aerobic_growth(..., *, o2, co2, h2o, ..., n_source, ...)` take
+      every participant as a `Species`; the id / atoms / MW arguments,
+      `species_overrides`, the built-in `O2`, the `common_species` import and
+      the silent NH3 default for a CHNO balance go (CHNO without `n_source`
+      raises). `monod_aerobic_growth`'s O2 term reads `o2.id` but keeps its
+      32.0 g/mol until checkpoint 6. Every caller updated (listed in the
+      notes). Sanity: stoichiometry unchanged; suite green; measurement and
+      the edited notebooks unchanged.
+- [ ] **6. O2 molar mass in `monod_aerobic_growth`.** The O2 Monod term
+      converts O2 to g/L with `o2.MW` (31.998) instead of 32.0. Sanity: the
+      shift in models using `Ko2_gL` is measured and recorded (the D2C
+      Example1/2 notebooks, ArXiv 03, and any test using `Ko2_gL`); suite green.
+- [ ] **7. Template takes the model's chemistry; no default database.**
       `StirredTankBuilder` and `StirredTankFactory.create_volume` take
       `species=` / `reactions=` / `chemistry_db=`; the `AD_BASIC` fallback
       goes. Partition models come from the database passed; with none and no
@@ -149,7 +157,7 @@
       `transfer_species`'s docstring stops citing `_HENRY_PARAMS` (and the
       OPEN_WORK entry for it is deleted). Sanity: suite green; measurement
       unchanged; ADM1 and BSM2 sentinels unchanged.
-- [ ] **7. Names resolve against the species passed; `compounds.py` goes.**
+- [ ] **8. Names resolve against the species passed; `compounds.py` goes.**
       `OrganismConfig` / `SubstrateConfig` resolve ids (organism, substrate,
       N source) against the template's species and accept a `Species` in
       place of `atoms=` / `MW=`; a miss raises the error decision 4 describes.
@@ -164,7 +172,7 @@
       the registry's Yeast_CHO. Sanity: repo-wide sweep for
       `ChemicalRegistry`, `compounds`, `acid_pKas` (template); suite green;
       recorder shows no registry use; measurement unchanged.
-- [ ] **8. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
+- [ ] **9. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
       explicit MW (24.834, 22.593). The tutorials' `MW_yeast = 26.868`
       (`cstr_fermenter.py`, `fed_batch_fermenter.py`) and any other copy of
       26.868 / 24.626 (sweep, including tests) follow. Sanity: the stirred-tank
@@ -175,7 +183,7 @@
 
 ### `ControlVolume` species set and warnings
 
-- [ ] **9. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
+- [ ] **10. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
       `chemistry_db=` and builds the read-only `cv.species` in `__init__` from
       those plus the reaction stoichiometries. A new species-level conflict
       check raises `SpeciesConflictError` when the same id arrives with
@@ -184,11 +192,11 @@
       species through. `Simulation._warn_thermo_mismatch` unchanged. Sanity:
       suite green; the three tests that reached the catalog (audit 3) now
       get those ids from species passed to them; measurement unchanged.
-- [ ] **10. Model species.** BSM2 declares `S_cat` / `S_an` as `Species`
+- [ ] **11. Model species.** BSM2 declares `S_cat` / `S_an` as `Species`
       (`atoms={}`, charge ±1) in its species table; ADM1's `_get_species`
       raises on an unknown id instead of building biomass. Sanity: BSM2 and
       ADM1 unchanged; suite green.
-- [ ] **11. Correctors from the model's species.** `equilibrate_to_pH` and
+- [ ] **12. Correctors from the model's species.** `equilibrate_to_pH` and
       `apply_external_flux` resolve the corrector from the model's species;
       `_STRONG_CORRECTOR_ION` is deleted. The resolution rule is agreed with
       the repo owner before this checkpoint starts (see notes). Callers
@@ -196,7 +204,7 @@
       `PHController` configuration, `test_cv_advance.py`,
       `test_iron_oxidation.py`, `test_simulation.py`, `conftest.py`. Sanity:
       pH-control results unchanged; suite green.
-- [ ] **12. `UnresolvedSpeciesWarning`.** New `UserWarning` subclass in
+- [ ] **13. `UnresolvedSpeciesWarning`.** New `UserWarning` subclass in
       `monitoring/`, exported next to `ConservationWarning`. Warns where an
       id enters (CV construction, feeds, dosing, template set-up), naming
       the id and the call, and in the monitor once per id whenever it first
@@ -207,7 +215,7 @@
 
 ### Henry and Raoult
 
-- [ ] **13. `Species` objects only.** `HenryEquilibrium` /
+- [ ] **14. `Species` objects only.** `HenryEquilibrium` /
       `RaoultEquilibrium` species fields take `Species` or `None`;
       `_resolve_species` and the `"H2O"` defaults go. In the same checkpoint:
       `databases/anaerobic_digestion.py`, ADM1's water link, the two
@@ -216,7 +224,7 @@
 
 ### Retire `common_species`
 
-- [ ] **14. Definitions into the databases.** The 26 definitions move into
+- [ ] **15. Definitions into the databases.** The 26 definitions move into
       the database modules (`aqueous.py`: water, carbonate, ammonia; which
       module owns phosphate, sulfate, sulfide, the spectator ions and the
       metal ions is settled in the notes); each database lists every species
@@ -225,7 +233,7 @@
       `species.py` docstring that cites it. Sanity: repo-wide sweep for
       `common_species` (only history left); every `Species` object identical
       to before by value; suite green; measurement unchanged.
-- [ ] **15. Close-out.** Sweep for `_get_common_species`,
+- [ ] **16. Close-out.** Sweep for `_get_common_species`,
       `_common_species_catalog`, `ChemicalRegistry`, `_STRONG_CORRECTOR_ION`,
       `_CANONICAL_WRITEBACK_SPECIES`, `species_overrides`; `README.md`,
       `PyOMES/README.md`, `docs/architecture.md`; the strong-ion and
@@ -348,7 +356,7 @@ it seeds.
 Measurement: 0 values differ in all five cases. ADM1 raises one more
 `ConservationWarning`, a charge residual: declaring water puts OH- in the
 conservation monitor's registry, while the Na+ and Cl- ADM1 seeds after the CV
-is built are still invisible to it (fixed by `cv.species`, checkpoint 9). The
+is built are still invisible to it (fixed by `cv.species`, checkpoint 10). The
 monitor now sees part of the charge picture where it saw none; the physics is
 unchanged. Suite: 2155 passed, 4 xfailed, 0 failed (+4); 181 warnings (+3,
 that charge residual in the three ADM1 tests). `test_user_defined_model.py`
@@ -435,7 +443,7 @@ no recorded source.
 Against `ChemicalRegistry.default()`: every atom composition equal; MW exactly
 equal except `PropionicAcid` (+1.4e-14, last bit: the registry's 74.079 vs the
 computed 74.07900000000001) and `CitricAcid` (192.123 vs 192.124, as settled).
-Both will reach the template at checkpoint 7; the propionic one shows up only
+Both will reach the template at checkpoint 8; the propionic one shows up only
 at roundoff in `test_builder.py`'s two-substrate case.
 
 Registry ids with no `Species` in any database: the `Water` alias (the
@@ -447,21 +455,66 @@ them through the template: its registry lookups are `Yeast`, `AceticAcid`,
 `PropionicAcid` and the default N source `NH3` (swept across `.py`, `.ipynb`,
 `.md`); `E_coli` and `Glucose` always come with explicit atoms and MW.
 `NH4Cl`, `KH2PO4` and `NaOH` are defined in `bioprocess_basic.py` but not listed
-in its species; left for checkpoint 14's "every species it offers".
+in its species; left for checkpoint 15's "every species it offers".
 
 `docs/tutorials/reactions/chemistry_database.ipynb` prints the extended
 database's species count: its saved output says 21, a run now gives 30 (not
 re-saved). Suite: 2157 passed, 2 xfailed, 0 failed. Measurement: 0 values
 differ in all five cases.
 
-**Before checkpoint 9: what `reactions=` means on a `ControlVolume`.** The CV
-already takes `reaction_system=`. To agree before checkpoint 9 starts:
+**Checkpoint 5 (2026-09-30).** Decided with the repo owner: the O2 term's
+hard-coded 32.0 g/mol becomes `o2.MW` in its own checkpoint (6), so this one
+stays a pure refactor.
+
+- `builder.py`: new signatures as in the item; ids, atoms and MW come from the
+  `Species` passed, which appear in the reaction as the same objects; the
+  element-balance check still rejects an `o2` / `co2` / `h2o` with other atoms.
+  Module docstring examples and `monod_aerobic_growth`'s docstring updated.
+- `factory.py`: `_build_reaction_system` takes the `chemistry_db` that
+  `create_volume` holds and takes O2, CO2 and H2O from its species by id
+  (raising, with the available ids, if one is missing); in `AD_BASIC` those
+  are the same CO2 / H2O objects the builder imported before and an O2 equal
+  by value. Organism and substrate still come from the registry (until
+  checkpoint 8), wrapped as `Species` with the registry's atoms and MW. An N
+  source the registry does not know now raises `KeyError` instead of warning
+  and silently using NH3's atoms; no repo caller hits it. The unused
+  `warnings` import went.
+- `raw_construction.py`: declares `O2` next to its `CO2` (whose comment about
+  matching the builder's internal CO2 was no longer true) and passes both.
+- Tests: `test_reactions.py`'s builder tests pass `Species` defined in the
+  test (`_gases()`, `_nh3()`, `_acid()`); two new tests: the reaction holds the
+  very objects passed, and CHNO without `n_source` raises.
+  `test_rate_laws.py`'s Monod comparison passes O2 / CO2 / H2O.
+- Notebooks (source only; parsed, edited and written back in each file's own
+  format, with a byte-level fallback for ArXiv 03, whose formatting json
+  cannot reproduce): ArXiv `03_cstr_dilution_rate_sweep` and its generator
+  (same text; generator not run) declare `O2` and pass `CO2`/`H2O`/`NH3` from
+  their `common_species` import; D2C Example1/2 add `H2O, CO2, NH3` to their
+  `common_species` import and `O2` to their `bioprocess_basic` import; D2C
+  Example3 declares `O2` next to its water and carbonate species;
+  `reactions/reaction_system.ipynb` declares `O2` and `H2O`. A first attempt
+  split Example2's single-string cell sources into one element per line; it
+  was restored from `HEAD` (and the four D2C / reactions notebooks' CRLF
+  working-tree endings restored) before the edit was redone keeping each
+  source's structure.
+
+Run from the scratchpad against the `HEAD` export and the working tree: D2C
+Example1 (159 lines), Example2 (130), Example3 (35) and `reaction_system`
+(26) print identical output; ArXiv 03 differs only in its "Run Time, ms"
+column (wall clock). ArXiv 03 saves a figure under
+`docs/tutorials/**/figures/`, which is gitignored.
+
+Suite: 2159 passed, 2 xfailed, 0 failed (+2). Measurement: 0 values differ in
+all five cases.
+
+**Before checkpoint 10: what `reactions=` means on a `ControlVolume`.** The CV
+already takes `reaction_system=`. To agree before checkpoint 10 starts:
 whether `reactions=` only contributes species to `cv.species`, or is an
 alternative to `reaction_system=`.
 
-**Before checkpoint 11: how a corrector resolves.** Today `"NaOH"` doses
+**Before checkpoint 12: how a corrector resolves.** Today `"NaOH"` doses
 `Na+`. Under the rule the corrector must come from the model's species. To
-agree before checkpoint 11 starts: dose the ion `Species` directly (the model
+agree before checkpoint 12 starts: dose the ion `Species` directly (the model
 names `Na+`), or keep a salt `Species` (`NaOH` exists in the bioprocess
 database) that states which ion it adds.
 

@@ -25,7 +25,6 @@ Example
 
 from __future__ import annotations
 
-import warnings
 from typing import Any, Dict, Optional, Sequence
 
 from .configs import (
@@ -197,7 +196,7 @@ class StirredTankFactory:
         rxn_system = reaction_system
         if rxn_system is None and organism is not None and substrates:
             rxn_system = StirredTankFactory._build_reaction_system(
-                organism, substrates, T_K,
+                organism, substrates, T_K, chemistry_db,
             )
 
         # Pre-configure the lazy-engine defaults from the chemistry
@@ -240,11 +239,13 @@ class StirredTankFactory:
         organism: OrganismConfig,
         substrates: Sequence[SubstrateConfig],
         T_K: float,
+        chemistry_db: ChemistryDatabase,
     ) -> Any:
         """Build a ReactionSystem from organism + substrate configs.
 
         Uses :meth:`ReactionBuilder.aerobic_growth` for each substrate
-        with Monod kinetics as the rate law.
+        with Monod kinetics as the rate law. O2, CO2 and H2O are the
+        ``Species`` of those ids in *chemistry_db*.
 
         Returns
         -------
@@ -252,14 +253,26 @@ class StirredTankFactory:
             A single KineticReaction if one substrate, or a
             ReactionSystem if multiple.
         """
+        from PyOMES.chemistry.species import Species
         from PyOMES.reactions import ReactionSystem, ReactionBuilder, Monod
         from PyOMES.compounds import ChemicalRegistry
 
         registry = ChemicalRegistry.default()
 
+        gases = {}
+        for sp_id in ("O2", "CO2", "H2O"):
+            if sp_id not in chemistry_db.species:
+                raise ValueError(
+                    f"{sp_id!r} is not among the chemistry database's species "
+                    f"(available: {', '.join(sorted(chemistry_db.species))}); "
+                    "aerobic growth needs O2, CO2 and H2O."
+                )
+            gases[sp_id] = chemistry_db.species[sp_id]
+
         org = organism.resolve(registry)
         org_atoms = dict(org.atoms)
         org_MW = float(org.MW)
+        biomass = Species(id=org.organism_id, atoms=org_atoms, MW=org_MW)
 
         reactions: list = []
         for sub_cfg in substrates:
@@ -268,6 +281,7 @@ class StirredTankFactory:
             sub_MW = float(sub.MW)
             organism_id = org.organism_id
             substrate_id = sub.substrate_id
+            substrate = Species(id=substrate_id, atoms=sub_atoms, MW=sub_MW)
 
             # Build rate function from kinetics object or default Monod
             if sub.kinetics is not None:
@@ -289,32 +303,19 @@ class StirredTankFactory:
                     yield_gX_gS=float(sub.yield_gX_gS),
                 )
 
-            # N source atoms (for CHNO mode)
-            n_source_atoms = None
+            # N source (for CHNO mode)
+            n_source = None
             if org.balance_basis == "CHNO":
-                try:
-                    n_chem = registry[org.n_source_id]
-                    n_source_atoms = dict(getattr(n_chem, "atoms", {}) or {})
-                except (KeyError, AttributeError) as e:
-                    warnings.warn(
-                        f"Could not resolve N source '{org.n_source_id}' "
-                        f"for {organism_id}: {e}. CHNO stoichiometry may "
-                        f"be incomplete.",
-                        RuntimeWarning, stacklevel=2,
-                    )
+                n_chem = registry[org.n_source_id]
+                n_source = Species(id=org.n_source_id, atoms=dict(n_chem.atoms))
 
             rxn = ReactionBuilder.aerobic_growth(
-                substrate_id=substrate_id,
-                substrate_atoms=sub_atoms,
-                MW_substrate=sub_MW,
-                biomass_id=organism_id,
-                biomass_atoms=org_atoms,
-                MW_biomass=org_MW,
+                substrate, biomass,
+                o2=gases["O2"], co2=gases["CO2"], h2o=gases["H2O"],
                 yield_gX_gS=float(sub.yield_gX_gS),
                 rate_fn=rate_fn,
                 balance=org.balance_basis,
-                n_source_id=org.n_source_id,
-                n_source_atoms=n_source_atoms,
+                n_source=n_source,
                 label=f"growth_on_{substrate_id}",
             )
             reactions.append(rxn)

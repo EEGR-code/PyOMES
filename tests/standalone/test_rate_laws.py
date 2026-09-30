@@ -329,6 +329,9 @@ class TestMonodAerobicGrowthFingerprint:
         rxn = ReactionBuilder.monod_aerobic_growth(
             substrate=sub, biomass=bio, mu_max_per_h=self.MU_MAX, Ks_gL=self.KS_GL,
             yield_gX_gS=self.YIELD, Ko2_gL=Ko2_gL,
+            o2=Species(id="O2", atoms={"O": 2}),
+            co2=Species(id="CO2", atoms={"C": 1, "O": 2}),
+            h2o=Species(id="H2O", atoms={"H": 2, "O": 1}),
         )
         return rxn.rate_fn, sub.id, bio.id
 

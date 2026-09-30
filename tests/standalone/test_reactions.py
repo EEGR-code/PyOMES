@@ -142,39 +142,79 @@ class TestReaction:
 
 # ── ReactionBuilder ──────────────────────────────────────────────────
 
+def _gases():
+    """O2, CO2 and H2O as a user would define them."""
+    from PyOMES.chemistry import Species
+    return dict(
+        o2=Species(id="O2", atoms={"O": 2}),
+        co2=Species(id="CO2", atoms={"C": 1, "O": 2}),
+        h2o=Species(id="H2O", atoms={"H": 2, "O": 1}),
+    )
+
+
+def _nh3():
+    from PyOMES.chemistry import Species
+    return Species(id="NH3", atoms={"N": 1, "H": 3})
+
+
+def _acid(sp_id, atoms, MW):
+    from PyOMES.chemistry import Species
+    return Species(id=sp_id, atoms=atoms, MW=MW)
+
+
+_YEAST_CHO  = dict(atoms={"C": 1, "H": 1.61, "O": 0.56}, MW=24.626)
+_YEAST_CHNO = dict(atoms={"C": 1, "H": 1.61, "O": 0.56, "N": 0.16}, MW=26.868)
+
+
 class TestReactionBuilder:
     def test_acetic_acid_cho_constructs(self):
         from PyOMES.reactions import ReactionBuilder
         rxn = ReactionBuilder.aerobic_growth(
-            substrate_id="AceticAcid", substrate_atoms={"C":2,"H":4,"O":2}, MW_substrate=60.052,
-            biomass_id="Yeast_CHO", biomass_atoms={"C":1,"H":1.61,"O":0.56}, MW_biomass=24.626,
-            yield_gX_gS=0.36, rate_fn=lambda env: 1.0, balance="CHO")
+            _acid("AceticAcid", {"C":2,"H":4,"O":2}, 60.052), _acid("Yeast_CHO", **_YEAST_CHO),
+            **_gases(), yield_gX_gS=0.36, rate_fn=lambda env: 1.0, balance="CHO")
         assert "AceticAcid" in rxn.species_ids
+
+    def test_uses_the_species_passed(self):
+        from PyOMES.reactions import ReactionBuilder
+        gases = _gases()
+        sub = _acid("AceticAcid", {"C":2,"H":4,"O":2}, 60.052)
+        bio = _acid("Yeast_CHO", **_YEAST_CHO)
+        rxn = ReactionBuilder.aerobic_growth(
+            sub, bio, **gases, yield_gX_gS=0.36, rate_fn=lambda env: 1.0)
+        by_id = {e.species.id: e.species for e in rxn.stoichiometry}
+        assert by_id["AceticAcid"] is sub and by_id["Yeast_CHO"] is bio
+        assert by_id["O2"] is gases["o2"] and by_id["CO2"] is gases["co2"]
+        assert by_id["H2O"] is gases["h2o"]
 
     def test_propionic_acid_cho_constructs(self):
         from PyOMES.reactions import ReactionBuilder
         ReactionBuilder.aerobic_growth(
-            substrate_id="PropionicAcid", substrate_atoms={"C":3,"H":6,"O":2}, MW_substrate=74.079,
-            biomass_id="Yeast_CHO", biomass_atoms={"C":1,"H":1.61,"O":0.56}, MW_biomass=24.626,
-            yield_gX_gS=0.486*1.11, rate_fn=lambda env: 1.0, balance="CHO")
+            _acid("PropionicAcid", {"C":3,"H":6,"O":2}, 74.079), _acid("Yeast_CHO", **_YEAST_CHO),
+            **_gases(), yield_gX_gS=0.486*1.11, rate_fn=lambda env: 1.0, balance="CHO")
 
     def test_butyric_acid_cho_constructs(self):
         from PyOMES.reactions import ReactionBuilder
         ReactionBuilder.aerobic_growth(
-            substrate_id="ButyricAcid", substrate_atoms={"C":4,"H":8,"O":2}, MW_substrate=88.106,
-            biomass_id="Yeast_CHO", biomass_atoms={"C":1,"H":1.61,"O":0.56}, MW_biomass=24.626,
-            yield_gX_gS=0.545*1.05, rate_fn=lambda env: 1.0, balance="CHO")
+            _acid("ButyricAcid", {"C":4,"H":8,"O":2}, 88.106), _acid("Yeast_CHO", **_YEAST_CHO),
+            **_gases(), yield_gX_gS=0.545*1.05, rate_fn=lambda env: 1.0, balance="CHO")
 
     def test_chno_mode_includes_nitrogen(self):
         from PyOMES.reactions import ReactionBuilder
         rxn = ReactionBuilder.aerobic_growth(
-            substrate_id="AceticAcid", substrate_atoms={"C":2,"H":4,"O":2}, MW_substrate=60.052,
-            biomass_id="Yeast", biomass_atoms={"C":1,"H":1.61,"O":0.56,"N":0.16}, MW_biomass=26.868,
-            yield_gX_gS=0.36, rate_fn=lambda env: 1.0, balance="CHNO")
+            _acid("AceticAcid", {"C":2,"H":4,"O":2}, 60.052), _acid("Yeast", **_YEAST_CHNO),
+            **_gases(), yield_gX_gS=0.36, rate_fn=lambda env: 1.0, balance="CHNO",
+            n_source=_nh3())
         assert "NH3" in rxn.species_ids
 
+    def test_chno_without_n_source_raises(self):
+        from PyOMES.reactions import ReactionBuilder
+        with pytest.raises(ValueError, match="n_source"):
+            ReactionBuilder.aerobic_growth(
+                _acid("AceticAcid", {"C":2,"H":4,"O":2}, 60.052), _acid("Yeast", **_YEAST_CHNO),
+                **_gases(), yield_gX_gS=0.36, rate_fn=lambda env: 1.0, balance="CHNO")
+
     def test_cho_parity_with_existing_stoichiometry(self):
-        """Builder must match _stoich_aerobic_CHO from fermenter_unit.py."""
+        """Builder matches the CHO balance written out by hand."""
         from PyOMES.reactions import ReactionBuilder
         Cs,Hs,Os = 2.0,4.0,2.0; Cx,Hx,Ox = 1.0,1.61,0.56
         MW_S,MW_X = 60.052,24.626; Y_gXgS = 0.9*0.400
@@ -183,9 +223,9 @@ class TestReactionBuilder:
         nH2O_exp = (Hs - Y_mol*Hx)/2.0
         nO2_exp  = (Y_mol*Ox + 2.0*nCO2_exp + nH2O_exp - Os)/2.0
         rxn = ReactionBuilder.aerobic_growth(
-            substrate_id="AceticAcid", substrate_atoms={"C":Cs,"H":Hs,"O":Os}, MW_substrate=MW_S,
-            biomass_id="Yeast_CHO", biomass_atoms={"C":Cx,"H":Hx,"O":Ox}, MW_biomass=MW_X,
-            yield_gX_gS=Y_gXgS, rate_fn=lambda env: 1.0, balance="CHO")
+            _acid("AceticAcid", {"C":Cs,"H":Hs,"O":Os}, MW_S),
+            _acid("Yeast_CHO", {"C":Cx,"H":Hx,"O":Ox}, MW_X),
+            **_gases(), yield_gX_gS=Y_gXgS, rate_fn=lambda env: 1.0, balance="CHO")
         coeffs = {e.species.id: e.coefficient for e in rxn.stoichiometry}
         assert coeffs["AceticAcid"] == pytest.approx(-1.0, abs=1e-12)
         assert coeffs["CO2"] == pytest.approx(nCO2_exp, abs=1e-10)
@@ -200,18 +240,19 @@ class TestReactionBuilder:
         Y_mol = Y_gXgS*MW_S/MW_X
         nNH3_exp = Y_mol*Nx - Ns
         rxn = ReactionBuilder.aerobic_growth(
-            substrate_id="AceticAcid", substrate_atoms={"C":Cs,"H":Hs,"O":Os,"N":Ns}, MW_substrate=MW_S,
-            biomass_id="Yeast", biomass_atoms={"C":Cx,"H":Hx,"O":Ox,"N":Nx}, MW_biomass=MW_X,
-            yield_gX_gS=Y_gXgS, rate_fn=lambda env: 1.0, balance="CHNO")
+            _acid("AceticAcid", {"C":Cs,"H":Hs,"O":Os,"N":Ns}, MW_S),
+            _acid("Yeast", {"C":Cx,"H":Hx,"O":Ox,"N":Nx}, MW_X),
+            **_gases(), yield_gX_gS=Y_gXgS, rate_fn=lambda env: 1.0, balance="CHNO",
+            n_source=_nh3())
         coeffs = {e.species.id: e.coefficient for e in rxn.stoichiometry}
         assert coeffs["NH3"] == pytest.approx(-nNH3_exp, abs=1e-10)
 
     def test_zero_yield_all_substrate_to_co2(self):
         from PyOMES.reactions import ReactionBuilder
         rxn = ReactionBuilder.aerobic_growth(
-            substrate_id="AceticAcid", substrate_atoms={"C":2,"H":4,"O":2}, MW_substrate=60.052,
-            biomass_id="X", biomass_atoms={"C":1,"H":1.61,"O":0.56}, MW_biomass=24.626,
-            yield_gX_gS=0.0, rate_fn=lambda env: 1.0, balance="CHO")
+            _acid("AceticAcid", {"C":2,"H":4,"O":2}, 60.052),
+            _acid("X", {"C":1,"H":1.61,"O":0.56}, 24.626),
+            **_gases(), yield_gX_gS=0.0, rate_fn=lambda env: 1.0, balance="CHO")
         coeffs = {e.species.id: e.coefficient for e in rxn.stoichiometry}
         assert coeffs["CO2"] == pytest.approx(2.0, abs=1e-10)
         assert abs(coeffs["X"]) < 1e-12
@@ -220,9 +261,8 @@ class TestReactionBuilder:
         from PyOMES.reactions import ReactionBuilder
         with pytest.raises(ValueError):
             ReactionBuilder.aerobic_growth(
-                substrate_id="A", substrate_atoms={"C":1}, MW_substrate=0.0,
-                biomass_id="X", biomass_atoms={"C":1}, MW_biomass=1.0,
-                yield_gX_gS=0.5, rate_fn=lambda env: 0.0)
+                _acid("A", {"C":1}, 0.0), _acid("X", {"C":1}, 1.0),
+                **_gases(), yield_gX_gS=0.5, rate_fn=lambda env: 0.0)
 
     def test_from_coefficients(self):
         from PyOMES.reactions import ReactionBuilder
@@ -251,7 +291,7 @@ class TestMonodAerobicGrowth:
     def test_returns_kinetic_reaction(self, substrate, biomass):
         from PyOMES.reactions import ReactionBuilder, KineticReaction
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,
         )
         assert isinstance(rxn, KineticReaction)
@@ -260,14 +300,11 @@ class TestMonodAerobicGrowth:
         """monod_aerobic_growth must produce identical stoichiometry to aerobic_growth."""
         from PyOMES.reactions import ReactionBuilder
         rxn_monod = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,
         )
         rxn_direct = ReactionBuilder.aerobic_growth(
-            substrate_id=substrate.id, substrate_atoms=substrate.atoms,
-            MW_substrate=float(substrate.MW),
-            biomass_id=biomass.id, biomass_atoms=biomass.atoms,
-            MW_biomass=float(biomass.MW),
+            substrate, biomass, **_gases(),
             yield_gX_gS=0.36, rate_fn=lambda env: 0.0,
         )
         coeffs_m = {e.species.id: e.coefficient for e in rxn_monod.stoichiometry}
@@ -278,7 +315,7 @@ class TestMonodAerobicGrowth:
     def test_default_label(self, substrate, biomass):
         from PyOMES.reactions import ReactionBuilder
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,
         )
         assert rxn.label == "monod_growth_AceticAcid"
@@ -286,7 +323,7 @@ class TestMonodAerobicGrowth:
     def test_custom_label(self, substrate, biomass):
         from PyOMES.reactions import ReactionBuilder
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,
             label="my_growth",
         )
@@ -295,7 +332,7 @@ class TestMonodAerobicGrowth:
     def test_rate_fn_zero_at_zero_substrate(self, substrate, biomass):
         from PyOMES.reactions import ReactionBuilder, ReactionEnvironment
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,
         )
         env = ReactionEnvironment(concentrations={"AceticAcid": 0.0, "Yeast": 0.1}, V_L=1.0, T_K=305.0)
@@ -304,7 +341,7 @@ class TestMonodAerobicGrowth:
     def test_rate_fn_zero_at_zero_biomass(self, substrate, biomass):
         from PyOMES.reactions import ReactionBuilder, ReactionEnvironment
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,
         )
         env = ReactionEnvironment(concentrations={"AceticAcid": 0.1, "Yeast": 0.0}, V_L=1.0, T_K=305.0)
@@ -319,7 +356,7 @@ class TestMonodAerobicGrowth:
         S_sat_gL = 10.0        # >> Ks=0.005 g/L
         X_gL     = 1.0
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=mu_max, Ks_gL=Ks, yield_gX_gS=Y,
         )
         env = ReactionEnvironment(
@@ -339,7 +376,7 @@ class TestMonodAerobicGrowth:
         X_gL  = 1.0
         S_gL  = Ks        # S == Ks → μ = μ_max / 2
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass,
+            substrate=substrate, biomass=biomass, **_gases(),
             mu_max_per_h=mu_max, Ks_gL=Ks, yield_gX_gS=Y,
         )
         env = ReactionEnvironment(
@@ -356,9 +393,9 @@ class TestMonodAerobicGrowth:
         from PyOMES.reactions import ReactionBuilder
         biomass_n = Species(id="Yeast_N", atoms={"C":1,"H":1.61,"O":0.56,"N":0.16}, charge=0, MW=26.868)
         rxn = ReactionBuilder.monod_aerobic_growth(
-            substrate=substrate, biomass=biomass_n,
+            substrate=substrate, biomass=biomass_n, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,
-            balance="CHNO",
+            balance="CHNO", n_source=_nh3(),
         )
         assert "NH3" in rxn.species_ids
 

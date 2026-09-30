@@ -6,40 +6,41 @@ stoichiometric coefficients from high-level specifications (substrate
 formula, biomass formula, yield, balance mode) and produce validated
 :class:`~PyOMES.reactions.kinetic.reaction.KineticReaction` objects.
 
+Every participant is a :class:`~PyOMES.chemistry.species.Species` the
+caller passes in: the substrate, the biomass, O₂, CO₂ and H₂O, and, for a
+CHNO balance, the nitrogen source.
+
 High-level convenience method (Monod kinetics + stoichiometry in one call):
 
 >>> rxn = ReactionBuilder.monod_aerobic_growth(
-...     substrate    = ACETIC_ACID,   # Species object
-...     biomass      = YEAST,         # Species object
+...     substrate    = ACETIC_ACID,   # Species objects throughout
+...     biomass      = YEAST,
 ...     mu_max_per_h = 0.5,
 ...     Ks_gL        = 5e-3,
 ...     yield_gX_gS  = 0.36,
+...     o2=O2, co2=CO2, h2o=H2O,
 ... )
 
 Lower-level method for custom rate functions:
 
 >>> rxn = ReactionBuilder.aerobic_growth(
-...     substrate_id    = "AceticAcid",
-...     substrate_atoms = {"C": 2, "H": 4, "O": 2},
-...     MW_substrate    = 60.052,
-...     biomass_id      = "Yeast",
-...     biomass_atoms   = {"C": 1, "H": 1.61, "O": 0.56},
-...     MW_biomass      = 24.626,
-...     yield_gX_gS     = 0.36,
-...     rate_fn         = my_custom_rate,
+...     substrate   = ACETIC_ACID,
+...     biomass     = YEAST,
+...     o2=O2, co2=CO2, h2o=H2O,
+...     yield_gX_gS = 0.36,
+...     rate_fn     = my_custom_rate,
 ... )
 """
 
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Optional, Sequence
 
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
 from .reaction import KineticReaction
 from PyOMES.reactions.environment import ReactionEnvironment
 from .rate_laws import Monod, DualSubstrateMonod
 from PyOMES.chemistry.species import Species
-from PyOMES.chemistry.common_species import CO2 as _CO2, H2O as _H2O
 
 
 class ReactionBuilder:
@@ -47,20 +48,17 @@ class ReactionBuilder:
 
     @staticmethod
     def aerobic_growth(
-        substrate_id: str,
-        substrate_atoms: Mapping[str, float],
-        MW_substrate: float,
-        biomass_id: str,
-        biomass_atoms: Mapping[str, float],
-        MW_biomass: float,
+        substrate: Species,
+        biomass: Species,
+        *,
+        o2: Species,
+        co2: Species,
+        h2o: Species,
         yield_gX_gS: float,
         rate_fn: Callable[[ReactionEnvironment], float],
-        *,
         balance: str = "CHO",
-        n_source_id: str = "NH3",
-        n_source_atoms: Mapping[str, float] | None = None,
+        n_source: Optional[Species] = None,
         label: str = "",
-        species_overrides: Mapping[str, "Species"] | None = None,
     ) -> KineticReaction:
         """Build an aerobic growth reaction from a yield and elemental formulas.
 
@@ -72,24 +70,20 @@ class ReactionBuilder:
         = −1).  The rate function should therefore return the substrate
         consumption rate in mol/h (extensive).
 
+        Every participant is the :class:`~PyOMES.chemistry.species.Species`
+        passed in; ids, atoms and molar masses are read from them. The
+        balance treats ``o2``, ``co2`` and ``h2o`` as O₂, CO₂ and H₂O; the
+        reaction's own element-balance check rejects species whose atoms
+        differ.
+
         Parameters
         ----------
-        substrate_id : str
-            Species ID for the substrate (e.g. ``"AceticAcid"``).
-        substrate_atoms : Mapping[str, float]
-            Elemental composition of the substrate,
-            e.g. ``{"C": 2, "H": 4, "O": 2}``.  Any read-only mapping
-            is accepted, including ``Species.atoms`` directly.
-        MW_substrate : float
-            Molecular weight of the substrate (g/mol).
-        biomass_id : str
-            Species ID for the organism (e.g. ``"Yeast"``).
-        biomass_atoms : Mapping[str, float]
-            Elemental composition of the biomass *per formula unit*,
-            e.g. ``{"C": 1, "H": 1.61, "O": 0.56}`` for CH₁.₆₁O₀.₅₆.
-            ``Species.atoms`` can be passed directly.
-        MW_biomass : float
-            Molecular weight of one biomass formula unit (g/mol).
+        substrate : Species
+            The substrate consumed (e.g. acetic acid).
+        biomass : Species
+            The biomass formed, one formula unit (e.g. CH₁.₆₁O₀.₅₆).
+        o2, co2, h2o : Species
+            Oxygen consumed, and carbon dioxide and water produced.
         yield_gX_gS : float
             Yield coefficient in g biomass per g substrate consumed.
         rate_fn : callable
@@ -98,12 +92,9 @@ class ReactionBuilder:
         balance : str
             ``"CHO"`` (default) or ``"CHNO"``.  When ``"CHNO"``, the
             nitrogen source is included in the stoichiometry.
-        n_source_id : str
-            Species ID for the nitrogen source (default ``"NH3"``).
-            Only used when ``balance`` includes ``"N"``.
-        n_source_atoms : dict or None
-            Elemental composition of the nitrogen source.
-            Defaults to ``{"N": 1, "H": 3}`` for NH₃.
+        n_source : Species or None
+            The nitrogen source consumed. Required when ``balance``
+            includes ``"N"``; ignored otherwise.
         label : str
             Human-readable label for the reaction.
 
@@ -120,8 +111,13 @@ class ReactionBuilder:
             when formulas and yields are self-consistent, but serves as a
             safety net against transcription errors).
         ValueError
-            If inputs are non-physical (zero MW, negative yield, etc.).
+            If inputs are non-physical (zero MW, negative yield, etc.), or
+            ``balance`` includes ``"N"`` and no ``n_source`` is given.
         """
+        MW_substrate = float(substrate.MW)
+        MW_biomass = float(biomass.MW)
+        substrate_atoms = substrate.atoms
+        biomass_atoms = biomass.atoms
         if MW_substrate <= 0.0:
             raise ValueError(f"MW_substrate must be > 0, got {MW_substrate}")
         if MW_biomass <= 0.0:
@@ -155,8 +151,12 @@ class ReactionBuilder:
             Ns = float(substrate_atoms.get("N", 0.0))
             Nx = float(biomass_atoms.get("N", 0.0))
 
-            if n_source_atoms is None:
-                n_source_atoms = {"N": 1, "H": 3}
+            if n_source is None:
+                raise ValueError(
+                    f"balance={balance!r} includes N, so a nitrogen source is "
+                    "needed: pass n_source=<Species>, e.g. NH3."
+                )
+            n_source_atoms = n_source.atoms
             H_nso = float(n_source_atoms.get("H", 0.0))
             N_nso = float(n_source_atoms.get("N", 0.0))
             O_nso = float(n_source_atoms.get("O", 0.0))
@@ -173,20 +173,13 @@ class ReactionBuilder:
             # Oxygen balance: Os + O_nso * nNsource + 2*nO2 = Y_mol * Ox + 2*nCO2 + nH2O
             nO2 = (Y_mol * Ox + 2.0 * nCO2 + nH2O - Os - O_nso * nNsource) / 2.0
 
-            _ov = species_overrides or {}
-            sub_sp  = _ov.get(substrate_id) or Species(id=substrate_id, atoms=dict(substrate_atoms), MW=MW_substrate)
-            o2_sp   = Species(id="O2", atoms={"O": 2})
-            nsrc_sp = _ov.get(n_source_id) or Species(id=n_source_id, atoms=dict(n_source_atoms))
-            bio_sp  = _ov.get(biomass_id) or Species(id=biomass_id, atoms=dict(biomass_atoms), MW=MW_biomass)
-            co2_sp  = _CO2
-            h2o_sp  = _H2O
             entries = [
-                StoichiometryEntry(species=sub_sp, phase="liquid", coefficient=-1.0),
-                StoichiometryEntry(species=o2_sp,  phase="liquid", coefficient=-nO2),
-                StoichiometryEntry(species=nsrc_sp, phase="liquid", coefficient=-nNsource),
-                StoichiometryEntry(species=bio_sp,  phase="liquid", coefficient=Y_mol),
-                StoichiometryEntry(species=co2_sp,  phase="liquid", coefficient=nCO2),
-                StoichiometryEntry(species=h2o_sp,  phase="liquid", coefficient=nH2O),
+                StoichiometryEntry(species=substrate, phase="liquid", coefficient=-1.0),
+                StoichiometryEntry(species=o2,        phase="liquid", coefficient=-nO2),
+                StoichiometryEntry(species=n_source,  phase="liquid", coefficient=-nNsource),
+                StoichiometryEntry(species=biomass,   phase="liquid", coefficient=Y_mol),
+                StoichiometryEntry(species=co2,       phase="liquid", coefficient=nCO2),
+                StoichiometryEntry(species=h2o,       phase="liquid", coefficient=nH2O),
             ]
         else:
             # CHO mode
@@ -196,22 +189,16 @@ class ReactionBuilder:
             # Oxygen balance: Os + 2*nO2 = Y_mol * Ox + 2*nCO2 + nH2O
             nO2 = (Y_mol * Ox + 2.0 * nCO2 + nH2O - Os) / 2.0
 
-            _ov = species_overrides or {}
-            sub_sp = _ov.get(substrate_id) or Species(id=substrate_id, atoms=dict(substrate_atoms), MW=MW_substrate)
-            o2_sp  = Species(id="O2", atoms={"O": 2})
-            bio_sp = _ov.get(biomass_id) or Species(id=biomass_id, atoms=dict(biomass_atoms), MW=MW_biomass)
-            co2_sp = _CO2
-            h2o_sp = _H2O
             entries = [
-                StoichiometryEntry(species=sub_sp, phase="liquid", coefficient=-1.0),
-                StoichiometryEntry(species=o2_sp,  phase="liquid", coefficient=-nO2),
-                StoichiometryEntry(species=bio_sp, phase="liquid", coefficient=Y_mol),
-                StoichiometryEntry(species=co2_sp, phase="liquid", coefficient=nCO2),
-                StoichiometryEntry(species=h2o_sp, phase="liquid", coefficient=nH2O),
+                StoichiometryEntry(species=substrate, phase="liquid", coefficient=-1.0),
+                StoichiometryEntry(species=o2,        phase="liquid", coefficient=-nO2),
+                StoichiometryEntry(species=biomass,   phase="liquid", coefficient=Y_mol),
+                StoichiometryEntry(species=co2,       phase="liquid", coefficient=nCO2),
+                StoichiometryEntry(species=h2o,       phase="liquid", coefficient=nH2O),
             ]
 
         if not label:
-            label = f"aerobic_{substrate_id}_{biomass_id}"
+            label = f"aerobic_{substrate.id}_{biomass.id}"
 
         return KineticReaction(
             stoichiometry=entries,
@@ -228,8 +215,12 @@ class ReactionBuilder:
         Ks_gL: float,
         yield_gX_gS: float,
         *,
+        o2: Species,
+        co2: Species,
+        h2o: Species,
         Ko2_gL: Optional[float] = None,
         balance: str = "CHO",
+        n_source: Optional[Species] = None,
         label: str = "",
     ) -> KineticReaction:
         """Aerobic growth with Monod substrate kinetics.
@@ -264,16 +255,21 @@ class ReactionBuilder:
             Substrate half-saturation constant (g/L).
         yield_gX_gS : float
             Yield coefficient (g biomass / g substrate consumed).
+        o2, co2, h2o : Species
+            Oxygen consumed, and carbon dioxide and water produced; passed
+            to :meth:`aerobic_growth`.
         Ko2_gL : float or None
             O₂ half-saturation constant (g/L).  When provided, multiplies
             µ by ``O2_gL / (Ko2_gL + O2_gL)`` where ``O2_gL`` is derived
-            from ``env.concentrations["O2"] * 32.0``.  Pass ``None``
+            from ``env.concentrations[o2.id] * 32.0``.  Pass ``None``
             (default) to omit the O₂ Monod term entirely.  ``Ko2_gL=0.0``
             with zero O₂ present returns a rate of 0.0 rather than raising
             (the 0/0 case is guarded).
         balance : str
             Element set for stoichiometric closure: ``"CHO"`` (default)
             or ``"CHNO"``.
+        n_source : Species or None
+            Nitrogen source; required when ``balance`` includes ``"N"``.
         label : str
             Human-readable label for the reaction.  Defaults to
             ``"monod_growth_{substrate.id}"``.
@@ -290,6 +286,7 @@ class ReactionBuilder:
         ...     mu_max_per_h = 0.5,
         ...     Ks_gL        = 5e-3,
         ...     yield_gX_gS  = 0.36,
+        ...     o2=O2, co2=CO2, h2o=H2O,
         ...     Ko2_gL       = 0.2e-3,
         ...     label        = "growth_on_AceticAcid",
         ... )
@@ -302,7 +299,7 @@ class ReactionBuilder:
         else:
             kin = DualSubstrateMonod(
                 mu_max=mu_max_per_h, Ks=Ks_gL,
-                secondary_id="O2", Ko=Ko2_gL,
+                secondary_id=o2.id, Ko=Ko2_gL,
                 secondary_in_mol_L=False, secondary_MW=32.0,
             )
         rate_fn = kin.make_rate_fn(
@@ -314,17 +311,13 @@ class ReactionBuilder:
         )
 
         return ReactionBuilder.aerobic_growth(
-            substrate_id    = substrate.id,
-            substrate_atoms = substrate.atoms,
-            MW_substrate    = MW_S,
-            biomass_id      = biomass.id,
-            biomass_atoms   = biomass.atoms,
-            MW_biomass      = MW_X,
-            yield_gX_gS     = yield_gX_gS,
-            rate_fn         = rate_fn,
-            balance         = balance,
-            label           = label or f"monod_growth_{substrate.id}",
-            species_overrides={substrate.id: substrate, biomass.id: biomass},
+            substrate, biomass,
+            o2=o2, co2=co2, h2o=h2o,
+            yield_gX_gS = yield_gX_gS,
+            rate_fn     = rate_fn,
+            balance     = balance,
+            n_source    = n_source,
+            label       = label or f"monod_growth_{substrate.id}",
         )
 
     @staticmethod

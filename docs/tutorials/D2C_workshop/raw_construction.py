@@ -89,12 +89,10 @@ ACETIC_ACID = Species(
 ACETATE_MINUS = Species(
     id="Acetate-", atoms={"C": 2, "H": 3, "O": 2}, charge=-1, MW=59.044,
 )
-# CO2 declared locally (rather than imported from common_species) so its
-# MW matches the value ReactionBuilder.aerobic_growth uses when it
-# constructs its own internal CO2 — without the match, the CV's
-# species-consistency check raises on the tiny MW disagreement (44.009
-# vs common_species' 44.01).
+# CO2 and O2 declared here; the growth reaction and the CO2 partition below
+# use these same objects.
 CO2 = Species(id="CO2", atoms={"C": 1, "O": 2}, charge=0, MW=44.009)
+O2 = Species(id="O2", atoms={"O": 2}, charge=0)
 
 # Biomass: a CHO pseudo-molecule "Yeast", the nitrogen-free composition
 # listed as "Yeast_CHO" in PyOMES.compounds.ChemicalRegistry.
@@ -127,12 +125,8 @@ def make_aerobic_growth_on_acetate(
         return (mu / Y) * X_gL / MW_S * env.V_L
 
     return ReactionBuilder.aerobic_growth(
-        substrate_id=ACETIC_ACID.id,
-        substrate_atoms=dict(ACETIC_ACID.atoms),
-        MW_substrate=MW_S,
-        biomass_id=YEAST.id,
-        biomass_atoms=dict(YEAST.atoms),
-        MW_biomass=MW_X,
+        ACETIC_ACID, YEAST,
+        o2=O2, co2=CO2, h2o=H2O,
         yield_gX_gS=Y,
         rate_fn=rate_fn,
         balance="CHO",

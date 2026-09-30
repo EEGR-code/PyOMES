@@ -1368,9 +1368,12 @@ Ks_gL        = 0.5     # g acetate / L     -- see Section 2 above
 Yxs          = 0.36    # g biomass / g acetate -- unchanged
 Ko2_gL       = 0.2e-3  # g O2 / L          -- unchanged
 
+O2 = Species(id="O2", atoms={"O": 2}, charge=0)
+
 growth = ReactionBuilder.monod_aerobic_growth(
     substrate=ACETIC_ACID, biomass=ECOLI,
     mu_max_per_h=mu_max_per_h, Ks_gL=Ks_gL, yield_gX_gS=Yxs, Ko2_gL=Ko2_gL,
+    o2=O2, co2=CO2, h2o=H2O, n_source=NH3,
     balance="CHNO", label="growth_on_AceticAcid",
 )
 system = ReactionSystem(
