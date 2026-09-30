@@ -72,7 +72,7 @@
 
 ### String stoichiometry
 
-- [ ] **1. Drop the `common_species` seed.** `_parse_stoichiometry` looks up
+- [x] **1. Drop the `common_species` seed.** `_parse_stoichiometry` looks up
       only the caller's `species=`; `_get_common_species` and the `_cs_mod`
       import go. The unknown-id message lists the caller's ids (or says none
       were given) and names the fix. The `species` parameter docs on
@@ -224,6 +224,32 @@ tank carries no acid-base equilibria (the database is used only for partition
 models), so its configured pH controller never doses. They still cover growth,
 gas transfer and the template's name resolution; `d2c_raw` covers equilibria
 and NaOH dosing (pH 3.23 → 5.00, Na+ 0 → 0.0196 mol). Logged in `OPEN_WORK.md`.
+
+**Checkpoint 1 (2026-09-30).** `_parse_stoichiometry` builds its lookup from
+`species=` only; `_get_common_species` and the `common_species` import are
+gone. A miss now reads, e.g., `'Na+' is not among the species passed
+(available: CO2, CO3--, H+, ...). Pass species={'Na+': Species(id='Na+', ...)},
+or the .species of a database that defines it (see PyOMES.databases).`, or
+"no species were passed" when none were. The `species` parameter docs on
+`EquilibriumReaction`, `KineticReaction`, `KspEquilibrium` and
+`_parse_stoichiometry` say ids are looked up there only;
+`_resolve_species`'s docstring no longer cites the deleted function.
+
+- `test_stoichiometry.py`: the 16 sites pass `AQUEOUS_DEFAULT.species`
+  (`_LOCAL` gains `H+`); tests and section headers named for "common
+  species" renamed; the message test now checks the caller's ids are
+  listed. Two new tests: no `species=` raises even for water, and an id
+  missing from `species=` raises.
+- `Example3_CSTR.ipynb` cell 14: the three reactions pass
+  `species=AD_BASIC.species` (exact replacement, 3 of 3; no saved outputs, so
+  nothing else changes). Run from the scratchpad against the old and new
+  code: every code cell runs in both, with the same warnings (eight
+  `ConservationWarning`s and one `AccuracyWarning`, already present).
+
+Suite: 2146 passed, 0 failed (+2). Fallback recorder: no stoichiometry hits.
+Measurement: 0 values differ in all five cases; warnings unchanged. Sweep:
+`_get_common_species`, `_cs_mod` and the old message text remain only in the
+planning docs.
 
 **Before checkpoint 7: what `reactions=` means on a `ControlVolume`.** The CV
 already takes `reaction_system=`. To agree before checkpoint 7 starts:

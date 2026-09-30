@@ -22,7 +22,6 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
-from PyOMES.chemistry import common_species as _cs_mod
 from PyOMES.chemistry.species import Species
 
 
@@ -171,15 +170,6 @@ _PHASE_ALIASES: Dict[str, str] = {
 _COEFF_RE = re.compile(r"^(\d+(?:\.\d*)?|\.\d+)\s+")
 
 
-def _get_common_species() -> Dict[str, Species]:
-    """Return all Species objects from chemistry.common_species keyed by id."""
-    return {
-        v.id: v
-        for v in vars(_cs_mod).values()
-        if isinstance(v, Species)
-    }
-
-
 def _parse_stoichiometry(
     s: str,
     species: Optional[Dict[str, Species]],
@@ -201,8 +191,8 @@ def _parse_stoichiometry(
         Stoichiometry string, e.g.
         ``"CO2,aq + H2O,aq <-> HCO3-,aq + H+,aq"``.
     species : dict[str, Species] or None
-        Caller-supplied species for locally declared IDs.  Looked up after
-        ``common_species``; caller entries override common ones.
+        ``{id: Species}`` for every id the string names.  Ids are looked
+        up here only; an id missing from it raises ``ValueError``.
     reaction_type : str or None
         ``"equilibrium"`` or ``"kinetic"``.  When provided, the arrow
         direction is validated against the calling reaction class.
@@ -256,10 +246,7 @@ def _parse_stoichiometry(
     lhs_str, rhs_str = parts[0].strip(), parts[1].strip()
 
     # ── build species lookup ──────────────────────────────────────────────────
-    common = _get_common_species()
-    lookup: Dict[str, Species] = dict(common)
-    if species:
-        lookup.update(species)
+    lookup: Dict[str, Species] = dict(species or {})
 
     # ── parse one side of the arrow ───────────────────────────────────────────
     def _parse_side(side_str: str, sign: float) -> List[StoichiometryEntry]:
@@ -311,14 +298,15 @@ def _parse_stoichiometry(
                 raise ValueError(f"Empty species ID in term {raw!r}.")
 
             if sp_id not in lookup:
-                extra = (
-                    " Pass a 'species' dict for locally-declared species."
-                    if not species
-                    else f" Caller-supplied IDs: {sorted(species)}."
+                available = (
+                    f"available: {', '.join(sorted(lookup))}"
+                    if lookup else "no species were passed"
                 )
                 raise ValueError(
-                    f"Species ID {sp_id!r} not found.{extra} "
-                    f"Common species available: {sorted(common)}."
+                    f"{sp_id!r} is not among the species passed ({available}). "
+                    f"Pass species={{{sp_id!r}: Species(id={sp_id!r}, ...)}}, "
+                    f"or the .species of a database that defines it "
+                    f"(see PyOMES.databases)."
                 )
 
             result.append(StoichiometryEntry(

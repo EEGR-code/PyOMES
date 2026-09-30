@@ -54,9 +54,7 @@ from PyOMES.reactions.stoichiometry import StoichiometryEntry, _parse_stoichiome
 def _resolve_species(species: Union[str, Species, None]) -> Optional[Species]:
     """Resolve a species id string or ``Species`` object to a ``Species``.
 
-    Looks the id up in ``PyOMES.chemistry.common_species`` directly — the
-    same source :func:`PyOMES.reactions.stoichiometry._get_common_species`
-    builds its own lookup from.
+    Looks the id up in ``PyOMES.chemistry.common_species``.
     """
     if species is None or isinstance(species, Species):
         return species
@@ -387,8 +385,9 @@ class KspEquilibrium:
         Solubility product (mass-action units matching the
         stoichiometry's dissolved-species exponents).
     species : dict[str, Species], optional
-        Caller-supplied species for locally declared minerals not in
-        ``common_species``. Only used when *stoichiometry* is a string.
+        ``{id: Species}`` for every id a string *stoichiometry* names,
+        minerals included; ids are looked up here only. Only used when
+        *stoichiometry* is a string.
     dH_J_per_mol : float, optional
         Van 't Hoff reaction enthalpy (J/mol) at ``T_ref_K``.
     T_ref_K : float

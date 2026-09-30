@@ -61,8 +61,8 @@ class KineticReaction:
         s → solid). Coefficients are per unit extent of reaction
         (positive = produced, negative = consumed).
     species : dict[str, Species], optional
-        Caller-supplied species for locally declared IDs not in
-        ``common_species``. Only used when *stoichiometry* is a string.
+        ``{id: Species}`` for every id a string *stoichiometry* names; ids
+        are looked up here only. Only used when *stoichiometry* is a string.
     rate_fn : callable
         ``rate_fn(env: ReactionEnvironment) -> float`` returning the
         **extensive** rate of reaction in mol/h.

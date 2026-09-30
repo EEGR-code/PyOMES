@@ -73,8 +73,8 @@ class EquilibriumReaction:
         ``log_K``: products / reactants — for ``HA ⇌ A⁻ + H⁺`` with
         ``Ka = 10^-pKa``, ``log_K = -pKa``.
     species : dict[str, Species], optional
-        Caller-supplied species for locally declared IDs not in
-        ``common_species``. Only used when *stoichiometry* is a string.
+        ``{id: Species}`` for every id a string *stoichiometry* names; ids
+        are looked up here only. Only used when *stoichiometry* is a string.
     log_K : float, optional
         Base-10 logarithm of the equilibrium constant. Required for
         single-phase reactions; **optional** for cross-phase
