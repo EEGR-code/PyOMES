@@ -694,15 +694,12 @@ achievable by aerobic respiration.
 Logged 2026-09-21/22, not built — grouped here because each is small and
 independent, not because they are related to each other.
 
-- **Molar-mass unification.** `PyOMES/compounds.py`'s `Chemical` (BioSTEAM-shaped,
-  moved out of `chemistry/` during this phase since it has no dependency on
-  `Species` or anything else in `chemistry/`)
-  and `chemistry/species.py`'s `Species` (the framework's own) both carry
-  molecular weights for overlapping compound sets, maintained independently.
-  A candidate for unification, or at least a documented invariant that they
-  agree, if the divergence ever causes a real bug (audit found up to sixteen
-  compounds with disagreeing molar masses between `Chemical` and other tables
-  before this phase's deletions removed most of those tables).
+- **Molar-mass unification.** Now part of
+  [EXPLICIT_SPECIES_RESOLUTION.md](upcoming/EXPLICIT_SPECIES_RESOLUTION.md)
+  (Phase 1 deletes `compounds.py`'s `Chemical` and moves its compounds into
+  a database as `Species`). Re-audited 2026-09-30: two same-id
+  disagreements remain (NH4Cl and KH2PO4, both 0.002 g/mol), and no
+  disagreement can reach simulation results today.
 - **`plot_vant_hoff` has no caller.** `reactions/equilibrium/plots.py`'s `plot_vant_hoff`
   (and `reactions/equilibrium/reaction.py`'s `EquilibriumReaction.plot_vant_hoff`
   wrapper) has no caller anywhere in the repo — no pytest coverage, no

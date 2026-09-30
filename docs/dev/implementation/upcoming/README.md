@@ -38,25 +38,18 @@ that still describe open work are "Open phases" and the pending stages in
   it. Ten open questions, mostly on the template's set-up information. No
   checklist or code yet.
 - **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
-  2026-09-22. Surfaced while investigating whether `chemistry/
-  common_species.py` should move to `PyOMES/databases/`: three internal
-  call sites (`reactions/stoichiometry.py`'s string-stoichiometry
-  parser, `reactions/equilibrium/interphase.py`'s `HenryEquilibrium`/
-  `RaoultEquilibrium` species fields, `core/control_volume.py`'s
-  charge-conservation registry) resolve unrecognized species ids by
-  scanning `common_species.py`'s entire module namespace via `vars()`,
-  not from anything the model itself declared — so a model can silently
-  pick up (or silently drop, depending on name collision) species the
-  user never wrote. Proposes removing all three ambient fallbacks in
-  favor of explicit resolution only. Phase 0 (stoichiometry.py) is
-  cheap and decided; Phase 1 (control_volume.py) found `ControlVolume`
-  already accepts `chemistry_db=` but doesn't consult
-  `chemistry_db.species`, so it's mostly wiring; Phase 2 (interphase.py)
-  needs an API decision (`RaoultEquilibrium.liquid_species` currently
-  defaults to the bare string `"H2O"`, resolved ambiently). The
-  original relocation question is downstream of this note, not
-  parallel — see its own "Relationship to the relocation question"
-  section. No branch, no checklist, no code yet.
+  2026-09-22, rewritten 2026-09-30. Rule: a model only knows the species
+  and reactions it was given, whether built by hand, picked from a
+  database, or passed as a whole database. Removes every ambient name
+  lookup (the `common_species` scans in string stoichiometry,
+  `HenryEquilibrium`/`RaoultEquilibrium` and the `ControlVolume`
+  conservation map; `compounds.py`'s `ChemicalRegistry`; the stirred-tank
+  template's `AD_BASIC` default; the strong-corrector map), retires
+  `common_species.py` into the database modules, and makes unresolved
+  `n_mol` ids warn instead of being skipped silently. Five phases, each
+  shippable on its own; decisions agreed, five open questions and five
+  audits listed. Resolves OPEN_WORK's molar-mass item. No branch, no
+  checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
