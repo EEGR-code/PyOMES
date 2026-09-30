@@ -45,11 +45,14 @@ that still describe open work are "Open phases" and the pending stages in
   `HenryEquilibrium`/`RaoultEquilibrium` and the `ControlVolume`
   conservation map; `compounds.py`'s `ChemicalRegistry`; the stirred-tank
   template's `AD_BASIC` default; the strong-corrector map), retires
-  `common_species.py` into the database modules, and makes unresolved
-  `n_mol` ids warn instead of being skipped silently. Five phases, each
-  shippable on its own; decisions agreed, five open questions and five
-  audits listed. Resolves OPEN_WORK's molar-mass item. No branch, no
-  checklist, no code yet.
+  `common_species.py` into the database modules, removes the Bisection
+  engine's fixed write-back list, and makes unresolved `n_mol` ids warn
+  instead of being skipped silently. Five phases, each shippable on its
+  own. Audits run and questions settled 2026-09-30, including treating
+  the stirred-tank yeast molar masses as a copy error (results move by
+  about 8–9 %, recorded in their own checkpoint). Completes the
+  molar-mass unification moved here from OPEN_WORK. Branch
+  `explicit-species-resolution` cut; no checklist or code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its

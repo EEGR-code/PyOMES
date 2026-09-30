@@ -4,6 +4,22 @@ Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
 [`upcoming/README.md`](upcoming/README.md).
 
+## Two findings from the explicit-species-resolution audits
+
+Found 2026-09-30 while running the audits in
+[`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](upcoming/EXPLICIT_SPECIES_RESOLUTION.md),
+not fixed.
+
+- **`build_adm1_cv(..., ethanol=True)` cannot build.** It calls
+  `.transfer_species("Ethanol")` without a Henry constant, and the
+  anaerobic-digestion database has no Ethanol partition model, so the
+  factory raises `ValueError: No partition model for 'Ethanol'`. No test
+  or notebook passes `ethanol=True`.
+- **`StirredTankBuilder.transfer_species` cites a deleted table.** Its
+  docstring says the Henry constant comes from `_HENRY_PARAMS`, which the
+  `partition-model` phase deleted; it now comes from the database's
+  partition models.
+
 ## Four small findings from the molar-mass and `plot_vant_hoff` audit
 
 Found 2026-09-30 while checking the molar-mass and `plot_vant_hoff` items
