@@ -7,7 +7,9 @@ the baseline way to define a model; if it fails, the routes that take
 species from a database do not matter.
 
 The checks: the model uses only the ``Species`` objects built here, it
-advances, and it conserves each element.
+advances, and it conserves each element. The stirred-tank template is
+checked the same way: built from species and Henry constants given here,
+with no database.
 """
 import math
 
@@ -158,3 +160,45 @@ class TestUserDefinedModel:
             cv.advance(dt_h=0.05)
         after = _element_totals(cv)[element]
         assert after == pytest.approx(before, rel=1e-9)
+
+
+# ── The stirred-tank template, with no database ──────────────────────────────
+
+N2 = Species(id="N2", atoms={"N": 2})
+YEAST_ATOMS, YEAST_MW = {"C": 1, "H": 1.61, "O": 0.56}, 24.626
+
+
+def _build_tank():
+    from PyOMES.templates.stirred_tank import StirredTankBuilder, TransferConfig
+    return (
+        StirredTankBuilder()
+        .vessel(V_total_L=10.0, T_K=305.15)
+        .no_gas_feed()
+        .transfer(TransferConfig(species={}))
+        .transfer_species("O2", henry_mol_L_atm=1.2e-3)
+        .transfer_species("CO2", henry_mol_L_atm=3.3e-2)
+        .transfer_species("N2", henry_mol_L_atm=6.1e-4)
+        .chemistry(species=[O2, CO2, H2O, N2])
+        .organism("Yeast", atoms=YEAST_ATOMS, MW=YEAST_MW)
+        .substrate("AceticAcid", atoms=dict(ACETIC_ACID.atoms), MW=ACETIC_ACID.MW)
+        .build()
+    )
+
+
+class TestUserDefinedStirredTank:
+    """The template builds and runs from the user's species and Henry
+    constants alone."""
+
+    def test_growth_uses_the_gases_built_here(self):
+        rxn = _build_tank().reaction_system
+        by_id = {e.species.id: e.species for e in rxn.stoichiometry}
+        assert by_id["O2"] is O2 and by_id["CO2"] is CO2 and by_id["H2O"] is H2O
+
+    def test_runs_and_grows(self):
+        cv = _build_tank()
+        V = cv["liquid"].V_L
+        cv["liquid"].n_mol["AceticAcid"] = 1e-2 * V
+        cv["liquid"].n_mol["Yeast"] = 1e-3 * V
+        for _ in range(10):
+            cv.advance(dt_h=0.1)
+        assert cv["liquid"].n_mol["Yeast"] > 1e-3 * V

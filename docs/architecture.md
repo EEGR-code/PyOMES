@@ -73,7 +73,9 @@ A stirred tank is a plain `ControlVolume` whose `phases` dict is
 `{"gas": GasPhase, "liquid": LiquidPhase}` and whose
 `internal_interfaces` list contains a `KineticGasLiquidLink` acting
 as a `PhaseInterface`.  Callers construct one via
-`StirredTankBuilder().build()` (or `StirredTankFactory.create_volume(...)`).
+`StirredTankBuilder().build()` (or `StirredTankFactory.create_volume(...)`),
+given the model's chemistry (`.chemistry(chemistry_db=..., species=...)`;
+there is no default database).
 
 Controllers never touch the link directly: they read a snapshot and
 change link parameters such as kLa through `params_changed` paths

@@ -40,10 +40,6 @@ and working its checkpoints, not fixed.
   anaerobic-digestion database has no Ethanol partition model, so the
   factory raises `ValueError: No partition model for 'Ethanol'`. No test
   or notebook passes `ethanol=True`.
-- **`StirredTankBuilder.transfer_species` cites a deleted table.** Its
-  docstring says the Henry constant comes from `_HENRY_PARAMS`, which the
-  `partition-model` phase deleted; it now comes from the database's
-  partition models.
 - **The stirred-tank template's pH controller never doses.** A tank built by
   `StirredTankBuilder` carries no acid-base equilibria: the database is used
   only for partition models, and the reaction system is the growth reaction

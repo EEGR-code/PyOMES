@@ -30,6 +30,7 @@ Run from the repo root::
 import numpy as np
 
 from PyOMES.templates.stirred_tank import StirredTankBuilder
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import MembraneGasBoundary
 from PyOMES.units import R_L_ATM_PER_MOL_K
@@ -100,7 +101,7 @@ cv = (
             yO2_init=0.1995, yCO2_init=0.05)
     .no_gas_feed()
     .transfer_equilibrium()
-    .chemistry()
+    .chemistry(chemistry_db=AD_BASIC)
     .organism("E_coli", atoms={"C": 1, "H": 1.77, "O": 0.49, "N": 0.24},
               MW=MW_ecoli, balance_basis="CHO")
     .substrate("Glucose", atoms={"C": 6, "H": 12, "O": 6}, MW=MW_glucose,

@@ -11,7 +11,7 @@ from .partition import (
     MultispeciesPartitionModel, MultispeciesVLEPartition,
 )
 from .species import Species, SpeciesConflictError
-from .species_check import check_species_consistency
+from .species_check import check_species_consistency, merge_species
 from . import common_species
 
 __all__ = [
@@ -21,5 +21,6 @@ __all__ = [
     "Species",
     "SpeciesConflictError",
     "check_species_consistency",
+    "merge_species",
     "common_species",
 ]

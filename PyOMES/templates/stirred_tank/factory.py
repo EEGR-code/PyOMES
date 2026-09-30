@@ -8,9 +8,16 @@ produces a ready-to-use :class:`~PyOMES.core.ControlVolume` whose
 ``phases`` dict is ``{"gas": GasPhase, "liquid": LiquidPhase}`` with
 gas-liquid transfer configured via the ``transfer_models`` kwarg.
 
+The model's chemistry is whatever it is given: a ``chemistry_db``, its own
+``species``, or both. There is no default database. The template's gases
+use the ids ``"O2"``, ``"CO2"`` and ``"N2"`` (gas phase, vessel mole
+fractions, default transfer), and its growth reactions ``"O2"``, ``"CO2"``
+and ``"H2O"``; the species passed must define those it uses.
+
 Example
 -------
 >>> from PyOMES.templates.stirred_tank import *
+>>> from PyOMES.databases.anaerobic_digestion import AD_BASIC
 >>> from PyOMES.core import Simulation
 >>>
 >>> cv = StirredTankFactory.create_volume(
@@ -19,6 +26,7 @@ Example
 ...     transfer=TransferConfig.default_kinetic(kLa_O2=150.0),
 ...     organism=OrganismConfig("Yeast"),
 ...     substrates=[SubstrateConfig("AceticAcid", yield_gX_gS=0.36)],
+...     chemistry_db=AD_BASIC,
 ... )
 >>> result = Simulation(cvs={"fermenter": cv}).run(tau_h=5.0, n_steps=1000)
 """
@@ -43,9 +51,9 @@ from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.transfer_models import KineticTransferModel, EquilibriumTransferModel
 from PyOMES.core.boundaries import GasFeed
 from PyOMES.chemistry.partition import PartitionModel
+from PyOMES.chemistry.species_check import merge_species
 from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
 from PyOMES.databases.database import ChemistryDatabase
-from PyOMES.databases.anaerobic_digestion import AD_BASIC
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -75,6 +83,7 @@ class StirredTankFactory:
         controllers: Optional[list] = None,
         chemistry_db: Optional[ChemistryDatabase] = None,
         label: str = "fermenter",
+        species: Optional[Any] = None,
     ) -> ControlVolume:
         """Create a configured fermenter ControlVolume from config dataclasses.
 
@@ -102,12 +111,19 @@ class StirredTankFactory:
         controllers : list, optional
             Reserved for future use (controller integration).
         chemistry_db : ChemistryDatabase, optional
-            Database supplying :class:`~PyOMES.chemistry.partition.PartitionModel`
-            objects for species whose ``henry_mol_L_atm`` is not set in
-            ``TransferConfig``.  Defaults to
-            :data:`~PyOMES.databases.anaerobic_digestion.AD_BASIC`.
+            The model's chemistry database, if it uses one. It supplies
+            :class:`~PyOMES.chemistry.partition.PartitionModel` objects for
+            transfer species whose ``henry_mol_L_atm`` is not set in
+            ``TransferConfig``, and its ``species`` join the model's species.
+            There is no default: a transfer species with neither a Henry
+            constant nor a partition model here raises.
         label : str
             Human-readable label.
+        species : mapping or iterable of Species, optional
+            Species the model defines itself, merged with
+            ``chemistry_db.species`` (the same id with different data
+            raises :class:`~PyOMES.chemistry.SpeciesConflictError`). Growth
+            reactions take O2, CO2 and H2O from these species by id.
 
         Returns
         -------
@@ -116,8 +132,14 @@ class StirredTankFactory:
             with a :class:`KineticGasLiquidLink` as an internal interface.
         """
         chemistry = chemistry or ChemistryConfig()
-        chemistry_db = chemistry_db or AD_BASIC
         T_K = vessel.T_K
+        model_species = merge_species(
+            chemistry_db.species if chemistry_db is not None else {},
+            species if species is not None else {},
+        )
+        db_partition_models = (
+            chemistry_db.partition_models if chemistry_db is not None else {}
+        )
 
         # ── 1. Partition models ────────────────────────────────────────
         partition_models_dict: Dict[str, PartitionModel] = {}
@@ -129,12 +151,14 @@ class StirredTankFactory:
                 partition_models_dict[sp] = HenryEquilibrium(
                     H_ref=kH_val * 1000.0 / 101325.0, dlnH=0.0
                 )
-            elif sp in chemistry_db.partition_models:
-                partition_models_dict[sp] = chemistry_db.partition_models[sp]
+            elif sp in db_partition_models:
+                partition_models_dict[sp] = db_partition_models[sp]
             else:
                 raise ValueError(
                     f"No partition model for {sp!r}. Provide henry_mol_L_atm "
                     f"in TransferConfig or add a PartitionModel to chemistry_db."
+                    + ("" if chemistry_db is not None
+                       else " (no chemistry_db was passed)")
                 )
 
         # ── 2. kLa and equilibrium sets ────────────────────────────────
@@ -196,7 +220,7 @@ class StirredTankFactory:
         rxn_system = reaction_system
         if rxn_system is None and organism is not None and substrates:
             rxn_system = StirredTankFactory._build_reaction_system(
-                organism, substrates, T_K, chemistry_db,
+                organism, substrates, T_K, model_species,
             )
 
         # Pre-configure the lazy-engine defaults from the chemistry
@@ -239,13 +263,13 @@ class StirredTankFactory:
         organism: OrganismConfig,
         substrates: Sequence[SubstrateConfig],
         T_K: float,
-        chemistry_db: ChemistryDatabase,
+        model_species: Dict[str, Any],
     ) -> Any:
         """Build a ReactionSystem from organism + substrate configs.
 
         Uses :meth:`ReactionBuilder.aerobic_growth` for each substrate
         with Monod kinetics as the rate law. O2, CO2 and H2O are the
-        ``Species`` of those ids in *chemistry_db*.
+        ``Species`` of those ids in *model_species*.
 
         Returns
         -------
@@ -261,13 +285,16 @@ class StirredTankFactory:
 
         gases = {}
         for sp_id in ("O2", "CO2", "H2O"):
-            if sp_id not in chemistry_db.species:
+            if sp_id not in model_species:
+                available = (", ".join(sorted(model_species))
+                             or "no species were passed")
                 raise ValueError(
-                    f"{sp_id!r} is not among the chemistry database's species "
-                    f"(available: {', '.join(sorted(chemistry_db.species))}); "
-                    "aerobic growth needs O2, CO2 and H2O."
+                    f"{sp_id!r} is not among the species passed to this model "
+                    f"(available: {available}). Aerobic growth needs O2, CO2 "
+                    f"and H2O: pass Species(id={sp_id!r}, ...) in species=, or "
+                    "a chemistry_db that defines it."
                 )
-            gases[sp_id] = chemistry_db.species[sp_id]
+            gases[sp_id] = model_species[sp_id]
 
         org = organism.resolve(registry)
         org_atoms = dict(org.atoms)

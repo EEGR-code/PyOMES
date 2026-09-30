@@ -9,11 +9,13 @@ configuration incrementally and produces a
 Example
 -------
 >>> from PyOMES.templates.stirred_tank import StirredTankBuilder
+>>> from PyOMES.databases.anaerobic_digestion import AD_BASIC
 >>> result = (
 ...     StirredTankBuilder()
 ...     .vessel(V_total_L=2000, T_K=305.15)
 ...     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
 ...     .transfer_kinetic(kLa_O2=150.0)
+...     .chemistry(chemistry_db=AD_BASIC)
 ...     .organism("Yeast")
 ...     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
 ...     .build_simulation_and_run(tau_h=5.0, n_steps=1000)
@@ -66,6 +68,8 @@ class StirredTankBuilder:
         self._gas_feed_kw: Optional[Dict[str, Any]] = None
         self._transfer_cfg: Optional[TransferConfig] = None
         self._chemistry_kw: Dict[str, Any] = {}
+        self._chemistry_db: Optional[Any] = None
+        self._species: Optional[Any] = None
         self._organism_kw: Optional[Dict[str, Any]] = None
         self._substrates: List[Dict[str, Any]] = []
         self._controllers: List[Any] = []
@@ -202,21 +206,22 @@ class StirredTankBuilder:
         this is how to add CH₄ and H₂ to the transfer::
 
             .transfer_equilibrium()
-            .transfer_species("CH4")   # uses Henry constant from lookup
+            .transfer_species("CH4")   # partition model from chemistry_db
             .transfer_species("H2")
 
         Parameters
         ----------
         species_id : str
-            Gas species identifier (must have a Henry constant in
-            ``_HENRY_PARAMS`` unless ``henry_mol_L_atm`` is provided).
+            Gas species identifier. Needs a partition model in the
+            ``chemistry_db`` passed to :meth:`chemistry` unless
+            ``henry_mol_L_atm`` is provided.
         mode : str
             ``"equilibrium"`` or ``"kinetic"`` (default ``"equilibrium"``).
         kLa_per_h : float
             kLa for kinetic mode (1/h).  Ignored for equilibrium mode.
         henry_mol_L_atm : float or None
-            Override Henry constant.  If None, looked up from the
-            built-in ``_HENRY_PARAMS`` table at build time.
+            Henry constant. If None, the partition model comes from the
+            ``chemistry_db`` at build time.
 
         Returns
         -------
@@ -262,8 +267,11 @@ class StirredTankBuilder:
     def chemistry(
         self,
         activity_model: Union[str, ActivityModel] = "ideal",
+        *,
+        chemistry_db: Optional[Any] = None,
+        species: Optional[Any] = None,
     ) -> "StirredTankBuilder":
-        """Set the liquid activity model.
+        """Set the model's chemistry: activity model, database and species.
 
         Parameters
         ----------
@@ -271,6 +279,13 @@ class StirredTankBuilder:
             ``"ideal"`` (default), ``"davies"``, ``"sit"``, or a model object
             such as ``SITLiquidModel(epsilon=...)``. Passed to the reaction
             system's engine; see :class:`ChemistryConfig`.
+        chemistry_db : ChemistryDatabase, optional
+            The model's chemistry database, if it uses one; see
+            :meth:`StirredTankFactory.create_volume`. There is no default.
+            Left as set by an earlier call when not given.
+        species : mapping or iterable of Species, optional
+            Species the model defines itself, merged with the database's.
+            Left as set by an earlier call when not given.
 
         pKa values are not set here: they live on declared equilibrium
         reactions consumed by
@@ -278,6 +293,10 @@ class StirredTankBuilder:
         need equilibria install them on the engine after ``.build()``.
         """
         self._chemistry_kw = {"activity_model": activity_model}
+        if chemistry_db is not None:
+            self._chemistry_db = chemistry_db
+        if species is not None:
+            self._species = species
         return self
 
     # ── Organism ──────────────────────────────────────────────────────
@@ -479,6 +498,8 @@ class StirredTankBuilder:
             gas_feed=gas_feed,
             reaction_system=self._reaction_system,
             controllers=self._controllers if self._controllers else None,
+            chemistry_db=self._chemistry_db,
+            species=self._species,
             label=self._label,
         )
 

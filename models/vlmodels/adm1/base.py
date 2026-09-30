@@ -992,6 +992,9 @@ def build_adm1_cv(
     from PyOMES.templates.stirred_tank import StirredTankBuilder
     from PyOMES.core.boundaries import PressureReliefVent
     from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
+    # The anaerobic-digestion database supplies the Henry models for the
+    # CH4, H2 and H2S transfer declared below.
+    from PyOMES.databases.anaerobic_digestion import AD_BASIC
 
     # Equilibria are pre-bucketed by the ReactionSystem; the engine
     # consumes the single-phase + cross-phase lists directly (the
@@ -1029,7 +1032,7 @@ def build_adm1_cv(
     if ethanol:
         b = b.transfer_species("Ethanol")  # no speciation correction — no dissociation
 
-    cv = (b.chemistry(activity_model=activity_model)
+    cv = (b.chemistry(activity_model=activity_model, chemistry_db=AD_BASIC)
             .reaction_system(reaction_system)
             .label("ADM1")
             .build())

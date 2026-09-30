@@ -27,6 +27,7 @@ Run from the repo root::
 import numpy as np
 
 from PyOMES.templates.stirred_tank import StirredTankBuilder
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import PressureReliefVent, LiquidFeed
 from PyOMES.control.cv_loops import PHController, DOAgitationController
@@ -73,7 +74,7 @@ cv = (
     .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
     .transfer_kinetic(kLa_O2=150.0)
-    .chemistry()
+    .chemistry(chemistry_db=AD_BASIC)
     .organism("Yeast", balance_basis="CHO")
     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
     .label("fed_batch")

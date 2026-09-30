@@ -50,6 +50,7 @@ applicable, controller diagnostics).
 
 ```python
 from PyOMES.templates.stirred_tank import StirredTankBuilder
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import PressureReliefVent
 from PyOMES.control.cv_loops import PHController
@@ -59,6 +60,7 @@ cv = (
     .vessel(V_total_L=2000, T_K=305.15)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
     .transfer_kinetic(kLa_O2=150.0)
+    .chemistry(chemistry_db=AD_BASIC)
     .organism("Yeast")
     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
     .build()
