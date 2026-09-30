@@ -304,9 +304,8 @@ def _parse_stoichiometry(
                 )
                 raise ValueError(
                     f"{sp_id!r} is not among the species passed ({available}). "
-                    f"Pass species={{{sp_id!r}: Species(id={sp_id!r}, ...)}}, "
-                    f"or the .species of a database that defines it "
-                    f"(see PyOMES.databases)."
+                    f"Add a Species for it to species=, e.g. "
+                    f"species={{..., {sp_id!r}: Species(id={sp_id!r}, ...)}}."
                 )
 
             result.append(StoichiometryEntry(

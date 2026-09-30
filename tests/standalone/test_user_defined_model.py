@@ -1,0 +1,167 @@
+# -*- coding: utf-8 -*-
+"""A model whose species and reactions are all defined by the user.
+
+Every ``Species`` here is built in this file and every reaction is given
+the species it names. Nothing is imported from a database module. This is
+the baseline way to define a model; if it fails, the routes that take
+species from a database do not matter.
+
+The checks: the model uses only the ``Species`` objects built here, it
+advances, and it conserves each element.
+"""
+import math
+
+import pytest
+
+from PyOMES.chemistry import Species
+from PyOMES.core import ControlVolume, LiquidPhase
+from PyOMES.reactions import EquilibriumReaction, KineticReaction, ReactionSystem
+
+
+# ── Species, built by the user ───────────────────────────────────────────────
+
+H2O           = Species(id="H2O",        atoms={"H": 2, "O": 1})
+H_PLUS        = Species(id="H+",         atoms={"H": 1},                 charge=+1)
+OH_MINUS      = Species(id="OH-",        atoms={"O": 1, "H": 1},         charge=-1)
+CO2           = Species(id="CO2",        atoms={"C": 1, "O": 2})
+HCO3_MINUS    = Species(id="HCO3-",      atoms={"H": 1, "C": 1, "O": 3}, charge=-1)
+O2            = Species(id="O2",         atoms={"O": 2})
+ACETIC_ACID   = Species(id="AceticAcid", atoms={"C": 2, "H": 4, "O": 2})
+ACETATE_MINUS = Species(id="Acetate-",   atoms={"C": 2, "H": 3, "O": 2}, charge=-1)
+
+USER_SPECIES = {
+    s.id: s for s in (
+        H2O, H_PLUS, OH_MINUS, CO2, HCO3_MINUS, O2, ACETIC_ACID, ACETATE_MINUS,
+    )
+}
+
+V_L = 1.0
+
+
+def _build_reactions():
+    return ReactionSystem([
+        EquilibriumReaction(
+            "H2O,aq <-> H+,aq + OH-,aq",
+            species=USER_SPECIES, log_K=-14.0,
+            balance_elements=("H", "O"), label="water",
+        ),
+        EquilibriumReaction(
+            "CO2,aq + H2O,aq <-> HCO3-,aq + H+,aq",
+            species=USER_SPECIES, log_K=-6.35,
+            balance_elements=("C", "H", "O"), label="carbonate",
+        ),
+        EquilibriumReaction(
+            "AceticAcid,aq <-> Acetate-,aq + H+,aq",
+            species=USER_SPECIES, log_K=-4.76,
+            balance_elements=("C", "H", "O"), label="acetate",
+        ),
+        KineticReaction(
+            "AceticAcid,aq + 2 O2,aq -> 2 CO2,aq + 2 H2O,aq",
+            species=USER_SPECIES,
+            rate_fn=lambda env: 50.0 * env.S("AceticAcid") * env.S("O2") * env.V_L,
+            balance_elements=("C", "H", "O"), label="acetate_oxidation",
+        ),
+    ], label="user_defined")
+
+
+def _build_cv():
+    liquid = LiquidPhase(
+        n_mol={
+            "H2O": 55.5 * V_L,
+            "H+": 1e-7 * V_L,
+            "OH-": 1e-7 * V_L,
+            "AceticAcid": 1e-2 * V_L,
+            "O2": 2e-3 * V_L,
+            "CO2": 1e-3 * V_L,
+        },
+        V_L=V_L, T_K=298.15,
+    )
+    return ControlVolume(
+        phases={"liquid": liquid},
+        reaction_system=_build_reactions(),
+        label="user_defined",
+    )
+
+
+def _element_totals(cv):
+    """Element totals over the species built here (other ids are checked
+    separately, in ``test_every_n_mol_id_is_a_species_built_here``)."""
+    totals = {}
+    for sp_id, n in cv.total_mol().items():
+        if sp_id not in USER_SPECIES:
+            continue
+        for element, count in USER_SPECIES[sp_id].atoms.items():
+            totals[element] = totals.get(element, 0.0) + n * count
+    return totals
+
+
+class TestUserDefinedModel:
+
+    def test_reactions_use_only_the_species_built_here(self):
+        rs = _build_reactions()
+        for rxn in rs.reactions:
+            for entry in rxn.stoichiometry:
+                assert entry.species is USER_SPECIES[entry.species.id], (
+                    f"{rxn.label}: {entry.species.id!r} is not the object built here"
+                )
+
+    def test_monitor_knows_only_the_species_built_here(self):
+        cv = _build_cv()
+        registry = cv._conservation_monitor._species_registry
+        assert set(registry) <= set(USER_SPECIES)
+        for sp_id, sp in registry.items():
+            assert sp is USER_SPECIES[sp_id]
+
+    @pytest.mark.xfail(strict=True, reason=(
+        "The Bisection engine writes back a fixed list of ids, including "
+        "ions this model never declared (Na+, K+, Cl-, Ca++, ...), at zero."
+    ))
+    def test_every_n_mol_id_is_a_species_built_here(self):
+        cv = _build_cv()
+        for _ in range(20):
+            cv.advance(dt_h=0.05)
+        assert set(cv.total_mol()) <= set(USER_SPECIES)
+
+    @pytest.mark.xfail(strict=True, reason=(
+        "The Bisection engine writes back only ids on its fixed list, which "
+        "does not include Acetate-; n_mol keeps all acetate as AceticAcid."
+    ))
+    def test_declared_conjugate_base_is_written_back(self):
+        cv = _build_cv()
+        cv.advance(dt_h=0.0)
+        assert cv["liquid"].n_mol.get("Acetate-", 0.0) > 0.0
+
+    def test_advances_to_a_finite_pH(self):
+        cv = _build_cv()
+        for _ in range(20):
+            cv.advance(dt_h=0.05)
+        pH = float(cv["liquid"].pH)
+        assert math.isfinite(pH)
+        assert 2.0 < pH < 7.0
+
+    def test_acetate_is_oxidised(self):
+        cv = _build_cv()
+        acetate_0 = cv["liquid"].n_mol["AceticAcid"]
+        for _ in range(20):
+            cv.advance(dt_h=0.05)
+        total = cv["liquid"].n_mol.get("AceticAcid", 0.0) + cv["liquid"].n_mol.get("Acetate-", 0.0)
+        assert total < acetate_0
+
+    _DRIFT = pytest.mark.xfail(strict=True, reason=(
+        "Drifts by 1e-8 to 1e-7 relative over 1 h (H -9.7e-8, O +2.5e-8) "
+        "while the engine does not write Acetate- back to n_mol."
+    ))
+
+    @pytest.mark.parametrize("element", [
+        "C",
+        pytest.param("H", marks=_DRIFT),
+        pytest.param("O", marks=_DRIFT),
+    ])
+    def test_conserves_each_element(self, element):
+        cv = _build_cv()
+        cv.advance(dt_h=0.0)  # speciate first, so the baseline is at equilibrium
+        before = _element_totals(cv)[element]
+        for _ in range(20):
+            cv.advance(dt_h=0.05)
+        after = _element_totals(cv)[element]
+        assert after == pytest.approx(before, rel=1e-9)

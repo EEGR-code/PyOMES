@@ -9,9 +9,18 @@
 
 **Working rules**
 
+- **The user-defined route comes first.** A model can be defined with every
+  species and reaction built by the user, with some taken from a database,
+  or with a whole database; the first is the baseline and is verified before
+  the others. `tests/standalone/test_user_defined_model.py` builds a model
+  with no database or `common_species` import, is run first at every
+  checkpoint, and grows as entry points gain `species=` / `reactions=` /
+  `chemistry_db=`. Tests and examples that exercise something other than
+  databases define their own species; a database is used where the point is
+  the database route.
 - Results are unchanged by rule, with two named exceptions, each in its own
-  checkpoint: the yeast molar masses (checkpoint 6) and the Bisection engine's
-  write-back (checkpoint 8). Every checkpoint measures and records; an
+  checkpoint: the Bisection engine's write-back (checkpoint 2) and the yeast
+  molar masses (checkpoint 7). Every checkpoint measures and records; an
   unexplained shift stops the checkpoint.
 - **Measurement.** A scratchpad script (`species_fingerprint.py`, not
   committed) builds and runs five fixed cases: the stirred-tank template as a
@@ -77,17 +86,29 @@
       import go. The unknown-id message lists the caller's ids (or says none
       were given) and names the fix. The `species` parameter docs on
       `EquilibriumReaction`, `KineticReaction`, `KspEquilibrium` and
-      `_parse_stoichiometry` stop mentioning `common_species`. Callers:
-      `tests/standalone/test_stoichiometry.py` (16 sites pass `species=` from
-      `AQUEOUS_DEFAULT.species`; `test_unknown_species_message_lists_common`
-      becomes a test of the new message);
-      `docs/tutorials/D2C_workshop/Example3_CSTR.ipynb` cell 14 (re-run).
-      Sanity: suite green; recorder shows no stoichiometry fallback hits;
-      measurement unchanged.
+      `_parse_stoichiometry` stop mentioning `common_species`. Callers define
+      their own species: `tests/standalone/test_stoichiometry.py` (16 sites;
+      `test_unknown_species_message_lists_common` becomes a test of the new
+      message); `docs/tutorials/D2C_workshop/Example3_CSTR.ipynb` cell 14
+      (re-run). New `tests/standalone/test_user_defined_model.py` (see working
+      rules). Sanity: suite green; recorder shows no stoichiometry fallback
+      hits; measurement unchanged.
+
+### Baseline route
+
+- [ ] **2. Bisection write-back.** The engine writes back only species it was
+      given (its declared equilibria and the strong ions present in its
+      input), including the conjugate bases of user-declared acids;
+      `_CANONICAL_WRITEBACK_SPECIES` is deleted. Sanity: the four strict
+      expected failures in `test_user_defined_model.py` now pass and their
+      markers are removed (H and O conserved to 1e-9); recorder shows no
+      zero-filled ions created in `n_mol`; measurement recorded for every
+      case, shifts explained (e.g. a change in which keys the state vector
+      packs); BSM2 sentinels; suite green.
 
 ### Stirred-tank template and `Chemical`
 
-- [ ] **2. Species for the template's compounds.** In the database modules
+- [ ] **3. Species for the template's compounds.** In the database modules
       (not `common_species`): Yeast, Yeast_CHO, AceticAcid, PropionicAcid,
       ButyricAcid, CitricAcid, O2 and N2 in the bioprocess database; CH4 and
       H2 in the anaerobic-digestion database. Yeast and Yeast_CHO keep the
@@ -97,14 +118,14 @@
       in the notes. Sanity: each new `Species` equals the registry entry's
       atoms, and its MW equals the registry's except CitricAcid (−0.001);
       suite green; measurement unchanged.
-- [ ] **3. `aerobic_growth` takes `Species`.** All six participants (substrate,
+- [ ] **4. `aerobic_growth` takes `Species`.** All six participants (substrate,
       biomass, N source, O2, CO2, H2O) are `Species` arguments; the separate
       id / atoms / MW arguments and `species_overrides` go, as does the
       `common_species` import and the local `O2`. Every caller updated
       (the factory, tests, notebooks; listed in the notes). Sanity: the built
       stoichiometry is identical entry by entry for the template's default
       configurations; suite green; measurement unchanged.
-- [ ] **4. Template takes the model's chemistry; no default database.**
+- [ ] **5. Template takes the model's chemistry; no default database.**
       `StirredTankBuilder` and `StirredTankFactory.create_volume` take
       `species=` / `reactions=` / `chemistry_db=`; the `AD_BASIC` fallback
       goes. Partition models come from the database passed; with none and no
@@ -116,7 +137,7 @@
       `transfer_species`'s docstring stops citing `_HENRY_PARAMS` (and the
       OPEN_WORK entry for it is deleted). Sanity: suite green; measurement
       unchanged; ADM1 and BSM2 sentinels unchanged.
-- [ ] **5. Names resolve against the species passed; `compounds.py` goes.**
+- [ ] **6. Names resolve against the species passed; `compounds.py` goes.**
       `OrganismConfig` / `SubstrateConfig` resolve ids (organism, substrate,
       N source) against the template's species and accept a `Species` in
       place of `atoms=` / `MW=`; a miss raises the error decision 4 describes.
@@ -131,7 +152,7 @@
       the registry's Yeast_CHO. Sanity: repo-wide sweep for
       `ChemicalRegistry`, `compounds`, `acid_pKas` (template); suite green;
       recorder shows no registry use; measurement unchanged.
-- [ ] **6. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
+- [ ] **7. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
       explicit MW (24.834, 22.593). The tutorials' `MW_yeast = 26.868`
       (`cstr_fermenter.py`, `fed_batch_fermenter.py`) and any other copy of
       26.868 / 24.626 (sweep, including tests) follow. Sanity: the stirred-tank
@@ -142,7 +163,7 @@
 
 ### `ControlVolume` species set and warnings
 
-- [ ] **7. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
+- [ ] **8. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
       `chemistry_db=` and builds the read-only `cv.species` in `__init__` from
       those plus the reaction stoichiometries. A new species-level conflict
       check raises `SpeciesConflictError` when the same id arrives with
@@ -151,12 +172,6 @@
       species through. `Simulation._warn_thermo_mismatch` unchanged. Sanity:
       suite green; the three tests that reached the catalog (audit 3) now
       get those ids from species passed to them; measurement unchanged.
-- [ ] **8. Bisection write-back.** The engine writes back only species it was
-      given (its declared equilibria and the strong ions present in its
-      input); `_CANONICAL_WRITEBACK_SPECIES` is deleted. Sanity: recorder
-      shows no zero-filled ions created in `n_mol`; BSM2 sentinels and ADM1
-      measured, shifts recorded and explained (e.g. a change in which keys
-      the state vector packs); suite green.
 - [ ] **9. Model species.** BSM2 declares `S_cat` / `S_an` as `Species`
       (`atoms={}`, charge ±1) in its species table; ADM1's `_get_species`
       raises on an unknown id instead of building biomass. Sanity: BSM2 and
@@ -228,31 +243,61 @@ and NaOH dosing (pH 3.23 → 5.00, Na+ 0 → 0.0196 mol). Logged in `OPEN_WORK.m
 **Checkpoint 1 (2026-09-30).** `_parse_stoichiometry` builds its lookup from
 `species=` only; `_get_common_species` and the `common_species` import are
 gone. A miss now reads, e.g., `'Na+' is not among the species passed
-(available: CO2, CO3--, H+, ...). Pass species={'Na+': Species(id='Na+', ...)},
-or the .species of a database that defines it (see PyOMES.databases).`, or
-"no species were passed" when none were. The `species` parameter docs on
-`EquilibriumReaction`, `KineticReaction`, `KspEquilibrium` and
-`_parse_stoichiometry` say ids are looked up there only;
-`_resolve_species`'s docstring no longer cites the deleted function.
+(available: CO2, H+, H2O, ...). Add a Species for it to species=, e.g.
+species={..., 'Na+': Species(id='Na+', ...)}.`, or "no species were passed"
+when none were. The `species` parameter docs on `EquilibriumReaction`,
+`KineticReaction`, `KspEquilibrium` and `_parse_stoichiometry` say ids are
+looked up there only; `_resolve_species`'s docstring no longer cites the
+deleted function.
 
-- `test_stoichiometry.py`: the 16 sites pass `AQUEOUS_DEFAULT.species`
-  (`_LOCAL` gains `H+`); tests and section headers named for "common
-  species" renamed; the message test now checks the caller's ids are
-  listed. Two new tests: no `species=` raises even for water, and an id
+A first version passed `AQUEOUS_DEFAULT.species` in the tests and
+`AD_BASIC.species` in the notebook (committed as `1962192`). Reworked in a
+follow-up commit on the repo owner's direction: which database a model uses is the user's choice when
+defining it, and the baseline to prove first is a model whose species are all
+user-defined.
+
+- `test_stoichiometry.py`: the species it names (H2O, H+, OH-, CO2, HCO3-,
+  NH3, acetic acid, acetate) are defined in the file; each test passes exactly
+  the species its string names; no database import. Tests and section headers
+  named for "common species" renamed; the message test checks the caller's ids
+  are listed. Two new tests: no `species=` raises even for water, and an id
   missing from `species=` raises.
-- `Example3_CSTR.ipynb` cell 14: the three reactions pass
-  `species=AD_BASIC.species` (exact replacement, 3 of 3; no saved outputs, so
-  nothing else changes). Run from the scratchpad against the old and new
-  code: every code cell runs in both, with the same warnings (eight
-  `ConservationWarning`s and one `AccuracyWarning`, already present).
+- `Example3_CSTR.ipynb` cell 14 declares its six water and carbonate species
+  next to `GLUCOSE` and `PEKILO` and passes them to its three reactions
+  (exact replacements; no saved outputs). Run from the scratchpad against the
+  old and new code: every code cell runs in both, printed output identical
+  apart from wall-clock time, same warnings (eight `ConservationWarning`s and
+  one `AccuracyWarning`, already present).
+- New `test_user_defined_model.py`: water, carbonate and acetate equilibria
+  and a kinetic acetate oxidation, all string stoichiometry over species
+  built in the file, in a liquid-only `ControlVolume`. Checks that the
+  reactions and the conservation monitor hold only those `Species` objects,
+  that the model advances to a finite pH, oxidises acetate and conserves
+  each element. Four checks fail today and are marked strict expected
+  failures, with the current behaviour as the reason:
+  - the Bisection engine writes nine ids the model never declared into
+    `n_mol`, at zero (Ca++, Cl-, Co++, K+, Mg++, Mn++, Mo7O24------, Na+,
+    Zn++);
+  - it never writes back the declared `Acetate-` (not on its fixed list), so
+    `n_mol` keeps all 0.01 mol as `AceticAcid` while `H+` (4.1e-4 mol)
+    reflects the dissociation, and the monitor warns about charge;
+  - H and O drift by -9.7e-8 and +2.5e-8 relative over 1 h (C is conserved
+    to 3e-16).
 
-Suite: 2146 passed, 0 failed (+2). Fallback recorder: no stoichiometry hits.
-Measurement: 0 values differ in all five cases; warnings unchanged. Sweep:
+  That makes the Bisection write-back a prerequisite for the baseline route,
+  so it moves from the `ControlVolume` checkpoints to checkpoint 2, and the
+  checkpoints after it are renumbered.
+
+Suite: 2151 passed, 4 xfailed, 0 failed (+2 in `test_stoichiometry.py`, +5
+and the 4 expected failures in `test_user_defined_model.py`); 178 warnings
+(+12, all the new test's charge `ConservationWarning`s). Fallback recorder: no
+stoichiometry hits. Measurement: 0 values differ in all five cases; warnings
+unchanged. Sweep:
 `_get_common_species`, `_cs_mod` and the old message text remain only in the
 planning docs.
 
-**Before checkpoint 7: what `reactions=` means on a `ControlVolume`.** The CV
-already takes `reaction_system=`. To agree before checkpoint 7 starts:
+**Before checkpoint 8: what `reactions=` means on a `ControlVolume`.** The CV
+already takes `reaction_system=`. To agree before checkpoint 8 starts:
 whether `reactions=` only contributes species to `cv.species`, or is an
 alternative to `reaction_system=`.
 
