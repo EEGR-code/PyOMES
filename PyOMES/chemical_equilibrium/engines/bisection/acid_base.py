@@ -888,7 +888,8 @@ def solve_from_equilibrium_set(
         strong_ions = {}
 
     eq_set = equilibrium_set
-    Kw = eq_set.water.Kw_at_T(T_K)
+    # Water enters the charge balance only when the set declares it.
+    Kw = eq_set.water.Kw_at_T(T_K) if eq_set.water is not None else 0.0
 
     # Build list of (EquilibriumDef, concentration, Kas_at_T) tuples
     eq_data = []

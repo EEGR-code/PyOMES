@@ -55,7 +55,7 @@ from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.control.cv_loops import PHController
 from PyOMES.chemistry import Species
 from PyOMES.chemistry.common_species import (
-    H_plus, H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+    H_plus, OH_minus, H2O, H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
 )
 from PyOMES.reactions import (
     EquilibriumReaction,
@@ -148,6 +148,24 @@ def make_acetate_dissociation(pKa: float = 4.756) -> EquilibriumReaction:
         log_K=-float(pKa),
         balance_elements=("C", "H", "O"),
         label="eq_AceticAcid",
+    )
+
+
+def make_water_dissociation(pKw: float = 14.0) -> EquilibriumReaction:
+    """Water autoionisation: H2O ⇌ H⁺ + OH⁻. log_K = -pKw.
+
+    The speciation engine includes water in the charge balance only when
+    this reaction is declared.
+    """
+    return EquilibriumReaction(
+        stoichiometry=[
+            StoichiometryEntry(species=H2O, phase="liquid", coefficient=-1.0),
+            StoichiometryEntry(species=H_plus, phase="liquid", coefficient=+1.0),
+            StoichiometryEntry(species=OH_minus, phase="liquid", coefficient=+1.0),
+        ],
+        log_K=-float(pKw),
+        balance_elements=("H", "O"),
+        label="eq_water",
     )
 
 
@@ -319,8 +337,8 @@ def build() -> Simulation:
     liquid = build_liquid_phase(gas)
 
     # ReactionSystem from the factories declared above. They produce one
-    # kinetic reaction, single-phase equilibria (acetate + the phosphate
-    # ladder the pH controller's H3PO4 corrector needs), and one
+    # kinetic reaction, single-phase equilibria (water, acetate and the
+    # phosphate ladder the pH controller's H3PO4 corrector needs), and one
     # cross-phase equilibrium reaction; the system pre-buckets them at
     # construction and the CV routes each bucket appropriately.
     rxn_system = ReactionSystem(
@@ -328,6 +346,7 @@ def build() -> Simulation:
             make_aerobic_growth_on_acetate(
                 mu_max_per_h=0.5, Ks_g_per_L=5e-3, yield_gX_gS=0.36,
             ),
+            make_water_dissociation(pKw=14.0),
             make_acetate_dissociation(pKa=4.756),
             *make_phosphate_ladder(),
             make_co2_partition(),

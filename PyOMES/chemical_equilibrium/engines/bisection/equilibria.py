@@ -49,7 +49,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from PyOMES.thermo.temperature_correction import ln_correction
 from PyOMES.units import R_J_PER_MOL_K as _R_J
@@ -182,34 +182,32 @@ class WaterDef:
 class EquilibriumSet:
     """Ordered collection of equilibrium definitions for a charge balance.
 
-    Build from scratch or load a preset, then add/remove systems.
+    Build from scratch, then add/remove systems. Water autoionisation
+    enters the charge balance only once :meth:`set_water` has been called.
     """
 
     def __init__(self, *, T_ref_K: float = 298.15):
-        """Create an empty set with a default reference temperature.
+        """Create an empty set, with no water, and a default reference temperature.
 
         Parameters
         ----------
         T_ref_K : float
-            Default reference temperature (K) used when ``add()`` is
-            called without specifying ``T_ref_K``.
+            Default reference temperature (K) used when ``add()`` or
+            ``set_water()`` is called without specifying ``T_ref_K``.
         """
         self.T_ref_K = T_ref_K
         self._equilibria: Dict[str, EquilibriumDef] = {}
-        self._water: WaterDef = WaterDef(pKw=14.0, T_ref_K=T_ref_K)
+        self._water: Optional[WaterDef] = None
         self._insertion_order: List[str] = []
 
     # ── Water ─────────────────────────────────────────────────────────
 
-    def set_water(self, *, pKw=None, correction="none",
+    def set_water(self, *, pKw, correction="none",
                   dH_J_per_mol=None, T_ref_K=None):
-        """Define water autoionisation.
+        """Define water autoionisation, which then enters the charge balance.
 
         Returns self for method chaining.
         """
-        if pKw is None:
-            pKw = 14.0
-
         t_ref = float(T_ref_K) if T_ref_K is not None else self.T_ref_K
 
         dH_internal = float(dH_J_per_mol) if dH_J_per_mol is not None else 0.0
@@ -229,8 +227,8 @@ class EquilibriumSet:
         return self
 
     @property
-    def water(self) -> WaterDef:
-        """The water autoionisation definition."""
+    def water(self) -> Optional[WaterDef]:
+        """The water autoionisation definition, or ``None`` if not set."""
         return self._water
 
     # ── Add / remove / query ──────────────────────────────────────────
@@ -434,7 +432,8 @@ class EquilibriumSet:
                 f"{eq_def.name}({eq_def.category}, "
                 f"pKas={eq_def.pKas}, active={active_str}, "
                 f"correction={eq_def.correction!r})")
-        water_str = (f"water(pKw={self._water.pKw}, "
+        water_str = ("no water" if self._water is None else
+                     f"water(pKw={self._water.pKw}, "
                      f"correction={self._water.correction!r})")
         return (f"EquilibriumSet([{water_str}, "
                 + ", ".join(entries) + "])")
@@ -443,9 +442,12 @@ class EquilibriumSet:
         """Human-readable summary of all registered equilibria."""
         lines = [f"EquilibriumSet ({len(self)} equilibria, "
                  f"T_ref_default={self.T_ref_K} K):"]
-        lines.append(f"  Water: pKw={self._water.pKw} at "
-                     f"{self._water.T_ref_K} K, "
-                     f"correction={self._water.correction!r}")
+        if self._water is None:
+            lines.append("  Water: not set (no autoionisation in the charge balance)")
+        else:
+            lines.append(f"  Water: pKw={self._water.pKw} at "
+                         f"{self._water.T_ref_K} K, "
+                         f"correction={self._water.correction!r}")
         for eq_def in self:
             active_str = (f" (active: {eq_def.n_active}/{eq_def.n_protons})"
                           if eq_def.n_active < eq_def.n_protons else "")

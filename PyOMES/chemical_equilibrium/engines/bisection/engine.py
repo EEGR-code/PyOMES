@@ -164,6 +164,8 @@ class BisectionChemicalEquilibriumEngine:
         - **Water dissociation:** the only reaction whose products
           include both H⁺ and OH⁻. Recognised regardless of the
           species id of the consumed water (defaults to ``"H2O"``).
+          Without one, water autoionisation plays no part in the
+          charge balance and OH⁻ is zero.
         - **Acid (``HA ⇌ A⁻ + H⁺``):** one reactant with charge 0
           (or any non-positive charge), one anionic product, and H⁺.
         - **Cation acid (``BH⁺ ⇌ B + H⁺``):** one reactant with

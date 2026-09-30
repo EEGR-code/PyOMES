@@ -19,8 +19,8 @@
   databases define their own species; a database is used where the point is
   the database route.
 - Results are unchanged by rule, with two named exceptions, each in its own
-  checkpoint: the Bisection engine's write-back (checkpoint 2) and the yeast
-  molar masses (checkpoint 7). Every checkpoint measures and records; an
+  checkpoint: the Bisection engine's write-back (checkpoint 3) and the yeast
+  molar masses (checkpoint 8). Every checkpoint measures and records; an
   unexplained shift stops the checkpoint.
 - **Measurement.** A scratchpad script (`species_fingerprint.py`, not
   committed) builds and runs five fixed cases: the stirred-tank template as a
@@ -96,7 +96,17 @@
 
 ### Baseline route
 
-- [ ] **2. Bisection write-back.** The engine writes back only species it was
+- [x] **2. No built-in water.** An `EquilibriumSet` has no water until
+      `set_water(pKw=...)` is called (`pKw` required); the Bisection solver
+      uses Kw = 0 without it, so water plays no part in the charge balance
+      unless a water reaction is declared. Models that relied on the built-in
+      water (pKw 14, no temperature correction) declare it with the same
+      values: ADM1 (`build_adm1_reactions`) and
+      `docs/tutorials/D2C_workshop/raw_construction.py`. Sanity: every model
+      and notebook that solves without a water reaction found first (suite,
+      measurement cases and notebooks under a recorder); measurement
+      bit-identical; suite green.
+- [ ] **3. Bisection write-back.** The engine writes back only species it was
       given (its declared equilibria and the strong ions present in its
       input), including the conjugate bases of user-declared acids;
       `_CANONICAL_WRITEBACK_SPECIES` is deleted. Sanity: the four strict
@@ -108,7 +118,7 @@
 
 ### Stirred-tank template and `Chemical`
 
-- [ ] **3. Species for the template's compounds.** In the database modules
+- [ ] **4. Species for the template's compounds.** In the database modules
       (not `common_species`): Yeast, Yeast_CHO, AceticAcid, PropionicAcid,
       ButyricAcid, CitricAcid, O2 and N2 in the bioprocess database; CH4 and
       H2 in the anaerobic-digestion database. Yeast and Yeast_CHO keep the
@@ -118,14 +128,14 @@
       in the notes. Sanity: each new `Species` equals the registry entry's
       atoms, and its MW equals the registry's except CitricAcid (−0.001);
       suite green; measurement unchanged.
-- [ ] **4. `aerobic_growth` takes `Species`.** All six participants (substrate,
+- [ ] **5. `aerobic_growth` takes `Species`.** All six participants (substrate,
       biomass, N source, O2, CO2, H2O) are `Species` arguments; the separate
       id / atoms / MW arguments and `species_overrides` go, as does the
       `common_species` import and the local `O2`. Every caller updated
       (the factory, tests, notebooks; listed in the notes). Sanity: the built
       stoichiometry is identical entry by entry for the template's default
       configurations; suite green; measurement unchanged.
-- [ ] **5. Template takes the model's chemistry; no default database.**
+- [ ] **6. Template takes the model's chemistry; no default database.**
       `StirredTankBuilder` and `StirredTankFactory.create_volume` take
       `species=` / `reactions=` / `chemistry_db=`; the `AD_BASIC` fallback
       goes. Partition models come from the database passed; with none and no
@@ -137,7 +147,7 @@
       `transfer_species`'s docstring stops citing `_HENRY_PARAMS` (and the
       OPEN_WORK entry for it is deleted). Sanity: suite green; measurement
       unchanged; ADM1 and BSM2 sentinels unchanged.
-- [ ] **6. Names resolve against the species passed; `compounds.py` goes.**
+- [ ] **7. Names resolve against the species passed; `compounds.py` goes.**
       `OrganismConfig` / `SubstrateConfig` resolve ids (organism, substrate,
       N source) against the template's species and accept a `Species` in
       place of `atoms=` / `MW=`; a miss raises the error decision 4 describes.
@@ -152,7 +162,7 @@
       the registry's Yeast_CHO. Sanity: repo-wide sweep for
       `ChemicalRegistry`, `compounds`, `acid_pKas` (template); suite green;
       recorder shows no registry use; measurement unchanged.
-- [ ] **7. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
+- [ ] **8. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
       explicit MW (24.834, 22.593). The tutorials' `MW_yeast = 26.868`
       (`cstr_fermenter.py`, `fed_batch_fermenter.py`) and any other copy of
       26.868 / 24.626 (sweep, including tests) follow. Sanity: the stirred-tank
@@ -163,7 +173,7 @@
 
 ### `ControlVolume` species set and warnings
 
-- [ ] **8. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
+- [ ] **9. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
       `chemistry_db=` and builds the read-only `cv.species` in `__init__` from
       those plus the reaction stoichiometries. A new species-level conflict
       check raises `SpeciesConflictError` when the same id arrives with
@@ -172,11 +182,11 @@
       species through. `Simulation._warn_thermo_mismatch` unchanged. Sanity:
       suite green; the three tests that reached the catalog (audit 3) now
       get those ids from species passed to them; measurement unchanged.
-- [ ] **9. Model species.** BSM2 declares `S_cat` / `S_an` as `Species`
+- [ ] **10. Model species.** BSM2 declares `S_cat` / `S_an` as `Species`
       (`atoms={}`, charge ±1) in its species table; ADM1's `_get_species`
       raises on an unknown id instead of building biomass. Sanity: BSM2 and
       ADM1 unchanged; suite green.
-- [ ] **10. Correctors from the model's species.** `equilibrate_to_pH` and
+- [ ] **11. Correctors from the model's species.** `equilibrate_to_pH` and
       `apply_external_flux` resolve the corrector from the model's species;
       `_STRONG_CORRECTOR_ION` is deleted. The resolution rule is agreed with
       the repo owner before this checkpoint starts (see notes). Callers
@@ -184,7 +194,7 @@
       `PHController` configuration, `test_cv_advance.py`,
       `test_iron_oxidation.py`, `test_simulation.py`, `conftest.py`. Sanity:
       pH-control results unchanged; suite green.
-- [ ] **11. `UnresolvedSpeciesWarning`.** New `UserWarning` subclass in
+- [ ] **12. `UnresolvedSpeciesWarning`.** New `UserWarning` subclass in
       `monitoring/`, exported next to `ConservationWarning`. Warns where an
       id enters (CV construction, feeds, dosing, template set-up), naming
       the id and the call, and in the monitor once per id whenever it first
@@ -195,7 +205,7 @@
 
 ### Henry and Raoult
 
-- [ ] **12. `Species` objects only.** `HenryEquilibrium` /
+- [ ] **13. `Species` objects only.** `HenryEquilibrium` /
       `RaoultEquilibrium` species fields take `Species` or `None`;
       `_resolve_species` and the `"H2O"` defaults go. In the same checkpoint:
       `databases/anaerobic_digestion.py`, ADM1's water link, the two
@@ -204,7 +214,7 @@
 
 ### Retire `common_species`
 
-- [ ] **13. Definitions into the databases.** The 26 definitions move into
+- [ ] **14. Definitions into the databases.** The 26 definitions move into
       the database modules (`aqueous.py`: water, carbonate, ammonia; which
       module owns phosphate, sulfate, sulfide, the spectator ions and the
       metal ions is settled in the notes); each database lists every species
@@ -213,7 +223,7 @@
       `species.py` docstring that cites it. Sanity: repo-wide sweep for
       `common_species` (only history left); every `Species` object identical
       to before by value; suite green; measurement unchanged.
-- [ ] **14. Close-out.** Sweep for `_get_common_species`,
+- [ ] **15. Close-out.** Sweep for `_get_common_species`,
       `_common_species_catalog`, `ChemicalRegistry`, `_STRONG_CORRECTOR_ION`,
       `_CANONICAL_WRITEBACK_SPECIES`, `species_overrides`; `README.md`,
       `PyOMES/README.md`, `docs/architecture.md`; the strong-ion and
@@ -285,7 +295,7 @@ user-defined.
     to 3e-16).
 
   That makes the Bisection write-back a prerequisite for the baseline route,
-  so it moves from the `ControlVolume` checkpoints to checkpoint 2, and the
+  so it moves from the `ControlVolume` checkpoints to checkpoint 3, and the
   checkpoints after it are renumbered.
 
 Suite: 2151 passed, 4 xfailed, 0 failed (+2 in `test_stoichiometry.py`, +5
@@ -296,14 +306,64 @@ unchanged. Sweep:
 `_get_common_species`, `_cs_mod` and the old message text remain only in the
 planning docs.
 
-**Before checkpoint 8: what `reactions=` means on a `ControlVolume`.** The CV
-already takes `reaction_system=`. To agree before checkpoint 8 starts:
+**Checkpoint 2 (2026-09-30).** Found while planning the write-back fix: with
+no water reaction declared, the Bisection engine still modelled water (a
+built-in pKw 14 in `EquilibriumSet.__init__`) and wrote OH- into `n_mol`. On
+the repo owner's decision the built-in water goes, and this checkpoint comes
+before the write-back fix so nothing moves and then moves back.
+
+Who relied on it, found before editing: a recorder (scratchpad
+`water_plugin.py`) logged every engine built by `from_reactions` with no water
+reaction and later solved, over the full suite, the five measurement cases and
+every tutorial and validation notebook or script that builds chemistry (each
+run from the scratchpad, 5 min cap). Result: ADM1 (`base.py`, via the three
+ADM1 tests in `test_simulation.py`), `raw_construction.py`, and four tests in
+`test_speciation.py` (`TestCanonicalEmission` ×3, `TestApplyToPhasesWriteback`).
+Every notebook ran to completion except `aerobic_fermentation_stoichiometry.ipynb`
+(60 h cells, over the cap); its source takes its equilibria from
+`BIOPROCESS_BASIC.reactions`, which include water. `batch_fermenter.ipynb`
+stops at its known unparseable cell 10. The notebook generators were not run
+(they rewrite repo files). ADM1's engine has no acid-base equilibria at all, so
+without water its charge balance would have nothing to balance the strong ions
+it seeds.
+
+- `equilibria.py`: `_water` starts as `None`; `water` is `Optional[WaterDef]`;
+  `set_water`'s `pKw` is required (it defaulted to 14 when omitted); `__repr__`
+  and `summary()` say when no water is set. The class docstring's "or load a
+  preset" went (the presets were deleted earlier).
+- `acid_base.py` `solve_from_equilibrium_set`: Kw = 0 when the set has no water.
+- `engine.py` `from_reactions` docstring: without a water reaction, water plays
+  no part in the charge balance and OH- is zero.
+- ADM1 `build_adm1_reactions` and `raw_construction.py` declare
+  `H2O <-> H+ + OH-` with log_K -14 and no enthalpy, i.e. the built-in values.
+  `raw_construction.py` gains a `make_water_dissociation()` factory.
+- The four `test_speciation.py` tests stay as they are: they check which ids
+  are emitted, not values, and now exercise the no-water path. New
+  `TestWaterDeclaration` (4 tests, species defined in the test): a new set has
+  no water, `set_water` needs `pKw`, no water reaction gives OH- = 0 with
+  H+ = A-, and a declared one gives [H+][OH-] = 1e-14.
+
+Measurement: 0 values differ in all five cases. ADM1 raises one more
+`ConservationWarning`, a charge residual: declaring water puts OH- in the
+conservation monitor's registry, while the Na+ and Cl- ADM1 seeds after the CV
+is built are still invisible to it (fixed by `cv.species`, checkpoint 9). The
+monitor now sees part of the charge picture where it saw none; the physics is
+unchanged. Suite: 2155 passed, 4 xfailed, 0 failed (+4); 181 warnings (+3,
+that charge residual in the three ADM1 tests). `test_user_defined_model.py`
+unchanged (5 passed, 4 xfailed): it declares water.
+
+Found, not changed: the engine recognises the solvent by a hard-coded id
+(`_SOLVENT_IDS = ("H2O",)` in `engine.py`), another name-keyed backend table.
+To settle with the write-back checkpoint or log.
+
+**Before checkpoint 9: what `reactions=` means on a `ControlVolume`.** The CV
+already takes `reaction_system=`. To agree before checkpoint 9 starts:
 whether `reactions=` only contributes species to `cv.species`, or is an
 alternative to `reaction_system=`.
 
-**Before checkpoint 10: how a corrector resolves.** Today `"NaOH"` doses
+**Before checkpoint 11: how a corrector resolves.** Today `"NaOH"` doses
 `Na+`. Under the rule the corrector must come from the model's species. To
-agree before checkpoint 10 starts: dose the ion `Species` directly (the model
+agree before checkpoint 11 starts: dose the ion `Species` directly (the model
 names `Na+`), or keep a salt `Species` (`NaOH` exists in the bioprocess
 database) that states which ion it adds.
 

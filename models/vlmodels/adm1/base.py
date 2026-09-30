@@ -46,6 +46,7 @@ from PyOMES.reactions import (
 )
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.common_species import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
+from PyOMES.chemistry.common_species import H_plus as _H_plus_sp, OH_minus as _OH_minus_sp
 from PyOMES.thermo.temperature_correction import ln_correction
 
 logger = logging.getLogger(__name__)
@@ -909,6 +910,20 @@ def build_adm1_reactions(
     n_bio = len(rxn_defs)
     _log("Total: %d reactions (%d biochemical + %d decay + 1 disintegration)",
          len(reactions), n_bio, len(all_orgs))
+
+    # Water autoionisation, pKw 14 with no temperature correction: the
+    # speciation engine's charge balance includes water only when a
+    # water reaction is declared.
+    reactions.append(EquilibriumReaction(
+        stoichiometry=[
+            StoichiometryEntry(species=_H2O_sp,      phase="liquid", coefficient=-1.0),
+            StoichiometryEntry(species=_H_plus_sp,   phase="liquid", coefficient=+1.0),
+            StoichiometryEntry(species=_OH_minus_sp, phase="liquid", coefficient=+1.0),
+        ],
+        log_K=-14.0,
+        balance_elements=("H", "O"),
+        label="eq_water",
+    ))
 
     # Cross-phase partition declarations (chemistry-unification-3b C7).
     # These auto-wire speciation_keys and build speciation_ladders at CV
