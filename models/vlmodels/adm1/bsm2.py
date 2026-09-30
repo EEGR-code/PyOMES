@@ -399,16 +399,19 @@ def _build_rate_functions(kp):
 
     # ── Monod uptake rate factories (BSM2 formulation) ────────────────
 
-    def rate_uptake(org, sub, k_m_d, K_S_cod, I_fn):
+    def rate_uptake(org, sub_ids, k_m_d, K_S_cod, I_fn):
         """BSM2 Monod: k_m × S_cod/(K_S + S_cod) × X_cod × I.
 
+        ``sub_ids`` are the ids whose amounts together make up the
+        substrate (a VFA and its conjugate base, both written to n_mol by
+        the speciation engine); the substrate's ThOD is that of the first.
         Returns mol_substrate / h.
         """
-        ThOD_sub = _thod(sub)
+        ThOD_sub = _thod(sub_ids[0])
         ThOD_X = BSM2_BIO_THOD
         k_m_h = k_m_d / 24.0
         def r(env):
-            S_cod = env.concentrations.get(sub, 0) * ThOD_sub
+            S_cod = sum(env.concentrations.get(s, 0) for s in sub_ids) * ThOD_sub
             X_cod = env.concentrations.get(org, 0) * ThOD_X
             if S_cod <= 0 or X_cod <= 0:
                 return 0.0
@@ -417,15 +420,19 @@ def _build_rate_functions(kp):
             return Rho / ThOD_sub * env.V_L
         return r
 
-    def rate_c4_competitive(org, sub, other_sub, k_m_d, K_S_cod, I_fn):
-        """BSM2 competitive C4 uptake: adds S_i/(S_bu+S_va) factor."""
-        ThOD_sub = _thod(sub)
-        ThOD_other = _thod(other_sub)
+    def rate_c4_competitive(org, sub_ids, other_ids, k_m_d, K_S_cod, I_fn):
+        """BSM2 competitive C4 uptake: adds S_i/(S_bu+S_va) factor.
+
+        ``sub_ids`` / ``other_ids`` are the ids summed for each substrate,
+        as in ``rate_uptake``.
+        """
+        ThOD_sub = _thod(sub_ids[0])
+        ThOD_other = _thod(other_ids[0])
         ThOD_X = BSM2_BIO_THOD
         k_m_h = k_m_d / 24.0
         def r(env):
-            S_cod = env.concentrations.get(sub, 0) * ThOD_sub
-            S_other_cod = env.concentrations.get(other_sub, 0) * ThOD_other
+            S_cod = sum(env.concentrations.get(s, 0) for s in sub_ids) * ThOD_sub
+            S_other_cod = sum(env.concentrations.get(s, 0) for s in other_ids) * ThOD_other
             X_cod = env.concentrations.get(org, 0) * ThOD_X
             if S_cod <= 0 or X_cod <= 0:
                 return 0.0
@@ -477,7 +484,13 @@ _BSM2_PKA_CO2_1 = 6.35
 _BSM2_DH_CO2_1  = 7646.0
 _BSM2_PKA_NH4   = 9.25
 _BSM2_DH_NH4    = 51965.0
-_BSM2_PKA_VFA = {"S_ac": 4.76, "S_pro": 4.88, "S_bu": 4.82, "S_va": 4.86}
+# VFA -> (conjugate base id, pKa)
+_BSM2_VFA = {
+    "S_ac":  ("S_ac-",  4.76),
+    "S_pro": ("S_pro-", 4.88),
+    "S_bu":  ("S_bu-",  4.82),
+    "S_va":  ("S_va-",  4.86),
+}
 
 
 def _build_bsm2_equilibrium_reactions() -> List[EquilibriumReaction]:
@@ -537,15 +550,16 @@ def _build_bsm2_equilibrium_reactions() -> List[EquilibriumReaction]:
         label="eq_NH4",
     ))
 
-    # VFAs: each as a monoprotic acid HA ⇌ A- + H+, with the total
-    # tracked under the protonated species id (BSM2 convention).
-    for vfa_id, pKa in _BSM2_PKA_VFA.items():
+    # VFAs: each as a monoprotic acid HA ⇌ A- + H+. Both forms are written
+    # back to n_mol; the uptake rate laws sum them (their ids are listed at
+    # each uptake reaction).
+    for vfa_id, (base_id, pKa) in _BSM2_VFA.items():
         ha = SPECIES[vfa_id]
         a_minus_atoms = dict(ha.atoms)
         # Remove one H to form the conjugate base.
         a_minus_atoms["H"] = int(a_minus_atoms.get("H", 0)) - 1
         a_minus = Species(
-            id=f"{vfa_id}-",
+            id=base_id,
             atoms=a_minus_atoms,
             charge=-1,
             MW=float(ha.MW) - 1.008,
@@ -646,7 +660,7 @@ def build_bsm2_reactions(
     }, p["Y_su"], "X_su")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["uptake"]("X_su", "S_su", kp["k_m_su"], kp["K_S_su"], rf["I_5"]),
+        rate_fn=rf["uptake"]("X_su", ("S_su",), kp["k_m_su"], kp["K_S_su"], rf["I_5"]),
         balance_elements=(), label="R5_uptake_su"))
 
     # R6: Amino acid uptake
@@ -656,7 +670,7 @@ def build_bsm2_reactions(
     }, p["Y_aa"], "X_aa")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["uptake"]("X_aa", "S_aa", kp["k_m_aa"], kp["K_S_aa"], rf["I_5"]),
+        rate_fn=rf["uptake"]("X_aa", ("S_aa",), kp["k_m_aa"], kp["K_S_aa"], rf["I_5"]),
         balance_elements=(), label="R6_uptake_aa"))
 
     # R7: LCFA uptake
@@ -666,7 +680,7 @@ def build_bsm2_reactions(
     }, p["Y_fa"], "X_fa")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["uptake"]("X_fa", "S_fa", kp["k_m_fa"], kp["K_S_fa"], rf["I_7"]),
+        rate_fn=rf["uptake"]("X_fa", ("S_fa",), kp["k_m_fa"], kp["K_S_fa"], rf["I_7"]),
         balance_elements=(), label="R7_uptake_fa"))
 
     # R8: Valerate uptake (competitive C4)
@@ -676,7 +690,7 @@ def build_bsm2_reactions(
     }, p["Y_c4"], "X_c4")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["c4_competitive"]("X_c4", "S_va", "S_bu",
+        rate_fn=rf["c4_competitive"]("X_c4", ("S_va", "S_va-"), ("S_bu", "S_bu-"),
                                       kp["k_m_c4"], kp["K_S_c4"], rf["I_8"]),
         balance_elements=(), label="R8_uptake_va"))
 
@@ -687,7 +701,7 @@ def build_bsm2_reactions(
     }, p["Y_c4"], "X_c4")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["c4_competitive"]("X_c4", "S_bu", "S_va",
+        rate_fn=rf["c4_competitive"]("X_c4", ("S_bu", "S_bu-"), ("S_va", "S_va-"),
                                       kp["k_m_c4"], kp["K_S_c4"], rf["I_8"]),
         balance_elements=(), label="R9_uptake_bu"))
 
@@ -698,7 +712,7 @@ def build_bsm2_reactions(
     }, p["Y_pro"], "X_pro")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["uptake"]("X_pro", "S_pro", kp["k_m_pro"], kp["K_S_pro"], rf["I_10"]),
+        rate_fn=rf["uptake"]("X_pro", ("S_pro", "S_pro-"), kp["k_m_pro"], kp["K_S_pro"], rf["I_10"]),
         balance_elements=(), label="R10_uptake_pro"))
 
     # R11: Acetate uptake (methanogenesis)
@@ -707,7 +721,7 @@ def build_bsm2_reactions(
     }, p["Y_ac"], "X_ac")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["uptake"]("X_ac", "S_ac", kp["k_m_ac"], kp["K_S_ac"], rf["I_11"]),
+        rate_fn=rf["uptake"]("X_ac", ("S_ac", "S_ac-"), kp["k_m_ac"], kp["K_S_ac"], rf["I_11"]),
         balance_elements=(), label="R11_uptake_ac"))
 
     # R12: H₂ uptake (methanogenesis)
@@ -716,7 +730,7 @@ def build_bsm2_reactions(
     }, p["Y_h2"], "X_h2")
     entries = _make_entries(coeffs)
     reactions.append(KineticReaction(stoichiometry=entries,
-        rate_fn=rf["uptake"]("X_h2", "S_h2", kp["k_m_h2"], kp["K_S_h2"], rf["I_12"]),
+        rate_fn=rf["uptake"]("X_h2", ("S_h2",), kp["k_m_h2"], kp["K_S_h2"], rf["I_12"]),
         balance_elements=(), label="R12_uptake_h2"))
 
     # ── Decay ─────────────────────────────────────────────────────────

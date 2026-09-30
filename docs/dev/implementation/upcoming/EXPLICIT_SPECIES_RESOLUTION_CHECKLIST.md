@@ -106,15 +106,17 @@
       and notebook that solves without a water reaction found first (suite,
       measurement cases and notebooks under a recorder); measurement
       bit-identical; suite green.
-- [ ] **3. Bisection write-back.** The engine writes back only species it was
-      given (its declared equilibria and the strong ions present in its
-      input), including the conjugate bases of user-declared acids;
-      `_CANONICAL_WRITEBACK_SPECIES` is deleted. Sanity: the four strict
-      expected failures in `test_user_defined_model.py` now pass and their
-      markers are removed (H and O conserved to 1e-9); recorder shows no
-      zero-filled ions created in `n_mol`; measurement recorded for every
-      case, shifts explained (e.g. a change in which keys the state vector
-      packs); BSM2 sentinels; suite green.
+- [x] **3. Bisection write-back.** The engine writes back the species of its
+      declared equilibria, including every acid form (HA and A-), plus H+,
+      and OH- when water is declared; strong ions are inputs and are not
+      written; `_CANONICAL_WRITEBACK_SPECIES` is deleted. Without declared
+      equilibria the result reports everything the solve computed. Models
+      whose rate laws mean an acid's total sum its exact forms themselves
+      (BSM2's VFA uptake, the D2C growth law). Sanity: the two id checks in
+      `test_user_defined_model.py` pass and lose their markers (H and O stay
+      strict expected failures, reason corrected to solvent water); no
+      zero-filled ions in `n_mol`; measurement with acid totals matches
+      checkpoint 2 to roundoff; BSM2 sentinels; suite green.
 
 ### Stirred-tank template and `Chemical`
 
@@ -355,6 +357,72 @@ unchanged (5 passed, 4 xfailed): it declares water.
 Found, not changed: the engine recognises the solvent by a hard-coded id
 (`_SOLVENT_IDS = ("H2O",)` in `engine.py`), another name-keyed backend table.
 To settle with the write-back checkpoint or log.
+
+**Checkpoint 3 (2026-09-30).** Decided with the repo owner along the way:
+
+- An engine built without declared equilibria (only tests call it that way,
+  with totals as keyword arguments) reports every species it computed.
+- An acid's forms are separate species in `n_mol`; a model that needs a total
+  computes it where it needs it. Found by measuring: BSM2 and the D2C script
+  declare `HA <-> A- + H+` but their rate laws read the HA id as the whole
+  acid, which only worked because the fixed list never wrote A- back (BSM2's
+  comment said "total tracked under the protonated species id"). Two
+  alternatives were considered and set aside: rate laws summing HA + A-
+  through a helper that rebuilt the conjugate id from a naming pattern, and a
+  per-reaction "keep my total under HA" option on `EquilibriumReaction`. A
+  kinetic reaction consuming one form is made up from the others at the next
+  solve; if a step removes more of that form than is present, the step solver
+  clamps and warns. That is general to fast equilibria with stepped kinetics
+  and is documented, not special-cased.
+
+Changes:
+
+- `engine.py`: `_CANONICAL_WRITEBACK_SPECIES` deleted. New `_written_species`
+  (the declared equilibria's `species_refs`, H+ when anything is declared,
+  OH- when water is); `species_mol_L` holds those, everything else goes to
+  `extra`; without an `EquilibriumSet`, everything computed. `algebraic_species()`
+  returns the same set, so OH- is in it only when water is declared.
+  `from_reactions`' docstring gains a "What is written back" paragraph
+  (totals are the model's to compute; clamping warns; a smaller step or
+  `SimultaneousAdaptiveSolver`, which re-solves the equilibria at every
+  right-hand-side evaluation by default, avoids it).
+- `EquilibriumReaction` docstring: each declared form is its own amount.
+  `protocols.py` `EquilibriumResult` docstring and the `get_CO2aq_from_totals`
+  comment updated.
+- BSM2: `rate_uptake` / `rate_c4_competitive` take the exact ids summed as the
+  substrate, listed at each uptake reaction (`("S_ac", "S_ac-")`,
+  `("S_su",)`, ...); the VFA table names each conjugate base explicitly
+  (`_BSM2_VFA`, replacing `_BSM2_PKA_VFA`). D2C `raw_construction.py`'s growth
+  law sums `"AceticAcid"` and `"Acetate-"`.
+- Tests: `test_user_defined_model.py` loses the two markers that now pass; the
+  H/O reason is corrected (solvent water: +2.5e-8 relative over 1 h, exactly
+  one O and two H per HCO3- formed). `test_bsm2_reference.py` sums
+  `("S_ac", "S_ac-")` and `("S_pro", "S_pro-")` for those sentinels
+  (`SENTINEL_LIQUID_IDS`); the sentinel values are unchanged and all six pass.
+  Stale comments in `test_speciation.py` and `test_nr_speciation_engine.py`
+  updated.
+- `01_bisection_engine_basics.ipynb`: three markdown cells stop describing the
+  fixed list (exact replacements). It runs; its saved outputs in cells 5 and 11
+  still print the old `species_mol_L` with zero-filled ions (not re-saved).
+
+Measurement against checkpoint 2, with each acid's total (HA + A-) in place of
+HA: BSM2 821 of 3600 values differ, max 7.8e-11 relative (summation order);
+D2C 1133 of 3417, max 4.4e-13; ADM1 and both stirred tanks 0. The zero-filled
+ions (Ca++, Co++, K+, Mg++, Mn++, Mo7O24------, Zn++, and Na+/Cl- where not
+seeded) no longer appear; BSM2 and D2C gain their conjugate-base series.
+BSM2 raises one fewer `ConservationWarning` (9). Clamp warnings: no new ones,
+and none on an acid form; the two already raised are unchanged (O2 in the
+stirred tanks, H2O in BSM2). Coverage checked: the sequential and simultaneous-Euler step
+solvers warn on every `clamp_fn` use; the monolithic solver does not floor;
+`Phase.apply_flux`'s default floor and `SimultaneousAdaptiveSolver`'s trial-state
+floor are silent (logged).
+
+Suite: 2157 passed, 2 xfailed, 0 failed; 166 warnings (-15: the baseline
+test's charge warnings and one BSM2 `ConservationWarning`). Logged in
+`OPEN_WORK.md`: solvent water never debited or credited, with the engine's
+hard-coded `"H2O"` / `"H+"` / `"OH-"` ids (settles the checkpoint 2 finding);
+BSM2's nitrogen inhibition reading molecular NH3 as total nitrogen; the silent
+floors.
 
 **Before checkpoint 9: what `reactions=` means on a `ControlVolume`.** The CV
 already takes `reaction_system=`. To agree before checkpoint 9 starts:

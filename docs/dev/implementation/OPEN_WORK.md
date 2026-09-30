@@ -4,11 +4,36 @@ Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
 [`upcoming/README.md`](upcoming/README.md).
 
-## Three findings from the explicit-species-resolution audits
+## Findings from the explicit-species-resolution work
 
 Found 2026-09-30 while running the audits in
-[`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](upcoming/EXPLICIT_SPECIES_RESOLUTION.md),
-not fixed.
+[`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](upcoming/EXPLICIT_SPECIES_RESOLUTION.md)
+and working its checkpoints, not fixed.
+
+- **The Bisection engine never debits or credits solvent water.** It treats
+  `H2O` as a fixed solvent (`_SOLVENT_IDS = ("H2O",)` in
+  `engines/bisection/engine.py`): water consumed or produced by a declared
+  equilibrium such as `CO2 + H2O <-> HCO3- + H+` is not taken from or added
+  to `n_mol`, so each HCO3- formed adds 2 H and 1 O. In
+  `tests/standalone/test_user_defined_model.py` that is +2.5e-8 relative in H
+  and O over 1 h (strict expected failures there). Fixing it moves every
+  model's water amounts. Related name-keyed ids in the same engine: the
+  solvent is recognised by the id `"H2O"`, the proton by `"H+"`
+  (`_H_PLUS_ID`), and the solver reports H+ and OH- under those fixed ids
+  whatever ids the model declared.
+- **BSM2's nitrogen inhibition reads molecular NH3 as total nitrogen.**
+  `_I_IN` and `_I_nh3` in `models/vlmodels/adm1/bsm2.py` read
+  `concentrations["NH3"]` as S_IN (total inorganic nitrogen), and `_I_nh3`
+  then applies the free-NH3 fraction to it again. The speciation engine has
+  always written the NH3 / NH4+ split back to `n_mol`, so both see molecular
+  NH3 only.
+- **Some inventory floors are silent.** The step solvers warn
+  (`AccuracyWarning`) when `clamp_fn` scales a reaction, feed or boundary
+  flux, but `Phase.apply_flux`'s default `clamp=True` floors at zero without
+  a warning, and it is what internal gas-liquid transfer
+  (`ControlVolume.step_internal_transfer`), `apply_external_flux` and
+  inter-CV links (`Simulation`) use. `SimultaneousAdaptiveSolver` floors
+  trial states with `floor_nonnegative`, also without a warning.
 
 - **`build_adm1_cv(..., ethanol=True)` cannot build.** It calls
   `.transfer_species("Ethanol")` without a Henry constant, and the

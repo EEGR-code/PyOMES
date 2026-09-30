@@ -35,9 +35,9 @@ def _solve_simple(*, CT_TIC=0.0, acid_totals=None, acid_pKas=None,
 
 def _species(result):
     """Merge species_mol_L + extra for membership checks against an
-    EquilibriumResult — species not in the fixed canonical writeback
-    tuple (e.g. custom acids like "AceticAcid") land in `extra` rather
-    than `species_mol_L`.
+    EquilibriumResult — anything the solve reports that its declared
+    equilibria do not declare (e.g. echoed strong ions) lands in `extra`
+    rather than `species_mol_L`.
     """
     return {**result.species_mol_L, **result.extra}
 

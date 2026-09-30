@@ -370,8 +370,9 @@ class TestNRvsChargeBalance:
 
     def test_pure_carbonate_species(self):
         cb, nr = self._solve_both(CT_TIC=0.05, CT_NH_T=0.0)
-        # "CO2aq" isn't in BisectionChemicalEquilibriumEngine's canonical writeback tuple, so it
-        # may land in `extra` rather than `species_mol_L` — check both.
+        # Check `species_mol_L` and `extra` together, and "CO2aq" as well as
+        # "CO2": BisectionChemicalEquilibriumEngine keeps anything its declared
+        # equilibria do not declare in `extra`.
         cb_species = {**cb.species_mol_L, **cb.extra}
         for sp_id in ("CO2", "HCO3-", "CO3--"):
             cb_c = float(cb_species.get(sp_id, cb_species.get("CO2aq", 0.0)) if sp_id == "CO2" else cb_species.get(sp_id, 0.0))

@@ -112,20 +112,12 @@ class TestUserDefinedModel:
         for sp_id, sp in registry.items():
             assert sp is USER_SPECIES[sp_id]
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "The Bisection engine writes back a fixed list of ids, including "
-        "ions this model never declared (Na+, K+, Cl-, Ca++, ...), at zero."
-    ))
     def test_every_n_mol_id_is_a_species_built_here(self):
         cv = _build_cv()
         for _ in range(20):
             cv.advance(dt_h=0.05)
         assert set(cv.total_mol()) <= set(USER_SPECIES)
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "The Bisection engine writes back only ids on its fixed list, which "
-        "does not include Acetate-; n_mol keeps all acetate as AceticAcid."
-    ))
     def test_declared_conjugate_base_is_written_back(self):
         cv = _build_cv()
         cv.advance(dt_h=0.0)
@@ -148,8 +140,9 @@ class TestUserDefinedModel:
         assert total < acetate_0
 
     _DRIFT = pytest.mark.xfail(strict=True, reason=(
-        "Drifts by 1e-8 to 1e-7 relative over 1 h (H -9.7e-8, O +2.5e-8) "
-        "while the engine does not write Acetate- back to n_mol."
+        "The Bisection engine treats H2O as a fixed solvent: the H2O the "
+        "declared CO2 + H2O <-> HCO3- + H+ consumes is not taken from n_mol, "
+        "so each HCO3- formed adds 2 H and 1 O (+2.5e-8 relative over 1 h)."
     ))
 
     @pytest.mark.parametrize("element", [

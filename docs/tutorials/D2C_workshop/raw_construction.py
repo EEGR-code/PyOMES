@@ -114,7 +114,10 @@ def make_aerobic_growth_on_acetate(
     Y = float(yield_gX_gS)
 
     def rate_fn(env):
-        C_S = env.concentrations.get("AceticAcid", 0.0)
+        # Substrate: acetic acid and acetate together (the speciation engine
+        # writes both forms back to n_mol).
+        C_S = (env.concentrations.get("AceticAcid", 0.0)
+               + env.concentrations.get("Acetate-", 0.0))
         C_X = env.concentrations.get("Yeast", 0.0)
         S_gL = C_S * MW_S
         X_gL = C_X * MW_X

@@ -59,6 +59,11 @@ from PyOMES.reactions._shared import (
 class EquilibriumReaction:
     """A single reaction satisfied as an algebraic equilibrium constraint.
 
+    Each species the reaction declares is a separate amount in ``n_mol``:
+    the speciation engine writes every form (e.g. HA and A⁻) back under
+    its own id. Where a model needs a total, such as in a rate law, it
+    sums the forms itself.
+
     Parameters
     ----------
     stoichiometry : list of StoichiometryEntry or str

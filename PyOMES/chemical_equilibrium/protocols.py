@@ -75,7 +75,9 @@ class EquilibriumResult:
     ``species_mol_L`` holds equilibrated species concentrations (mol/L),
     keyed by species ID — this is what :meth:`apply_to_phases` writes back.
     Its exact membership is engine-specific: :class:`BisectionChemicalEquilibriumEngine`
-    restricts it to a fixed canonical species tuple;
+    includes the species of its declared equilibria (plus H+, and OH- when
+    water is declared), or every species it computed when built without
+    declared equilibria;
     :class:`NRChemicalEquilibriumEngine` includes every tableau master + secondary
     (+ H2O); :class:`PHREEQCChemicalEquilibriumEngine` includes every PHREEQC species.
 
