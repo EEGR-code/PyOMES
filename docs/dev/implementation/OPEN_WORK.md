@@ -4,6 +4,34 @@ Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
 [`upcoming/README.md`](upcoming/README.md).
 
+## Four small findings from the molar-mass and `plot_vant_hoff` audit
+
+Found 2026-09-30 while checking the molar-mass and `plot_vant_hoff` items
+(now resolved), not fixed. Grouped because each is small; they are
+unrelated to each other.
+
+- **`species_check.py` understates what a hard conflict is.** The module
+  docstring and `check_species_consistency`'s `Raises` section say a hard
+  conflict is the same id with different atoms or charge, but the code also
+  compares `MW` (as `SpeciesConflictError`'s own docstring in
+  `chemistry/species.py` says). The docstrings need `MW` added.
+- **`docs/architecture.md` places `vant_hoff_log_K` in `constraint.py`.** The
+  `reactions/equilibrium/` line lists it under `constraint.py`, which only
+  imports it; it is defined in `thermo/temperature_correction.py` (which the
+  same file's `thermo/` entry already lists). `constraint.py`'s own function is
+  `constraint_log_K_at`.
+- **`plot_speciation` has no pytest coverage.** Its only callers are
+  `ReactionSystem.plot_speciation` and four notebooks (D2C Example1 and
+  Example2, validation 07 and 08), none collected by pytest. CI installs the
+  `[test]` extra, which has no matplotlib, so a test would need
+  `pytest.importorskip("matplotlib")` or matplotlib added to that extra.
+  `_build_ladder_from_system` needs no matplotlib and could be tested on its own.
+- **`ATOMIC_WEIGHTS` labels itself IUPAC 2021 but uses S = 32.065.** That is the
+  older (2007) value; the 2021 conventional value is 32.06. Changing it shifts
+  the auto-computed MW of every sulfur species by 0.005 g/mol per S atom, so it
+  needs a check of what that moves (sulfate and sulfide species, BSM2) before
+  either the value or the label is changed.
+
 ## `03_phreeqc_engine_basics.ipynb` describes a warmstart drift the engine no longer has
 
 Found 2026-09-28 when re-running the notebook after renaming `phreeqc_to_pyomes`,
