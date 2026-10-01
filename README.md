@@ -61,11 +61,13 @@ For example, here's a 2 L batch fermenter with pH control, built with the `templ
 ```python
 from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
+from PyOMES.databases.bioprocess_basic import AIR
 from PyOMES.control import PHController
 
 builder = (
     StirredTankBuilder()
     .vessel(V_total_L=2.0, T_K=305.15)
+    .initial_gas(AIR)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
     .transfer_kinetic(kLa_O2=150.0)
     .chemistry(chemistry_db=AD_BASIC)

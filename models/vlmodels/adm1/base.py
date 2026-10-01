@@ -1019,8 +1019,8 @@ def build_adm1_cv(
     # drive derive_speciation_keys() at CV construction; no manual
     # speciation_keys wiring needed.
     b = (StirredTankBuilder()
-         .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac,
-                 T_K=T_K, yO2_init=0.0, yCO2_init=0.0)
+         .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
+         .initial_gas({"N2": 1.0})
          .no_gas_feed()
          .transfer_equilibrium()
          .transfer_species("CH4")

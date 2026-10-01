@@ -831,8 +831,8 @@ def build_bsm2_cv(
     )
 
     cv = (StirredTankBuilder()
-          .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac,
-                  T_K=T_K, yO2_init=0.0, yCO2_init=0.0)
+          .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
+          .initial_gas({"N2": 1.0})
           .no_gas_feed()
           .transfer(tc)
           .transfer_species("S_ch4", mode="kinetic", kLa_per_h=kLa_h,

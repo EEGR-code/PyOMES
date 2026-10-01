@@ -165,15 +165,21 @@
       (OPEN_WORK entry deleted). Sanity: the user-defined route through the
       template works with no database; suite green; measurement and the
       edited tutorials unchanged.
-- [ ] **8. The template's gas species, explicit.** The stirred-tank template
-      takes its gas `Species` (O2, CO2, N2, and H2O for growth) from the
-      model instead of fixed ids, and uses their ids throughout: initial gas
-      phase, vessel mole fractions (`yO2_init` / `yCO2_init` / `yN2_init`),
-      default transfer configs, gas feed composition and growth reactions.
-      The API (e.g. on `.chemistry()` or by role on the vessel/transfer
-      config) is agreed with the repo owner before it starts. Sanity: a
-      template built with differently named gas species runs; suite green;
-      measurement unchanged for the existing ids.
+- [ ] **8. The template's gas phase comes from the model's declarations.**
+      The template invents no gases: the headspace holds the species the
+      model declares (initial composition, transfer, gas feed, reactions).
+      Three commits. 8a: `VesselConfig.gas_composition` (`{id: fraction}`,
+      empty by default) replaces `yO2_init` / `yCO2_init` / `yN2_init`; the
+      builder sets it with `.initial_gas(...)`; `AIR` is an explicit
+      composition in the bioprocess database. 8b: the transfer presets name
+      their species; nothing transfers unless declared. 8c: the gas feed's
+      composition has no default; growth's O2 / CO2 / H2O can be given where
+      growth is declared, falling back to those ids in the model's species;
+      the core sites that assume these ids (DO sensor, `GasFeed` default,
+      gas-liquid link defaults, controller gas tables) get their own design
+      note and OPEN_WORK entries. Sanity: callers state what they relied on,
+      so the measurement is unchanged; a template with differently named
+      gases builds; suite green.
 - [ ] **9. Names resolve against the species passed; `compounds.py` goes.**
       `OrganismConfig` / `SubstrateConfig` resolve ids (organism, substrate,
       N source) against the template's species and accept a `Species` in
@@ -605,6 +611,41 @@ identical output before it; `aerobic_fermentation_stoichiometry.ipynb` not run
 
 Suite: 2173 passed, 2 xfailed, 0 failed (+12). Measurement: 0 values differ
 in all five cases.
+
+**Checkpoint 8 (2026-10-01).** Decided with the repo owner: no role keywords
+for the template's gases (brittle for a general template); the gas phase is
+inferred from what the model already declares; the fixed fractions become a
+composition keyed by species id; the core sites go to a new design note.
+
+8a:
+- `configs.py`: `VesselConfig.gas_composition: Dict[str, float]` (empty by
+  default, normalised by its sum, negative fractions raise) replaces the three
+  fractions and the N2-balance rule.
+- `factory.py`: the initial gas phase is the composition's species, plus
+  transfer species at zero as before; module docstring and example updated.
+  The sum is taken in the composition's order, so a composition listing O2,
+  CO2, N2 reproduces the old arithmetic bit for bit.
+- `builder.py`: `.vessel()` loses the fractions; new `.initial_gas(composition)`
+  (separate because `.vessel()` replaces all its settings on each call);
+  module example uses `AIR`.
+- `bioprocess_basic.py`: `AIR = {"O2": 0.2095, "CO2": 0.0004,
+  "N2": 1.0 - 0.2095 - 0.0004}`, the old default written out (N2 computed as
+  the old balance was, so bit-identical).
+- Callers (scripted, exact counts) state what they relied on: ADM1 and BSM2
+  `{"N2": 1.0}` (their O2 and CO2 fractions were zero); `microplate_fermenter.py`
+  its own fractions; the other template scripts, three notebooks, both
+  READMEs and the tests `AIR`; the user-defined template test its own
+  `{"O2": 0.21, "N2": 0.79}`. `test_configs.py`'s two `yN2` tests became three
+  composition tests. `batch_fermenter.ipynb`'s builder table gains the
+  `.initial_gas` row. The notebook-editing helpers moved to a scratchpad
+  module (`nbedit.py`) shared by later scripts.
+
+Measurement against checkpoint 7: 0 values differ in all five cases; BSM2 no
+longer carries a zero `gas:O2` entry it never declared (ADM1 keeps its O2
+entry: its transfer config still declares O2). Tutorials against `HEAD`: the
+four template scripts and `01_exporting_results` identical;
+`batch_fermenter.ipynb` stops at its known cell 10 in both. Suite: 2174
+passed, 2 xfailed, 0 failed (+1).
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

@@ -7,6 +7,8 @@ Extends :data:`AQUEOUS_DEFAULT` with:
 - Species for aerobic growth models: the organic acids used as substrates
   (acetic, propionic, butyric and citric acid), yeast biomass (:data:`Yeast`,
   CHNO, and :data:`Yeast_CHO`), and the gases O2 and N2.
+- :data:`AIR`, a gas composition (``{species id: mole fraction}``) for a
+  headspace or feed that starts with, or is fed, air.
 
 The lump salt species :data:`NH4Cl`, :data:`KH2PO4`, and :data:`NaOH` are
 defined as :class:`~PyOMES.chemistry.Species` objects so that their molar
@@ -62,6 +64,11 @@ Yeast_CHO = Species(id="Yeast_CHO", atoms={"C": 1, "H": 1.61, "O": 0.56},       
 
 O2 = Species(id="O2", atoms={"O": 2})
 N2 = Species(id="N2", atoms={"N": 2})
+
+# Dry air as a gas composition ({species id: mole fraction}): O2 and CO2 at
+# their atmospheric fractions, N2 the balance. For a vessel or feed that a
+# model says starts with, or is fed, air.
+AIR = {"O2": 0.2095, "CO2": 0.0004, "N2": 1.0 - 0.2095 - 0.0004}
 
 _EXTRA_SPECIES = {
     "H3PO4":  H3PO4,

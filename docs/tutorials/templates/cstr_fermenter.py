@@ -23,6 +23,7 @@ import numpy as np
 
 from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
+from PyOMES.databases.bioprocess_basic import AIR
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import PressureReliefVent, LiquidFeed, LiquidDrain
 from PyOMES.control.cv_loops import PHController, DOAgitationController
@@ -82,6 +83,7 @@ n_steps = 20000
 cv = (
     StirredTankBuilder()
     .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
+    .initial_gas(AIR)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
     .transfer_kinetic(kLa_O2=90.0, kLa_CO2_ratio=1.0)
     .transfer_species("N2", mode="kinetic", kLa_per_h=90.0)

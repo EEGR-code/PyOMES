@@ -45,13 +45,16 @@ class TestVesselConfig:
         assert v.V_headspace_L == pytest.approx(25.0)
         assert v.V_liquid_L == pytest.approx(75.0)
 
-    def test_yN2_computed_from_balance(self):
-        v = VesselConfig(yO2_init=0.21, yCO2_init=0.04)
-        assert v.yN2_init == pytest.approx(0.75, abs=1e-10)
+    def test_gas_composition_defaults_to_empty(self):
+        assert VesselConfig().gas_composition == {}
 
-    def test_yN2_explicit(self):
-        v = VesselConfig(yO2_init=0.21, yCO2_init=0.04, yN2_init=0.5)
-        assert v.yN2_init == 0.5
+    def test_gas_composition_kept_as_given(self):
+        v = VesselConfig(gas_composition={"O2": 0.21, "Ar": 0.01})
+        assert v.gas_composition == {"O2": 0.21, "Ar": 0.01}
+
+    def test_negative_gas_fraction_raises(self):
+        with pytest.raises(ValueError, match="gas_composition"):
+            VesselConfig(gas_composition={"O2": -0.1})
 
     def test_invalid_volume_raises(self):
         with pytest.raises(ValueError, match="V_total_L"):

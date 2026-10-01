@@ -173,6 +173,7 @@ def _build_tank():
     return (
         StirredTankBuilder()
         .vessel(V_total_L=10.0, T_K=305.15)
+        .initial_gas({"O2": 0.21, "N2": 0.79})
         .no_gas_feed()
         .transfer(TransferConfig(species={}))
         .transfer_species("O2", henry_mol_L_atm=1.2e-3)

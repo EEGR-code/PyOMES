@@ -9,19 +9,21 @@ produces a ready-to-use :class:`~PyOMES.core.ControlVolume` whose
 gas-liquid transfer configured via the ``transfer_models`` kwarg.
 
 The model's chemistry is whatever it is given: a ``chemistry_db``, its own
-``species``, or both. There is no default database. The template's gases
-use the ids ``"O2"``, ``"CO2"`` and ``"N2"`` (gas phase, vessel mole
-fractions, default transfer), and its growth reactions ``"O2"``, ``"CO2"``
-and ``"H2O"``; the species passed must define those it uses.
+``species``, or both. There is no default database. The headspace starts
+with the gases in the vessel's ``gas_composition`` (none by default), plus
+every transfer species at zero. The default transfer configs use the ids
+``"O2"``, ``"CO2"`` and ``"N2"``, and growth reactions ``"O2"``, ``"CO2"`` and
+``"H2O"``; the species passed must define those it uses.
 
 Example
 -------
 >>> from PyOMES.templates.stirred_tank import *
 >>> from PyOMES.databases.anaerobic_digestion import AD_BASIC
+>>> from PyOMES.databases.bioprocess_basic import AIR
 >>> from PyOMES.core import Simulation
 >>>
 >>> cv = StirredTankFactory.create_volume(
-...     vessel=VesselConfig(V_total_L=2000, T_K=305.15),
+...     vessel=VesselConfig(V_total_L=2000, T_K=305.15, gas_composition=AIR),
 ...     gas_feed=GasFeedConfig(vvm_min=1.0),
 ...     transfer=TransferConfig.default_kinetic(kLa_O2=150.0),
 ...     organism=OrganismConfig("Yeast"),
@@ -174,20 +176,13 @@ class StirredTankFactory:
         V_gas = vessel.V_headspace_L
         V_liq = vessel.V_liquid_L
 
-        # Initial gas moles from ideal gas law
+        # Initial gas moles from the ideal gas law, split by the vessel's
+        # gas composition (normalised by its sum).
         n_total_gas = (vessel.P_init_atm * V_gas) / (R_L_ATM_PER_MOL_K * T_K)
-        y_sum = vessel.yO2_init + vessel.yCO2_init + vessel.yN2_init
-        if y_sum > 0:
-            yO2 = vessel.yO2_init / y_sum
-            yCO2 = vessel.yCO2_init / y_sum
-            yN2 = vessel.yN2_init / y_sum
-        else:
-            yO2, yCO2, yN2 = 0.0, 0.0, 0.0
-
+        y_sum = sum(vessel.gas_composition.values())
         gas_n_mol: Dict[str, float] = {
-            "O2": n_total_gas * yO2,
-            "CO2": n_total_gas * yCO2,
-            "N2": n_total_gas * yN2,
+            sp: (n_total_gas * (y / y_sum) if y_sum > 0 else 0.0)
+            for sp, y in vessel.gas_composition.items()
         }
 
         # Ensure all transfer species exist in the gas phase (at zero

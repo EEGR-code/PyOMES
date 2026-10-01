@@ -51,22 +51,18 @@ class VesselConfig:
         Temperature (Kelvin).
     P_init_atm : float
         Initial headspace pressure (atm).
-    yO2_init : float
-        Initial O₂ mole fraction in headspace.
-    yCO2_init : float
-        Initial CO₂ mole fraction in headspace.
-    yN2_init : float or None
-        Initial N₂ mole fraction.  If ``None``, computed as
-        ``1 − yO2 − yCO2`` (balance).
+    gas_composition : dict
+        ``{species_id: mole fraction}`` of the initial headspace gas;
+        normalised by its sum. Empty (the default) means the headspace
+        starts with no gas. E.g.
+        :data:`~PyOMES.databases.bioprocess_basic.AIR`.
     """
 
     V_total_L: float = 2.0
     headspace_frac: float = 0.20
     T_K: float = 305.15
     P_init_atm: float = 1.0
-    yO2_init: float = 0.2095
-    yCO2_init: float = 0.0004
-    yN2_init: Optional[float] = None
+    gas_composition: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self):
         if self.V_total_L <= 0:
@@ -79,8 +75,10 @@ class VesselConfig:
             raise ValueError(f"T_K must be > 0, got {self.T_K}")
         if self.P_init_atm <= 0:
             raise ValueError(f"P_init_atm must be > 0, got {self.P_init_atm}")
-        if self.yN2_init is None:
-            self.yN2_init = max(0.0, 1.0 - self.yO2_init - self.yCO2_init)
+        self.gas_composition = dict(self.gas_composition)
+        negative = {sp: y for sp, y in self.gas_composition.items() if y < 0}
+        if negative:
+            raise ValueError(f"gas_composition fractions must be >= 0, got {negative}")
 
     @property
     def V_headspace_L(self) -> float:

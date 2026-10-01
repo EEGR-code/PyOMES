@@ -10,9 +10,11 @@ Example
 -------
 >>> from PyOMES.templates.stirred_tank import StirredTankBuilder
 >>> from PyOMES.databases.anaerobic_digestion import AD_BASIC
+>>> from PyOMES.databases.bioprocess_basic import AIR
 >>> result = (
 ...     StirredTankBuilder()
 ...     .vessel(V_total_L=2000, T_K=305.15)
+...     .initial_gas(AIR)
 ...     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
 ...     .transfer_kinetic(kLa_O2=150.0)
 ...     .chemistry(chemistry_db=AD_BASIC)
@@ -65,6 +67,7 @@ class StirredTankBuilder:
 
     def __init__(self):
         self._vessel_kw: Dict[str, Any] = {}
+        self._gas_composition: Dict[str, float] = {}
         self._gas_feed_kw: Optional[Dict[str, Any]] = None
         self._transfer_cfg: Optional[TransferConfig] = None
         self._chemistry_kw: Dict[str, Any] = {}
@@ -128,20 +131,28 @@ class StirredTankBuilder:
         headspace_frac: float = 0.20,
         T_K: float = 305.15,
         P_init_atm: float = 1.0,
-        yO2_init: float = 0.2095,
-        yCO2_init: float = 0.0004,
-        yN2_init: Optional[float] = None,
     ) -> "StirredTankBuilder":
-        """Set vessel geometry, temperature, and initial gas composition."""
+        """Set vessel geometry, temperature and initial pressure.
+
+        The headspace's initial gas is set by :meth:`initial_gas`.
+        """
         self._vessel_kw = {
             "V_total_L": V_total_L,
             "headspace_frac": headspace_frac,
             "T_K": T_K,
             "P_init_atm": P_init_atm,
-            "yO2_init": yO2_init,
-            "yCO2_init": yCO2_init,
-            "yN2_init": yN2_init,
         }
+        return self
+
+    def initial_gas(self, composition: Dict[str, float]) -> "StirredTankBuilder":
+        """Set the headspace's initial gas: ``{species_id: mole fraction}``.
+
+        Normalised by its sum; e.g.
+        :data:`~PyOMES.databases.bioprocess_basic.AIR`. Without this call
+        the headspace starts with no gas (transfer species are still added
+        at zero).
+        """
+        self._gas_composition = dict(composition)
         return self
 
     # ── Gas feed ──────────────────────────────────────────────────────
@@ -443,7 +454,7 @@ class StirredTankBuilder:
                  organism_or_None, substrates_list).
         """
         # Vessel (required)
-        vessel = VesselConfig(**self._vessel_kw) if self._vessel_kw else VesselConfig()
+        vessel = VesselConfig(**self._vessel_kw, gas_composition=self._gas_composition)
 
         # Gas feed (optional)
         gas_feed = GasFeedConfig(**self._gas_feed_kw) if self._gas_feed_kw else None
