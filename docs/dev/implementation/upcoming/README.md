@@ -62,13 +62,15 @@ that still describe open work are "Open phases" and the pending stages in
   physics' gas tables. Proposes passing the model's ids and dropping the
   defaults that invent gases. Four open questions. No branch, no checklist,
   no code yet.
-- **[GROWTH_ELEMENT_SOURCES.md](GROWTH_ELEMENT_SOURCES.md)** — 2026-10-01.
+- **[GROWTH_STOICHIOMETRY.md](GROWTH_STOICHIOMETRY.md)** — 2026-10-01.
   Surfaced by `explicit-species-resolution` checkpoint 9: aerobic growth
-  balances C, H, O and optionally N only, ignores other elements (a
-  sulfate source's S, the biomass N under `"CHO"`) and has no charge
-  balance. Proposes one element-to-source mapping, a linear solve, raising
-  on unbalanced elements, and an optional H+ for charged sources. Three
-  open questions. No branch, no checklist, no code yet.
+  has fixed participants, balances C, H, O and optionally N only, ignores
+  other elements (a sulfate source's S, the biomass N under `"CHO"`) and
+  has no charge balance. Proposes a linear solver for one reaction from
+  its participants, basis and yields that raises when under- or
+  over-specified, with several reactions (each with its own rate law)
+  rather than fixed product ratios. Four open questions. No branch, no
+  checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its

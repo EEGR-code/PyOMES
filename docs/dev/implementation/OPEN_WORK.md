@@ -20,7 +20,7 @@ and working its checkpoints, not fixed.
   nitrogen is unaccounted for; a nitrogen source carrying S is not
   balanced for S; a charged source leaves the reaction charged. Scoped as
   its own design note:
-  [`upcoming/GROWTH_ELEMENT_SOURCES.md`](upcoming/GROWTH_ELEMENT_SOURCES.md).
+  [`upcoming/GROWTH_STOICHIOMETRY.md`](upcoming/GROWTH_STOICHIOMETRY.md).
 - **`docs/tutorials/templates/batch_fermenter.ipynb` cell 10 does not
   compile.** Two `print("...")` calls have a literal line break inside the
   string (`print("` then a newline then `Final ...`) where `\n` was meant,

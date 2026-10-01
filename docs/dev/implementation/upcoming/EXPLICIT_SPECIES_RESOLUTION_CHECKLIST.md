@@ -731,7 +731,7 @@ uses that species; a different one raises `SpeciesConflictError` unless
 to `organism` / `substrate` (positional calls unchanged). `n_source_id` keeps
 its name and shape (option b): it resolves against the model's species, has
 no default, and is required for CHNO; generalising it to other elements
-(sulfur etc.) is the new design note `upcoming/GROWTH_ELEMENT_SOURCES.md`.
+(sulfur etc.) is the new design note `upcoming/GROWTH_STOICHIOMETRY.md`.
 
 - `configs.py`: `OrganismConfig.organism` / `SubstrateConfig.substrate`
   (str or `Species`, required), `overwrite`, `n_source_id=None` (raises for
@@ -761,7 +761,7 @@ no default, and is required for CHNO; generalising it to other elements
   `README.md` test table, the Yeast_CHO comments in
   `D2C_workshop/raw_construction.py` and `reactions/reaction_system.ipynb`
   (now cite `PyOMES.databases.bioprocess_basic`), the OPEN_WORK weighed-salt
-  entry. OPEN_WORK gains pointers for the element-sources note and for
+  entry. OPEN_WORK gains pointers for the growth-stoichiometry note and for
   `batch_fermenter.ipynb` cell 10, which does not compile (also on `main`).
 - Sweep: no `ChemicalRegistry`, `PyOMES.compounds`, `compounds.py` or
   template `acid_pKas` outside history docs (`shipped/`, `obsolete/`, the
