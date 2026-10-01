@@ -668,7 +668,12 @@ _ADM1_SPECIES_CACHE: Dict[str, Species] = {}
 
 
 def _get_species(sp_id: str) -> Species:
-    """Return (or build and cache) a ``Species`` object for an ADM1 species id."""
+    """Return (or build and cache) a ``Species`` object for an ADM1 species id.
+
+    The id must be in ``SPECIES`` or an organism in ``ORG`` (CHON biomass
+    for ``CHON_ORGS``, CHO biomass otherwise); any other id raises
+    ``KeyError``.
+    """
     cached = _ADM1_SPECIES_CACHE.get(sp_id)
     if cached is not None:
         return cached
@@ -687,8 +692,13 @@ def _get_species(sp_id: str) -> Species:
         sp_obj = Species(id=sp_id, atoms=dict(atoms), charge=0, MW=float(mw))
     elif sp_id in CHON_ORGS:
         sp_obj = Species(id=sp_id, atoms=dict(BIO_CHON), charge=0, MW=float(BIO_MW))
-    else:
+    elif sp_id in ORG.values():
         sp_obj = Species(id=sp_id, atoms=dict(BIO_CHO), charge=0, MW=float(BIO_MW))
+    else:
+        raise KeyError(
+            f"{sp_id!r} is not an ADM1 species: it is neither in SPECIES nor "
+            f"an organism in ORG. Add it to SPECIES (atoms, MW) or ORG."
+        )
     _ADM1_SPECIES_CACHE[sp_id] = sp_obj
     return sp_obj
 

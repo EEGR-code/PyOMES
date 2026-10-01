@@ -120,6 +120,10 @@ _BSM2_BIO_SPECIES = {
     for org in ("X_su", "X_aa", "X_fa", "X_c4", "X_pro", "X_ac", "X_h2")
 }
 SPECIES.update(_BSM2_BIO_SPECIES)
+# Inert monovalent strong-ion lumps seeded by seed_bsm2_strong_ions: charge
+# only, no atoms (so MW 0).
+SPECIES["S_cat"] = Species(id="S_cat", atoms={}, charge=+1)
+SPECIES["S_an"] = Species(id="S_an", atoms={}, charge=-1)
 del _sp_id, _atoms_dict, _mw, _thod_val
 
 def _mw(sp):
@@ -841,7 +845,7 @@ def build_bsm2_cv(
                             henry_mol_L_atm=H_h2)
           .transfer_species("CO2", mode="equilibrium",
                             henry_mol_L_atm=H_co2)
-          .chemistry(activity_model=activity_model)
+          .chemistry(activity_model=activity_model, species=SPECIES)
           .reaction_system(reaction_system)
           .label("ADM1_BSM2")
           .build())

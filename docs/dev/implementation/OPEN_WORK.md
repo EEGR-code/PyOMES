@@ -39,6 +39,13 @@ and working its checkpoints, not fixed.
   in one step (1.911e-4 mol N) is reported as N drift, alongside the O and H
   drift from vented CO2 and water. Subtracting each boundary's flux would
   leave only genuine imbalances.
+- **ADM1 / BSM2 helpers fall back to biomass for unknown ids.** ADM1's
+  `_mw()` returns the biomass MW, and BSM2's `_mw()` / `_thod()` / `_atoms()`
+  the biomass MW, ThOD and formula, for any id not in their tables. Every
+  current caller passes a table id or an organism, so nothing is wrong
+  today, but a misspelt id would be treated as biomass without a word (ADM1's
+  `_get_species` now raises instead). ADM1's `_at()` has no caller anywhere
+  in the repo (searched `.py`, `.ipynb`, `.md`).
 
 - **The Bisection engine never debits or credits solvent water.** It treats
   `H2O` as a fixed solvent (`_SOLVENT_IDS = ("H2O",)` in

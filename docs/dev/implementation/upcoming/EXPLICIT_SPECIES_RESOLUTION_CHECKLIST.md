@@ -215,7 +215,7 @@
       species through. `Simulation._warn_thermo_mismatch` unchanged. Sanity:
       suite green; the three tests that reached the catalog (audit 3) now
       get those ids from species passed to them; measurement unchanged.
-- [ ] **12. Model species.** BSM2 declares `S_cat` / `S_an` as `Species`
+- [x] **12. Model species.** BSM2 declares `S_cat` / `S_an` as `Species`
       (`atoms={}`, charge ±1) in its species table; ADM1's `_get_species`
       raises on an unknown id instead of building biomass. Sanity: BSM2 and
       ADM1 unchanged; suite green.
@@ -867,6 +867,30 @@ Na+ / Cl-: that false warning is gone. N2 is new to the accounting, and the
 N2 the vent releases in one step (1.911e-4 mol N) now shows as N drift
 (per-step and cumulative), the same way vented CO2 and water already show as
 O and H drift.
+
+12:
+- `bsm2.py`: `SPECIES` gains `S_cat` / `S_an` (`atoms={}`, charge +1 / -1,
+  so MW 0); `build_bsm2_cv` passes `species=SPECIES` to `.chemistry()`, so
+  `cv.species` holds the whole table (BSM2 passed no species before, and the
+  CV knew only the species in its reactions). Nothing iterates `SPECIES`, so
+  the two lumps reach no ThOD or MW sum.
+- ADM1 `base.py`: `_get_species` builds CHO biomass only for organisms in
+  `ORG` (CHON for `CHON_ORGS`, as before) and raises `KeyError` for any other
+  id not in `SPECIES`; docstring says so. Its `_mw()`, and BSM2's `_mw()` /
+  `_thod()` / `_atoms()`, keep their biomass fallbacks (every caller passes a
+  table id or an organism) and ADM1's `_at()` has no caller: both logged in
+  OPEN_WORK, not changed here.
+- Tests: new `tests/standalone/test_model_species.py` (6): ADM1 declared
+  species and every organism resolve, a misspelt id raises; BSM2 declares the
+  lumps, its CV holds every table species, the monitor counts the lumps.
+- For checkpoint 14: BSM2's headspace starts as `N2` (checkpoint 8a), which
+  BSM2 does not declare, so `UnresolvedSpeciesWarning` will name it.
+
+Sanity: suite 2180 passed, 2 xfailed before; 2186 passed, 2 xfailed, 0 failed
+after (+6). Measurement against 11: 0 values differ in all five cases. BSM2
+ConservationWarnings 9 -> 8: the 17.71 mol charge residual is gone, which is
+the seeded `S_an` (0.00521 mol/L x 3400 L) the monitor could not count; the C,
+H, N and O drift warnings are unchanged.
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder
