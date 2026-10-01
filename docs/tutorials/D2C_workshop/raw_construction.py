@@ -95,7 +95,7 @@ CO2 = Species(id="CO2", atoms={"C": 1, "O": 2}, charge=0, MW=44.009)
 O2 = Species(id="O2", atoms={"O": 2}, charge=0)
 
 # Biomass: a CHO pseudo-molecule "Yeast", the nitrogen-free composition
-# listed as "Yeast_CHO" in PyOMES.compounds.ChemicalRegistry.
+# listed as "Yeast_CHO" in PyOMES.databases.bioprocess_basic.
 YEAST = Species(
     id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0, MW=24.626,
 )

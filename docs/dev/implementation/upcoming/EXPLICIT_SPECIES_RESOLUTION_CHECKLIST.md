@@ -180,7 +180,7 @@
       note and OPEN_WORK entries. Sanity: callers state what they relied on,
       so the measurement is unchanged; a template with differently named
       gases builds; suite green.
-- [ ] **9. Names resolve against the species passed; `compounds.py` goes.**
+- [x] **9. Names resolve against the species passed; `compounds.py` goes.**
       `OrganismConfig` / `SubstrateConfig` resolve ids (organism, substrate,
       N source) against the template's species and accept a `Species` in
       place of `atoms=` / `MW=`; a miss raises the error decision 4 describes.
@@ -715,6 +715,71 @@ The pre-checkpoint suite for 8c ran while the first edits were being made, so
 it is not a clean baseline; `HEAD` was unchanged since 8b's final run (2174
 passed), which stands as the baseline. Measurement against 8b: 0 values differ
 in all five cases. Suite: 2179 passed, 2 xfailed, 0 failed (+5).
+
+9:
+
+Agreed before starting (2026-10-01), refining the item above: `atoms=` stays.
+An organism or substrate is
+- an id alone, which must be among the model's species;
+- an id with `atoms=` (MW computed from `units.ATOMIC_WEIGHTS` unless `MW=`
+  is given), or a `Species`, which joins the model's species.
+
+A definition equal to a model species of the same id (atoms, charge, MW)
+uses that species; a different one raises `SpeciesConflictError` unless
+`overwrite=True`, which replaces it in the model's species. `MW=` without
+`atoms=` and a `Species` with `atoms=` / `MW=` raise. The fields are renamed
+to `organism` / `substrate` (positional calls unchanged). `n_source_id` keeps
+its name and shape (option b): it resolves against the model's species, has
+no default, and is required for CHNO; generalising it to other elements
+(sulfur etc.) is the new design note `upcoming/GROWTH_ELEMENT_SOURCES.md`.
+
+- `configs.py`: `OrganismConfig.organism` / `SubstrateConfig.substrate`
+  (str or `Species`, required), `overwrite`, `n_source_id=None` (raises for
+  CHNO without one); `resolve()` gone from both; `_check_definition` validates
+  the combinations; `to_dict()` keeps a `Species` as the object;
+  `ChemistryConfig.acid_pKas` gone.
+- `factory.py`: `_resolve_definition` applies the rules above against the
+  merged model species (new definitions are added to it);
+  `_not_among_species` gives the shared "is not among the species passed"
+  wording (organism, substrate, growth gases, N source); the N source is
+  the model's `Species`, resolved once rather than per substrate.
+- `builder.py`: `.organism(organism, ...)` / `.substrate(substrate, ...)` with
+  `overwrite=`, no default ids; `__repr__` shows a `Species`' id.
+- Deleted: `PyOMES/compounds.py`, the exports in `PyOMES/__init__.py`,
+  `tests/standalone/test_compounds.py` (19 tests), the `registry` fixture in
+  `conftest.py` (used only there), the `chemistry/__init__.py` docstring
+  sentence about it.
+- Tests: `test_configs.py` organism / substrate tests rewritten for the new
+  fields and checks (62 -> 65); `test_builder.py` CHNO test names
+  `n_source_id="NH3"`, two calls pass an id; `test_user_defined_model.py`
+  gains `TestStirredTankOrganismAndSubstrate` (9 tests, user species only):
+  id resolves to the model's object, unknown id names the fix, id + atoms
+  with computed MW, `Species` used as given, equal definition reuses the
+  model's, different one raises, `overwrite=True` replaces, CHNO takes the
+  model's NH3, unknown N source names the fix.
+- Docs: `PyOMES/README.md` row, `docs/architecture.md` layout line,
+  `README.md` test table, the Yeast_CHO comments in
+  `D2C_workshop/raw_construction.py` and `reactions/reaction_system.ipynb`
+  (now cite `PyOMES.databases.bioprocess_basic`), the OPEN_WORK weighed-salt
+  entry. OPEN_WORK gains pointers for the element-sources note and for
+  `batch_fermenter.ipynb` cell 10, which does not compile (also on `main`).
+- Sweep: no `ChemicalRegistry`, `PyOMES.compounds`, `compounds.py` or
+  template `acid_pKas` outside history docs (`shipped/`, `obsolete/`, the
+  strong-ion note's record of a past decision); `organism_id=` /
+  `substrate_id=` remain only as rate-law `make_rate_fn` keywords.
+
+Sanity: growth stoichiometry printed from a `git archive HEAD` export and
+the working tree for CHO, CHNO, two substrates and an explicit E_coli /
+glucose definition is identical except PropionicAcid, whose MW is now the
+database's computed 74.07900000000001 (registry literal 74.079), which moves
+its growth coefficients in the last digit. Measurement against 8c: 0 values
+differ in all five cases. Tutorial scripts (four template scripts,
+`raw_construction.py`): output identical to HEAD. `batch_fermenter.ipynb`:
+cells 0-9 print the same on both trees; cell 10 fails on both (above).
+Registry use: none possible, the module is gone and the suite imports
+cleanly. Suite: 2179 passed, 2 xfailed before; 2172 passed, 2 xfailed, 0
+failed after (-19 test_compounds, +3 test_configs, +9
+test_user_defined_model).
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

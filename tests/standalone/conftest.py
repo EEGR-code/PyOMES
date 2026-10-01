@@ -17,15 +17,6 @@ for p in (_ROOT, _MODELS):
         sys.path.insert(0, p)
 
 
-# ── Chemical registry ──────────────────────────────────────────────────
-
-@pytest.fixture
-def registry():
-    """Default ChemicalRegistry with all built-in compounds."""
-    from PyOMES.compounds import ChemicalRegistry
-    return ChemicalRegistry.default()
-
-
 # ── Controllers ────────────────────────────────────────────────────────
 
 @pytest.fixture

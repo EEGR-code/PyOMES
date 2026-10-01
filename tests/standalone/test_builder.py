@@ -243,7 +243,7 @@ class TestOrganismSubstrates:
     def test_chno_balance(self):
         cv = (
             StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
-            .organism("Yeast", balance_basis="CHNO")
+            .organism("Yeast", balance_basis="CHNO", n_source_id="NH3")
             .substrate("AceticAcid", yield_gX_gS=0.36)
             .build()
         )
@@ -331,7 +331,7 @@ class TestGetConfigs:
         assert isinstance(cfgs["transfer"], TransferConfig)
         assert isinstance(cfgs["chemistry"], ChemistryConfig)
         assert isinstance(cfgs["organism"], OrganismConfig)
-        assert cfgs["organism"].organism_id == "Yeast"
+        assert cfgs["organism"].organism == "Yeast"
         assert len(cfgs["substrates"]) == 1
         assert isinstance(cfgs["substrates"][0], SubstrateConfig)
 
@@ -351,8 +351,8 @@ class TestChaining:
         assert b.transfer_equilibrium(["O2"]) is b
         assert b.transfer(TransferConfig()) is b
         assert b.chemistry() is b
-        assert b.organism() is b
-        assert b.substrate() is b
+        assert b.organism("Yeast") is b
+        assert b.substrate("AceticAcid") is b
         assert b.controller("x") is b
         assert b.reaction_system(None) is b
         assert b.label("x") is b

@@ -241,3 +241,72 @@ class TestStirredTankWithOtherGasIds:
         by_id = {e.species.id: e.species for e in cv.reaction_system.stoichiometry}
         assert by_id["O2_aq"] is o2 and by_id["CO2_aq"] is co2 and by_id["H2O_l"] is h2o
         assert not {"O2", "CO2", "H2O", "N2"} & set(by_id)
+
+
+YEAST = Species(id="Yeast", atoms=YEAST_ATOMS, MW=YEAST_MW)
+NH3 = Species(id="NH3", atoms={"N": 1, "H": 3})
+
+
+class TestStirredTankOrganismAndSubstrate:
+    """The organism and substrate are named by an id among the model's
+    species, or defined by an id with atoms or by a Species."""
+
+    @staticmethod
+    def _growth(organism, substrate, species, **organism_kw):
+        from PyOMES.templates.stirred_tank import StirredTankBuilder, TransferConfig
+        cv = (
+            StirredTankBuilder()
+            .transfer(TransferConfig(species={}))
+            .chemistry(species=[O2, CO2, H2O, *species])
+            .organism(*organism, **organism_kw)
+            .substrate(*substrate)
+            .build()
+        )
+        return {e.species.id: e.species for e in cv.reaction_system.stoichiometry}
+
+    def test_ids_resolve_to_the_model_species(self):
+        by_id = self._growth(("Yeast",), ("AceticAcid",), [YEAST, ACETIC_ACID])
+        assert by_id["Yeast"] is YEAST and by_id["AceticAcid"] is ACETIC_ACID
+
+    def test_unknown_id_names_the_fix(self):
+        with pytest.raises(ValueError, match="'Yeast' is not among the species passed.*atoms="):
+            self._growth(("Yeast",), ("AceticAcid",), [ACETIC_ACID])
+
+    def test_id_with_atoms_defines_it_with_computed_mw(self):
+        by_id = self._growth(("Yeast", YEAST_ATOMS), ("AceticAcid",), [ACETIC_ACID])
+        assert dict(by_id["Yeast"].atoms) == YEAST_ATOMS
+        assert by_id["Yeast"].MW == pytest.approx(Species(id="x", atoms=YEAST_ATOMS).MW)
+
+    def test_species_is_used_as_given(self):
+        e_coli = Species(id="E_coli", atoms={"C": 1, "H": 1.77, "O": 0.49})
+        by_id = self._growth((e_coli,), (ACETIC_ACID,), [])
+        assert by_id["E_coli"] is e_coli and by_id["AceticAcid"] is ACETIC_ACID
+
+    def test_same_definition_as_the_model_uses_the_model_species(self):
+        by_id = self._growth(("Yeast", YEAST_ATOMS, YEAST_MW), ("AceticAcid",),
+                             [YEAST, ACETIC_ACID])
+        assert by_id["Yeast"] is YEAST
+
+    def test_different_definition_raises(self):
+        from PyOMES.chemistry import SpeciesConflictError
+        with pytest.raises(SpeciesConflictError, match="(?s)'Yeast'.*overwrite=True"):
+            self._growth(("Yeast", {"C": 1, "H": 1.8, "O": 0.5}), ("AceticAcid",),
+                         [YEAST, ACETIC_ACID])
+
+    def test_overwrite_replaces_the_model_species(self):
+        atoms = {"C": 1, "H": 1.8, "O": 0.5}
+        by_id = self._growth(("Yeast", atoms), ("AceticAcid",), [YEAST, ACETIC_ACID],
+                             overwrite=True)
+        assert by_id["Yeast"] is not YEAST and dict(by_id["Yeast"].atoms) == atoms
+
+    def test_chno_takes_the_n_source_from_the_model(self):
+        yeast_n = Species(id="Yeast", atoms={**YEAST_ATOMS, "N": 0.16})
+        by_id = self._growth((yeast_n,), ("AceticAcid",), [ACETIC_ACID, NH3],
+                             balance_basis="CHNO", n_source_id="NH3")
+        assert by_id["NH3"] is NH3
+
+    def test_chno_unknown_n_source_names_the_fix(self):
+        yeast_n = Species(id="Yeast", atoms={**YEAST_ATOMS, "N": 0.16})
+        with pytest.raises(ValueError, match="'NH3' is not among the species passed.*n_source_id"):
+            self._growth((yeast_n,), ("AceticAcid",), [ACETIC_ACID],
+                         balance_basis="CHNO", n_source_id="NH3")

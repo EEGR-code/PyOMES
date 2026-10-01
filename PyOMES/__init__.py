@@ -4,8 +4,6 @@ from __future__ import annotations
 
 __version__ = "0.12.5"
 
-from .compounds import ChemicalRegistry, Chemical
-
 from .control import (
     PressureReliefController,
     InstantPressureReliefController,
@@ -39,8 +37,6 @@ from .properties import (
 )
 
 __all__ = [
-    'ChemicalRegistry',
-    'Chemical',
     'PressureReliefController',
     'InstantPressureReliefController',
     'SmoothPressureReliefController',

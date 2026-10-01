@@ -14,7 +14,10 @@ with the gases in the vessel's ``gas_composition`` (none by default), plus
 every transfer species at zero; only the species in ``transfer`` transfer.
 Growth reactions take their oxygen, carbon dioxide and water by the
 organism's ``o2_id`` / ``co2_id`` / ``h2o_id`` (``"O2"``, ``"CO2"``,
-``"H2O"`` unless set); the species passed must define them.
+``"H2O"`` unless set); the species passed must define them. The organism
+and substrates are named by an id among those species, or defined by an id
+with ``atoms`` or a ``Species``, which joins them; a definition that
+differs from a species of the same id raises unless ``overwrite=True``.
 
 Example
 -------
@@ -54,6 +57,7 @@ from PyOMES.core.control_volume import ControlVolume
 from PyOMES.core.transfer_models import KineticTransferModel, EquilibriumTransferModel
 from PyOMES.core.boundaries import GasFeed
 from PyOMES.chemistry.partition import PartitionModel
+from PyOMES.chemistry.species import Species, SpeciesConflictError
 from PyOMES.chemistry.species_check import merge_species
 from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
 from PyOMES.databases.database import ChemistryDatabase
@@ -126,8 +130,8 @@ class StirredTankFactory:
             Species the model defines itself, merged with
             ``chemistry_db.species`` (the same id with different data
             raises :class:`~PyOMES.chemistry.SpeciesConflictError`). Growth
-            reactions take the organism's O2, CO2 and H2O ids from these
-            species.
+            reactions resolve the organism, substrates, O2, CO2, H2O and
+            nitrogen source against these species.
 
         Returns
         -------
@@ -265,8 +269,11 @@ class StirredTankFactory:
         """Build a ReactionSystem from organism + substrate configs.
 
         Uses :meth:`ReactionBuilder.aerobic_growth` for each substrate
-        with Monod kinetics as the rate law. O2, CO2 and H2O are the
-        ``Species`` of the organism's ``o2_id`` / ``co2_id`` / ``h2o_id`` in
+        with Monod kinetics as the rate law. The organism and substrates
+        are resolved against *model_species* by
+        :meth:`_resolve_definition`, which adds new definitions to it. O2,
+        CO2, H2O and the nitrogen source are the ``Species`` of the
+        organism's ``o2_id`` / ``co2_id`` / ``h2o_id`` / ``n_source_id`` in
         *model_species*.
 
         Returns
@@ -275,40 +282,56 @@ class StirredTankFactory:
             A single KineticReaction if one substrate, or a
             ReactionSystem if multiple.
         """
-        from PyOMES.chemistry.species import Species
         from PyOMES.reactions import ReactionSystem, ReactionBuilder, Monod
-        from PyOMES.compounds import ChemicalRegistry
 
-        registry = ChemicalRegistry.default()
+        org = organism
+        biomass = StirredTankFactory._resolve_definition(
+            "organism", org.organism, org.atoms, org.MW, org.overwrite,
+            model_species,
+        )
+        resolved_substrates = [
+            (sub, StirredTankFactory._resolve_definition(
+                "substrate", sub.substrate, sub.atoms, sub.MW, sub.overwrite,
+                model_species,
+            ))
+            for sub in substrates
+        ]
 
         gases = {}
         for role, sp_id in (("o2", organism.o2_id), ("co2", organism.co2_id),
                             ("h2o", organism.h2o_id)):
             if sp_id not in model_species:
-                available = (", ".join(sorted(model_species))
-                             or "no species were passed")
                 raise ValueError(
-                    f"{sp_id!r} is not among the species passed to this model "
-                    f"(available: {available}). Aerobic growth needs its "
+                    StirredTankFactory._not_among_species(sp_id, model_species)
+                    + f" Aerobic growth needs its "
                     f"{role.upper()} ({role}_id={sp_id!r}): pass "
                     f"Species(id={sp_id!r}, ...) in species=, a chemistry_db "
                     f"that defines it, or another {role}_id."
                 )
             gases[role] = model_species[sp_id]
 
-        org = organism.resolve(registry)
-        org_atoms = dict(org.atoms)
-        org_MW = float(org.MW)
-        biomass = Species(id=org.organism_id, atoms=org_atoms, MW=org_MW)
+        # N source (for CHNO mode)
+        n_source = None
+        if org.balance_basis == "CHNO":
+            n_source = model_species.get(org.n_source_id)
+            if n_source is None:
+                raise ValueError(
+                    StirredTankFactory._not_among_species(
+                        org.n_source_id, model_species
+                    )
+                    + f" CHNO growth needs its nitrogen source "
+                    f"(n_source_id={org.n_source_id!r}): pass "
+                    f"Species(id={org.n_source_id!r}, ...) in species=, a "
+                    f"chemistry_db that defines it, or another n_source_id."
+                )
+
+        org_MW = float(biomass.MW)
+        organism_id = biomass.id
 
         reactions: list = []
-        for sub_cfg in substrates:
-            sub = sub_cfg.resolve(registry)
-            sub_atoms = dict(sub.atoms)
-            sub_MW = float(sub.MW)
-            organism_id = org.organism_id
-            substrate_id = sub.substrate_id
-            substrate = Species(id=substrate_id, atoms=sub_atoms, MW=sub_MW)
+        for sub, substrate in resolved_substrates:
+            sub_MW = float(substrate.MW)
+            substrate_id = substrate.id
 
             # Build rate function from kinetics object or default Monod
             if sub.kinetics is not None:
@@ -330,13 +353,7 @@ class StirredTankFactory:
                     yield_gX_gS=float(sub.yield_gX_gS),
                 )
 
-            # N source (for CHNO mode)
-            n_source = None
-            if org.balance_basis == "CHNO":
-                n_chem = registry[org.n_source_id]
-                n_source = Species(id=org.n_source_id, atoms=dict(n_chem.atoms))
-
-            rxn = ReactionBuilder.aerobic_growth(
+            rxn =ReactionBuilder.aerobic_growth(
                 substrate, biomass,
                 o2=gases["o2"], co2=gases["co2"], h2o=gases["h2o"],
                 yield_gX_gS=float(sub.yield_gX_gS),
@@ -350,4 +367,66 @@ class StirredTankFactory:
         if len(reactions) == 1:
             return reactions[0]
         return ReactionSystem(reactions, label="aerobic_growth")
+
+    @staticmethod
+    def _not_among_species(sp_id: str, model_species: Dict[str, Any]) -> str:
+        available = ", ".join(sorted(model_species)) or "no species were passed"
+        return (f"{sp_id!r} is not among the species passed to this model "
+                f"(available: {available}).")
+
+    @staticmethod
+    def _resolve_definition(
+        name: str,
+        given: Any,
+        atoms: Optional[Dict[str, float]],
+        MW: Optional[float],
+        overwrite: bool,
+        model_species: Dict[str, Any],
+    ) -> Species:
+        """Resolve an organism or substrate against the model's species.
+
+        An id alone must be in *model_species*. A definition (an id with
+        *atoms*, MW computed from them unless given, or a ``Species``) is
+        added to *model_species*; if a species of that id is already there
+        with the same atoms, charge and MW, that species is used; if its
+        data differ, the definition replaces it when *overwrite* is true and
+        raises :class:`~PyOMES.chemistry.SpeciesConflictError` otherwise.
+        """
+        if isinstance(given, Species):
+            candidate = given
+        elif atoms is not None:
+            candidate = Species(id=given, atoms=dict(atoms), MW=MW)
+        else:
+            existing = model_species.get(given)
+            if existing is None:
+                raise ValueError(
+                    StirredTankFactory._not_among_species(given, model_species)
+                    + f" Define the {name} with atoms= (e.g. .{name}({given!r}, "
+                    f"atoms={{...}})), pass Species(id={given!r}, ...) in "
+                    f"species=, or a chemistry_db that defines it."
+                )
+            return existing
+
+        existing = model_species.get(candidate.id)
+        if existing is None or existing is candidate or overwrite:
+            model_species[candidate.id] = candidate
+            return candidate
+        if (dict(existing.atoms) == dict(candidate.atoms)
+                and existing.charge == candidate.charge
+                and existing.MW == candidate.MW):
+            return existing
+        details = (
+            f"  model's: atoms={dict(existing.atoms)}, charge={existing.charge}, "
+            f"MW={existing.MW}\n"
+            f"  {name}'s: atoms={dict(candidate.atoms)}, "
+            f"charge={candidate.charge}, MW={candidate.MW}"
+        )
+        raise SpeciesConflictError(
+            f"The {name} {candidate.id!r} differs from the model's species of "
+            f"that id:\n{details}\nPass the id alone to use the model's "
+            f"definition, give the {name} another id, or pass overwrite=True "
+            f"to replace the model's.",
+            species_id=candidate.id,
+            details=details,
+        )
 

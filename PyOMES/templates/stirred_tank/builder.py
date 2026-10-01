@@ -322,28 +322,37 @@ class StirredTankBuilder:
 
     def organism(
         self,
-        organism_id: str = "Yeast",
+        organism: Union[str, Any],
         atoms: Optional[Dict[str, float]] = None,
         MW: Optional[float] = None,
         balance_basis: str = "CHO",
-        n_source_id: str = "NH3",
+        n_source_id: Optional[str] = None,
         o2_id: str = "O2",
         co2_id: str = "CO2",
         h2o_id: str = "H2O",
+        overwrite: bool = False,
     ) -> "StirredTankBuilder":
         """Set the organism for reaction building.
 
-        ``o2_id``, ``co2_id`` and ``h2o_id`` name the oxygen consumed and
-        the carbon dioxide and water produced by its growth reactions; they
-        are resolved against the model's species.
+        ``.organism("Yeast")`` uses the model's species of that id;
+        ``.organism("E_coli", atoms={...})`` (MW computed from the atoms
+        unless given) or ``.organism(E_COLI)`` (a ``Species``) defines it.
+        A definition that differs from a model species of the same id
+        raises unless ``overwrite=True``. See :class:`OrganismConfig`.
+
+        ``n_source_id`` names the nitrogen source, required for
+        ``balance_basis="CHNO"``. ``o2_id``, ``co2_id`` and ``h2o_id`` name
+        the oxygen consumed and the carbon dioxide and water produced by
+        its growth reactions. All are resolved against the model's species.
         """
         self._organism_kw = {
-            "organism_id": organism_id,
+            "organism": organism,
             "balance_basis": balance_basis,
             "n_source_id": n_source_id,
             "o2_id": o2_id,
             "co2_id": co2_id,
             "h2o_id": h2o_id,
+            "overwrite": overwrite,
         }
         if atoms is not None:
             self._organism_kw["atoms"] = dict(atoms)
@@ -355,13 +364,14 @@ class StirredTankBuilder:
 
     def substrate(
         self,
-        substrate_id: str = "AceticAcid",
+        substrate: Union[str, Any],
         atoms: Optional[Dict[str, float]] = None,
         MW: Optional[float] = None,
         mu_max: float = 0.5,
         Ks: float = 5e-3,
         yield_gX_gS: float = 0.36,
         kinetics: Optional[Any] = None,
+        overwrite: bool = False,
     ) -> "StirredTankBuilder":
         """Add a substrate with kinetic parameters.
 
@@ -369,12 +379,14 @@ class StirredTankBuilder:
 
         Parameters
         ----------
-        substrate_id : str
-            Chemical identifier (e.g. ``"Glucose"``).
+        substrate : str or Species
+            The substrate's id (e.g. ``"Glucose"``), resolved against the
+            model's species unless ``atoms`` defines it, or its ``Species``.
         atoms : dict or None
-            Elemental composition.  Looked up from registry if None.
+            Elemental composition; with an id, defines the substrate.
         MW : float or None
-            Molecular weight (g/mol).  Looked up from registry if None.
+            Molecular weight (g/mol). Only with ``atoms``; computed from
+            them when not given.
         mu_max : float
             Maximum specific growth rate (1/h).  Used only if
             ``kinetics`` is None (default Monod).
@@ -395,6 +407,9 @@ class StirredTankBuilder:
                     Monod, Contois, Andrews, ContoisAndrews,
                     Tessier, Moser, Blackman, DualSubstrateMonod,
                 )
+        overwrite : bool
+            Replace a model species of the same id whose data differ from
+            this definition, instead of raising.
 
         Returns
         -------
@@ -402,10 +417,11 @@ class StirredTankBuilder:
             self (for chaining).
         """
         kw: Dict[str, Any] = {
-            "substrate_id": substrate_id,
+            "substrate": substrate,
             "mu_max": mu_max,
             "Ks": Ks,
             "yield_gX_gS": yield_gX_gS,
+            "overwrite": overwrite,
         }
         if atoms is not None:
             kw["atoms"] = dict(atoms)
@@ -619,10 +635,13 @@ class StirredTankBuilder:
         if self._transfer_cfg:
             modes = [f"{sp}:{c.mode.value}" for sp, c in self._transfer_cfg.species.items()]
             parts.append(f"transfer([{', '.join(modes)}])")
+        def _id(given):
+            return getattr(given, "id", given)
+
         if self._organism_kw:
-            parts.append(f"organism({self._organism_kw.get('organism_id', '?')})")
+            parts.append(f"organism({_id(self._organism_kw['organism'])})")
         if self._substrates:
-            ids = [s.get("substrate_id", "?") for s in self._substrates]
+            ids = [_id(s["substrate"]) for s in self._substrates]
             parts.append(f"substrates([{', '.join(ids)}])")
         if self._controllers:
             parts.append(f"controllers({len(self._controllers)})")

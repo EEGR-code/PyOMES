@@ -15,6 +15,17 @@ and working its checkpoints, not fixed.
   CO2 defaults, the DO controllers' kLa paths and the vent physics' gas
   tables. Scoped as its own design note:
   [`upcoming/GAS_SPECIES_IN_CORE.md`](upcoming/GAS_SPECIES_IN_CORE.md).
+- **Aerobic growth ignores elements it does not balance.** The stirred-tank
+  tutorials grow `Yeast` (N 0.16) with `balance_basis="CHO"`, so the biomass
+  nitrogen is unaccounted for; a nitrogen source carrying S is not
+  balanced for S; a charged source leaves the reaction charged. Scoped as
+  its own design note:
+  [`upcoming/GROWTH_ELEMENT_SOURCES.md`](upcoming/GROWTH_ELEMENT_SOURCES.md).
+- **`docs/tutorials/templates/batch_fermenter.ipynb` cell 10 does not
+  compile.** Two `print("...")` calls have a literal line break inside the
+  string (`print("` then a newline then `Final ...`) where `\n` was meant,
+  so the cell raises `SyntaxError`; the same on `main`. The cells before it
+  (build and run) are unaffected.
 
 - **The Bisection engine never debits or credits solvent water.** It treats
   `H2O` as a fixed solvent (`_SOLVENT_IDS = ("H2O",)` in
@@ -626,8 +637,8 @@ nothing downstream would have worked with it even if it had been kept.
 
 If a "weighed salt → initial condition" convenience is wanted again, it
 should be species-based rather than pooled-total-based: given a compound name
-(resolved via `PyOMES.compounds.ChemicalRegistry`, which already carries
-molar masses) and a mass or stock-solution dose, emit species amounts
+(resolved against the `Species` passed to the model, which carry molar
+masses) and a mass or stock-solution dose, emit species amounts
 directly (`{"Na+": n_mol, "Cl-": n_mol, ...}`), not `CT_Na`/`CT_Cl`-style
 pooled totals. This also supersedes the recipe-layer open question in
 `docs/dev/implementation/upcoming/STRONG_ION_INFERENCE_GENERALIZATION.md`.
