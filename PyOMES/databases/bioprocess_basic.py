@@ -56,11 +56,9 @@ PropionicAcid = Species(id="PropionicAcid", atoms={"C": 3, "H": 6, "O": 2})
 ButyricAcid   = Species(id="ButyricAcid",   atoms={"C": 4, "H": 8, "O": 2})
 CitricAcid    = Species(id="CitricAcid",    atoms={"C": 6, "H": 8, "O": 7})
 
-# Yeast biomass, one C-mol. The explicit MWs are the values the stirred-tank
-# template has always used; they sit above the formula weights (24.834 and
-# 22.593) and have no recorded source.
-Yeast     = Species(id="Yeast",     atoms={"C": 1, "H": 1.61, "O": 0.56, "N": 0.16}, MW=26.868)
-Yeast_CHO = Species(id="Yeast_CHO", atoms={"C": 1, "H": 1.61, "O": 0.56},            MW=24.626)
+# Yeast biomass, one C-mol; MW is the formula weight of the atoms.
+Yeast     = Species(id="Yeast",     atoms={"C": 1, "H": 1.61, "O": 0.56, "N": 0.16})
+Yeast_CHO = Species(id="Yeast_CHO", atoms={"C": 1, "H": 1.61, "O": 0.56})
 
 O2 = Species(id="O2", atoms={"O": 2})
 N2 = Species(id="N2", atoms={"N": 2})

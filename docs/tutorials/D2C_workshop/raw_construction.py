@@ -97,7 +97,7 @@ O2 = Species(id="O2", atoms={"O": 2}, charge=0)
 # Biomass: a CHO pseudo-molecule "Yeast", the nitrogen-free composition
 # listed as "Yeast_CHO" in PyOMES.databases.bioprocess_basic.
 YEAST = Species(
-    id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0, MW=24.626,
+    id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0,
 )
 
 
@@ -282,7 +282,7 @@ def build_liquid_phase(gas_phase: GasPhase) -> LiquidPhase:
 
     # Acetic acid: 1.2 g/L total acetate (MW = 60.052 g/mol).
     n_acetate_total = (1.2 / float(ACETIC_ACID.MW)) * V_LIQ
-    # Yeast inoculum: 0.1 g/L (MW = 24.626 g/mol).
+    # Yeast inoculum: 0.1 g/L (MW = 22.593 g/mol, from the atoms).
     n_yeast = (0.1 / float(YEAST.MW)) * V_LIQ
 
     n_mol = {

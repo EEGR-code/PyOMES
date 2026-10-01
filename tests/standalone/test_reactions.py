@@ -162,8 +162,8 @@ def _acid(sp_id, atoms, MW):
     return Species(id=sp_id, atoms=atoms, MW=MW)
 
 
-_YEAST_CHO  = dict(atoms={"C": 1, "H": 1.61, "O": 0.56}, MW=24.626)
-_YEAST_CHNO = dict(atoms={"C": 1, "H": 1.61, "O": 0.56, "N": 0.16}, MW=26.868)
+_YEAST_CHO  = dict(atoms={"C": 1, "H": 1.61, "O": 0.56}, MW=None)
+_YEAST_CHNO = dict(atoms={"C": 1, "H": 1.61, "O": 0.56, "N": 0.16}, MW=None)
 
 
 class TestReactionBuilder:
@@ -217,14 +217,15 @@ class TestReactionBuilder:
         """Builder matches the CHO balance written out by hand."""
         from PyOMES.reactions import ReactionBuilder
         Cs,Hs,Os = 2.0,4.0,2.0; Cx,Hx,Ox = 1.0,1.61,0.56
-        MW_S,MW_X = 60.052,24.626; Y_gXgS = 0.9*0.400
+        MW_S = 60.052; Y_gXgS = 0.9*0.400
+        MW_X = _acid("Yeast_CHO", {"C":Cx,"H":Hx,"O":Ox}, None).MW
         Y_mol = Y_gXgS*MW_S/MW_X
         nCO2_exp = Cs - Y_mol*Cx
         nH2O_exp = (Hs - Y_mol*Hx)/2.0
         nO2_exp  = (Y_mol*Ox + 2.0*nCO2_exp + nH2O_exp - Os)/2.0
         rxn = ReactionBuilder.aerobic_growth(
             _acid("AceticAcid", {"C":Cs,"H":Hs,"O":Os}, MW_S),
-            _acid("Yeast_CHO", {"C":Cx,"H":Hx,"O":Ox}, MW_X),
+            _acid("Yeast_CHO", {"C":Cx,"H":Hx,"O":Ox}, None),
             **_gases(), yield_gX_gS=Y_gXgS, rate_fn=lambda env: 1.0, balance="CHO")
         coeffs = {e.species.id: e.coefficient for e in rxn.stoichiometry}
         assert coeffs["AceticAcid"] == pytest.approx(-1.0, abs=1e-12)
@@ -236,12 +237,13 @@ class TestReactionBuilder:
     def test_chno_parity_nitrogen_demand(self):
         from PyOMES.reactions import ReactionBuilder
         Cs,Hs,Os,Ns = 2.0,4.0,2.0,0.0; Cx,Hx,Ox,Nx = 1.0,1.61,0.56,0.16
-        MW_S,MW_X = 60.052,26.868; Y_gXgS = 0.36
+        MW_S = 60.052; Y_gXgS = 0.36
+        MW_X = _acid("Yeast", {"C":Cx,"H":Hx,"O":Ox,"N":Nx}, None).MW
         Y_mol = Y_gXgS*MW_S/MW_X
         nNH3_exp = Y_mol*Nx - Ns
         rxn = ReactionBuilder.aerobic_growth(
             _acid("AceticAcid", {"C":Cs,"H":Hs,"O":Os,"N":Ns}, MW_S),
-            _acid("Yeast", {"C":Cx,"H":Hx,"O":Ox,"N":Nx}, MW_X),
+            _acid("Yeast", {"C":Cx,"H":Hx,"O":Ox,"N":Nx}, None),
             **_gases(), yield_gX_gS=Y_gXgS, rate_fn=lambda env: 1.0, balance="CHNO",
             n_source=_nh3())
         coeffs = {e.species.id: e.coefficient for e in rxn.stoichiometry}
@@ -251,7 +253,7 @@ class TestReactionBuilder:
         from PyOMES.reactions import ReactionBuilder
         rxn = ReactionBuilder.aerobic_growth(
             _acid("AceticAcid", {"C":2,"H":4,"O":2}, 60.052),
-            _acid("X", {"C":1,"H":1.61,"O":0.56}, 24.626),
+            _acid("X", {"C":1,"H":1.61,"O":0.56}, None),
             **_gases(), yield_gX_gS=0.0, rate_fn=lambda env: 1.0, balance="CHO")
         coeffs = {e.species.id: e.coefficient for e in rxn.stoichiometry}
         assert coeffs["CO2"] == pytest.approx(2.0, abs=1e-10)
@@ -286,7 +288,7 @@ class TestMonodAerobicGrowth:
     @pytest.fixture
     def biomass(self):
         from PyOMES.chemistry import Species
-        return Species(id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0, MW=24.626)
+        return Species(id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0)
 
     def test_returns_kinetic_reaction(self, substrate, biomass):
         from PyOMES.reactions import ReactionBuilder, KineticReaction
@@ -391,7 +393,7 @@ class TestMonodAerobicGrowth:
         """CHNO balance mode is forwarded correctly."""
         from PyOMES.chemistry import Species
         from PyOMES.reactions import ReactionBuilder
-        biomass_n = Species(id="Yeast_N", atoms={"C":1,"H":1.61,"O":0.56,"N":0.16}, charge=0, MW=26.868)
+        biomass_n = Species(id="Yeast_N", atoms={"C":1,"H":1.61,"O":0.56,"N":0.16}, charge=0)
         rxn = ReactionBuilder.monod_aerobic_growth(
             substrate=substrate, biomass=biomass_n, **_gases(),
             mu_max_per_h=0.5, Ks_gL=5e-3, yield_gX_gS=0.36,

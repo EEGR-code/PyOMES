@@ -56,7 +56,7 @@ V_liq = V_total_L * (1.0 - headspace_frac)
 T_K = 305.15
 
 MW_AcOH = 60.052
-MW_yeast = 26.868
+MW_yeast = AD_BASIC.species["Yeast"].MW
 
 C_AcOH_feed_gL = 50.0
 C_AcOH_feed = C_AcOH_feed_gL / MW_AcOH

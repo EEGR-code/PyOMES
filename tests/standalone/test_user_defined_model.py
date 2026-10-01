@@ -165,7 +165,8 @@ class TestUserDefinedModel:
 # ── The stirred-tank template, with no database ──────────────────────────────
 
 N2 = Species(id="N2", atoms={"N": 2})
-YEAST_ATOMS, YEAST_MW = {"C": 1, "H": 1.61, "O": 0.56}, 24.626
+YEAST_ATOMS = {"C": 1, "H": 1.61, "O": 0.56}
+YEAST_MW = Species(id="Yeast", atoms=YEAST_ATOMS).MW
 
 
 def _build_tank():

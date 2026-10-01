@@ -195,7 +195,7 @@
       the registry's Yeast_CHO. Sanity: repo-wide sweep for
       `ChemicalRegistry`, `compounds`, `acid_pKas` (template); suite green;
       recorder shows no registry use; measurement unchanged.
-- [ ] **10. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
+- [x] **10. Yeast molar masses from atoms.** Yeast and Yeast_CHO drop their
       explicit MW (24.834, 22.593). The tutorials' `MW_yeast = 26.868`
       (`cstr_fermenter.py`, `fed_batch_fermenter.py`) and any other copy of
       26.868 / 24.626 (sweep, including tests) follow. Sanity: the stirred-tank
@@ -780,6 +780,44 @@ Registry use: none possible, the module is gone and the suite imports
 cleanly. Suite: 2179 passed, 2 xfailed before; 2172 passed, 2 xfailed, 0
 failed after (-19 test_compounds, +3 test_configs, +9
 test_user_defined_model).
+
+10:
+
+Agreed before starting (2026-10-01): hand-written yeast `Species` in tutorials
+and tests that copied 24.626 / 26.868 for CH1.61O0.56(N0.16) drop `MW=` too.
+The ArXiv `03_cstr` notebook and its generator keep `Ecoli` CH1.8O0.5N0.2 at
+24.626: that is its formula weight (24.6263), not a copy.
+
+- `bioprocess_basic.py`: `Yeast` and `Yeast_CHO` lose `MW=` (now 24.834 and
+  22.593); the comment says MW is the formula weight. `AD_BASIC` takes them
+  from there.
+- Tutorials: `cstr_fermenter.py` / `fed_batch_fermenter.py` read
+  `MW_yeast = AD_BASIC.species["Yeast"].MW` instead of a literal;
+  `raw_construction.py` and `reaction_system.ipynb` drop `MW=` from their
+  Yeast (and the inoculum comment quotes 22.593); D2C `Example3_CSTR.ipynb`
+  drops it from PEKILO and its markdown quotes 22.593.
+- Tests: `test_reactions.py` (7 places; the two hand-worked parity tests take
+  `MW_X` from the biomass Species they build), `test_builder.py` (one
+  `.organism(..., atoms=)`), `test_user_defined_model.py` (`YEAST_MW` is the
+  computed value). No test pinned a gram-based yeast value; none needed
+  re-baselining.
+- Sweep: no 26.868 / 24.626 outside `docs/dev/` except the ArXiv `Ecoli`.
+
+Sanity: suite 2172 passed, 2 xfailed before and after. Measurement against 9:
+ADM1 and BSM2 0 values differ. st_batch / st_fedbatch: 897 of 1010 differ
+(max rel 18 % mid-run, gas CO2); at the end AceticAcid +6.7 % / +4.2 %, CO2
+and H2O about -12 %, Yeast (mol) +0.01 %. The fingerprint fixes the inoculum
+in mol, so it holds 7.6 % fewer grams and Monod (g/L) grows more slowly, while
+each mol of substrate now makes 8.2 % more mol biomass. With Yeast patched
+back to 26.868 on the new code, both cases match 9 exactly (0 of 1010), so the
+shift is only the yeast MW. d2c_raw: Yeast +9.0 % at the end (inoculum given
+in g/L: 24.626 / 22.593), CO2 -7.0 %. Tutorials against a HEAD export: the
+four template scripts and `Example3_CSTR.ipynb` print identical output (they
+report in grams, where the MW cancels); `raw_construction.py` moves as d2c_raw;
+`reaction_system.ipynb`'s growth reaction goes from
+`-1.01 O2, +0.878 Yeast, +1.12 CO2, +1.29 H2O` to
+`-0.926 O2, +0.957 Yeast, +1.04 CO2, +1.23 H2O` (its saved outputs still show
+the old line; outputs are not re-saved here).
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

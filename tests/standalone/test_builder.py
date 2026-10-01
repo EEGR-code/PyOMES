@@ -446,7 +446,7 @@ class TestModelChemistry:
         b = (StirredTankBuilder()
              .transfer(TransferConfig(species={}))
              .transfer_species("CO2", henry_mol_L_atm=3.3e-2)
-             .organism("Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, MW=24.626)
+             .organism("Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56})
              .substrate("AceticAcid", atoms={"C": 2, "H": 4, "O": 2}, MW=60.052))
         with pytest.raises(ValueError, match="'O2' is not among the species passed.*species="):
             b.build()
