@@ -100,7 +100,7 @@ cv = (
     .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
     .initial_gas({"O2": 0.1995, "CO2": 0.05, "N2": 1.0 - 0.1995 - 0.05})
     .no_gas_feed()
-    .transfer_equilibrium()
+    .transfer_equilibrium(["O2", "CO2", "N2"])
     .chemistry(chemistry_db=AD_BASIC)
     .organism("E_coli", atoms={"C": 1, "H": 1.77, "O": 0.49, "N": 0.24},
               MW=MW_ecoli, balance_basis="CHO")

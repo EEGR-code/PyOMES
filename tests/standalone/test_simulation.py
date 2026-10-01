@@ -1907,7 +1907,7 @@ class TestKineticGasLiquidLinkGating:
         )
         return StirredTankFactory.create_volume(
             vessel=VesselConfig(V_total_L=100, T_K=305.15, gas_composition=AIR),
-            transfer=TransferConfig.default_kinetic(kLa_O2=100.0),
+            transfer=TransferConfig.kinetic({"O2": 100.0, "CO2": 100.0 * 0.9}, equilibrium=["N2"]),
             chemistry_db=AD_BASIC,
         )
 
@@ -3301,7 +3301,7 @@ class TestParamPathDispatch:
         )
         return StirredTankFactory.create_volume(
             vessel=VesselConfig(V_total_L=100, T_K=305.15, gas_composition=AIR),
-            transfer=TransferConfig.default_kinetic(kLa_O2=100.0),
+            transfer=TransferConfig.kinetic({"O2": 100.0, "CO2": 100.0 * 0.9}, equilibrium=["N2"]),
             chemistry_db=AD_BASIC,
         )
 
@@ -3508,7 +3508,7 @@ class TestVVMSchedule:
         )
         return StirredTankFactory.create_volume(
             vessel=VesselConfig(V_total_L=100, T_K=305.15, gas_composition=AIR),
-            transfer=TransferConfig.default_kinetic(kLa_O2=100.0),
+            transfer=TransferConfig.kinetic({"O2": 100.0, "CO2": 100.0 * 0.9}, equilibrium=["N2"]),
             gas_feed=GasFeedConfig(
                 vvm_min=0.5, composition={"O2": 0.21, "N2": 0.79},
             ),
@@ -3621,7 +3621,7 @@ class TestStirredTankBuilderSimulation:
 
     def test_new_fluent_methods_exist(self):
         from PyOMES.templates.stirred_tank import StirredTankBuilder
-        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
         assert hasattr(b, "profile")
         assert hasattr(b, "recorder")
         assert hasattr(b, "build_simulation")
@@ -3629,7 +3629,7 @@ class TestStirredTankBuilderSimulation:
 
     def test_profile_fluent_appends(self):
         from PyOMES.templates.stirred_tank import StirredTankBuilder
-        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
         result = b.profile(object()).profile(object())
         assert result is b  # chainable
         assert len(b._profiles) == 2
@@ -3637,7 +3637,7 @@ class TestStirredTankBuilderSimulation:
     def test_recorder_fluent_sets(self):
         from PyOMES.templates.stirred_tank import StirredTankBuilder
         rec = object()
-        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).recorder(rec)
+        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).recorder(rec)
         assert b._recorder is rec
 
     def test_build_simulation_returns_simulation(self):
@@ -3646,7 +3646,7 @@ class TestStirredTankBuilderSimulation:
         )
         from PyOMES.core import Simulation
         sim = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
             .build_simulation()
         )
@@ -3657,7 +3657,7 @@ class TestStirredTankBuilderSimulation:
         from PyOMES.templates.stirred_tank import StirredTankBuilder
         ctrl = object()
         sim = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
             .controller(ctrl)
             .build_simulation()
@@ -3668,7 +3668,7 @@ class TestStirredTankBuilderSimulation:
         from PyOMES.templates.stirred_tank import StirredTankBuilder
         prof = object()
         sim = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
             .profile(prof)
             .build_simulation()
@@ -3681,7 +3681,7 @@ class TestStirredTankBuilderSimulation:
         solver = SimultaneousEulerSolver()
         recorder = BatchRecorder()
         sim = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
             .solver()  # default euler — produces an SimultaneousEulerSolver
             .recorder(recorder)
@@ -3695,7 +3695,7 @@ class TestStirredTankBuilderSimulation:
     def test_label_propagates(self):
         from PyOMES.templates.stirred_tank import StirredTankBuilder
         sim = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
             .label("exp_42")
             .build_simulation()
@@ -3706,7 +3706,7 @@ class TestStirredTankBuilderSimulation:
     def test_label_override(self):
         from PyOMES.templates.stirred_tank import StirredTankBuilder
         sim = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
             .label("default")
             .build_simulation(label="override")
@@ -3717,9 +3717,9 @@ class TestStirredTankBuilderSimulation:
         from PyOMES.templates.stirred_tank import StirredTankBuilder
         from PyOMES.core import BatchResult
         result = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
-            .transfer_kinetic(kLa_O2=100.0)
+            .transfer_kinetic({"O2": 100.0, "CO2": 100.0 * 0.9}, equilibrium=["N2"])
             .build_simulation_and_run(tau_h=0.1, n_steps=5)
         )
         assert isinstance(result, BatchResult)
@@ -3732,7 +3732,7 @@ class TestStirredTankBuilderSimulation:
         from PyOMES.templates.stirred_tank import StirredTankBuilder
         from PyOMES.core import ControlVolume
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
             .build()
         )

@@ -1022,7 +1022,7 @@ def build_adm1_cv(
          .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
          .initial_gas({"N2": 1.0})
          .no_gas_feed()
-         .transfer_equilibrium()
+         .transfer_equilibrium(["O2", "CO2", "N2"])
          .transfer_species("CH4")
          .transfer_species("H2"))
 

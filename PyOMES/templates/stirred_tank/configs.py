@@ -160,8 +160,8 @@ class SpeciesTransferConfig:
         ``mode`` is ``"kinetic"``.
     henry_mol_L_atm : float or None
         Henry constant (mol/L/atm) at the vessel temperature.  If
-        ``None``, the factory will compute it from the temperature-
-        dependent correlation.
+        ``None``, the factory takes the species' partition model from the
+        model's ``chemistry_db``.
     """
 
     mode: TransferMode = TransferMode.EQUILIBRIUM
@@ -188,14 +188,10 @@ class TransferConfig:
     ----------
     species : dict
         ``{species_id: SpeciesTransferConfig}``.  Species not listed
-        are not transferred.
-    kLa_CO2_ratio : float
-        If CO₂ kLa is not explicitly set, derive it as
-        ``kLa_O2 × kLa_CO2_ratio``.  Default 0.9 (diffusivity scaling).
+        are not transferred; the default is no transfer.
     """
 
     species: Dict[str, SpeciesTransferConfig] = field(default_factory=dict)
-    kLa_CO2_ratio: float = 0.9
 
     def __post_init__(self):
         # Convert any raw dicts to SpeciesTransferConfig
@@ -213,37 +209,31 @@ class TransferConfig:
         self.species = cleaned
 
     @classmethod
-    def default_kinetic(cls, kLa_O2: float = 150.0, kLa_CO2_ratio: float = 0.9) -> "TransferConfig":
-        """Create a default config with kinetic O₂/CO₂ and equilibrium N₂."""
-        return cls(
-            species={
-                "O2": SpeciesTransferConfig(
-                    mode=TransferMode.KINETIC, kLa_per_h=kLa_O2,
-                ),
-                "CO2": SpeciesTransferConfig(
-                    mode=TransferMode.KINETIC, kLa_per_h=kLa_O2 * kLa_CO2_ratio,
-                ),
-                "N2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-            },
-            kLa_CO2_ratio=kLa_CO2_ratio,
-        )
+    def kinetic(
+        cls,
+        kLa: Dict[str, float],
+        equilibrium: Sequence[str] = (),
+    ) -> "TransferConfig":
+        """Kinetic transfer for the species in *kLa* (``{id: kLa_per_h}``),
+        then equilibrium transfer for those in *equilibrium*."""
+        species = {
+            sp: SpeciesTransferConfig(mode=TransferMode.KINETIC, kLa_per_h=k)
+            for sp, k in kLa.items()
+        }
+        for sp in equilibrium:
+            species[sp] = SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM)
+        return cls(species=species)
 
     @classmethod
-    def default_equilibrium(cls) -> "TransferConfig":
-        """Create a default config with all species at equilibrium."""
-        return cls(
-            species={
-                "O2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-                "CO2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-                "N2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-            },
-        )
+    def equilibrium(cls, species_ids: Sequence[str]) -> "TransferConfig":
+        """Equilibrium transfer for each of *species_ids*."""
+        return cls(species={
+            sp: SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM)
+            for sp in species_ids
+        })
 
     def to_dict(self) -> dict:
-        return {
-            "species": {sp: cfg.to_dict() for sp, cfg in self.species.items()},
-            "kLa_CO2_ratio": self.kLa_CO2_ratio,
-        }
+        return {"species": {sp: cfg.to_dict() for sp, cfg in self.species.items()}}
 
     @classmethod
     def from_dict(cls, d: dict) -> "TransferConfig":
@@ -253,10 +243,7 @@ class TransferConfig:
                 species[sp] = SpeciesTransferConfig(**cfg)
             else:
                 species[sp] = cfg
-        return cls(
-            species=species,
-            kLa_CO2_ratio=d.get("kLa_CO2_ratio", 0.9),
-        )
+        return cls(species=species)
 
 
 # ════════════════════════════════════════════════════════════════════════

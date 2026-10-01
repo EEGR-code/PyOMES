@@ -647,6 +647,43 @@ four template scripts and `01_exporting_results` identical;
 `batch_fermenter.ipynb` stops at its known cell 10 in both. Suite: 2174
 passed, 2 xfailed, 0 failed (+1).
 
+8b:
+- `configs.py`: `TransferConfig.kinetic(kLa={id: kLa_per_h}, equilibrium=(ids))`
+  and `TransferConfig.equilibrium(ids)` replace `default_kinetic(kLa_O2,
+  kLa_CO2_ratio)` / `default_equilibrium()`, which built O2 / CO2 / N2 entries;
+  `TransferConfig()` (no transfer) is the default. `kLa_CO2_ratio` went from
+  `TransferConfig` and its `to_dict` / `from_dict`: nothing read it. The
+  `SpeciesTransferConfig` docstring said a missing Henry constant came from "the
+  temperature-dependent correlation"; it comes from the `chemistry_db`'s
+  partition model.
+- `builder.py`: `.transfer_kinetic(kLa, equilibrium=())` and
+  `.transfer_equilibrium(species_ids)` take the species; with no transfer
+  declared, `_build_configs` and `.transfer_species` start from no transfer
+  (they started from O2 / CO2 / N2 equilibrium). Module example updated.
+- `factory.py`: docstring says only the species in ``transfer`` transfer;
+  example uses `TransferConfig.kinetic`.
+- Callers (scripted; old preset calls found by pattern and rewritten one for
+  one, CO2's kLa written as the product the preset computed): tests, ADM1, the
+  template scripts, four notebooks (including `aerobic_fermentation_stoichiometry`,
+  which passes variables), both READMEs. Builder chains in the tests that relied
+  on the silent O2 / CO2 / N2 equilibrium default got
+  `.transfer_equilibrium(["O2", "CO2", "N2"])` after their `.initial_gas(AIR)`
+  prefix (a later transfer call replaces it, `.transfer_species` adds to it, as
+  before). In the tutorials and READMEs the products are shown as their exact
+  literals (150.0 * 0.9 == 135.0, 90.0 * 1.0 == 90.0, 120.0 * 0.9 == 108.0).
+  Test rewrites: "default transfer is equilibrium" became "no transfer unless
+  declared"; `TransferConfig`'s preset tests became tests of `kinetic` /
+  `equilibrium` / the empty default; the no-database test declares O2
+  transfer; the empty-builder repr test uses a bare builder again (the
+  checkpoint 7 script had prefixed it); `batch_fermenter.ipynb`'s builder table
+  row updated.
+
+The core kLa ratio (`DOAgitationController.kLa_CO2_ratio`,
+`KineticGasLiquidLink.set_kLa_with_co2_ratio`) is for the core-gas-ids note.
+Measurement against 8a: 0 values differ in all five cases. Tutorials against
+`HEAD`: template scripts and `01_exporting_results` identical; `batch_fermenter.ipynb`
+stops at its known cell 10 in both. Suite: 2174 passed, 2 xfailed, 0 failed.
+
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder
 through `.reaction_system()`); the template's `reactions=` was left to this

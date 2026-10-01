@@ -16,7 +16,7 @@ Example
 ...     .vessel(V_total_L=2000, T_K=305.15)
 ...     .initial_gas(AIR)
 ...     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
-...     .transfer_kinetic(kLa_O2=150.0)
+...     .transfer_kinetic({"O2": 150.0, "CO2": 135.0}, equilibrium=["N2"])
 ...     .chemistry(chemistry_db=AD_BASIC)
 ...     .organism("Yeast")
 ...     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
@@ -28,7 +28,7 @@ Example
 from __future__ import annotations
 
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from .configs import (
     VesselConfig,
@@ -184,18 +184,24 @@ class StirredTankBuilder:
 
     def transfer_kinetic(
         self,
-        kLa_O2: float = 150.0,
-        kLa_CO2_ratio: float = 0.9,
+        kLa: Dict[str, float],
+        equilibrium: Sequence[str] = (),
     ) -> "StirredTankBuilder":
-        """Set kinetic O₂/CO₂ transfer with equilibrium N₂."""
-        self._transfer_cfg = TransferConfig.default_kinetic(
-            kLa_O2=kLa_O2, kLa_CO2_ratio=kLa_CO2_ratio,
-        )
+        """Set the gas-liquid transfer: kinetic for the species in *kLa*
+        (``{id: kLa_per_h}``), equilibrium for those in *equilibrium*.
+
+        Replaces any transfer set before; see
+        :meth:`TransferConfig.kinetic`.
+        """
+        self._transfer_cfg = TransferConfig.kinetic(kLa, equilibrium)
         return self
 
-    def transfer_equilibrium(self) -> "StirredTankBuilder":
-        """Set all species to instantaneous Henry equilibrium."""
-        self._transfer_cfg = TransferConfig.default_equilibrium()
+    def transfer_equilibrium(self, species_ids: Sequence[str]) -> "StirredTankBuilder":
+        """Set instantaneous Henry equilibrium transfer for *species_ids*.
+
+        Replaces any transfer set before.
+        """
+        self._transfer_cfg = TransferConfig.equilibrium(species_ids)
         return self
 
     def transfer(self, config: TransferConfig) -> "StirredTankBuilder":
@@ -212,11 +218,11 @@ class StirredTankBuilder:
     ) -> "StirredTankBuilder":
         """Add or update a species in the gas-liquid transfer configuration.
 
-        Call after ``.transfer_equilibrium()`` or ``.transfer_kinetic()``
-        to register additional gas species.  For anaerobic digestion,
-        this is how to add CH₄ and H₂ to the transfer::
+        Adds to the transfer set by ``.transfer_equilibrium(...)``,
+        ``.transfer_kinetic(...)`` or ``.transfer(...)``, or starts one if
+        none was set. For anaerobic digestion, for example::
 
-            .transfer_equilibrium()
+            .transfer_equilibrium(["CO2", "N2"])
             .transfer_species("CH4")   # partition model from chemistry_db
             .transfer_species("H2")
 
@@ -240,7 +246,7 @@ class StirredTankBuilder:
             self (for chaining).
         """
         if self._transfer_cfg is None:
-            self._transfer_cfg = TransferConfig.default_equilibrium()
+            self._transfer_cfg = TransferConfig()
 
         mode_lower = mode.strip().lower()
         if mode_lower in ("equilibrium", "eq"):
@@ -459,8 +465,8 @@ class StirredTankBuilder:
         # Gas feed (optional)
         gas_feed = GasFeedConfig(**self._gas_feed_kw) if self._gas_feed_kw else None
 
-        # Transfer (required, default to equilibrium)
-        transfer = self._transfer_cfg or TransferConfig.default_equilibrium()
+        # Transfer (none unless declared)
+        transfer = self._transfer_cfg or TransferConfig()
 
         # Chemistry
         chem = ChemistryConfig(**self._chemistry_kw) if self._chemistry_kw else ChemistryConfig()

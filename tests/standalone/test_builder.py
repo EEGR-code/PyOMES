@@ -10,7 +10,7 @@ Validates:
 - .controller() accumulates controllers
 - .reaction_system() overrides organism/substrates
 - .no_gas_feed() disables gas feed
-- .transfer_kinetic() and .transfer_equilibrium() convenience methods
+- .transfer_kinetic(...) and .transfer_equilibrium(...) convenience methods
 - .transfer() with custom TransferConfig
 - .label() sets the label
 - .get_configs() returns config dataclasses without building
@@ -57,15 +57,15 @@ class TestBuildBasic:
 
     def test_minimal_build(self):
         """Building with no calls should produce a ControlVolume with defaults."""
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).build()
         assert isinstance(cv, ControlVolume)
 
     def test_full_chain(self):
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=2000, T_K=305.15)
             .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
-            .transfer_kinetic(kLa_O2=150.0)
+            .transfer_kinetic({"O2": 150.0, "CO2": 150.0 * 0.9}, equilibrium=["N2"])
             .chemistry()
             .organism("Yeast")
             .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
@@ -76,14 +76,14 @@ class TestBuildBasic:
         assert cv.label == "my_fermenter"
 
     def test_build_returns_cv(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).vessel(V_total_L=100).build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).vessel(V_total_L=100).build()
         assert isinstance(cv, ControlVolume)
 
     def test_build_simulation_and_run_returns_batch_result(self):
         result = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, T_K=305.15)
-            .transfer_equilibrium()
+            .transfer_equilibrium(["O2", "CO2", "N2"])
             .build_simulation_and_run(tau_h=0.1, n_steps=5)
         )
         assert isinstance(result, BatchResult)
@@ -98,7 +98,7 @@ class TestVessel:
 
     def test_vessel_params_forwarded(self):
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=500, headspace_frac=0.30, T_K=310.0)
             .build()
         )
@@ -107,7 +107,7 @@ class TestVessel:
         assert cv.phases["gas"].T_K == pytest.approx(310.0)
 
     def test_default_vessel(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).build()
         # Default VesselConfig: V_total=2.0, headspace=0.20
         assert cv.phases["gas"].V_L == pytest.approx(0.4)
         assert cv.phases["liquid"].V_L == pytest.approx(1.6)
@@ -121,18 +121,18 @@ class TestGasFeed:
 
     def test_gas_feed_creates_boundary(self):
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
             .build()
         )
         assert len(cv.boundaries) == 1
 
     def test_no_gas_feed(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).no_gas_feed().build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).no_gas_feed().build()
         assert len(cv.boundaries) == 0
 
     def test_no_gas_feed_by_default(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).build()
         assert len(cv.boundaries) == 0
 
 
@@ -143,27 +143,26 @@ class TestGasFeed:
 class TestTransfer:
 
     def test_kinetic(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_kinetic(kLa_O2=200.0).build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).transfer_kinetic({"O2": 200.0, "CO2": 200.0 * 0.9}, equilibrium=["N2"]).build()
         link = _gl_link(cv)
         assert link.kLa.get("O2", 0.0) == pytest.approx(200.0)
         assert "N2" in link.equilibrium_species
 
     def test_equilibrium(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium().build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).transfer_equilibrium(["O2", "CO2", "N2"]).build()
         link = _gl_link(cv)
         assert "O2" in link.equilibrium_species
         assert "CO2" in link.equilibrium_species
 
     def test_custom_transfer(self):
-        cfg = TransferConfig.default_kinetic(kLa_O2=999.0, kLa_CO2_ratio=0.5)
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer(cfg).build()
+        cfg = TransferConfig.kinetic({"O2": 999.0, "CO2": 999.0 * 0.5}, equilibrium=["N2"])
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).transfer(cfg).build()
         assert _gl_link(cv).kLa["O2"] == pytest.approx(999.0)
         assert _gl_link(cv).kLa["CO2"] == pytest.approx(499.5)
 
-    def test_default_transfer_is_equilibrium(self):
+    def test_no_transfer_unless_declared(self):
         cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).build()
-        link = _gl_link(cv)
-        assert "O2" in link.equilibrium_species
+        assert not any(isinstance(i, KineticGasLiquidLink) for i in cv.internal_interfaces)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -174,7 +173,7 @@ class TestChemistry:
 
     def test_chemistry_forwarded(self):
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .chemistry(activity_model="davies")
             .build()
         )
@@ -198,7 +197,7 @@ class TestOrganismSubstrates:
 
     def test_single_substrate(self):
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .organism("Yeast")
             .substrate("AceticAcid", yield_gX_gS=0.36)
             .build()
@@ -208,7 +207,7 @@ class TestOrganismSubstrates:
     def test_multiple_substrates(self):
         from PyOMES.reactions import ReactionSystem
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .organism("Yeast")
             .substrate("AceticAcid", yield_gX_gS=0.36)
             .substrate("PropionicAcid", yield_gX_gS=0.54)
@@ -219,7 +218,7 @@ class TestOrganismSubstrates:
 
     def test_explicit_organism_atoms(self):
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .organism("Custom", atoms={"C": 1, "H": 2, "O": 1}, MW=30.0)
             .substrate("AceticAcid", yield_gX_gS=0.36)
             .build()
@@ -227,14 +226,14 @@ class TestOrganismSubstrates:
         assert cv.reaction_system is not None
 
     def test_no_organism_no_reaction(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).build()
         assert cv.reaction_system is None
 
     def test_substrates_without_organism_warns(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             cv = (
-                StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+                StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
                 .substrate("AceticAcid")
                 .build()
             )
@@ -243,7 +242,7 @@ class TestOrganismSubstrates:
 
     def test_chno_balance(self):
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .organism("Yeast", balance_basis="CHNO")
             .substrate("AceticAcid", yield_gX_gS=0.36)
             .build()
@@ -264,7 +263,7 @@ class TestCustomReactionModel:
 
         mock = MockRxn()
         cv = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .organism("Yeast")
             .substrate("AceticAcid")
             .reaction_system(mock)
@@ -281,7 +280,7 @@ class TestControllers:
 
     def test_controller_accumulates(self):
         b = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .controller("ctrl_a")
             .controller("ctrl_b")
         )
@@ -295,7 +294,7 @@ class TestControllers:
 class TestLabel:
 
     def test_label_set(self):
-        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).label("my_well_plate").build()
+        cv = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"]).label("my_well_plate").build()
         assert cv.label == "my_well_plate"
 
 
@@ -316,10 +315,10 @@ class TestGetConfigs:
 
     def test_returns_config_dict(self):
         cfgs = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=500, T_K=310.0)
             .gas_feed(vvm_min=2.0)
-            .transfer_kinetic(kLa_O2=200.0)
+            .transfer_kinetic({"O2": 200.0, "CO2": 200.0 * 0.9}, equilibrium=["N2"])
             .chemistry()
             .organism("Yeast")
             .substrate("AceticAcid", yield_gX_gS=0.36)
@@ -344,13 +343,13 @@ class TestGetConfigs:
 class TestChaining:
 
     def test_every_method_returns_self(self):
-        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+        b = StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
         assert b.vessel() is b
         assert b.gas_feed() is b
         assert b.no_gas_feed() is b
-        assert b.transfer_kinetic() is b
-        assert b.transfer_equilibrium() is b
-        assert b.transfer(TransferConfig.default_equilibrium()) is b
+        assert b.transfer_kinetic({"O2": 150.0}) is b
+        assert b.transfer_equilibrium(["O2"]) is b
+        assert b.transfer(TransferConfig()) is b
         assert b.chemistry() is b
         assert b.organism() is b
         assert b.substrate() is b
@@ -368,12 +367,12 @@ class TestChaining:
 class TestRepr:
 
     def test_repr_empty(self):
-        r = repr(StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR))
+        r = repr(StirredTankBuilder())
         assert "empty" in r
 
     def test_repr_with_state(self):
         b = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=2000)
             .organism("Yeast")
             .substrate("AceticAcid")
@@ -394,10 +393,10 @@ class TestParityWithFactory:
         """Builder and factory should produce equivalent ControlVolumes."""
         # Builder path
         cv_builder = (
-            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR)
+            StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=100, headspace_frac=0.25, T_K=305.15)
             .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
-            .transfer_kinetic(kLa_O2=150.0, kLa_CO2_ratio=0.9)
+            .transfer_kinetic({"O2": 150.0, "CO2": 150.0 * 0.9}, equilibrium=["N2"])
             .chemistry()
             .build()
         )
@@ -407,7 +406,7 @@ class TestParityWithFactory:
             vessel=VesselConfig(V_total_L=100, headspace_frac=0.25, T_K=305.15,
                                 gas_composition=AIR),
             gas_feed=GasFeedConfig(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79}),
-            transfer=TransferConfig.default_kinetic(kLa_O2=150.0, kLa_CO2_ratio=0.9),
+            transfer=TransferConfig.kinetic({"O2": 150.0, "CO2": 150.0 * 0.9}, equilibrium=["N2"]),
             chemistry=ChemistryConfig(),
             chemistry_db=AD_BASIC,
         )
@@ -434,7 +433,7 @@ class TestParityWithFactory:
 class TestModelChemistry:
     def test_no_database_and_no_henry_constant_raises(self):
         with pytest.raises(ValueError, match="No partition model for 'O2'.*no chemistry_db"):
-            StirredTankBuilder().build()
+            StirredTankBuilder().transfer_equilibrium(["O2"]).build()
 
     def test_species_conflicting_with_database_raises(self):
         from PyOMES.chemistry import Species, SpeciesConflictError

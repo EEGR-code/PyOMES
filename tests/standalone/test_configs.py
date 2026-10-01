@@ -5,7 +5,7 @@ Validates:
 - Default construction and derived properties
 - Validation rejects invalid inputs
 - to_dict / from_dict round-trip serialisation
-- TransferConfig convenience constructors (default_kinetic, default_equilibrium)
+- TransferConfig convenience constructors (kinetic, equilibrium)
 - OrganismConfig.resolve() and SubstrateConfig.resolve() from registry
 - Explicit atoms/MW override registry lookup
 - TransferMode enum string parsing
@@ -164,23 +164,22 @@ class TestSpeciesTransferConfig:
 
 class TestTransferConfig:
 
-    def test_default_kinetic_factory(self):
-        t = TransferConfig.default_kinetic(kLa_O2=200.0)
+    def test_kinetic_factory(self):
+        t = TransferConfig.kinetic({"O2": 200.0, "CO2": 180.0}, equilibrium=["N2"])
+        assert list(t.species) == ["O2", "CO2", "N2"]
         assert t.species["O2"].mode == TransferMode.KINETIC
         assert t.species["O2"].kLa_per_h == 200.0
-        assert t.species["CO2"].mode == TransferMode.KINETIC
-        assert t.species["CO2"].kLa_per_h == pytest.approx(180.0)
+        assert t.species["CO2"].kLa_per_h == 180.0
         assert t.species["N2"].mode == TransferMode.EQUILIBRIUM
 
-    def test_default_equilibrium_factory(self):
-        t = TransferConfig.default_equilibrium()
-        for sp in ("O2", "CO2", "N2"):
+    def test_equilibrium_factory(self):
+        t = TransferConfig.equilibrium(["CH4", "H2"])
+        assert list(t.species) == ["CH4", "H2"]
+        for sp in ("CH4", "H2"):
             assert t.species[sp].mode == TransferMode.EQUILIBRIUM
 
-    def test_custom_co2_ratio(self):
-        t = TransferConfig.default_kinetic(kLa_O2=100.0, kLa_CO2_ratio=0.8)
-        assert t.species["CO2"].kLa_per_h == pytest.approx(80.0)
-        assert t.kLa_CO2_ratio == 0.8
+    def test_default_is_no_transfer(self):
+        assert TransferConfig().species == {}
 
     def test_accepts_raw_dicts(self):
         t = TransferConfig(
@@ -197,12 +196,12 @@ class TestTransferConfig:
             TransferConfig(species={"O2": 42})
 
     def test_round_trip(self):
-        t1 = TransferConfig.default_kinetic(kLa_O2=250.0)
+        t1 = TransferConfig.kinetic({"O2": 250.0, "CO2": 225.0}, equilibrium=["N2"])
         d = t1.to_dict()
         t2 = TransferConfig.from_dict(d)
         assert t2.species["O2"].kLa_per_h == 250.0
         assert t2.species["CO2"].mode == TransferMode.KINETIC
-        assert t2.kLa_CO2_ratio == t1.kLa_CO2_ratio
+        assert t2.species["N2"].mode == TransferMode.EQUILIBRIUM
 
 
 # ═══════════════════════════════════════════════════════════════════════

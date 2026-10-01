@@ -11,9 +11,9 @@ gas-liquid transfer configured via the ``transfer_models`` kwarg.
 The model's chemistry is whatever it is given: a ``chemistry_db``, its own
 ``species``, or both. There is no default database. The headspace starts
 with the gases in the vessel's ``gas_composition`` (none by default), plus
-every transfer species at zero. The default transfer configs use the ids
-``"O2"``, ``"CO2"`` and ``"N2"``, and growth reactions ``"O2"``, ``"CO2"`` and
-``"H2O"``; the species passed must define those it uses.
+every transfer species at zero; only the species in ``transfer`` transfer.
+Growth reactions use ``"O2"``, ``"CO2"`` and ``"H2O"``; the species passed
+must define them.
 
 Example
 -------
@@ -25,7 +25,7 @@ Example
 >>> cv = StirredTankFactory.create_volume(
 ...     vessel=VesselConfig(V_total_L=2000, T_K=305.15, gas_composition=AIR),
 ...     gas_feed=GasFeedConfig(vvm_min=1.0),
-...     transfer=TransferConfig.default_kinetic(kLa_O2=150.0),
+...     transfer=TransferConfig.kinetic({"O2": 150.0, "CO2": 135.0}, equilibrium=["N2"]),
 ...     organism=OrganismConfig("Yeast"),
 ...     substrates=[SubstrateConfig("AceticAcid", yield_gX_gS=0.36)],
 ...     chemistry_db=AD_BASIC,
