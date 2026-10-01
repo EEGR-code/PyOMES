@@ -27,7 +27,7 @@ oxygen is `"O2"` does. Today the template does; the core sites below do not.
 
 ## Direction
 
-- **Defaults go where they invent gases.** `GasFeed` with no composition and
+- **No default that adds gases.** `GasFeed` with no composition and
   `MembraneGasBoundary` with no external atmosphere raise, as the template's
   `GasFeedConfig` now does; air is passed explicitly (e.g. `AIR` from the
   bioprocess database).
