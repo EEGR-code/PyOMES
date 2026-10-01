@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import copy
 import math
-from dataclasses import dataclass, field, fields, asdict
+from dataclasses import dataclass, field, fields, asdict, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Union
 
@@ -110,16 +110,15 @@ class GasFeedConfig:
         Gas volume per liquid volume per minute (L_gas/L_liq/min).
         Set to 0 for no sparging (e.g. well plate).
     composition : dict
-        Inlet gas mole fractions, e.g. ``{"O2": 0.21, "N2": 0.79}``.
-        Normalised internally.
+        Inlet gas mole fractions by species id, e.g.
+        ``{"O2": 0.21, "N2": 0.79}``; normalised internally. No default:
+        a feed with ``vvm_min > 0`` must say what it feeds.
     P_inlet_atm : float
         Inlet gas pressure (atm).
     """
 
     vvm_min: float = 1.0
-    composition: Dict[str, float] = field(
-        default_factory=lambda: {"O2": 0.21, "N2": 0.79}
-    )
+    composition: Dict[str, float] = field(default_factory=dict)
     P_inlet_atm: float = 1.0
 
     def __post_init__(self):
@@ -127,6 +126,11 @@ class GasFeedConfig:
             raise ValueError(f"vvm_min must be >= 0, got {self.vvm_min}")
         if self.P_inlet_atm <= 0:
             raise ValueError(f"P_inlet_atm must be > 0, got {self.P_inlet_atm}")
+        if self.vvm_min > 0 and not self.composition:
+            raise ValueError(
+                "A gas feed with vvm_min > 0 needs a composition, "
+                "e.g. composition={'O2': 0.21, 'N2': 0.79}."
+            )
         # Normalise composition
         raw = dict(self.composition)
         y_sum = sum(max(0.0, float(v)) for v in raw.values())
@@ -323,6 +327,10 @@ class OrganismConfig:
         ``"CHO"`` or ``"CHNO"``.
     n_source_id : str
         Nitrogen source chemical ID (for CHNO mode).
+    o2_id, co2_id, h2o_id : str
+        Ids of the oxygen consumed and the carbon dioxide and water produced
+        by the growth reaction (default ``"O2"``, ``"CO2"``, ``"H2O"``),
+        resolved against the model's species.
     """
 
     organism_id: str = "Yeast"
@@ -330,6 +338,9 @@ class OrganismConfig:
     MW: Optional[float] = None
     balance_basis: str = "CHO"
     n_source_id: str = "NH3"
+    o2_id: str = "O2"
+    co2_id: str = "CO2"
+    h2o_id: str = "H2O"
 
     def __post_init__(self):
         self.balance_basis = self.balance_basis.upper().strip()
@@ -372,13 +383,7 @@ class OrganismConfig:
         MW = self.MW if self.MW is not None else float(
             getattr(chem, "MW", 0.0) or 0.0
         )
-        return OrganismConfig(
-            organism_id=self.organism_id,
-            atoms=atoms,
-            MW=MW,
-            balance_basis=self.balance_basis,
-            n_source_id=self.n_source_id,
-        )
+        return replace(self, atoms=atoms, MW=MW)
 
     def to_dict(self) -> dict:
         return asdict(self)

@@ -203,3 +203,41 @@ class TestUserDefinedStirredTank:
         for _ in range(10):
             cv.advance(dt_h=0.1)
         assert cv["liquid"].n_mol["Yeast"] > 1e-3 * V
+
+
+class TestStirredTankWithOtherGasIds:
+    """The template has no fixed gas ids: gases named differently by the
+    model are used throughout (headspace, transfer, growth)."""
+
+    def _build(self):
+        from PyOMES.templates.stirred_tank import StirredTankBuilder, TransferConfig
+        o2 = Species(id="O2_aq", atoms={"O": 2})
+        co2 = Species(id="CO2_aq", atoms={"C": 1, "O": 2})
+        n2 = Species(id="N2_g", atoms={"N": 2})
+        h2o = Species(id="H2O_l", atoms={"H": 2, "O": 1})
+        cv = (
+            StirredTankBuilder()
+            .vessel(V_total_L=10.0, T_K=305.15)
+            .initial_gas({"O2_aq": 0.21, "N2_g": 0.79})
+            .no_gas_feed()
+            .transfer(TransferConfig(species={}))
+            .transfer_species("O2_aq", henry_mol_L_atm=1.2e-3)
+            .transfer_species("CO2_aq", henry_mol_L_atm=3.3e-2)
+            .transfer_species("N2_g", henry_mol_L_atm=6.1e-4)
+            .chemistry(species=[o2, co2, n2, h2o])
+            .organism("Yeast", atoms=YEAST_ATOMS, MW=YEAST_MW,
+                      o2_id="O2_aq", co2_id="CO2_aq", h2o_id="H2O_l")
+            .substrate("AceticAcid", atoms=dict(ACETIC_ACID.atoms), MW=ACETIC_ACID.MW)
+            .build()
+        )
+        return cv, (o2, co2, n2, h2o)
+
+    def test_gas_phase_holds_only_the_declared_gases(self):
+        cv, _ = self._build()
+        assert set(cv["gas"].n_mol) == {"O2_aq", "CO2_aq", "N2_g"}
+
+    def test_growth_uses_the_renamed_gases(self):
+        cv, (o2, co2, _, h2o) = self._build()
+        by_id = {e.species.id: e.species for e in cv.reaction_system.stoichiometry}
+        assert by_id["O2_aq"] is o2 and by_id["CO2_aq"] is co2 and by_id["H2O_l"] is h2o
+        assert not {"O2", "CO2", "H2O", "N2"} & set(by_id)

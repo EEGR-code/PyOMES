@@ -10,6 +10,12 @@ Found 2026-09-30 while running the audits in
 [`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](upcoming/EXPLICIT_SPECIES_RESOLUTION.md)
 and working its checkpoints, not fixed.
 
+- **Core code assumes the gas ids `"O2"`, `"CO2"` and `"N2"`.** The DO sensor,
+  `GasFeed`'s and the membrane boundary's default air, the gas-liquid link's
+  CO2 defaults, the DO controllers' kLa paths and the vent physics' gas
+  tables. Scoped as its own design note:
+  [`upcoming/GAS_SPECIES_IN_CORE.md`](upcoming/GAS_SPECIES_IN_CORE.md).
+
 - **The Bisection engine never debits or credits solvent water.** It treats
   `H2O` as a fixed solvent (`_SOLVENT_IDS = ("H2O",)` in
   `engines/bisection/engine.py`): water consumed or produced by a declared

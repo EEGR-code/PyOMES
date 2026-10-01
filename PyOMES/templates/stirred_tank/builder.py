@@ -165,7 +165,9 @@ class StirredTankBuilder:
     ) -> "StirredTankBuilder":
         """Set continuous gas feed (sparging) parameters.
 
-        Use ``vvm_min=0`` for no sparging (e.g. well plate).
+        *composition* is ``{species_id: mole fraction}`` and has no
+        default; a feed with ``vvm_min > 0`` needs one. Use
+        :meth:`no_gas_feed` for no sparging.
         """
         self._gas_feed_kw = {
             "vvm_min": vvm_min,
@@ -325,12 +327,23 @@ class StirredTankBuilder:
         MW: Optional[float] = None,
         balance_basis: str = "CHO",
         n_source_id: str = "NH3",
+        o2_id: str = "O2",
+        co2_id: str = "CO2",
+        h2o_id: str = "H2O",
     ) -> "StirredTankBuilder":
-        """Set the organism for reaction building."""
+        """Set the organism for reaction building.
+
+        ``o2_id``, ``co2_id`` and ``h2o_id`` name the oxygen consumed and
+        the carbon dioxide and water produced by its growth reactions; they
+        are resolved against the model's species.
+        """
         self._organism_kw = {
             "organism_id": organism_id,
             "balance_basis": balance_basis,
             "n_source_id": n_source_id,
+            "o2_id": o2_id,
+            "co2_id": co2_id,
+            "h2o_id": h2o_id,
         }
         if atoms is not None:
             self._organism_kw["atoms"] = dict(atoms)

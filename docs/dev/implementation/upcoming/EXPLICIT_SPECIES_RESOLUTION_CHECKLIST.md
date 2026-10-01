@@ -165,7 +165,7 @@
       (OPEN_WORK entry deleted). Sanity: the user-defined route through the
       template works with no database; suite green; measurement and the
       edited tutorials unchanged.
-- [ ] **8. The template's gas phase comes from the model's declarations.**
+- [x] **8. The template's gas phase comes from the model's declarations.**
       The template invents no gases: the headspace holds the species the
       model declares (initial composition, transfer, gas feed, reactions).
       Three commits. 8a: `VesselConfig.gas_composition` (`{id: fraction}`,
@@ -683,6 +683,38 @@ The core kLa ratio (`DOAgitationController.kLa_CO2_ratio`,
 Measurement against 8a: 0 values differ in all five cases. Tutorials against
 `HEAD`: template scripts and `01_exporting_results` identical; `batch_fermenter.ipynb`
 stops at its known cell 10 in both. Suite: 2174 passed, 2 xfailed, 0 failed.
+
+8c:
+- `configs.py`: `GasFeedConfig.composition` has no default (it was
+  `{"O2": 0.21, "N2": 0.79}`); a feed with `vvm_min > 0` and no composition
+  raises. `OrganismConfig` gains `o2_id` / `co2_id` / `h2o_id` (default
+  `"O2"` / `"CO2"` / `"H2O"`, resolved against the model's species), and
+  `resolve()` now returns `dataclasses.replace(self, atoms=..., MW=...)` so
+  every field carries over.
+- `builder.py`: `.gas_feed()` docstring says the composition has no default;
+  `.organism()` takes the three ids.
+- `factory.py`: growth looks up the organism's ids; the miss message names the
+  role, the id and the fix (`'O2' is not among the species passed` is kept,
+  a test matches it); docstrings and the example's gas feed updated.
+- Tests: `GasFeedConfig` default test passes a composition, plus "no
+  composition raises" and "zero vvm needs none"; `resolve()` keeps the gas ids;
+  one builder test's feed states its composition; and in
+  `test_user_defined_model.py` a stirred tank whose gases are `O2_aq` /
+  `CO2_aq` / `N2_g` / `H2O_l` builds, its gas phase holds exactly the declared
+  gases, and its growth reaction uses those objects with no `O2` / `CO2` /
+  `H2O` / `N2` anywhere.
+- New design note `upcoming/GAS_SPECIES_IN_CORE.md` (with an `upcoming/README.md`
+  entry and an `OPEN_WORK.md` pointer): the core sites that still assume the
+  ids (DO sensor in `snapshot.py`, `GasFeed`'s and `MembraneGasBoundary`'s
+  default air, the link's `{"CO2": "CO2"}` alpha default and
+  `set_kLa_with_co2_ratio`, the DO controllers' kLa paths and `kLa_CO2_ratio`,
+  the vent physics' gas tables, which give another id gamma 1.35 and air's
+  molar mass unless `chemicals` is passed). Four open questions.
+
+The pre-checkpoint suite for 8c ran while the first edits were being made, so
+it is not a clean baseline; `HEAD` was unchanged since 8b's final run (2174
+passed), which stands as the baseline. Measurement against 8b: 0 values differ
+in all five cases. Suite: 2179 passed, 2 xfailed, 0 failed (+5).
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

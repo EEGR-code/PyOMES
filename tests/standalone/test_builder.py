@@ -317,7 +317,7 @@ class TestGetConfigs:
         cfgs = (
             StirredTankBuilder().chemistry(chemistry_db=AD_BASIC).initial_gas(AIR).transfer_equilibrium(["O2", "CO2", "N2"])
             .vessel(V_total_L=500, T_K=310.0)
-            .gas_feed(vvm_min=2.0)
+            .gas_feed(vvm_min=2.0, composition={"O2": 0.21, "N2": 0.79})
             .transfer_kinetic({"O2": 200.0, "CO2": 200.0 * 0.9}, equilibrium=["N2"])
             .chemistry()
             .organism("Yeast")

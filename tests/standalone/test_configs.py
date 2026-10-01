@@ -95,9 +95,16 @@ class TestVesselConfig:
 class TestGasFeedConfig:
 
     def test_defaults(self):
-        g = GasFeedConfig()
+        g = GasFeedConfig(composition={"N2": 1.0})
         assert g.vvm_min == 1.0
         assert g.P_inlet_atm == 1.0
+
+    def test_feed_without_composition_raises(self):
+        with pytest.raises(ValueError, match="composition"):
+            GasFeedConfig()
+
+    def test_zero_vvm_needs_no_composition(self):
+        assert GasFeedConfig(vvm_min=0.0).composition == {}
 
     def test_composition_normalised(self):
         g = GasFeedConfig(composition={"O2": 1, "N2": 3})
@@ -264,6 +271,11 @@ class TestOrganismConfig:
         assert resolved.atoms["C"] == pytest.approx(1.0)
         assert resolved.MW is not None
         assert resolved.MW > 0
+
+    def test_resolve_keeps_growth_gas_ids(self):
+        o = OrganismConfig(o2_id="O2_aq", co2_id="CO2_aq", h2o_id="H2O_l")
+        r = o.resolve()
+        assert (r.o2_id, r.co2_id, r.h2o_id) == ("O2_aq", "CO2_aq", "H2O_l")
 
     def test_resolve_keeps_explicit_atoms(self):
         o = OrganismConfig(

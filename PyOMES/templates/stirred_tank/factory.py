@@ -12,8 +12,9 @@ The model's chemistry is whatever it is given: a ``chemistry_db``, its own
 ``species``, or both. There is no default database. The headspace starts
 with the gases in the vessel's ``gas_composition`` (none by default), plus
 every transfer species at zero; only the species in ``transfer`` transfer.
-Growth reactions use ``"O2"``, ``"CO2"`` and ``"H2O"``; the species passed
-must define them.
+Growth reactions take their oxygen, carbon dioxide and water by the
+organism's ``o2_id`` / ``co2_id`` / ``h2o_id`` (``"O2"``, ``"CO2"``,
+``"H2O"`` unless set); the species passed must define them.
 
 Example
 -------
@@ -24,7 +25,7 @@ Example
 >>>
 >>> cv = StirredTankFactory.create_volume(
 ...     vessel=VesselConfig(V_total_L=2000, T_K=305.15, gas_composition=AIR),
-...     gas_feed=GasFeedConfig(vvm_min=1.0),
+...     gas_feed=GasFeedConfig(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79}),
 ...     transfer=TransferConfig.kinetic({"O2": 150.0, "CO2": 135.0}, equilibrium=["N2"]),
 ...     organism=OrganismConfig("Yeast"),
 ...     substrates=[SubstrateConfig("AceticAcid", yield_gX_gS=0.36)],
@@ -125,7 +126,8 @@ class StirredTankFactory:
             Species the model defines itself, merged with
             ``chemistry_db.species`` (the same id with different data
             raises :class:`~PyOMES.chemistry.SpeciesConflictError`). Growth
-            reactions take O2, CO2 and H2O from these species by id.
+            reactions take the organism's O2, CO2 and H2O ids from these
+            species.
 
         Returns
         -------
@@ -264,7 +266,8 @@ class StirredTankFactory:
 
         Uses :meth:`ReactionBuilder.aerobic_growth` for each substrate
         with Monod kinetics as the rate law. O2, CO2 and H2O are the
-        ``Species`` of those ids in *model_species*.
+        ``Species`` of the organism's ``o2_id`` / ``co2_id`` / ``h2o_id`` in
+        *model_species*.
 
         Returns
         -------
@@ -279,17 +282,19 @@ class StirredTankFactory:
         registry = ChemicalRegistry.default()
 
         gases = {}
-        for sp_id in ("O2", "CO2", "H2O"):
+        for role, sp_id in (("o2", organism.o2_id), ("co2", organism.co2_id),
+                            ("h2o", organism.h2o_id)):
             if sp_id not in model_species:
                 available = (", ".join(sorted(model_species))
                              or "no species were passed")
                 raise ValueError(
                     f"{sp_id!r} is not among the species passed to this model "
-                    f"(available: {available}). Aerobic growth needs O2, CO2 "
-                    f"and H2O: pass Species(id={sp_id!r}, ...) in species=, or "
-                    "a chemistry_db that defines it."
+                    f"(available: {available}). Aerobic growth needs its "
+                    f"{role.upper()} ({role}_id={sp_id!r}): pass "
+                    f"Species(id={sp_id!r}, ...) in species=, a chemistry_db "
+                    f"that defines it, or another {role}_id."
                 )
-            gases[sp_id] = model_species[sp_id]
+            gases[role] = model_species[sp_id]
 
         org = organism.resolve(registry)
         org_atoms = dict(org.atoms)
@@ -333,7 +338,7 @@ class StirredTankFactory:
 
             rxn = ReactionBuilder.aerobic_growth(
                 substrate, biomass,
-                o2=gases["O2"], co2=gases["CO2"], h2o=gases["H2O"],
+                o2=gases["o2"], co2=gases["co2"], h2o=gases["h2o"],
                 yield_gX_gS=float(sub.yield_gX_gS),
                 rate_fn=rate_fn,
                 balance=org.balance_basis,

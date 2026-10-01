@@ -53,6 +53,15 @@ that still describe open work are "Open phases" and the pending stages in
   about 8–9 %, recorded in their own checkpoint). Completes the
   molar-mass unification moved here from OPEN_WORK. Branch
   `explicit-species-resolution` cut; no checklist or code yet.
+- **[GAS_SPECIES_IN_CORE.md](GAS_SPECIES_IN_CORE.md)** — 2026-10-01.
+  Surfaced by `explicit-species-resolution` checkpoint 8, which removed the
+  stirred-tank template's fixed gas ids: core still assumes `"O2"` / `"CO2"` /
+  `"N2"` in the DO sensor, `GasFeed`'s and the membrane boundary's default
+  air, the gas-liquid link's `{"CO2": "CO2"}` alpha default and
+  `set_kLa_with_co2_ratio`, the DO controllers' kLa paths, and the vent
+  physics' gas tables. Proposes passing the model's ids and dropping the
+  defaults that invent gases. Four open questions. No branch, no checklist,
+  no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
