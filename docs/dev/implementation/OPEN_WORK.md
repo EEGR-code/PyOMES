@@ -26,6 +26,19 @@ and working its checkpoints, not fixed.
   string (`print("` then a newline then `Final ...`) where `\n` was meant,
   so the cell raises `SyntaxError`; the same on `main`. The cells before it
   (build and run) are unaffected.
+- **`ControlVolume.snapshot()` drops `chemistry_db`.** It rebuilds the CV
+  without it (the species set is carried across as `species=`), so a
+  snapshot's `chemistry_db` is `None` and
+  `Simulation._warn_thermo_mismatch` skips it. Passing it through would let
+  that check run on snapshotted simulations, which may warn where it does
+  not today.
+- **The conservation monitor does not net out boundary flows.** It compares
+  element and charge totals between steps, so gas leaving through a vent or
+  material entering with a feed reads as drift ("a kinetic reaction or
+  boundary that does not close"). In ADM1's fingerprint case the N2 vented
+  in one step (1.911e-4 mol N) is reported as N drift, alongside the O and H
+  drift from vented CO2 and water. Subtracting each boundary's flux would
+  leave only genuine imbalances.
 
 - **The Bisection engine never debits or credits solvent water.** It treats
   `H2O` as a fixed solvent (`_SOLVENT_IDS = ("H2O",)` in

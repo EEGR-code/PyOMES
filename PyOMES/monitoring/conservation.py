@@ -102,9 +102,10 @@ class ConservationMonitor:
     (mirrors :meth:`attach_monitor` for the AccuracyMonitor).
 
     Species composition comes from the
-    :attr:`_species_registry` dict, populated automatically by
-    :meth:`ControlVolume.__init__` by walking the reaction
-    stoichiometries. Species in ``phase.n_mol`` without a registry
+    :attr:`_species_registry` dict, which :meth:`ControlVolume.__init__`
+    fills with the model's species (``cv.species``: those passed, the
+    database's, and those in the reaction stoichiometries). Species in
+    ``phase.n_mol`` without a registry
     entry are skipped — typical for unnamed strong-ion lumps like
     ``S_cat``/``S_an`` (``atoms={}``, only charge contributes;
     those are looked up from the engine's strong-ion mapping in

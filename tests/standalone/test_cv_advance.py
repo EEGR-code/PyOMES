@@ -1020,6 +1020,8 @@ class TestEquilibrateToPH:
             phases={"liquid": liquid},
             reaction_system=rxns,
             label="test_eq_pH",
+            # Spectator ions: in no reaction, so passed for charge accounting.
+            species=[Cl_minus, K_plus, Na_plus],
         )
 
     def test_ionic_medium_gives_acidic_baseline(self):

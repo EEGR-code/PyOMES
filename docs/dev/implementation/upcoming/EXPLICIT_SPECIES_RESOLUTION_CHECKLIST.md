@@ -206,7 +206,7 @@
 
 ### `ControlVolume` species set and warnings
 
-- [ ] **11. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
+- [x] **11. `cv.species`.** `ControlVolume` takes `species=` / `reactions=` /
       `chemistry_db=` and builds the read-only `cv.species` in `__init__` from
       those plus the reaction stoichiometries. A new species-level conflict
       check raises `SpeciesConflictError` when the same id arrives with
@@ -818,6 +818,55 @@ report in grams, where the MW cancels); `raw_construction.py` moves as d2c_raw;
 `-1.01 O2, +0.878 Yeast, +1.12 CO2, +1.29 H2O` to
 `-0.926 O2, +0.957 Yeast, +1.04 CO2, +1.23 H2O` (its saved outputs still show
 the old line; outputs are not re-saved here).
+
+11:
+
+Agreed before starting (2026-10-01), settling the question below: `reactions=`
+means the model's reactions, which run. On a `ControlVolume` it is shorthand
+for `reaction_system=ReactionSystem([...])` and passing both raises; on the
+template (when it gains the argument) they run alongside the growth reactions
+it builds, and `.reaction_system()` still replaces everything. A database's
+reactions are not run: it is a library to pick from.
+
+- `control_volume.py`: `reactions=` and `species=` (keyword, last in the
+  signature); `cv.species`, a read-only view of a dict built once in
+  `__init__` with `merge_species(chemistry_db.species, species=,
+  stoichiometry species)` (a dict, because a `mappingproxy` does not pickle
+  and the HPC checkpointing tests pickle CVs); `_collect_species_registry`
+  returns `dict(cv.species)`; `_stoichiometry_species` walks the reactions;
+  `_common_species_catalog` deleted; `snapshot()` passes `species=`;
+  `merge_species` / `check_species_consistency` / `Species` imported at module
+  level (`chemistry/` imports nothing from `core/`).
+- `factory.py`: passes the template's merged species (`species=model_species`);
+  not `chemistry_db`, so `_warn_thermo_mismatch` behaves as before.
+- ADM1 (`models/vlmodels/adm1/base.py`): the new conflict check found its
+  `H2S` (MW 34.08) against AD_BASIC's (34.080999..., computed). Agreed: ADM1
+  uses the shared `H2S` object as it does CO2 / NH3 / H2O, and its table's H2S
+  MW (read by `_mw()` in the H2S inhibition term) is that Species' MW. No
+  other ADM1 species differs from AD_BASIC's.
+- Tests: `test_cv_advance.py` `TestEquilibrateToPH` and
+  `tests/validation/speciation/test_iron_oxidation.py` pass their spectator
+  ions (Cl- / K+ / Na+, and K+) as `species=`; `test_accuracy_monitor.py:562`
+  never advances, so it needs nothing. `test_user_defined_model.py` gains
+  `TestModelSpecies` (8): reaction and passed species, read-only, they feed
+  the monitor, conflict raises, `reactions=` runs like a `ReactionSystem`,
+  both together raise, `snapshot()` keeps them, the template's CV holds the
+  model's species.
+- Docs: the registry descriptions in `monitoring/conservation.py`,
+  `reactions/reaction_system.py` and `docs/solvers.md`. OPEN_WORK:
+  `snapshot()` drops `chemistry_db`; the monitor does not net out boundary
+  flows.
+
+Sanity: suite 2172 passed, 2 xfailed before; 2180 passed, 2 xfailed, 0 failed
+after (+8). Measurement against 10: 0 values differ in all five cases. Warning
+counts are the same except ADM1, 3 -> 4 ConservationWarnings: its registry now
+holds Na+, Cl-, N2 and O2 (from AD_BASIC). Na+ / Cl- are seeded after the CV
+is built, so the old catalog scan never saw them and the monitor reported a
+0.112 mol charge residual, which is (0.100 - 0.030) mol/L x 1.6 L of uncounted
+Na+ / Cl-: that false warning is gone. N2 is new to the accounting, and the
+N2 the vent releases in one step (1.911e-4 mol N) now shows as N drift
+(per-step and cumulative), the same way vented CO2 and water already show as
+O and H drift.
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

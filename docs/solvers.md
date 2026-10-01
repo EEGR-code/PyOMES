@@ -356,8 +356,9 @@ accounting per `cv.advance` step:
 | Per-step charge drift | Mismatched cation/anion source terms (e.g. dosing one without its counter-ion) |
 | Cumulative charge drift | Slow charge imbalance accumulating across the run |
 
-The species registry is auto-populated from the reaction
-stoichiometries; species in `phase.n_mol` without a registry entry
+The species registry is the CV's species (`cv.species`: those passed as
+`species=`, the `chemistry_db`'s, and those in the reaction
+stoichiometries); species in `phase.n_mol` without a registry entry
 are skipped (typical for unnamed strong-ion lumps `S_cat`/`S_an`
 with `atoms={}`).
 

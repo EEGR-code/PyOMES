@@ -353,11 +353,10 @@ class ReactionSystem:
         :meth:`ControlVolume.advance` step (called from the CV's
         sequential body, parallel to the speciation-side
         AccuracyMonitor hooks). The CV populates the monitor's
-        species registry from the system's reaction stoichiometries
-        when this method is called from
-        :meth:`ControlVolume.__init__`; direct callers must call
-        :meth:`monitor.set_species_registry(...)` themselves if
-        the system's reactions don't cover all n_mol species.
+        species registry with its species (``cv.species``) when
+        this method is called from :meth:`ControlVolume.__init__`;
+        direct callers must call
+        :meth:`monitor.set_species_registry(...)` themselves.
 
         Introduced in state-unification C6.
         """

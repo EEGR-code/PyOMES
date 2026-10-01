@@ -257,6 +257,7 @@ class StirredTankFactory:
             boundaries=list(boundaries),
             reaction_system=rxn_system,
             label=label,
+            species=model_species,
         )
 
     @staticmethod

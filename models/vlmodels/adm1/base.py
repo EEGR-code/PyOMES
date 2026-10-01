@@ -46,6 +46,7 @@ from PyOMES.reactions import (
 )
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.common_species import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
+from PyOMES.chemistry.common_species import H2S as _H2S_sp
 from PyOMES.chemistry.common_species import H_plus as _H_plus_sp, OH_minus as _OH_minus_sp
 from PyOMES.thermo.temperature_correction import ln_correction
 
@@ -80,7 +81,7 @@ SPECIES = {
     "S_I":         ({"C":1, "H":1.8, "O":0.5, "N":0.2},    24.6),
     # Sulfur species (Stage 11)
     "SO4":         ({"S":1, "O":4},                          96.06),
-    "H2S":         ({"S":1, "H":2},                          34.08),
+    "H2S":         ({"S":1, "H":2},                          _H2S_sp.MW),
     # Ethanol extension
     "Ethanol":     ({"C":2, "H":6, "O":1},                  46.068),
 }
@@ -679,6 +680,8 @@ def _get_species(sp_id: str) -> Species:
         sp_obj = _NH3_sp
     elif sp_id == "H2O":
         sp_obj = _H2O_sp
+    elif sp_id == "H2S":
+        sp_obj = _H2S_sp
     elif sp_id in SPECIES:
         atoms, mw = SPECIES[sp_id]
         sp_obj = Species(id=sp_id, atoms=dict(atoms), charge=0, MW=float(mw))

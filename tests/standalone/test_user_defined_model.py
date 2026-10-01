@@ -311,3 +311,67 @@ class TestStirredTankOrganismAndSubstrate:
         with pytest.raises(ValueError, match="'NH3' is not among the species passed.*n_source_id"):
             self._growth((yeast_n,), ("AceticAcid",), [ACETIC_ACID],
                          balance_basis="CHNO", n_source_id="NH3")
+
+
+# ── The model's species set and reactions= ───────────────────────────────────
+
+NA_PLUS = Species(id="Na+", atoms={"Na": 1}, charge=+1)
+
+
+class TestModelSpecies:
+    """``cv.species`` holds the species the model was given: those passed and
+    those in its reactions."""
+
+    @staticmethod
+    def _liquid():
+        return LiquidPhase(n_mol={"H2O": 55.5, "H+": 1e-7, "AceticAcid": 1e-2},
+                           V_L=V_L, T_K=298.15)
+
+    def test_holds_reaction_and_passed_species(self):
+        cv = ControlVolume(phases={"liquid": self._liquid()},
+                           reaction_system=_build_reactions(), species=[NA_PLUS])
+        assert set(cv.species) == set(USER_SPECIES) | {"Na+"}
+        assert cv.species["Na+"] is NA_PLUS and cv.species["O2"] is O2
+
+    def test_is_read_only(self):
+        cv = ControlVolume(phases={"liquid": self._liquid()}, species=[NA_PLUS])
+        with pytest.raises(TypeError):
+            cv.species["Na+"] = NA_PLUS
+
+    def test_passed_species_feed_the_conservation_monitor(self):
+        cv = ControlVolume(phases={"liquid": self._liquid()},
+                           reaction_system=_build_reactions(), species=[NA_PLUS])
+        assert cv._conservation_monitor._species_registry["Na+"] is NA_PLUS
+
+    def test_conflicting_species_raises(self):
+        from PyOMES.chemistry import SpeciesConflictError
+        wrong_o2 = Species(id="O2", atoms={"O": 1})
+        with pytest.raises(SpeciesConflictError, match="'O2'"):
+            ControlVolume(phases={"liquid": self._liquid()},
+                          reaction_system=_build_reactions(), species=[wrong_o2])
+
+    def test_reactions_are_run_like_a_reaction_system(self):
+        by_reactions = ControlVolume(phases={"liquid": self._liquid()},
+                                     reactions=_build_reactions().reactions)
+        by_system = ControlVolume(phases={"liquid": self._liquid()},
+                                  reaction_system=_build_reactions())
+        assert set(by_reactions.species) == set(by_system.species)
+        for cv in (by_reactions, by_system):
+            for _ in range(5):
+                cv.advance(dt_h=0.05)
+        assert by_reactions.total_mol() == pytest.approx(by_system.total_mol(), rel=1e-12)
+
+    def test_reactions_and_reaction_system_together_raise(self):
+        rs = _build_reactions()
+        with pytest.raises(ValueError, match="not both"):
+            ControlVolume(phases={"liquid": self._liquid()},
+                          reactions=rs.reactions, reaction_system=rs)
+
+    def test_snapshot_keeps_the_species(self):
+        cv = ControlVolume(phases={"liquid": self._liquid()}, species=[NA_PLUS])
+        assert cv.snapshot().species["Na+"] is NA_PLUS
+
+    def test_template_cv_holds_the_model_species(self):
+        cv = _build_tank()
+        assert {"O2", "CO2", "H2O", "N2", "Yeast", "AceticAcid"} <= set(cv.species)
+        assert cv.species["N2"] is N2

@@ -24,10 +24,14 @@ Usage
 
 from __future__ import annotations
 
+import types
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
+
+from PyOMES.chemistry.species import Species
+from PyOMES.chemistry.species_check import check_species_consistency, merge_species
 
 # Strong-corrector map: user-facing name → ion added to n_mol.
 # Only the charge-carrying ion is added; the counter-ion (OH- for bases,
@@ -160,8 +164,20 @@ class ControlVolume:
         system are silently skipped during integration (they have
         no rate) and routed elsewhere by the system's internal
         pre-bucketing.
+    reactions : sequence of reactions, optional
+        The model's reactions, as an alternative to ``reaction_system``:
+        the CV wraps them in a
+        :class:`~PyOMES.reactions.reaction_system.ReactionSystem`. Passing
+        both raises.
     label : str
         Human-readable label for this CV (e.g. ``"fermenter"``, ``"ring_1"``).
+    chemistry_db : ChemistryDatabase, optional
+        The model's chemistry database, if it uses one. Stored as given;
+        its ``species`` join :attr:`species`. Its reactions are not run:
+        pass the ones the model uses in ``reactions`` or
+        ``reaction_system``.
+    species : mapping or iterable of Species, optional
+        Species the model defines itself. They join :attr:`species`.
     transfer_models : dict, optional
         ``{species_id: TransferModel}`` — the canonical way to declare
         intra-CV phase mass transfer.  Each entry is either a
@@ -191,7 +207,17 @@ class ControlVolume:
         chemistry_db: Optional[Any] = None,
         transfer_models: Optional[Dict[str, Any]] = None,
         phase_pair: Optional[tuple] = None,
+        reactions: Optional[Any] = None,
+        species: Optional[Any] = None,
     ):
+        if reactions is not None:
+            if reaction_system is not None:
+                raise ValueError(
+                    "Pass the model's reactions either as reactions= or as "
+                    "reaction_system=, not both."
+                )
+            from PyOMES.reactions.reaction_system import ReactionSystem
+            reaction_system = ReactionSystem(list(reactions), label=str(label))
         self.phases = dict(phases)
         self.label = str(label)
         # transfer_models is the canonical construction-time interface for
@@ -258,7 +284,6 @@ class ControlVolume:
         # stoichiometry (e.g. a bare BlackBoxReactionModel attached
         # directly without wrapping in a ReactionSystem).
         if self.reaction_system is not None:
-            from PyOMES.chemistry.species_check import check_species_consistency
             rxns = getattr(self.reaction_system, "reactions", None)
             if rxns is None and hasattr(self.reaction_system, "stoichiometry"):
                 rxns = [self.reaction_system]
@@ -279,6 +304,16 @@ class ControlVolume:
                 for iface in self.internal_interfaces:
                     if isinstance(iface, KineticGasLiquidLink):
                         iface.derive_speciation_keys(self.reaction_system)
+
+        # The model's species: the database's, those passed, and every
+        # species in the reaction stoichiometries. The same id with
+        # different data raises SpeciesConflictError. Stored as a dict
+        # (picklable); the species property gives a read-only view.
+        self._species = merge_species(
+            chemistry_db.species if chemistry_db is not None else {},
+            species if species is not None else {},
+            self._stoichiometry_species(),
+        )
 
         # AccuracyMonitor: per-CV check runner for cheap numerical
         # accuracy heuristics (pH change, Newton iters, scipy step
@@ -346,6 +381,15 @@ class ControlVolume:
     @property
     def phase_keys(self) -> list:
         return list(self.phases.keys())
+
+    @property
+    def species(self) -> Mapping[str, Species]:
+        """The model's species, ``{id: Species}``, read-only.
+
+        Built once at construction from ``chemistry_db.species``, the
+        ``species`` passed and the species in the reaction stoichiometries.
+        """
+        return types.MappingProxyType(self._species)
 
     # ── Gated reaction_system access (C6) ──────────────────────────────
 
@@ -838,53 +882,30 @@ class ControlVolume:
     # ── ConservationMonitor wiring (state-unification C6) ──────────────
 
     def _collect_species_registry(self) -> Dict[str, Any]:
-        """Build ``{species_id: Species}`` from the reaction
-        stoichiometries.
-
-        Used by :meth:`__init__` to seed the
-        :class:`ConservationMonitor`'s registry without requiring
-        the user to declare species twice. Species not appearing
-        in any reaction stoichiometry (e.g. unnamed strong-ion
-        lumps ``S_cat`` / ``S_an``) are absent from the registry
-        and silently skipped during conservation accounting.
+        """Return ``{species_id: Species}`` for the
+        :class:`ConservationMonitor`: the model's species
+        (:attr:`species`). An id in ``n_mol`` with no ``Species`` there
+        is skipped during conservation accounting.
         """
-        registry: Dict[str, Any] = {}
+        return dict(self.species)
+
+    def _stoichiometry_species(self) -> List[Species]:
+        """Every ``Species`` in the reaction stoichiometries (none for a
+        reaction model that does not expose them)."""
         if self.reaction_system is None:
-            return registry
+            return []
         rxns = getattr(self.reaction_system, "reactions", None)
         if rxns is None:
             # Bare KineticReaction attached directly
             if hasattr(self.reaction_system, "stoichiometry"):
                 rxns = [self.reaction_system]
             else:
-                return registry
-        for rxn in rxns:
-            stoich = getattr(rxn, "stoichiometry", None)
-            if stoich is None:
-                continue
-            for entry in stoich:
-                sp = entry.species
-                registry[sp.id] = sp
-        # Supplement with any species from common_species found in phase.n_mol
-        # (e.g. Cl-, Na+, K+ which never appear in reaction stoichiometry but
-        # must be included for charge conservation accounting).
-        _catalog = self._common_species_catalog()
-        for phase in self.phases.values():
-            for sp_id in phase.n_mol:
-                if sp_id not in registry:
-                    known = _catalog.get(sp_id)
-                    if known is not None:
-                        registry[sp_id] = known
-        return registry
-
-    @staticmethod
-    def _common_species_catalog() -> Dict[str, Any]:
-        """Return ``{id: Species}`` for every Species declared in
-        ``PyOMES.chemistry.common_species``.  Lazy import avoids
-        circular-import risk at module load time."""
-        from PyOMES.chemistry import common_species as _cs
-        from PyOMES.chemistry.species import Species
-        return {obj.id: obj for obj in vars(_cs).values() if isinstance(obj, Species)}
+                return []
+        return [
+            entry.species
+            for rxn in rxns
+            for entry in (getattr(rxn, "stoichiometry", None) or ())
+        ]
 
     # ── Property calculators (state-unification C5) ────────────────────
 
@@ -1116,6 +1137,7 @@ class ControlVolume:
             reaction_system=self.reaction_system,  # shared (stateless)
             property_calculators=list(self.property_calculators),  # shared (stateless)
             label=self.label,
+            species=self.species,
         )
 
     # ── Initialization utilities ─────────────────────────────────────────────

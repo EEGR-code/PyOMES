@@ -162,6 +162,7 @@ def _make_cv(pH_target, V_L=1.0, V_gas=1000.0, T_K=298.15):
         transfer_models={"O2": EquilibriumTransferModel(O2_HENRY)},
         reaction_system=_make_reaction_system(),
         label="test_batch_Fe_O2_oxidation",
+        species=[K_plus],  # counter-ion, in no reaction
     )
     cv.equilibrate_to_pH("KOH", pH_target)
     return cv
