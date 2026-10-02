@@ -58,6 +58,9 @@ and working its checkpoints, not fixed.
   particular), and the monitor would then check the FBA rates, which are not
   guaranteed to balance elements, so new drift warnings would follow. A
   decision about those demos, not a mechanical fix.
+- **`docs/solvers.md` links to a folder that moved.** Three links (around
+  line 308) point at `../demos/features/SolverProtocols/`; the notebooks now
+  live in `docs/tutorials/protocols/SolverProtocols/`. Broken on `main` too.
 - **ADM1 / BSM2 helpers fall back to biomass for unknown ids.** ADM1's
   `_mw()` returns the biomass MW, and BSM2's `_mw()` / `_thod()` / `_atoms()`
   the biomass MW, ThOD and formula, for any id not in their tables. Every

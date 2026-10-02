@@ -132,11 +132,10 @@ class ConservationMonitor:
     :attr:`_species_registry` dict, which :meth:`ControlVolume.__init__`
     fills with the model's species (``cv.species``: those passed, the
     database's, and those in the reaction stoichiometries). Species in
-    ``phase.n_mol`` without a registry
-    entry are skipped — typical for unnamed strong-ion lumps like
-    ``S_cat``/``S_an`` (``atoms={}``, only charge contributes;
-    those are looked up from the engine's strong-ion mapping in
-    a separate code path if needed).
+    ``phase.n_mol`` without a registry entry are skipped; the CV warns
+    about each once (:class:`UnresolvedSpeciesWarning`). Charge-only
+    lumps such as BSM2's ``S_cat`` / ``S_an`` are declared as
+    ``Species`` with ``atoms={}``, so only their charge contributes.
     """
 
     def __init__(self) -> None:

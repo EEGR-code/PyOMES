@@ -41,7 +41,7 @@ as `column.py`. For cell *i* and solute *s*:
 | Cell *i* | `ControlVolume(label="cell_000"…)` with phases `"liquid"` and `"solid"` |
 | Mobile phase in a cell | `LiquidPhase`, volume ε·A·Δz |
 | Stationary phase in a cell | `SolidPhase`, volume (1−ε)·A·Δz, with a sorbent mass ρ_b·A·Δz (needs a mass field, see Prerequisites) |
-| Free solute | a `Species` (from `common_species`, a `ChemistryDatabase`, or user-declared) in `"liquid"` |
+| Free solute | a `Species` (from a database module, a `ChemistryDatabase`, or user-declared) in `"liquid"` |
 | Retained solute | its own `Species`, same atoms, id `<solute>_ads`, in `"solid"` |
 | Uptake | one cross-phase `KineticReaction` per retained solute, `"<s>,aq -> <s>_ads,s"`, rate from the solute's retention and uptake objects |
 | Retention model | a data object in the partition-model family (see Retention models) |

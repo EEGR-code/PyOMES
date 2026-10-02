@@ -358,9 +358,11 @@ accounting per `cv.advance` step:
 
 The species registry is the CV's species (`cv.species`: those passed as
 `species=`, the `chemistry_db`'s, and those in the reaction
-stoichiometries); species in `phase.n_mol` without a registry entry
-are skipped (typical for unnamed strong-ion lumps `S_cat`/`S_an`
-with `atoms={}`).
+stoichiometries); an id in `phase.n_mol` without a registry entry is
+skipped, and the CV warns about it once with
+`UnresolvedSpeciesWarning`. Charge-only lumps such as BSM2's
+`S_cat`/`S_an` are declared as `Species` with `atoms={}`, so their
+charge is counted.
 
 Tune thresholds + throttle on the package singleton before
 running:

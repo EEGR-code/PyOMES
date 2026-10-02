@@ -10,6 +10,18 @@
 > in the same conversation, same day. See "How to start one" below when
 > picked up.
 >
+> **Update 2026-10-02 (`explicit-species-resolution`):** `common_species`
+> is gone; its definitions live in the database modules (water, carbonate
+> and ammonia in `databases/aqueous.py`; phosphate, sulfate, K+ / Na+ /
+> Cl- and the divalent metals in `databases/bioprocess_basic.py`; sulfide
+> in `databases/anaerobic_digestion.py`). The CV's conservation registry
+> is `cv.species` (the species passed, the database's and those in the
+> reactions), no longer supplemented from a catalog. BSM2 declares
+> `S_cat` / `S_an` as `Species`, and pH correctors are compositions of
+> the model's species (`_STRONG_CORRECTOR_ION` is deleted). The engines'
+> fixed strong-ion tables (`_STRONG_ION_SPECIES_TO_KEY`,
+> `_STRONG_CHARGES`) are unchanged, so this note's proposal still stands.
+>
 > **Paths re-derived 2026-09-20** after `chemical-equilibrium-engines-subfolder`
 > moved the engine files: `nr_engine.py` / `nr_tableau.py` / `nr_solver.py`
 > are now `engines/nr/{engine,tableau,solver}.py`, and `engine.py` /
@@ -82,7 +94,8 @@ recent additions look like `Mg++`/`Ca++`/`Zn++`/`Mn++`/`Cu++`/`Co++`/
 `tests/validation/speciation/07_iron_oxidation.ipynb`/`08_iron_oxidation_and_precipitation.ipynb`),
 it has to be added to `_STRONG_ION_SPECIES_TO_KEY` *and* to all three
 copies of `_STRONG_CHARGES`, by hand, in sync — even though every one of
-those species already declares its own charge in `common_species.py`.
+those species already declares its own charge on its `Species` (now in
+the database modules).
 
 ## Scope: `NRChemicalEquilibriumEngine` only, for now
 
@@ -169,12 +182,11 @@ Neither is a ground-truth check.
 `ConservationMonitor._charge_residual` (`monitoring/conservation.py`) *is*
 independent, and closer to a real ground-truth check: it sums `z × n`
 over every species in `n_mol` using each species' own `.charge`, via a
-registry that `ControlVolume._collect_species_registry()`
-(`control_volume.py:840-878`) explicitly supplements with any
-`common_species`-cataloged species found in `n_mol` — the method's own
-docstring says this exists specifically so "Cl⁻, Na⁺, K⁺... which never
-appear in reaction stoichiometry" still get included "for charge
-conservation accounting." So this check would see the *true* charge sum
+registry that `ControlVolume._collect_species_registry()` builds from
+`cv.species` — the species passed to the model, its database's, and
+those in its reactions — so Cl⁻, Na⁺, K⁺ and other ions that never
+appear in reaction stoichiometry are counted when the model declares
+them (and an undeclared id raises `UnresolvedSpeciesWarning`). So this check would see the *true* charge sum
 including an off-allowlist strong ion, independent of
 `_STRONG_ION_SPECIES_TO_KEY` entirely.
 
@@ -235,7 +247,7 @@ scoping above. This would:
   rule plus data already on `Species`.
 - Fix the silent-drop gap: any charged species not currently on the
   allowlist (e.g. a future `Li+`, `Br-`, or any locally-declared ion in
-  a model file that isn't in `common_species`) would be picked up
+  a model file that isn't in a shipped database) would be picked up
   automatically instead of needing an engine-code change first.
 - Extend the same "just declare what's present, no backend naming
   required" ergonomics to the *direct* call pattern too — decided
@@ -406,7 +418,7 @@ Pick up **Phase 1** when either happens:
 - A model needs a strong ion not on the current allowlist and hits the
   silent-drop gap in practice (a real correctness bug, not just a code
   smell).
-- Another charged species is added to `common_species.py` for
+- Another charged species is added to a database module for
   precipitation/complexation work (per
   `MULTICOMPONENT_COMPLEXATION_AND_PRECIPITATION_PLAN.md`) and someone
   has to manually update the (by then de-duplicated, but still

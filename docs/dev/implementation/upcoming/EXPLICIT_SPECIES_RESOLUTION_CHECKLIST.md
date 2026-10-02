@@ -256,7 +256,7 @@
       `species.py` docstring that cites it. Sanity: repo-wide sweep for
       `common_species` (only history left); every `Species` object identical
       to before by value; suite green; measurement unchanged.
-- [ ] **17. Close-out.** Sweep for `_get_common_species`,
+- [x] **17. Close-out.** Sweep for `_get_common_species`,
       `_common_species_catalog`, `ChemicalRegistry`, `_STRONG_CORRECTOR_ION`,
       `_CANONICAL_WRITEBACK_SPECIES`, `species_overrides`; `README.md`,
       `PyOMES/README.md`, `docs/architecture.md`; the strong-ion and
@@ -1112,6 +1112,37 @@ archive HEAD` export) identical except the ArXiv notebooks' wall-clock
 timing columns (01 `mean (ms)` / `std (ms)`, 02 `mean (ms/h)`, 03 `Run
 Time, ms`) and the path their figures were saved to.
 
+17:
+- Sweep (`git grep`, every tracked file outside `shipped/`, `obsolete/` and
+  `ideas/`) for `_get_common_species`, `_common_species_catalog`,
+  `ChemicalRegistry`, `_STRONG_CORRECTOR_ION`, `_CANONICAL_WRITEBACK_SPECIES`,
+  `species_overrides`, `common_species`, `_resolve_species`, `chemical_id`,
+  `base_chemical_id`: nothing in code, tests or tutorials. Left in planning
+  docs: `upcoming/README.md` records of earlier phases (lines ~290, ~348,
+  ~734) and this note's own entry (updated at shipping); the
+  `PHCONTROLLER_CORRECTOR_VALIDATION.md` body, which its checkpoint-13
+  update says predates the rename.
+- `STRONG_ION_INFERENCE_GENERALIZATION.md`: a dated update at the top (where
+  definitions live now, `cv.species` as the registry, BSM2's declared lumps,
+  correctors as compositions; the engines' fixed strong-ion tables, its
+  subject, unchanged) and four lines that described `common_species`
+  corrected. `HPLC_CV_GRAPH_TEMPLATE.md`: one line.
+- `docs/solvers.md` and `ConservationMonitor`'s docstring described
+  `S_cat` / `S_an` as the typical skipped id; they now say an undeclared id
+  is skipped and warns once, and charge-only lumps are declared with
+  `atoms={}`.
+- `README.md` quick start and `docs/architecture.md` already describe the
+  current API (checked); `PyOMES/README.md` lost its `compounds.py` row at
+  checkpoint 9.
+- `OPEN_WORK.md`: no entry is resolved by this phase (the findings it added
+  remain open, each pointing at its design note where one exists). Added:
+  `docs/solvers.md` links to `../demos/features/SolverProtocols/`, which
+  moved (broken on `main` too).
+
+Sanity: relative links in every `.md` this branch changed (19 files) resolve,
+except the three pre-existing `docs/solvers.md` links above. Suite 2199
+passed, 2 xfailed, 0 failed.
+
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder
 through `.reaction_system()`); the template's `reactions=` was left to this
@@ -1128,7 +1159,7 @@ database) that states which ion it adds.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
+- [x] Full test suite green on the branch (2199 passed, 2 xfailed, 0 failed)
 - [ ] `git switch main`
 - [ ] `git merge --no-ff explicit-species-resolution -m "Merge explicit-species-resolution: <summary>"`
 - [ ] `git tag explicit-species-resolution-shipped`
