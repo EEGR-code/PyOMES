@@ -585,10 +585,22 @@ without error but is misleading:
   `kinetic_reactions`, `single_phase_equilibria`, `cross_phase_equilibria` and
   `blackbox_models`. There is a fifth, `precipitation_equilibria`, and the saved
   output of the next cell shows it (`0 precipitation eq`).
+- **The batch tutorials sparge a vessel with no gas outlet** (found 2026-10-02).
+  `docs/tutorials/templates/batch_fermenter.ipynb` and `batch_fermenter.py` call
+  `.gas_feed(vvm_min=1.0, ...)` and run with `build_simulation_and_run`, so the
+  tank's only boundary is the `GasFeed`. Measured on the notebook's configuration
+  over 5 h: headspace O2 goes from 3.35 to 3606 mol and N2 from 12.6 to 14320 mol
+  in 400 L, and dissolved O2 and N2 follow (0.39 to 423.5 mol and 0.74 to
+  841.3 mol in 1600 L). Without the gas feed all four stay at their starting
+  values. The CSTR and fed-batch scripts append a `PressureReliefVent` after
+  `build()`, which the one-call form cannot do, and no builder method adds one.
+  The notebook also seeds no biomass and its pH is `nan`, as in the first two
+  items.
 
 The first two want a decision on what the canonical example should demonstrate
 (a seeded batch with declared acid-base chemistry would make both the growth and
-the pH controller real); the third is a one-cell prose fix.
+the pH controller real); the third is a one-cell prose fix; the fourth belongs
+with the first two, since a canonical batch example also needs a vent.
 
 ## Keep the engine fingerprint scripts, or freeze golden values for each engine
 
