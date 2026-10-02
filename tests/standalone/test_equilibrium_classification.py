@@ -68,8 +68,9 @@ def _co2_gas_liquid_declaration():
 
 def _henry_co2():
     from PyOMES.reactions import HenryEquilibrium
+    from PyOMES.chemistry.common_species import CO2
     return HenryEquilibrium(
-        H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
+        H_ref=3.4e-4, dlnH=2400.0, gas_species=CO2, liquid_species=CO2,
     )
 
 
@@ -115,7 +116,9 @@ class TestClassifyEquilibriumConstraint:
     def test_raoult_equilibrium_is_gas_liquid(self):
         from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.reactions.equilibrium.constraint import classify_equilibrium_constraint
-        assert classify_equilibrium_constraint(RaoultEquilibrium()) == "gas_liquid"
+        from PyOMES.chemistry.common_species import H2O
+        raoult = RaoultEquilibrium(gas_species=H2O, liquid_species=H2O)
+        assert classify_equilibrium_constraint(raoult) == "gas_liquid"
 
     def test_equilibrium_reaction_calcite_is_solid_liquid(self):
         from PyOMES.reactions.equilibrium.constraint import classify_equilibrium_constraint

@@ -238,7 +238,7 @@
 
 ### Henry and Raoult
 
-- [ ] **15. `Species` objects only.** `HenryEquilibrium` /
+- [x] **15. `Species` objects only.** `HenryEquilibrium` /
       `RaoultEquilibrium` species fields take `Species` or `None`;
       `_resolve_species` and the `"H2O"` defaults go. In the same checkpoint:
       `databases/anaerobic_digestion.py`, ADM1's water link, the two
@@ -1025,6 +1025,47 @@ identical; D2C Examples 1-3, `SolverProtocols/01`, validation 07 / 08
 identical; ArXiv 02 and 03 identical except their wall-clock timing columns
 (`mean (ms/h)`, `Run Time, ms`). The survey after the edits: every listed
 file `[ok]`, only the intended `S` warnings remain.
+
+15:
+- `reactions/equilibrium/interphase.py`: `_resolve_species` and the
+  `common_species` import deleted; `HenryEquilibrium` /
+  `RaoultEquilibrium` `gas_species` / `liquid_species` are
+  `Optional[Species] = None` (Raoult's `"H2O"` defaults gone), checked in
+  `__post_init__` by `_check_species_fields` (anything else raises
+  `TypeError` naming the class and field and how to pass a `Species`); the
+  stoichiometry uses the objects directly. Docstrings follow.
+- Removing Raoult's default cannot fail silently: a species-less instance
+  in a reaction list already raises in `classify_equilibrium_constraint`
+  (empty stoichiometry), which `ReactionSystem` and the NR tableau's fold
+  both go through; the transfer-model route
+  (`EquilibriumTransferModel(RaoultEquilibrium())`) uses only the partition
+  role, which needs no species.
+- `databases/anaerobic_digestion.py`: `_CO2_HENRY` takes the `CO2` object
+  (imported from `common_species`, the same object BIOPROCESS_BASIC holds).
+  ADM1's water link (`partition_models={"H2O": RaoultEquilibrium()}`) is a
+  partition model only and needs no species, so it is unchanged.
+- Docs: the `gas_liquid_link.py` docstring example; the two engine-basics
+  notebooks (cell 13) pass `CO2`.
+- Tests: the audit-2 sites pass `common_species` objects
+  (`test_equilibrium_classification`, `test_equilibrium_constraint`,
+  `test_equilibrium_constraint_dual_role`, `test_nr_gas_liquid_cp2`,
+  `test_nr_tableau_gas_liquid`, `test_precipitation_gas_liquid_cp5`);
+  Raoult used as a reaction passes H2O for both phases
+  (`test_raoult_h2o_fold_cp4` via a `_raoult()` helper, the classification
+  test, the stoichiometry test); the default tests now expect `None`
+  (`test_equilibrium_constraint`, `test_partition_model`); new
+  `test_string_species_raise`. Raoult as a partition model (most of
+  `test_partition_model`, `test_simulation`'s P_sat checks) is unchanged.
+- Sweep: no `gas_species=` / `liquid_species=` string and no
+  `_resolve_species` left in `PyOMES/`, `models/`, tests or tutorials (the
+  one string left is the test that it raises).
+
+Sanity: suite 2198 passed, 2 xfailed before; 2199 passed, 2 xfailed, 0
+failed after (+1). Measurement against 14: 0 values differ in all five
+cases, warning counts unchanged. Engine-basics notebooks 01 (38 lines) and
+02 (26 lines) print the same as a `git archive HEAD` export. No string can
+reach a resolver now (it is deleted), so there is nothing for the recorder
+to show.
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

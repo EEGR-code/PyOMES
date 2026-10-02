@@ -29,7 +29,7 @@ Usage::
 """
 from __future__ import annotations
 
-from PyOMES.chemistry.common_species import H_plus, H2S, HS_minus
+from PyOMES.chemistry.common_species import CO2, H_plus, H2S, HS_minus
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
 from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
@@ -54,7 +54,7 @@ _EXTRA_SPECIES = {
 # KineticGasLiquidLink partition_ratio() and the EquilibriumConstraint
 # log_K/dH_J_per_mol the speciation engines classify as gas-liquid.
 _CO2_HENRY = HenryEquilibrium(
-    H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
+    H_ref=3.4e-4, dlnH=2400.0, gas_species=CO2, liquid_species=CO2,
     label="partition_CO2",
 )
 

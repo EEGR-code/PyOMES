@@ -84,8 +84,9 @@ def _carbonate_ladder():
 
 def _co2_henry(H_ref=3.4e-4, dlnH=2400.0):
     from PyOMES.reactions import HenryEquilibrium
+    from PyOMES.chemistry.common_species import CO2
     return HenryEquilibrium(
-        H_ref=H_ref, dlnH=dlnH, gas_species="CO2", liquid_species="CO2",
+        H_ref=H_ref, dlnH=dlnH, gas_species=CO2, liquid_species=CO2,
         label="henry_CO2",
     )
 

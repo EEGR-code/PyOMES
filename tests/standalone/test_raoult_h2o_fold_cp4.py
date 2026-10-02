@@ -45,6 +45,12 @@ def _water_rxn():
     )
 
 
+def _raoult():
+    from PyOMES.chemistry.common_species import H2O
+    from PyOMES.reactions import RaoultEquilibrium
+    return RaoultEquilibrium(gas_species=H2O, liquid_species=H2O)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 #  NR-tableau Raoult fold — standalone capability
 # ═══════════════════════════════════════════════════════════════════════════
@@ -56,7 +62,7 @@ class TestRaoultTableauFold:
         from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         return NRChemicalEquilibriumEngine.from_reactions(
-            [_water_rxn(), RaoultEquilibrium()], T_K=298.15,
+            [_water_rxn(), _raoult()], T_K=298.15,
         )
 
     def test_h2o_does_not_become_a_master(self, engine):
@@ -89,7 +95,7 @@ class TestRaoultTableauFold:
         from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
-        raoult = RaoultEquilibrium()
+        raoult = _raoult()
         engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn(), raoult], T_K=308.15,
         )
@@ -135,7 +141,7 @@ class TestRaoultTableauFold:
             label="co2_second",
         )
         engine = NRChemicalEquilibriumEngine.from_reactions(
-            [_water_rxn(), co2_first, co2_second, RaoultEquilibrium()],
+            [_water_rxn(), co2_first, co2_second, _raoult()],
             T_K=298.15,
         )
         assert set(engine.tableau.masters) == {"H+", "CO2"}

@@ -347,7 +347,7 @@ class TestRaoultCustomParameters:
         assert (rp.P_sat_ref, rp.dH_vap, rp.T_ref, rp.C_water_mol_L) == (
             0.03169, 44011.0, 298.15, 55.51,
         )
-        assert (rp.gas_species, rp.liquid_species) == ("H2O", "H2O")
+        assert (rp.gas_species, rp.liquid_species) == (None, None)
         assert rp.label == ""
 
     def test_psat_at_custom_reference_returns_custom_value(self):

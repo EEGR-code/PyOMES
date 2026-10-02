@@ -110,24 +110,27 @@ def _h2s_ladder():
 
 def _co2_henry():
     from PyOMES.reactions import HenryEquilibrium
+    from PyOMES.chemistry.common_species import CO2
     return HenryEquilibrium(
-        H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
+        H_ref=3.4e-4, dlnH=2400.0, gas_species=CO2, liquid_species=CO2,
         label="henry_CO2",
     )
 
 
 def _nh3_henry():
     from PyOMES.reactions import HenryEquilibrium
+    from PyOMES.chemistry.common_species import NH3
     return HenryEquilibrium(
-        H_ref=5.9e-1, dlnH=4200.0, gas_species="NH3", liquid_species="NH3",
+        H_ref=5.9e-1, dlnH=4200.0, gas_species=NH3, liquid_species=NH3,
         label="henry_NH3",
     )
 
 
 def _h2s_henry():
     from PyOMES.reactions import HenryEquilibrium
+    from PyOMES.chemistry.common_species import H2S
     return HenryEquilibrium(
-        H_ref=1.0e-3, dlnH=2100.0, gas_species="H2S", liquid_species="H2S",
+        H_ref=1.0e-3, dlnH=2100.0, gas_species=H2S, liquid_species=H2S,
         label="henry_H2S",
     )
 
