@@ -71,13 +71,28 @@ that still describe open work are "Open phases" and the pending stages in
   over-specified, with several reactions (each with its own rate law)
   rather than fixed product ratios. Four open questions. No branch, no
   checklist, no code yet.
+- **[DOSING_AGENTS.md](DOSING_AGENTS.md)** — 2026-10-01. Surfaced by
+  `explicit-species-resolution` checkpoint 13, which makes pH correctors
+  compositions of the model's species: dosing a solution (composition per
+  litre plus the volume it adds), a solid that dissolves through a declared
+  equilibrium, and warnings when an engine cannot honour a declaration.
+  Depends on the liquid volume becoming variable. Three open questions. No
+  branch, no checklist, no code yet.
+- **[MASS_BALANCE_CLOSURE.md](MASS_BALANCE_CLOSURE.md)** — 2026-10-01. Sets
+  strict closure as the standard: every element and charge conserved to
+  roundoff, boundary flows accounted for, in every engine. Gathers the
+  gaps: the engines treat water as an unlimited solvent and do not take
+  H+ / OH- as input, the monitor does not net out boundary flows, and the
+  liquid volume never changes. Follows `explicit-species-resolution`. Four
+  open questions. No branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
-  configured `chemical_id`/`base_chemical_id` can't actually shift pH (not a
-  recognised strong-corrector alias and not declared in any equilibrium
-  reaction) — the same check `ControlVolume.equilibrate_to_pH` already has,
-  just not reused on `PHController`'s actual dosing path. Scoped strictly to
+  `acid_dose`/`base_dose` can't actually shift pH (no species in any
+  equilibrium reaction and none charged) — the same check
+  `ControlVolume.equilibrate_to_pH` already has, just not reused on
+  `PHController`'s dosing path. Its doses are already checked against the
+  CV's species (`explicit-species-resolution` checkpoint 13). Scoped strictly to
   `PHController`'s own two fields; no other controller/boundary is touched.
   Open questions: warn vs. raise, new warning category vs. plain
   `UserWarning`. No branch, no checklist, no code yet.

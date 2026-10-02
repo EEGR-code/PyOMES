@@ -30,16 +30,9 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 
+from PyOMES.chemistry.dose import Dose, check_dose
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.species_check import check_species_consistency, merge_species
-
-# Strong-corrector map: user-facing name → ion added to n_mol.
-# Only the charge-carrying ion is added; the counter-ion (OH- for bases,
-# H+ for acids) is produced automatically by the charge-balance solver.
-_STRONG_CORRECTOR_ION: Dict[str, str] = {
-    "NaOH": "Na+",
-    "KOH":  "K+",
-}
 
 from .phases import Phase, GasPhase, LiquidPhase
 from .interfaces import PhaseInterface, TransferDiagnostics, AdvanceResult
@@ -547,13 +540,7 @@ class ControlVolume:
         This is used by the orchestrator for feeds, vents, and inter-CV
         transport.  It is *not* tracked by ``step_internal_transfer``
         diagnostics (because external fluxes intentionally change the
-        CV's total inventory).
-
-        Strong-corrector aliases (``"NaOH"`` → ``"Na+"``,
-        ``"KOH"`` → ``"K+"``) are resolved here so that controller
-        dosing via :class:`~PyOMES.control.cv_loops.PHController`
-        is consistent with :meth:`equilibrate_to_pH`, which uses
-        the same mapping.
+        CV's total inventory). Each species id is applied as given.
 
         Parameters
         ----------
@@ -564,11 +551,7 @@ class ControlVolume:
         dt_h : float
             Timestep duration (hours).
         """
-        resolved = {
-            _STRONG_CORRECTOR_ION.get(sp, sp): mol_h
-            for sp, mol_h in flux_mol_per_h.items()
-        }
-        self.phases[phase_key].apply_flux(resolved, dt_h)
+        self.phases[phase_key].apply_flux(dict(flux_mol_per_h), dt_h)
 
     # ── Advance (reactions + equilibrium + properties) ─────────────────
 
@@ -1144,88 +1127,87 @@ class ControlVolume:
 
     def equilibrate_to_pH(
         self,
-        corrector_id: str,
+        dose: Dose,
         ph_target: float,
         *,
         liquid_key: str = "liquid",
         max_add_mol_per_L: float = 1.0,
         tol_pH: float = 1e-5,
     ) -> float:
-        """Add *corrector_id* to the liquid until *ph_target* is reached.
+        """Add *dose* to the liquid until *ph_target* is reached.
 
         The search is evaluated through :meth:`advance` at ``dt_h=0`` so
         all multi-phase equilibria (gas–liquid partitioning etc.) are
         accounted for alongside liquid speciation.
 
-        Strong-corrector shorthand: ``"NaOH"`` and ``"KOH"`` are recognised
-        without requiring dissolution reactions in the database — the method
-        adds the corresponding strong cation (``Na+`` / ``K+``) to
-        ``n_mol``, and the charge-balance solver automatically adjusts
-        ``OH-`` / ``H+`` to compensate.
-
         Parameters
         ----------
-        corrector_id:
-            Species id to add.  Either a recognised strong corrector
-            (``"NaOH"``, ``"KOH"``), or a species that appears in at least
-            one :class:`~PyOMES.reactions.EquilibriumReaction` stoichiometry.
+        dose:
+            What one mole of the reagent adds, ``{species_id: mol}``, e.g.
+            ``{"Na+": 1, "OH-": 1}`` for NaOH; a plain id is one mole of that
+            species (``"H3PO4"``). Every id must be among :attr:`species`; a
+            dose that is not charge-neutral warns (see
+            :func:`~PyOMES.chemistry.dose.check_dose`). At least one of its
+            species must appear in an equilibrium or carry a charge, or it
+            cannot move pH.
         ph_target:
             Target pH.
         liquid_key:
             Key of the liquid phase in :attr:`phases`.
         max_add_mol_per_L:
-            Search upper bound in mol per litre of liquid.
+            Search upper bound in mol of reagent per litre of liquid.
         tol_pH:
             Convergence tolerance on pH.
 
         Returns
         -------
         float
-            Moles added (always ≥ 0).
+            Moles of reagent added (always ≥ 0).
 
         Raises
         ------
         ValueError
-            If *corrector_id* is not a known strong corrector or in any
-            equilibrium stoichiometry, shifts pH in the wrong direction, or
-            the target is unreachable within *max_add_mol_per_L*.
+            If the dose names a species the model does not have, none of its
+            species is in an equilibrium or charged, it shifts pH in the
+            wrong direction, or the target is unreachable within
+            *max_add_mol_per_L*.
         """
         from scipy.optimize import brentq  # lazy — not needed at module load
 
+        composition = check_dose(dose, self.species)
         liq   = self.phases[liquid_key]
         V     = float(liq.V_L)
         max_n = max_add_mol_per_L * V
 
-        # Resolve the species actually added to n_mol. Strong correctors like
-        # NaOH are represented by their charge-carrying ion (Na+) so that no
-        # dissolution reaction is needed in the database.
-        _dose_id = _STRONG_CORRECTOR_ION.get(corrector_id, corrector_id)
+        def _add(n_reagent: float) -> None:
+            for sp_id, n_per in composition.items():
+                liq.n_mol[sp_id] = liq.n_mol.get(sp_id, 0.0) + n_per * n_reagent
 
         # Suppress the ConservationMonitor for the duration of the probe and
-        # brentq search: every internal advance adds an unbalanced strong ion
-        # (e.g. Na+) to n_mol, which would trigger spurious charge/element
-        # warnings.  The monitor is restored and re-baselined to the corrected
-        # initial state in a finally block so simulation drift is tracked
-        # cleanly from there regardless of whether the correction succeeds.
+        # brentq search: every internal advance adds the dose to n_mol, which
+        # would trigger spurious charge/element warnings. The monitor is
+        # restored and re-baselined to the corrected initial state in a
+        # finally block so simulation drift is tracked cleanly from there
+        # regardless of whether the correction succeeds.
         _saved_monitor = self._conservation_monitor
         self._conservation_monitor = None
         try:
-            # 1. Validate: corrector must participate in at least one equilibrium
-            #    (skipped for known strong correctors whose ion is always tracked)
+            # 1. Validate: some species in the dose must be able to move pH,
+            #    through an equilibrium or through charge balance.
             if self.reaction_system is None:
                 raise ValueError("CV has no reaction_system; cannot evaluate pH.")
-            if corrector_id not in _STRONG_CORRECTOR_ION:
-                eq_species = {
-                    e.species.id
-                    for rxn in self.reaction_system.single_phase_equilibria
-                    for e in rxn.stoichiometry
-                }
-                if corrector_id not in eq_species:
-                    raise ValueError(
-                        f"{corrector_id!r} does not appear in any EquilibriumReaction "
-                        f"stoichiometry and therefore cannot shift pH through speciation.\n"
-                        f"Species covered by equilibria: {sorted(eq_species)}"
-                    )
+            eq_species = {
+                e.species.id
+                for rxn in self.reaction_system.single_phase_equilibria
+                for e in rxn.stoichiometry
+            }
+            if not any(sp in eq_species or self.species[sp].charge != 0
+                       for sp in composition):
+                raise ValueError(
+                    f"Dose {composition} has no species in any EquilibriumReaction "
+                    f"stoichiometry and none that carries a charge, so it cannot "
+                    f"shift pH.\nSpecies covered by equilibria: {sorted(eq_species)}"
+                )
 
             # 2. Baseline pH via zero-timestep advance
             snap0 = self.snapshot_state()
@@ -1241,7 +1223,7 @@ class ControlVolume:
             # 3. Probe direction: tiny addition reveals which way pH moves
             eps = max_n * 1e-6
             snap0 = self.snapshot_state()
-            liq.n_mol[_dose_id] = liq.n_mol.get(_dose_id, 0.0) + eps
+            _add(eps)
             self.advance(dt_h=0.0, t_h=0.0)
             pH_probe = float(liq.pH)
             self.restore_state(snap0)
@@ -1249,7 +1231,7 @@ class ControlVolume:
             dpH = pH_probe - pH_base
             if abs(dpH) < 1e-12:
                 raise ValueError(
-                    f"Adding {corrector_id!r} produced no measurable pH change at "
+                    f"Adding {composition} produced no measurable pH change at "
                     "the current composition. The species may be fully buffered or "
                     "decoupled from the proton balance at this pH."
                 )
@@ -1260,7 +1242,7 @@ class ControlVolume:
                 direction = "raises" if species_raises else "lowers"
                 needed    = "raise"  if needs_rise    else "lower"
                 raise ValueError(
-                    f"Adding {corrector_id!r} {direction} pH "
+                    f"Adding {composition} {direction} pH "
                     f"(baseline {pH_base:.3f} → probe {pH_probe:.3f}), "
                     f"but reaching ph_target={ph_target:.3f} requires a {needed}. "
                     "Choose a corrector that moves pH in the correct direction."
@@ -1269,7 +1251,7 @@ class ControlVolume:
             # 4. Bracket and root-find with brentq
             def _residual(n_add: float) -> float:
                 snap = self.snapshot_state()
-                liq.n_mol[_dose_id] = liq.n_mol.get(_dose_id, 0.0) + n_add
+                _add(n_add)
                 self.advance(dt_h=0.0, t_h=0.0)
                 pH = float(liq.pH)
                 self.restore_state(snap)
@@ -1279,7 +1261,7 @@ class ControlVolume:
             if (r_hi * (pH_base - ph_target)) > 0:
                 raise ValueError(
                     f"Target pH {ph_target:.3f} not reached within "
-                    f"{max_add_mol_per_L:.2f} mol/L of {corrector_id!r} "
+                    f"{max_add_mol_per_L:.2f} mol/L of {composition} "
                     f"(pH at max dose: {ph_target + r_hi:.3f}). "
                     "Increase max_add_mol_per_L."
                 )
@@ -1287,10 +1269,10 @@ class ControlVolume:
             n_opt = brentq(_residual, 0.0, max_n, xtol=1e-12, rtol=1e-10)
 
             # 5. Apply optimal amount and leave CV in equilibrated state.
-            liq.n_mol[_dose_id] = liq.n_mol.get(_dose_id, 0.0) + n_opt
+            _add(n_opt)
             self.advance(dt_h=0.0, t_h=0.0)
             print(
-                f"pH correction: added {n_opt * 1000:.4f} mmol {corrector_id!r} "
+                f"pH correction: added {n_opt * 1000:.4f} mmol of {composition} "
                 f"({n_opt / V * 1000:.4f} mmol/L).\n"
                 f"pH: {pH_base:.4f} → {float(liq.pH):.4f}  (target {ph_target:.4f})"
             )

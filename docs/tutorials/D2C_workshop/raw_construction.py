@@ -100,6 +100,10 @@ YEAST = Species(
     id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0,
 )
 
+# Sodium: the pH controller doses NaOH as Na+ + OH-. Na+ is in no reaction,
+# so it is passed to the CV as one of the model's species.
+NA_PLUS = Species(id="Na+", atoms={"Na": 1}, charge=+1)
+
 
 def make_aerobic_growth_on_acetate(
     mu_max_per_h: float = 0.5,
@@ -182,10 +186,9 @@ def make_phosphate_ladder() -> list:
     """Phosphate equilibrium ladder: H3PO4 <-> H2PO4- <-> HPO4-- <-> PO4---.
 
     The PHController below doses raw ``H3PO4`` as its acid corrector.
-    ``H3PO4`` isn't a recognised strong-corrector alias (unlike
-    ``NaOH`` -> ``Na+``, resolved automatically by
-    ``ControlVolume.apply_external_flux``) -- it only shifts pH by
-    actually dissociating, which requires this ladder to be declared
+    Unlike its base dose (``Na+`` + ``OH-``, where the charged ``Na+``
+    moves pH through charge balance), ``H3PO4`` is neutral -- it only
+    shifts pH by actually dissociating, which requires this ladder to be declared
     in the CV's own reaction_system. Without it, dosed H3PO4
     accumulates as inert neutral acid and never releases H+, silently
     disabling the acid half of the pH loop. Same log_K values as
@@ -356,6 +359,7 @@ def build() -> Simulation:
         transfer_models=build_transfer_models(),
         reaction_system=rxn_system,
         label="raw_construction",
+        species=[NA_PLUS],
     )
 
     # Boundaries: append after construction (mirrors the builder demos).
@@ -373,7 +377,7 @@ def build() -> Simulation:
     controllers = [
         PHController(
             setpoint=PH_SETPOINT, Kp=0.5, Ki=0.0,
-            chemical_id="H3PO4", base_chemical_id="NaOH",
+            acid_dose="H3PO4", base_dose={"Na+": 1, "OH-": 1},
             max_add_molL_hr=0.05,
         ),
     ]

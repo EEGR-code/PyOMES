@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
+from PyOMES.chemistry.dose import Dose, as_dose, check_dose
 from PyOMES.control.actions import ControlAction
 from PyOMES.core.snapshot import CVSnapshot, SimulationSnapshot
 from PyOMES.units import R_J_PER_MOL_K, R_L_ATM_PER_MOL_K
@@ -30,8 +31,8 @@ class PHController:
     Reads ``snapshot.pH``, ``snapshot.V_liq_L``, and the optional
     ``snapshot.sensors["CT_P_mol_L"]`` phosphate cap hint. Returns
     a :class:`ControlAction` with the acid- or base-dosing flux
-    written into ``flux_applied["liquid"][chemical_id]`` (mol/h)
-    plus the same total in ``dosed_mol`` for audit.
+    written into ``flux_applied["liquid"]`` (mol/h of each species in
+    the dose) plus the same totals in ``dosed_mol`` for audit.
 
     Behaviour and tuning surface mirror the legacy
     :class:`PyOMES.control.loops.PHController` 1:1, plus the
@@ -48,10 +49,9 @@ class PHController:
         Target pH.
     Kp, Ki : float
         Proportional and integral gains on the per-volume add rate
-        (mol/L/h).
+        (mol of reagent/L/h).
     max_add_molL_hr : float
-        Cap on the per-volume add rate (mol/L/h). Historical name
-        kept for compatibility.
+        Cap on the per-volume add rate (mol of reagent/L/h).
     CT_P_max : float
         Phosphate cap hint (mol/L). If ``snapshot.sensors["CT_P_mol_L"]``
         is present, the dosing rate is clamped so the phosphate
@@ -59,18 +59,15 @@ class PHController:
     deadband : float
         Dead-band around the setpoint. ``|err| <= deadband`` → no
         dosing.
-    chemical_id : str
-        Acid compound id. Not validated: must be a strong-corrector
-        alias (see ``ControlVolume._STRONG_CORRECTOR_ION``) or a
-        species that appears in a declared equilibrium reaction on the
-        target CV, or dosing it has no effect — the dose accumulates
-        as inert and silently never corrects the pH (see
-        ``PHCONTROLLER_CORRECTOR_VALIDATION.md`` for the motivating bug
-        and the design for a proper check).
-    base_chemical_id : Optional[str]
-        Base compound id. If ``None``, base dosing is disabled
-        (acid-only legacy mode). Same validity requirement and same
-        silent-inert-dose risk as ``chemical_id`` if it isn't met.
+    acid_dose, base_dose : str or dict, optional
+        What one mole of the acid / base adds, ``{species_id: mol}``
+        (e.g. ``{"H3PO4": 1}``, ``{"Na+": 1, "OH-": 1}``); a plain id is
+        one mole of that species. ``None`` disables that direction; at
+        least one is required. :class:`~PyOMES.core.simulation.Simulation`
+        checks both against the target CV's species (see
+        :meth:`check_species`). A dose whose species are in no equilibrium
+        and carry no charge accumulates as inert and never corrects the pH;
+        that is not checked here.
     sample_period_h, sample_period_s : Optional[float]
         Optional sampling period. When set, the orchestrator only
         invokes ``compute()`` at sampling instants; between
@@ -92,8 +89,8 @@ class PHController:
     CT_P_max: float = 2.0
     deadband: float = 0.0
 
-    chemical_id: str = "H3PO4"
-    base_chemical_id: Optional[str] = None
+    acid_dose: Optional[Dose] = None
+    base_dose: Optional[Dose] = None
 
     sample_period_s: Optional[float] = None
     sample_period_h: Optional[float] = None
@@ -110,6 +107,27 @@ class PHController:
     diag: Dict[str, List[float]] = field(
         default_factory=dict, init=False, repr=False,
     )
+
+    def __post_init__(self) -> None:
+        if self.acid_dose is None and self.base_dose is None:
+            raise ValueError(
+                "PHController needs acid_dose, base_dose or both, e.g. "
+                "acid_dose='H3PO4', base_dose={'Na+': 1, 'OH-': 1}."
+            )
+        self._acid = as_dose(self.acid_dose) if self.acid_dose is not None else None
+        self._base = as_dose(self.base_dose) if self.base_dose is not None else None
+
+    def check_species(self, cv: Any) -> None:
+        """Check both doses against *cv*'s species.
+
+        Raises if a dose names a species the CV does not have; warns if a
+        dose is not charge-neutral (:func:`~PyOMES.chemistry.dose.check_dose`).
+        Called by :class:`~PyOMES.core.simulation.Simulation` when it is
+        built.
+        """
+        for name, dose in (("acid_dose", self.acid_dose), ("base_dose", self.base_dose)):
+            if dose is not None:
+                check_dose(dose, cv.species, label=f"{self.label!r} {name}")
 
     def reset(self) -> None:
         """Clear integral state and diagnostics.
@@ -207,8 +225,8 @@ class PHController:
         db = float(self.deadband)
         err_eff = 0.0 if abs(err) <= db else err
 
-        # Too basic → dose acid.
-        if err_eff > 0.0:
+        # Too basic → dose acid (when configured).
+        if err_eff > 0.0 and self._acid is not None:
             if self._last_mode != "acid":
                 self._I_err = 0.0
                 self._last_mode = "acid"
@@ -239,12 +257,12 @@ class PHController:
                 target_cv_key=cv_key,
                 t_h=t_h,
                 dt_h=float(dt_h),
-                flux_applied={"liquid": {self.chemical_id: mol_h}},
-                dosed_mol={self.chemical_id: mol_h * float(dt_h)},
+                flux_applied={"liquid": {sp: n * mol_h for sp, n in self._acid.items()}},
+                dosed_mol={sp: n * mol_h * float(dt_h) for sp, n in self._acid.items()},
             )
 
         # Too acidic → dose base (when configured).
-        if err_eff < 0.0 and self.base_chemical_id is not None:
+        if err_eff < 0.0 and self._base is not None:
             if self._last_mode != "base":
                 self._I_err = 0.0
                 self._last_mode = "base"
@@ -262,8 +280,8 @@ class PHController:
                 target_cv_key=cv_key,
                 t_h=t_h,
                 dt_h=float(dt_h),
-                flux_applied={"liquid": {self.base_chemical_id: mol_h}},
-                dosed_mol={self.base_chemical_id: mol_h * float(dt_h)},
+                flux_applied={"liquid": {sp: n * mol_h for sp, n in self._base.items()}},
+                dosed_mol={sp: n * mol_h * float(dt_h) for sp, n in self._base.items()},
             )
 
         # Dead-band / no-action.

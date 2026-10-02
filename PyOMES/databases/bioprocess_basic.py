@@ -15,9 +15,9 @@ defined as :class:`~PyOMES.chemistry.Species` objects so that their molar
 masses are available for medium-recipe calculations, but they carry no
 dissolution reactions in this database.  Initial medium compositions should
 be specified in ionic form directly (``NH4+`` + ``Cl-``,
-``K+`` + ``H2PO4-``, etc.).  NaOH pH correction is handled by
-:meth:`~PyOMES.core.ControlVolume.equilibrate_to_pH` via the built-in
-strong-corrector map, which adds ``Na+`` to the charge balance.
+``K+`` + ``H2PO4-``, etc.).  NaOH pH correction is dosed as its ions,
+e.g. ``cv.equilibrate_to_pH({"Na+": 1, "OH-": 1}, 6.5)`` or
+``PHController(base_dose={"Na+": 1, "OH-": 1}, ...)``.
 
 Usage::
 

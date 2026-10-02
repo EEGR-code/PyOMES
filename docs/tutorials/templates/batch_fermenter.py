@@ -58,7 +58,7 @@ def build() -> StirredTankBuilder:
     )
     if USE_PH_CONTROL:
         builder = builder.controller(
-            PHController(setpoint=PH_SETPOINT, Kp=0.5, Ki=0.0)
+            PHController(setpoint=PH_SETPOINT, Kp=0.5, Ki=0.0, acid_dose="H3PO4")
         )
     return builder
 

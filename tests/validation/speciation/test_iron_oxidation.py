@@ -164,7 +164,7 @@ def _make_cv(pH_target, V_L=1.0, V_gas=1000.0, T_K=298.15):
         label="test_batch_Fe_O2_oxidation",
         species=[K_plus],  # counter-ion, in no reaction
     )
-    cv.equilibrate_to_pH("KOH", pH_target)
+    cv.equilibrate_to_pH({"K+": 1, "OH-": 1}, pH_target)
     return cv
 
 

@@ -73,7 +73,7 @@ builder = (
     .chemistry(chemistry_db=AD_BASIC)
     .organism("Yeast")
     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
-    .controller(PHController(setpoint=5.0, Kp=0.5, Ki=0.0))
+    .controller(PHController(setpoint=5.0, Kp=0.5, Ki=0.0, acid_dose="H3PO4"))
 )
 sim = builder.build_simulation()
 result = sim.run(tau_h=5.0, n_steps=1000)

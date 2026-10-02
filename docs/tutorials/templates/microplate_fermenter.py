@@ -126,7 +126,7 @@ controllers = []
 if USE_PH_CONTROL:
     controllers.append(PHController(
         setpoint=PH_SETPOINT, Kp=0.1, Ki=0.05,
-        chemical_id="H3PO4", base_chemical_id="NaOH",
+        acid_dose="H3PO4", base_dose={"Na+": 1, "OH-": 1},
         max_add_molL_hr=0.01,
     ))
 

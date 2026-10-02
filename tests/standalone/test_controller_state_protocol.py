@@ -363,7 +363,7 @@ class TestBackwardCompat:
     @pytest.fixture
     def ph_ctrl(self):
         from PyOMES.control import PHController
-        return PHController(setpoint=7.0)
+        return PHController(setpoint=7.0, acid_dose="H3PO4")
 
     @pytest.fixture
     def do_ctrl(self):
@@ -425,7 +425,7 @@ class TestBackwardCompat:
     def test_ph_controller_sample_period_still_works(self):
         """sample_period_h / sample_period_s are unchanged by Phase B."""
         from PyOMES.control import PHController
-        ctrl = PHController(setpoint=7.0, sample_period_s=300.0)
+        ctrl = PHController(setpoint=7.0, sample_period_s=300.0, acid_dose="H3PO4")
         assert ctrl.sample_period_s == pytest.approx(300.0)
         assert ctrl.sample_period_h is None
 

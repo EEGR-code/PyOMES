@@ -20,17 +20,21 @@ import pytest
 
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.databases.bioprocess_basic import AIR
+from PyOMES.chemistry import Species
 
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Helpers
 # ═══════════════════════════════════════════════════════════════════════
 
-def _make_liquid_cv(key, n_mol, V_L=1.0, T_K=300.0):
+def _make_liquid_cv(key, n_mol, V_L=1.0, T_K=300.0, species=None):
     """Create a simple CV with only a liquid phase."""
     from PyOMES.core import ControlVolume, LiquidPhase
     liq = LiquidPhase(n_mol=dict(n_mol), V_L=V_L, T_K=T_K)
-    return ControlVolume(phases={"liquid": liq}, label=key)
+    return ControlVolume(phases={"liquid": liq}, label=key, species=species)
+
+
+_H3PO4 = Species(id="H3PO4", atoms={"H": 3, "P": 1, "O": 4})
 
 
 def _make_gas_liquid_cv(key, gas_mol, liq_mol, V_gas=0.2, V_liq=0.8, T_K=305.15):
@@ -2315,18 +2319,23 @@ class TestCVPHControllerBasics:
     def test_satisfies_controller_protocol(self):
         from PyOMES.control.interfaces import Controller
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
         assert isinstance(ctrl, Controller)
 
-    def test_default_acid_id_is_H3PO4(self):
+    def test_needs_a_dose(self):
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5)
-        assert ctrl.chemical_id == "H3PO4"
+        with pytest.raises(ValueError, match="acid_dose, base_dose or both"):
+            PHController(setpoint=6.5)
+
+    def test_plain_id_is_one_mole(self):
+        from PyOMES.control.cv_loops import PHController
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
+        assert ctrl._acid == {"H3PO4": 1.0} and ctrl._base is None
 
     def test_compute_returns_control_action(self):
         from PyOMES.control.actions import ControlAction
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
         action = ctrl.compute(_cv_snap(pH=7.0), dt_h=0.01)
         assert isinstance(action, ControlAction)
         assert action.controller_label == "pH"
@@ -2339,7 +2348,7 @@ class TestCVPHControllerDosing:
     def test_acid_dosing_when_pH_above_setpoint(self):
         """pH=7.0, setpoint=6.5 → too basic → acid dosing fires."""
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, Kp=0.5, max_add_molL_hr=0.2)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, Kp=0.5, max_add_molL_hr=0.2)
         action = ctrl.compute(_cv_snap(pH=7.0, V_liq=10.0), dt_h=0.01)
         # add_rate = 0.5 * 0.5 = 0.25, clamped to 0.2 mol/L/h
         # mol_h = 0.2 * 10.0 = 2.0
@@ -2349,7 +2358,7 @@ class TestCVPHControllerDosing:
 
     def test_no_dosing_when_pH_at_setpoint(self):
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
         action = ctrl.compute(_cv_snap(pH=6.5), dt_h=0.01)
         assert action.flux_applied == {}
         assert action.dosed_mol == {}
@@ -2357,33 +2366,33 @@ class TestCVPHControllerDosing:
     def test_deadband_suppresses_dosing(self):
         """|err| <= deadband → no action."""
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, deadband=0.5)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, deadband=0.5)
         action = ctrl.compute(_cv_snap(pH=6.8), dt_h=0.01)
         assert action.flux_applied == {}
 
     def test_no_action_when_pH_is_none(self):
         """No speciation → pH is None → empty action."""
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
         action = ctrl.compute(_cv_snap(pH=None), dt_h=0.01)
         assert action.flux_applied == {}
 
     def test_base_dosing_when_configured(self):
-        """pH=6.0, setpoint=6.5, base_chemical_id='NaOH' → base fires."""
+        """pH=6.0, setpoint=6.5, base_dose NaOH → base fires."""
         from PyOMES.control.cv_loops import PHController
         ctrl = PHController(
             setpoint=6.5, Kp=1.0, max_add_molL_hr=0.5,
-            base_chemical_id="NaOH",
+            base_dose={"Na+": 1, "OH-": 1},
         )
         action = ctrl.compute(_cv_snap(pH=6.0, V_liq=5.0), dt_h=0.01)
         # err = -0.5; err_b = 0.5; add_rate = 1.0 * 0.5 = 0.5
         # mol_h = 0.5 * 5.0 = 2.5
-        assert action.flux_applied["liquid"]["NaOH"] == pytest.approx(2.5)
+        assert action.flux_applied["liquid"] == pytest.approx({"Na+": 2.5, "OH-": 2.5})
 
     def test_base_skipped_when_not_configured(self):
         """Acid-only legacy mode: pH below setpoint, no base_id → no action."""
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, base_chemical_id=None)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
         action = ctrl.compute(_cv_snap(pH=6.0), dt_h=0.01)
         assert action.flux_applied == {}
 
@@ -2395,7 +2404,7 @@ class TestCVPHControllerDosing:
         # Headroom = (1.0 - 0.9) * 1.0 = 0.1 mol over dt_h=0.1 → 1.0 mol/h cap
         ctrl = PHController(
             setpoint=6.5, Kp=10.0, max_add_molL_hr=100.0,
-            CT_P_max=1.0,
+            CT_P_max=1.0, acid_dose="H3PO4",
         )
         snap = _cv_snap(pH=7.5, V_liq=1.0, sensors={"CT_P_mol_L": 0.9})
         action = ctrl.compute(snap, dt_h=0.1)
@@ -2406,7 +2415,7 @@ class TestCVPHControllerIntegralState:
 
     def test_integral_state_accumulates(self):
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, Kp=0.0, Ki=1.0)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, Kp=0.0, Ki=1.0)
         ctrl.compute(_cv_snap(pH=7.0), dt_h=0.1)
         i1 = ctrl._I_err
         ctrl.compute(_cv_snap(pH=7.0), dt_h=0.1)
@@ -2415,7 +2424,7 @@ class TestCVPHControllerIntegralState:
 
     def test_reset_clears_integral(self):
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, Ki=1.0)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, Ki=1.0)
         ctrl.compute(_cv_snap(pH=7.0), dt_h=0.1)
         assert ctrl._I_err > 0.0
         ctrl.reset()
@@ -2426,7 +2435,7 @@ class TestCVPHControllerIntegralState:
         """Switching acid→base (or vice versa) resets the integral
         so anti-windup doesn't bleed across modes."""
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, Ki=1.0, base_chemical_id="NaOH")
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, Ki=1.0, base_dose={"Na+": 1, "OH-": 1})
         # Acid dosing accumulates integral
         ctrl.compute(_cv_snap(pH=7.5), dt_h=0.1)
         i_acid = ctrl._I_err
@@ -2446,7 +2455,7 @@ class TestCVPHControllerMultiCV:
         passes through to the sole CV."""
         from PyOMES.core import SimulationSnapshot
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
         sim_snap = SimulationSnapshot(
             t_h=0.0, cvs={"only": _cv_snap(pH=7.0, cv_key="only")},
         )
@@ -2456,7 +2465,7 @@ class TestCVPHControllerMultiCV:
     def test_multi_cv_simulation_snapshot_with_target(self):
         from PyOMES.core import SimulationSnapshot
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, target_cv_key="B")
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, target_cv_key="B")
         sim_snap = SimulationSnapshot(
             t_h=0.0,
             cvs={
@@ -2471,7 +2480,7 @@ class TestCVPHControllerMultiCV:
     def test_multi_cv_without_target_raises(self):
         from PyOMES.core import SimulationSnapshot
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5)
         sim_snap = SimulationSnapshot(
             t_h=0.0,
             cvs={
@@ -2485,7 +2494,7 @@ class TestCVPHControllerMultiCV:
     def test_unknown_target_cv_key_raises(self):
         from PyOMES.core import SimulationSnapshot
         from PyOMES.control.cv_loops import PHController
-        ctrl = PHController(setpoint=6.5, target_cv_key="missing")
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, target_cv_key="missing")
         sim_snap = SimulationSnapshot(
             t_h=0.0, cvs={"A": _cv_snap(pH=7.0, cv_key="A")},
         )
@@ -3380,8 +3389,9 @@ class TestEndToEndPHController:
         liq = LiquidPhase(n_mol={"H+": 10**-7.5}, V_L=1.0, T_K=298.15)
         cv = ControlVolume(
             phases={"liquid": liq}, reaction_system=engine, label="main",
+            species=[_H3PO4],
         )
-        ctrl = PHController(setpoint=6.5, Kp=10.0, max_add_molL_hr=1.0)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=6.5, Kp=10.0, max_add_molL_hr=1.0)
         sim = Simulation(cvs={"main": cv}, controllers=[ctrl])
         result = sim.run(tau_h=0.05, n_steps=5)
 
@@ -3551,20 +3561,51 @@ class TestVVMSchedule:
             assert "cv.main.gas_feed.vvm_min" in per_step[0].targets
 
 
+class TestPHControllerDoseCheck:
+    """A Simulation checks each pH controller's doses against its CV's
+    species when it is built."""
+
+    def test_dose_species_missing_from_the_cv_raises(self):
+        from PyOMES.core import Simulation
+        from PyOMES.control.cv_loops import PHController
+        ctrl = PHController(setpoint=7.0, acid_dose="H3PO4")
+        cv = _make_liquid_cv("main", {"S": 1.0})
+        with pytest.raises(ValueError, match="H3PO4.*not among the species passed"):
+            Simulation(cvs={"main": cv}, controllers=[ctrl])
+
+    def test_charged_dose_warns(self):
+        from PyOMES.core import Simulation
+        from PyOMES.control.cv_loops import PHController
+        na = Species(id="Na+", atoms={"Na": 1}, charge=+1)
+        ctrl = PHController(setpoint=7.0, base_dose="Na+")
+        cv = _make_liquid_cv("main", {"S": 1.0}, species=[na])
+        with pytest.warns(UserWarning, match="base_dose.*net charge of \\+1"):
+            Simulation(cvs={"main": cv}, controllers=[ctrl])
+
+    def test_target_cv_is_checked(self):
+        from PyOMES.core import Simulation
+        from PyOMES.control.cv_loops import PHController
+        ctrl = PHController(setpoint=7.0, acid_dose="H3PO4", target_cv_key="B")
+        cvs = {"A": _make_liquid_cv("A", {"S": 1.0}, species=[_H3PO4]),
+               "B": _make_liquid_cv("B", {"S": 1.0})}
+        with pytest.raises(ValueError, match="H3PO4"):
+            Simulation(cvs=cvs, controllers=[ctrl])
+
+
 class TestSetpointTrajectory:
 
     def test_setpoint_trajectory_mutates_controller_attribute(self):
         from PyOMES.core import Simulation
         from PyOMES.control.cv_loops import PHController
         from PyOMES.control.cv_profiles import SetpointTrajectory
-        ctrl = PHController(setpoint=7.0)
+        ctrl = PHController(acid_dose="H3PO4", setpoint=7.0)
         # Ramp setpoint from 7.0 → 6.0 over the run
         traj = SetpointTrajectory(
             controller=ctrl,
             attribute="setpoint",
             waypoints=[(0.0, 7.0), (1.0, 6.0)],
         )
-        cv = _make_liquid_cv("main", {"S": 1.0})
+        cv = _make_liquid_cv("main", {"S": 1.0}, species=[_H3PO4])
         sim = Simulation(
             cvs={"main": cv},
             controllers=[ctrl],

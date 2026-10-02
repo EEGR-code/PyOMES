@@ -38,7 +38,18 @@ and working its checkpoints, not fixed.
   boundary that does not close"). In ADM1's fingerprint case the N2 vented
   in one step (1.911e-4 mol N) is reported as N drift, alongside the O and H
   drift from vented CO2 and water. Subtracting each boundary's flux would
-  leave only genuine imbalances.
+  leave only genuine imbalances. Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
+- **The liquid volume never changes (high priority).** `LiquidPhase.apply_flux`
+  changes moles only, `LiquidFeed` adds solute without volume, and nothing in
+  `PyOMES/` or `models/` sets a phase's `V_L` after construction. So a
+  fed-batch run never dilutes: `docs/tutorials/templates/fed_batch_fermenter.py`
+  feeds 5 L/h and its liquid is 1600 L at the start and at the end, and every
+  concentration it reports is computed on the starting volume. Its comment
+  that `V_L` "climbs as moles accumulate" is wrong. A CSTR with matched feed
+  and drain is unaffected. Fixing it means feeds, drains and doses carry a
+  volume and the phase's `V_L` follows; solution dosing
+  ([`upcoming/DOSING_AGENTS.md`](upcoming/DOSING_AGENTS.md)) depends on it.
+  Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
 - **ADM1 / BSM2 helpers fall back to biomass for unknown ids.** ADM1's
   `_mw()` returns the biomass MW, and BSM2's `_mw()` / `_thod()` / `_atoms()`
   the biomass MW, ThOD and formula, for any id not in their tables. Every
@@ -47,7 +58,7 @@ and working its checkpoints, not fixed.
   `_get_species` now raises instead). ADM1's `_at()` has no caller anywhere
   in the repo (searched `.py`, `.ipynb`, `.md`).
 
-- **The Bisection engine never debits or credits solvent water.** It treats
+- **The engines never debit or credit solvent water.** The Bisection engine treats
   `H2O` as a fixed solvent (`_SOLVENT_IDS = ("H2O",)` in
   `engines/bisection/engine.py`): water consumed or produced by a declared
   equilibrium such as `CO2 + H2O <-> HCO3- + H+` is not taken from or added
@@ -57,7 +68,10 @@ and working its checkpoints, not fixed.
   model's water amounts. Related name-keyed ids in the same engine: the
   solvent is recognised by the id `"H2O"`, the proton by `"H+"`
   (`_H_PLUS_ID`), and the solver reports H+ and OH- under those fixed ids
-  whatever ids the model declared.
+  whatever ids the model declared. The NR engine writes its own H2O, and all
+  three engines solve pH from a charge balance and overwrite (or ignore)
+  H+ and OH- in `n_mol`, so H+ or OH- a feed or dose adds leaves the H and
+  O books too. Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
 - **BSM2's nitrogen inhibition reads molecular NH3 as total nitrogen.**
   `_I_IN` and `_I_nh3` in `models/vlmodels/adm1/bsm2.py` read
   `concentrations["NH3"]` as S_IN (total inorganic nitrogen), and `_I_nh3`

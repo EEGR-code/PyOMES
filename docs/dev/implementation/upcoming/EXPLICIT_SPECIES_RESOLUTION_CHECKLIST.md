@@ -219,7 +219,7 @@
       (`atoms={}`, charge ±1) in its species table; ADM1's `_get_species`
       raises on an unknown id instead of building biomass. Sanity: BSM2 and
       ADM1 unchanged; suite green.
-- [ ] **13. Correctors from the model's species.** `equilibrate_to_pH` and
+- [x] **13. Correctors from the model's species.** `equilibrate_to_pH` and
       `apply_external_flux` resolve the corrector from the model's species;
       `_STRONG_CORRECTOR_ION` is deleted. The resolution rule is agreed with
       the repo owner before this checkpoint starts (see notes). Callers
@@ -891,6 +891,78 @@ after (+6). Measurement against 11: 0 values differ in all five cases. BSM2
 ConservationWarnings 9 -> 8: the 17.71 mol charge residual is gone, which is
 the seeded `S_an` (0.00521 mol/L x 3400 L) the monitor could not count; the C,
 H, N and O drift warnings are unchanged.
+
+13:
+
+Agreed before starting (2026-10-01/02), settling "how a corrector resolves":
+a corrector is a dose, `{species_id: mol per mol of reagent}`, that states
+what the real reagent adds (NaOH is `{"Na+": 1, "OH-": 1}`; a plain id is
+one mole of it). Every id must be among the model's species; a dose that is
+not charge-neutral warns. No `reagent=` keyword: it would only cross-check
+two things the user wrote, and hydrates or dissolved-salt solutions would
+not match a formula. Moved to design notes: solution dosing, solid
+dissolution and engine-fit warnings (`upcoming/DOSING_AGENTS.md`), and strict
+mass balance closure (`upcoming/MASS_BALANCE_CLOSURE.md`), which all three
+engines lack for dosed H+ / OH- and water. OPEN_WORK gains the fixed liquid
+volume (high priority; `fed_batch_fermenter.py` stays at 1600 L).
+
+- New `PyOMES/chemistry/dose.py`: `as_dose`, `check_dose` (unknown id raises
+  with the species available; net charge warns); exported from
+  `PyOMES.chemistry`.
+- `control_volume.py`: `_STRONG_CORRECTOR_ION` deleted;
+  `equilibrate_to_pH(dose, ph_target, ...)` checks the dose against
+  `cv.species`, adds each species in proportion, and requires at least one
+  species in an equilibrium or charged (else raises); its message says
+  "added N mmol of {...}". `apply_external_flux` applies ids as given.
+- `cv_loops.py` `PHController`: `chemical_id` / `base_chemical_id` ->
+  `acid_dose` / `base_dose` (id or composition, no default, at least one
+  required); fluxes and `dosed_mol` are per species of the dose;
+  `check_species(cv)`. `simulation.py`: `Simulation.__init__` calls
+  `check_species` on each controller that has it, for its `target_cv_key` CV
+  or the only CV.
+- Engines (read, then tested): Bisection and NR compute H+ / OH- from charge
+  balance and overwrite them, and recognise cations through fixed strong-ion
+  tables; PHREEQC sets pH by charge from its `component_map`. So dosed OH-
+  acts only through its counter-ion, and Na+ + OH- reaches a pH with exactly
+  the Na+ that Na+ alone needs (new test, Bisection) - the old behaviour.
+- The species check found undeclared ions in five tutorials/notebooks, now
+  declared and passed as `species=`: `raw_construction.py` (Na+), D2C
+  Example1 and Example2 (K+, Cl-, Na+; both CVs each), the two iron-oxidation
+  validation notebooks (the medium's ions in no reaction), and
+  `test_iron_oxidation.py` / `test_cv_advance.py` already passed theirs. D2C
+  Example3 dosed H3PO4 with no phosphate chemistry, so its acid dose could
+  never act (the silent-inert-dose bug); agreed: it now declares the
+  phosphate ladder (log K -2.15 / -7.20 / -12.35, as the bioprocess
+  database) and Na+.
+- Callers: the template tutorials, `batch_fermenter.ipynb`, the D2C notebooks
+  and script, `README.md`, `docs/tutorials/templates/README.md` (calls that
+  relied on the old `"H3PO4"` default now say `acid_dose="H3PO4"`),
+  `conftest.py`, `test_simulation.py` (17 one-line constructions, the default
+  test becomes "a dose is required" + "a plain id is one mole", base dose
+  asserts per species), `test_controller_state_protocol.py`.
+- Tests: `test_cv_advance.py` (unknown dose raises, charged dose warns, ions =
+  cation alone), `test_simulation.py` `TestPHControllerDoseCheck` (missing
+  species raises, charged dose warns, the target CV is the one checked).
+- Docs: `bioprocess_basic.py` and `raw_construction.py` docstrings; the
+  `PHCONTROLLER_CORRECTOR_VALIDATION.md` note gains an update saying what is
+  now done and what remains (can the dose move pH), and its README entry
+  follows.
+- Measurement script: its stirred-tank builder now passes
+  `acid_dose="H3PO4", base_dose={"Na+": 1, "OH-": 1}`.
+
+Sanity: suite 2186 passed, 2 xfailed before; 2192 passed, 2 xfailed, 0
+failed after (+6). Measurement against 12: ADM1, BSM2, st_batch, st_fedbatch
+0 values differ; d2c_raw 58 of 3618 differ, all in the recorded liquid OH-
+on the steps where the base dose fires: the recorder samples n_mol after the
+controller doses and before the next speciation overwrites OH-, so the
+dosed OH- (4e-4 mol) shows there; pH, Na+ and every other series are
+bit-identical. Tutorial scripts (four template scripts, `raw_construction.py`):
+output identical to HEAD. Notebooks against HEAD (pH-correction message
+normalised): D2C Example1 159/159 and Example2 130/130 lines identical,
+Example3 identical except "3 equilibria" -> "6 equilibria" (the acid dose
+never fires in that run), iron-oxidation 07 (60 lines) and 08 (62 lines)
+identical (NR engine). `batch_fermenter.ipynb` fails at cell 10 on both
+(logged).
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

@@ -69,7 +69,7 @@ cv = (
 )
 cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="instant"))
 
-sim = Simulation(cvs={"main": cv}, controllers=[PHController(setpoint=5.0)])
+sim = Simulation(cvs={"main": cv}, controllers=[PHController(setpoint=5.0, acid_dose="H3PO4")])
 result = sim.run(tau_h=5.0, n_steps=1000)
 ```
 

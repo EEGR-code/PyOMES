@@ -31,7 +31,7 @@ def pressure_ctrl():
 def ph_ctrl():
     from PyOMES import PHController
     return PHController(
-        setpoint=6.6, chemical_id="H3PO4", base_chemical_id="KOH",
+        setpoint=6.6, acid_dose="H3PO4", base_dose={"K+": 1, "OH-": 1},
         Kp=1.0, Ki=1.0, max_add_molL_hr=10,
     )
 
