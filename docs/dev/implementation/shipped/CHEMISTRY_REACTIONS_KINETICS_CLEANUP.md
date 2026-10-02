@@ -15,7 +15,7 @@
 > `Chemical` and `Species`, and others). The species-resolution ambient-
 > fallback finding from the same late review is tracked separately, not
 > part of this phase: see
-> [`../upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](../upcoming/EXPLICIT_SPECIES_RESOLUTION.md).
+> [`EXPLICIT_SPECIES_RESOLUTION.md`](EXPLICIT_SPECIES_RESOLUTION.md).
 >
 > Original status, pre-ship: decisions D1-D8 settled 2026-09-21. Written from
 > a review of `PyOMES/chemistry/` (3,893 lines), `PyOMES/kinetics/` (308) and
