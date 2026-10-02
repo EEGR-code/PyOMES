@@ -20,9 +20,13 @@ rules on top of these; they do not need to repeat them.
 
 ## Tests
 
-- Full suite: `python -m pytest -p no:cacheprovider -q` (about 2 minutes here).
-- Run it before and after any change to `PyOMES/` or `models/`, and report the
-  result as it is.
+- Full suite: `python -m pytest -p no:cacheprovider -q` (about 2 minutes in the
+  owner's terminal, about 15 under Claude's CPU cap).
+- It runs before and after any change to `PyOMES/` or `models/`, and the result
+  is reported as it is. The owner runs it: Claude hands over
+  `python -m pytest -p no:cacheprovider -q | Select-Object -Last 1` and asks for
+  the line it prints. Claude may run single test files or `-k` selections that
+  finish in a few minutes.
 - Claude's tool processes run in a Windows job object capped at about 15% of one
   core; nothing in the repo or in process priority lifts it. Runs take roughly
   6-7 times longer than in the owner's terminal. Do not run notebooks while the
