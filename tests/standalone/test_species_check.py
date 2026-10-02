@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for ``check_species_consistency``."""
+"""Tests for ``check_species_consistency`` and ``merge_species``."""
 
 import warnings
 
@@ -24,7 +24,7 @@ class TestCheckSpeciesConsistency:
 
     def test_clean_imports_no_warning(self):
         from PyOMES.chemistry import check_species_consistency
-        from PyOMES.chemistry.common_species import H2O, CO2, H_plus, OH_minus
+        from PyOMES.databases.aqueous import H2O, CO2, H_plus, OH_minus
         with warnings.catch_warnings():
             warnings.simplefilter("error")  # any warning would fail
             check_species_consistency([
@@ -99,3 +99,44 @@ class TestCheckSpeciesConsistency:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             check_species_consistency(rxns)
+
+
+class TestMergeSpecies:
+    """``merge_species`` combines species given directly, raising on
+    the same id with different data."""
+
+    def test_merges_mappings_and_iterables(self):
+        from PyOMES.chemistry import Species, merge_species
+        a = Species(id="A", atoms={"C": 1})
+        b = Species(id="B", atoms={"N": 1})
+        merged = merge_species({"A": a}, [b])
+        assert merged == {"A": a, "B": b}
+        assert merged["A"] is a
+
+    def test_equal_data_keeps_first_object(self):
+        from PyOMES.chemistry import Species, merge_species
+        a1 = Species(id="A", atoms={"C": 1})
+        a2 = Species(id="A", atoms={"C": 1})
+        assert merge_species([a1], [a2])["A"] is a1
+
+    def test_different_data_raises(self):
+        from PyOMES.chemistry import Species, SpeciesConflictError, merge_species
+        a1 = Species(id="A", atoms={"C": 1})
+        a2 = Species(id="A", atoms={"C": 2})
+        with pytest.raises(SpeciesConflictError, match="'A'"):
+            merge_species({"A": a1}, [a2])
+
+    def test_different_MW_raises(self):
+        from PyOMES.chemistry import Species, SpeciesConflictError, merge_species
+        with pytest.raises(SpeciesConflictError):
+            merge_species([Species(id="X", atoms={"C": 1}, MW=24.0)],
+                          [Species(id="X", atoms={"C": 1}, MW=26.0)])
+
+    def test_mapping_key_must_be_the_id(self):
+        from PyOMES.chemistry import Species, merge_species
+        with pytest.raises(ValueError, match="key"):
+            merge_species({"B": Species(id="A", atoms={"C": 1})})
+
+    def test_no_sources_gives_empty_dict(self):
+        from PyOMES.chemistry import merge_species
+        assert merge_species() == {}

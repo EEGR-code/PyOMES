@@ -9,11 +9,15 @@ configuration incrementally and produces a
 Example
 -------
 >>> from PyOMES.templates.stirred_tank import StirredTankBuilder
+>>> from PyOMES.databases.anaerobic_digestion import AD_BASIC
+>>> from PyOMES.databases.bioprocess_basic import AIR
 >>> result = (
 ...     StirredTankBuilder()
 ...     .vessel(V_total_L=2000, T_K=305.15)
+...     .initial_gas(AIR)
 ...     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
-...     .transfer_kinetic(kLa_O2=150.0)
+...     .transfer_kinetic({"O2": 150.0, "CO2": 135.0}, equilibrium=["N2"])
+...     .chemistry(chemistry_db=AD_BASIC)
 ...     .organism("Yeast")
 ...     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
 ...     .build_simulation_and_run(tau_h=5.0, n_steps=1000)
@@ -24,7 +28,7 @@ Example
 from __future__ import annotations
 
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from .configs import (
     VesselConfig,
@@ -63,9 +67,12 @@ class StirredTankBuilder:
 
     def __init__(self):
         self._vessel_kw: Dict[str, Any] = {}
+        self._gas_composition: Dict[str, float] = {}
         self._gas_feed_kw: Optional[Dict[str, Any]] = None
         self._transfer_cfg: Optional[TransferConfig] = None
         self._chemistry_kw: Dict[str, Any] = {}
+        self._chemistry_db: Optional[Any] = None
+        self._species: Optional[Any] = None
         self._organism_kw: Optional[Dict[str, Any]] = None
         self._substrates: List[Dict[str, Any]] = []
         self._controllers: List[Any] = []
@@ -124,20 +131,28 @@ class StirredTankBuilder:
         headspace_frac: float = 0.20,
         T_K: float = 305.15,
         P_init_atm: float = 1.0,
-        yO2_init: float = 0.2095,
-        yCO2_init: float = 0.0004,
-        yN2_init: Optional[float] = None,
     ) -> "StirredTankBuilder":
-        """Set vessel geometry, temperature, and initial gas composition."""
+        """Set vessel geometry, temperature and initial pressure.
+
+        The headspace's initial gas is set by :meth:`initial_gas`.
+        """
         self._vessel_kw = {
             "V_total_L": V_total_L,
             "headspace_frac": headspace_frac,
             "T_K": T_K,
             "P_init_atm": P_init_atm,
-            "yO2_init": yO2_init,
-            "yCO2_init": yCO2_init,
-            "yN2_init": yN2_init,
         }
+        return self
+
+    def initial_gas(self, composition: Dict[str, float]) -> "StirredTankBuilder":
+        """Set the headspace's initial gas: ``{species_id: mole fraction}``.
+
+        Normalised by its sum; e.g.
+        :data:`~PyOMES.databases.bioprocess_basic.AIR`. Without this call
+        the headspace starts with no gas (transfer species are still added
+        at zero).
+        """
+        self._gas_composition = dict(composition)
         return self
 
     # ── Gas feed ──────────────────────────────────────────────────────
@@ -150,7 +165,9 @@ class StirredTankBuilder:
     ) -> "StirredTankBuilder":
         """Set continuous gas feed (sparging) parameters.
 
-        Use ``vvm_min=0`` for no sparging (e.g. well plate).
+        *composition* is ``{species_id: mole fraction}`` and has no
+        default; a feed with ``vvm_min > 0`` needs one. Use
+        :meth:`no_gas_feed` for no sparging.
         """
         self._gas_feed_kw = {
             "vvm_min": vvm_min,
@@ -169,18 +186,24 @@ class StirredTankBuilder:
 
     def transfer_kinetic(
         self,
-        kLa_O2: float = 150.0,
-        kLa_CO2_ratio: float = 0.9,
+        kLa: Dict[str, float],
+        equilibrium: Sequence[str] = (),
     ) -> "StirredTankBuilder":
-        """Set kinetic O₂/CO₂ transfer with equilibrium N₂."""
-        self._transfer_cfg = TransferConfig.default_kinetic(
-            kLa_O2=kLa_O2, kLa_CO2_ratio=kLa_CO2_ratio,
-        )
+        """Set the gas-liquid transfer: kinetic for the species in *kLa*
+        (``{id: kLa_per_h}``), equilibrium for those in *equilibrium*.
+
+        Replaces any transfer set before; see
+        :meth:`TransferConfig.kinetic`.
+        """
+        self._transfer_cfg = TransferConfig.kinetic(kLa, equilibrium)
         return self
 
-    def transfer_equilibrium(self) -> "StirredTankBuilder":
-        """Set all species to instantaneous Henry equilibrium."""
-        self._transfer_cfg = TransferConfig.default_equilibrium()
+    def transfer_equilibrium(self, species_ids: Sequence[str]) -> "StirredTankBuilder":
+        """Set instantaneous Henry equilibrium transfer for *species_ids*.
+
+        Replaces any transfer set before.
+        """
+        self._transfer_cfg = TransferConfig.equilibrium(species_ids)
         return self
 
     def transfer(self, config: TransferConfig) -> "StirredTankBuilder":
@@ -197,26 +220,27 @@ class StirredTankBuilder:
     ) -> "StirredTankBuilder":
         """Add or update a species in the gas-liquid transfer configuration.
 
-        Call after ``.transfer_equilibrium()`` or ``.transfer_kinetic()``
-        to register additional gas species.  For anaerobic digestion,
-        this is how to add CH₄ and H₂ to the transfer::
+        Adds to the transfer set by ``.transfer_equilibrium(...)``,
+        ``.transfer_kinetic(...)`` or ``.transfer(...)``, or starts one if
+        none was set. For anaerobic digestion, for example::
 
-            .transfer_equilibrium()
-            .transfer_species("CH4")   # uses Henry constant from lookup
+            .transfer_equilibrium(["CO2", "N2"])
+            .transfer_species("CH4")   # partition model from chemistry_db
             .transfer_species("H2")
 
         Parameters
         ----------
         species_id : str
-            Gas species identifier (must have a Henry constant in
-            ``_HENRY_PARAMS`` unless ``henry_mol_L_atm`` is provided).
+            Gas species identifier. Needs a partition model in the
+            ``chemistry_db`` passed to :meth:`chemistry` unless
+            ``henry_mol_L_atm`` is provided.
         mode : str
             ``"equilibrium"`` or ``"kinetic"`` (default ``"equilibrium"``).
         kLa_per_h : float
             kLa for kinetic mode (1/h).  Ignored for equilibrium mode.
         henry_mol_L_atm : float or None
-            Override Henry constant.  If None, looked up from the
-            built-in ``_HENRY_PARAMS`` table at build time.
+            Henry constant. If None, the partition model comes from the
+            ``chemistry_db`` at build time.
 
         Returns
         -------
@@ -224,7 +248,7 @@ class StirredTankBuilder:
             self (for chaining).
         """
         if self._transfer_cfg is None:
-            self._transfer_cfg = TransferConfig.default_equilibrium()
+            self._transfer_cfg = TransferConfig()
 
         mode_lower = mode.strip().lower()
         if mode_lower in ("equilibrium", "eq"):
@@ -262,8 +286,11 @@ class StirredTankBuilder:
     def chemistry(
         self,
         activity_model: Union[str, ActivityModel] = "ideal",
+        *,
+        chemistry_db: Optional[Any] = None,
+        species: Optional[Any] = None,
     ) -> "StirredTankBuilder":
-        """Set the liquid activity model.
+        """Set the model's chemistry: activity model, database and species.
 
         Parameters
         ----------
@@ -271,6 +298,13 @@ class StirredTankBuilder:
             ``"ideal"`` (default), ``"davies"``, ``"sit"``, or a model object
             such as ``SITLiquidModel(epsilon=...)``. Passed to the reaction
             system's engine; see :class:`ChemistryConfig`.
+        chemistry_db : ChemistryDatabase, optional
+            The model's chemistry database, if it uses one; see
+            :meth:`StirredTankFactory.create_volume`. There is no default.
+            Left as set by an earlier call when not given.
+        species : mapping or iterable of Species, optional
+            Species the model defines itself, merged with the database's.
+            Left as set by an earlier call when not given.
 
         pKa values are not set here: they live on declared equilibrium
         reactions consumed by
@@ -278,23 +312,47 @@ class StirredTankBuilder:
         need equilibria install them on the engine after ``.build()``.
         """
         self._chemistry_kw = {"activity_model": activity_model}
+        if chemistry_db is not None:
+            self._chemistry_db = chemistry_db
+        if species is not None:
+            self._species = species
         return self
 
     # ── Organism ──────────────────────────────────────────────────────
 
     def organism(
         self,
-        organism_id: str = "Yeast",
+        organism: Union[str, Any],
         atoms: Optional[Dict[str, float]] = None,
         MW: Optional[float] = None,
         balance_basis: str = "CHO",
-        n_source_id: str = "NH3",
+        n_source_id: Optional[str] = None,
+        o2_id: str = "O2",
+        co2_id: str = "CO2",
+        h2o_id: str = "H2O",
+        overwrite: bool = False,
     ) -> "StirredTankBuilder":
-        """Set the organism for reaction building."""
+        """Set the organism for reaction building.
+
+        ``.organism("Yeast")`` uses the model's species of that id;
+        ``.organism("E_coli", atoms={...})`` (MW computed from the atoms
+        unless given) or ``.organism(E_COLI)`` (a ``Species``) defines it.
+        A definition that differs from a model species of the same id
+        raises unless ``overwrite=True``. See :class:`OrganismConfig`.
+
+        ``n_source_id`` names the nitrogen source, required for
+        ``balance_basis="CHNO"``. ``o2_id``, ``co2_id`` and ``h2o_id`` name
+        the oxygen consumed and the carbon dioxide and water produced by
+        its growth reactions. All are resolved against the model's species.
+        """
         self._organism_kw = {
-            "organism_id": organism_id,
+            "organism": organism,
             "balance_basis": balance_basis,
             "n_source_id": n_source_id,
+            "o2_id": o2_id,
+            "co2_id": co2_id,
+            "h2o_id": h2o_id,
+            "overwrite": overwrite,
         }
         if atoms is not None:
             self._organism_kw["atoms"] = dict(atoms)
@@ -306,13 +364,14 @@ class StirredTankBuilder:
 
     def substrate(
         self,
-        substrate_id: str = "AceticAcid",
+        substrate: Union[str, Any],
         atoms: Optional[Dict[str, float]] = None,
         MW: Optional[float] = None,
         mu_max: float = 0.5,
         Ks: float = 5e-3,
         yield_gX_gS: float = 0.36,
         kinetics: Optional[Any] = None,
+        overwrite: bool = False,
     ) -> "StirredTankBuilder":
         """Add a substrate with kinetic parameters.
 
@@ -320,12 +379,14 @@ class StirredTankBuilder:
 
         Parameters
         ----------
-        substrate_id : str
-            Chemical identifier (e.g. ``"Glucose"``).
+        substrate : str or Species
+            The substrate's id (e.g. ``"Glucose"``), resolved against the
+            model's species unless ``atoms`` defines it, or its ``Species``.
         atoms : dict or None
-            Elemental composition.  Looked up from registry if None.
+            Elemental composition; with an id, defines the substrate.
         MW : float or None
-            Molecular weight (g/mol).  Looked up from registry if None.
+            Molecular weight (g/mol). Only with ``atoms``; computed from
+            them when not given.
         mu_max : float
             Maximum specific growth rate (1/h).  Used only if
             ``kinetics`` is None (default Monod).
@@ -346,6 +407,9 @@ class StirredTankBuilder:
                     Monod, Contois, Andrews, ContoisAndrews,
                     Tessier, Moser, Blackman, DualSubstrateMonod,
                 )
+        overwrite : bool
+            Replace a model species of the same id whose data differ from
+            this definition, instead of raising.
 
         Returns
         -------
@@ -353,10 +417,11 @@ class StirredTankBuilder:
             self (for chaining).
         """
         kw: Dict[str, Any] = {
-            "substrate_id": substrate_id,
+            "substrate": substrate,
             "mu_max": mu_max,
             "Ks": Ks,
             "yield_gX_gS": yield_gX_gS,
+            "overwrite": overwrite,
         }
         if atoms is not None:
             kw["atoms"] = dict(atoms)
@@ -424,13 +489,13 @@ class StirredTankBuilder:
                  organism_or_None, substrates_list).
         """
         # Vessel (required)
-        vessel = VesselConfig(**self._vessel_kw) if self._vessel_kw else VesselConfig()
+        vessel = VesselConfig(**self._vessel_kw, gas_composition=self._gas_composition)
 
         # Gas feed (optional)
         gas_feed = GasFeedConfig(**self._gas_feed_kw) if self._gas_feed_kw else None
 
-        # Transfer (required, default to equilibrium)
-        transfer = self._transfer_cfg or TransferConfig.default_equilibrium()
+        # Transfer (none unless declared)
+        transfer = self._transfer_cfg or TransferConfig()
 
         # Chemistry
         chem = ChemistryConfig(**self._chemistry_kw) if self._chemistry_kw else ChemistryConfig()
@@ -479,6 +544,8 @@ class StirredTankBuilder:
             gas_feed=gas_feed,
             reaction_system=self._reaction_system,
             controllers=self._controllers if self._controllers else None,
+            chemistry_db=self._chemistry_db,
+            species=self._species,
             label=self._label,
         )
 
@@ -568,10 +635,13 @@ class StirredTankBuilder:
         if self._transfer_cfg:
             modes = [f"{sp}:{c.mode.value}" for sp, c in self._transfer_cfg.species.items()]
             parts.append(f"transfer([{', '.join(modes)}])")
+        def _id(given):
+            return getattr(given, "id", given)
+
         if self._organism_kw:
-            parts.append(f"organism({self._organism_kw.get('organism_id', '?')})")
+            parts.append(f"organism({_id(self._organism_kw['organism'])})")
         if self._substrates:
-            ids = [s.get("substrate_id", "?") for s in self._substrates]
+            ids = [_id(s["substrate"]) for s in self._substrates]
             parts.append(f"substrates([{', '.join(ids)}])")
         if self._controllers:
             parts.append(f"controllers({len(self._controllers)})")

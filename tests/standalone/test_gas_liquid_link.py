@@ -700,7 +700,7 @@ class TestDeriveSpeciationKeys:
         in ``speciation_keys``.
         """
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry, ReactionSystem
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -722,7 +722,7 @@ class TestDeriveSpeciationKeys:
         ``partition_models``.
         """
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry, ReactionSystem
-        from PyOMES.chemistry.common_species import H_plus, OH_minus, H2O
+        from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -745,7 +745,7 @@ class TestDeriveSpeciationKeys:
         defensive for multi-CV systems with multiple links.
         """
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry, ReactionSystem
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -766,7 +766,7 @@ class TestDeriveSpeciationKeys:
         cross-phase semantics are scoped to equilibrium reactions).
         """
         from PyOMES.reactions import KineticReaction, StoichiometryEntry, ReactionSystem
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
 
         rxn = KineticReaction(
             stoichiometry=[
@@ -804,7 +804,7 @@ class TestDeriveSpeciationKeys:
         reaction model is attached.
         """
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry, ReactionSystem
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
 
         rxn = EquilibriumReaction(
             stoichiometry=[

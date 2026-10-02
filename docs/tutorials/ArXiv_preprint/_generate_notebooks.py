@@ -61,10 +61,12 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-    NH3, NH4_plus,
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus, NH3, NH4_plus
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -823,7 +825,8 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+from PyOMES.databases.bioprocess_basic import N2, O2
 from PyOMES.reactions import HenryEquilibrium
 from PyOMES.reactions import EquilibriumReaction, ReactionSystem, StoichiometryEntry
 from PyOMES.core import (
@@ -1004,6 +1007,7 @@ def build_cv(kLa, label="pure_water"):
         phases={"gas": gas_phase, "liquid": liquid_phase},
         transfer_models=transfer_models,
         reaction_system=system,
+        species=[O2, N2],  # air gases, in no reaction
         label=label,
     )
 
@@ -1199,11 +1203,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PyOMES.chemistry.species import Species
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-    NH3, NH4_plus,
-    CO2, HCO3_minus, CO3_2minus,
+from PyOMES.databases.aqueous import (
+    H2O,
+    H_plus,
+    OH_minus,
+    NH3,
+    NH4_plus,
+    CO2,
+    HCO3_minus,
+    CO3_2minus,
+)
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import HenryEquilibrium
 from PyOMES.reactions import (
@@ -1368,9 +1382,16 @@ Ks_gL        = 0.5     # g acetate / L     -- see Section 2 above
 Yxs          = 0.36    # g biomass / g acetate -- unchanged
 Ko2_gL       = 0.2e-3  # g O2 / L          -- unchanged
 
+O2 = Species(id="O2", atoms={"O": 2}, charge=0)
+# In no reaction: sparged N2 and the feed's counter-ions.
+N2 = Species(id="N2", atoms={"N": 2}, charge=0)
+K_PLUS = Species(id="K+", atoms={"K": 1}, charge=+1)
+CL_MINUS = Species(id="Cl-", atoms={"Cl": 1}, charge=-1)
+
 growth = ReactionBuilder.monod_aerobic_growth(
     substrate=ACETIC_ACID, biomass=ECOLI,
     mu_max_per_h=mu_max_per_h, Ks_gL=Ks_gL, yield_gX_gS=Yxs, Ko2_gL=Ko2_gL,
+    o2=O2, co2=CO2, h2o=H2O, n_source=NH3,
     balance="CHNO", label="growth_on_AceticAcid",
 )
 system = ReactionSystem(
@@ -1561,6 +1582,7 @@ def build_cv(D_per_h, X0_gL=0.05):
         phases={"gas": gas_phase, "liquid": liquid_phase},
         transfer_models=make_transfer_models(), boundaries=boundaries,
         reaction_system=system, label=f"cstr_D{D_per_h:.3f}",
+        species=[N2, K_PLUS, CL_MINUS],
     )
 
 def run_to_steady_state(D_per_h, n_res=15.0, dt_h=0.01):

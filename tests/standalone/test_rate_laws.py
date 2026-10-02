@@ -246,6 +246,14 @@ class TestDualSubstrateMonod:
     def test_label_includes_secondary_id(self):
         assert DualSubstrateMonod(secondary_id="O2").label == "DualSubstrateMonod(+O2)"
 
+    def test_secondary_id_is_required(self):
+        with pytest.raises(TypeError):
+            DualSubstrateMonod(mu_max=0.5, Ks=0.01)
+
+    def test_gL_conversion_requires_secondary_MW(self):
+        with pytest.raises(ValueError, match="secondary_MW"):
+            DualSubstrateMonod(secondary_id="O2", secondary_in_mol_L=False)
+
 
 # ════════════════════════════════════════════════════════════════════════
 #  make_rate_fn — extensive rate (mol/h) for the shared base class
@@ -285,9 +293,10 @@ class TestMakeRateFnOutputs:
 # ════════════════════════════════════════════════════════════════════════
 
 def _reference_monod_rate_fn(mu_max_per_h, Ks_gL, yield_gX_gS, MW_S, MW_X,
-                              sub_id, bio_id, Ko2_gL=None, MW_O2=32.0):
+                              sub_id, bio_id, Ko2_gL=None, MW_O2=None):
     """Frozen copy of the pre-checkpoint-12 inline closure in
-    ReactionBuilder.monod_aerobic_growth (kinetic/builder.py, formerly line 298)."""
+    ReactionBuilder.monod_aerobic_growth (kinetic/builder.py, formerly line 298).
+    ``MW_O2`` is the molar mass of the O2 Species the builder is given."""
 
     def rate_fn(env):
         S_gL = env.concentrations.get(sub_id, 0.0) * MW_S
@@ -329,6 +338,9 @@ class TestMonodAerobicGrowthFingerprint:
         rxn = ReactionBuilder.monod_aerobic_growth(
             substrate=sub, biomass=bio, mu_max_per_h=self.MU_MAX, Ks_gL=self.KS_GL,
             yield_gX_gS=self.YIELD, Ko2_gL=Ko2_gL,
+            o2=Species(id="O2", atoms={"O": 2}),
+            co2=Species(id="CO2", atoms={"C": 1, "O": 2}),
+            h2o=Species(id="H2O", atoms={"H": 2, "O": 1}),
         )
         return rxn.rate_fn, sub.id, bio.id
 
@@ -343,11 +355,13 @@ class TestMonodAerobicGrowthFingerprint:
             assert rate_fn(env) == ref_fn(env)
 
     def test_o2_path_bit_identical(self):
+        from PyOMES.chemistry.species import Species
         Ko2_gL = 0.2e-3
         rate_fn, sub_id, bio_id = self._current_rate_fn(Ko2_gL=Ko2_gL)
         ref_fn = _reference_monod_rate_fn(
             self.MU_MAX, self.KS_GL, self.YIELD, self.MW_S, self.MW_X,
             sub_id, bio_id, Ko2_gL=Ko2_gL,
+            MW_O2=Species(id="O2", atoms={"O": 2}).MW,
         )
         for S, X, O2, V in self._grid():
             env = _Env({sub_id: S, bio_id: X, "O2": O2}, V)
@@ -363,7 +377,7 @@ class TestMonodAerobicGrowthFingerprint:
 
         ref_fn = _reference_monod_rate_fn(
             self.MU_MAX, self.KS_GL, self.YIELD, self.MW_S, self.MW_X,
-            sub_id, bio_id, Ko2_gL=0.0,
+            sub_id, bio_id, Ko2_gL=0.0, MW_O2=31.998,
         )
         with pytest.raises(ZeroDivisionError):
             ref_fn(env)

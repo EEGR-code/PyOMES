@@ -36,8 +36,15 @@ from PyOMES.chemical_equilibrium.protocols import (
 
 def _make_reactions():
     """Minimal carbonate + ammonia reaction set (reused from NR engine tests)."""
-    from PyOMES.chemistry.common_species import (
-        CO2, CO3_2minus, H2O, H_plus, HCO3_minus, NH3, NH4_plus, OH_minus,
+    from PyOMES.databases.aqueous import (
+        CO2,
+        CO3_2minus,
+        H2O,
+        H_plus,
+        HCO3_minus,
+        NH3,
+        NH4_plus,
+        OH_minus,
     )
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 

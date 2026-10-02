@@ -2,8 +2,8 @@
 """AD_BASIC: aqueous chemistry for anaerobic digestion gas-liquid systems.
 
 Extends :data:`~PyOMES.databases.bioprocess_basic.BIOPROCESS_BASIC`
-with a CO₂ gas ⇌ liquid Henry declaration and the H₂S ⇌ HS⁻ acid-base
-equilibrium, enabling correct alpha computation in
+with the CH₄ and H₂ species, a CO₂ gas ⇌ liquid Henry declaration and the
+H₂S ⇌ HS⁻ acid-base equilibrium, enabling correct alpha computation in
 :class:`~PyOMES.core.gas_liquid_link.KineticGasLiquidLink` for dissolved
 sulfide.
 
@@ -29,18 +29,28 @@ Usage::
 """
 from __future__ import annotations
 
-from PyOMES.chemistry.common_species import H_plus, H2S, HS_minus
+from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
 from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
 from PyOMES.reactions.reaction_system import ReactionSystem
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from .aqueous import CO2, H_plus
 from .bioprocess_basic import BIOPROCESS_BASIC
 
 _T_REF_K = 298.15
 
+# The sulfide system. MW is computed from the atoms.
+H2S      = Species(id="H2S", atoms={"H": 2, "S": 1}, charge=0)
+HS_minus = Species(id="HS-", atoms={"H": 1, "S": 1}, charge=-1)
+
+CH4 = Species(id="CH4", atoms={"C": 1, "H": 4})
+H2  = Species(id="H2",  atoms={"H": 2})
+
 _EXTRA_SPECIES = {
     "H2S": H2S,
     "HS-": HS_minus,
+    "CH4": CH4,
+    "H2":  H2,
 }
 
 # One instance, two roles: fed into both _PARTITION_MODELS (below) and
@@ -48,7 +58,7 @@ _EXTRA_SPECIES = {
 # KineticGasLiquidLink partition_ratio() and the EquilibriumConstraint
 # log_K/dH_J_per_mol the speciation engines classify as gas-liquid.
 _CO2_HENRY = HenryEquilibrium(
-    H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
+    H_ref=3.4e-4, dlnH=2400.0, gas_species=CO2, liquid_species=CO2,
     label="partition_CO2",
 )
 

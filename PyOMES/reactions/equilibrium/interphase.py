@@ -41,7 +41,6 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence, Tuple, Union
 
-from PyOMES.chemistry import common_species
 from PyOMES.chemistry.partition import _kH_mol_L_atm_from_ref
 from PyOMES.chemistry.species import Species
 from PyOMES.thermo.temperature_correction import clausius_clapeyron
@@ -51,24 +50,18 @@ from .constraint import constraint_log_K_at
 from PyOMES.reactions.stoichiometry import StoichiometryEntry, _parse_stoichiometry
 
 
-def _resolve_species(species: Union[str, Species, None]) -> Optional[Species]:
-    """Resolve a species id string or ``Species`` object to a ``Species``.
-
-    Looks the id up in ``PyOMES.chemistry.common_species`` directly — the
-    same source :func:`PyOMES.reactions.stoichiometry._get_common_species`
-    builds its own lookup from.
-    """
-    if species is None or isinstance(species, Species):
-        return species
-    lookup = {
-        v.id: v for v in vars(common_species).values() if isinstance(v, Species)
-    }
-    if species not in lookup:
-        raise ValueError(
-            f"Unknown species id {species!r} — pass a Species object "
-            "directly, or use an id from PyOMES.chemistry.common_species."
-        )
-    return lookup[species]
+def _check_species_fields(owner: object) -> None:
+    """Raise unless ``gas_species`` / ``liquid_species`` are each a
+    ``Species`` or ``None``."""
+    for name in ("gas_species", "liquid_species"):
+        value = getattr(owner, name)
+        if value is not None and not isinstance(value, Species):
+            raise TypeError(
+                f"{type(owner).__name__}.{name} must be a Species or None, got "
+                f"{value!r}. Pass the Species object, e.g. "
+                f"from PyOMES.databases.bioprocess_basic import O2; "
+                f"{name}=O2."
+            )
 
 
 @dataclass(frozen=True)
@@ -91,17 +84,16 @@ class HenryEquilibrium:
         ``partition_ratio`` / ``equilibrium_a_moles`` methods for the
         correction to take effect.  Without ``thermo``, behaviour is
         unchanged (γ_i = 1).
-    gas_species, liquid_species : str or Species, optional
+    gas_species, liquid_species : Species, optional
         The gas-phase and liquid-phase forms this constant relates
-        (e.g. ``gas_species="CO2", liquid_species="CO2"``). Optional —
+        (e.g. ``gas_species=CO2, liquid_species=CO2``). Optional —
         only needed to also satisfy
         :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint`
         (i.e. to appear in the reaction list fed to
         ``NRChemicalEquilibriumEngine``/``ChemicalEquilibriumEngine``); the
         ``PartitionModel`` role (``partition_ratio``/
-        ``equilibrium_a_moles``) does not need them. Accepts a species
-        id string (resolved against ``PyOMES.chemistry.common_species``)
-        or a ``Species`` object directly.
+        ``equilibrium_a_moles``) does not need them. Anything other than
+        a ``Species`` or ``None`` raises ``TypeError``.
     label : str
         Human-readable label (optional, for diagnostics/logging — e.g.
         ``ReactionSystem.show_reactions()``).
@@ -111,9 +103,12 @@ class HenryEquilibrium:
     dlnH: float
     T_ref: float = 298.15
     thermo: Optional[object] = field(default=None, compare=False)  # ThermoFramework | None
-    gas_species: Union[str, Species, None] = None
-    liquid_species: Union[str, Species, None] = None
+    gas_species: Optional[Species] = None
+    liquid_species: Optional[Species] = None
     label: str = ""
+
+    def __post_init__(self) -> None:
+        _check_species_fields(self)
 
     def partition_ratio(
         self,
@@ -211,11 +206,9 @@ class HenryEquilibrium:
         """
         if self.gas_species is None or self.liquid_species is None:
             return ()
-        gas = _resolve_species(self.gas_species)
-        liq = _resolve_species(self.liquid_species)
         return (
-            StoichiometryEntry(species=gas, phase="gas", coefficient=-1.0),
-            StoichiometryEntry(species=liq, phase="liquid", coefficient=+1.0),
+            StoichiometryEntry(species=self.gas_species, phase="gas", coefficient=-1.0),
+            StoichiometryEntry(species=self.liquid_species, phase="liquid", coefficient=+1.0),
         )
 
 
@@ -247,7 +240,7 @@ class RaoultEquilibrium:
     Also satisfies
     :class:`~PyOMES.reactions.equilibrium.constraint.EquilibriumConstraint` via the
     ``gas ⇌ liquid`` stoichiometry named by ``gas_species``/
-    ``liquid_species`` (default ``"H2O"``/``"H2O"``).
+    ``liquid_species``, when both are given.
 
     Parameters
     ----------
@@ -262,11 +255,12 @@ class RaoultEquilibrium:
         Molar concentration of pure water (mol/L).  Default 55.51 mol/L.
         Used to convert liquid volume (capacity_a in L) to moles of water
         when computing the mole fraction x_w.
-    gas_species, liquid_species : str or Species, optional
-        The gas-phase and liquid-phase forms this constant relates.
-        Default ``"H2O"``/``"H2O"`` (resolved against
-        ``PyOMES.chemistry.common_species``); accepts a ``Species``
-        object directly instead.
+    gas_species, liquid_species : Species, optional
+        The gas-phase and liquid-phase forms this constant relates, e.g.
+        ``gas_species=H2O, liquid_species=H2O``. Optional — only needed to
+        use it as a reaction (the ``EquilibriumConstraint`` role); the
+        ``PartitionModel`` role does not need them. Anything other than a
+        ``Species`` or ``None`` raises ``TypeError``.
     label : str
         Human-readable label (optional, for diagnostics/logging — e.g.
         ``ReactionSystem.show_reactions()``).
@@ -276,9 +270,12 @@ class RaoultEquilibrium:
     dH_vap: float = 44011.0   # J/mol at 25 °C
     T_ref: float = _T_REF_WATER
     C_water_mol_L: float = 55.51  # mol/L pure water at 25 °C
-    gas_species: Union[str, Species, None] = "H2O"
-    liquid_species: Union[str, Species, None] = "H2O"
+    gas_species: Optional[Species] = None
+    liquid_species: Optional[Species] = None
     label: str = ""
+
+    def __post_init__(self) -> None:
+        _check_species_fields(self)
 
     def P_sat(self, T_K: float) -> float:
         """Saturation pressure of pure water (atm) at T_K via Clausius-Clapeyron."""
@@ -344,11 +341,9 @@ class RaoultEquilibrium:
         """
         if self.gas_species is None or self.liquid_species is None:
             return ()
-        gas = _resolve_species(self.gas_species)
-        liq = _resolve_species(self.liquid_species)
         return (
-            StoichiometryEntry(species=gas, phase="gas", coefficient=-1.0),
-            StoichiometryEntry(species=liq, phase="liquid", coefficient=+1.0),
+            StoichiometryEntry(species=self.gas_species, phase="gas", coefficient=-1.0),
+            StoichiometryEntry(species=self.liquid_species, phase="liquid", coefficient=+1.0),
         )
 
 
@@ -387,8 +382,9 @@ class KspEquilibrium:
         Solubility product (mass-action units matching the
         stoichiometry's dissolved-species exponents).
     species : dict[str, Species], optional
-        Caller-supplied species for locally declared minerals not in
-        ``common_species``. Only used when *stoichiometry* is a string.
+        ``{id: Species}`` for every id a string *stoichiometry* names,
+        minerals included; ids are looked up here only. Only used when
+        *stoichiometry* is a string.
     dH_J_per_mol : float, optional
         Van 't Hoff reaction enthalpy (J/mol) at ``T_ref_K``.
     T_ref_K : float

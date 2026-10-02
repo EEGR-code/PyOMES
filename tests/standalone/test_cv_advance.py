@@ -65,9 +65,7 @@ def _make_speciation_reactions():
     on first access (state-unification C4)."""
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
     from PyOMES.chemistry import Species
-    from PyOMES.chemistry.common_species import (
-        H_plus, OH_minus, H2O, CO2, HCO3_minus,
-    )
+    from PyOMES.databases.aqueous import H_plus, OH_minus, H2O, CO2, HCO3_minus
 
     HAc = Species(id="AceticAcid", atoms={"C": 2, "H": 4, "O": 2}, charge=0, MW=60.052)
     Ac_minus = Species(id="AceticAcid-", atoms={"C": 2, "H": 3, "O": 2}, charge=-1)
@@ -970,18 +968,27 @@ class TestCVAdvanceSolverDispatch:
         assert result_default.reaction_sources == result_explicit.reaction_sources
 
 
+_NAOH = {"Na+": 1, "OH-": 1}
+
+
 class TestEquilibrateToPH:
     """Regression tests for ControlVolume.equilibrate_to_pH.
 
     Uses an ionic medium (NH4+/Cl-/K+/H2PO4-) so no dissolution reactions
-    are needed in the database. Verifies that "NaOH" as a strong-corrector
-    alias raises pH correctly without requiring an eq_NaOH reaction.
+    are needed in the database. Verifies that NaOH dosed as its ions
+    ({"Na+": 1, "OH-": 1}) raises pH correctly without an eq_NaOH reaction.
     """
 
     def _make_cv(self):
-        from PyOMES.chemistry.common_species import (
-            NH4_plus, Cl_minus, K_plus, H2PO4_minus, HPO4_2minus, PO4_3minus,
-            H3PO4, Na_plus,
+        from PyOMES.databases.aqueous import NH4_plus
+        from PyOMES.databases.bioprocess_basic import (
+            Cl_minus,
+            K_plus,
+            H2PO4_minus,
+            HPO4_2minus,
+            PO4_3minus,
+            H3PO4,
+            Na_plus,
         )
         from PyOMES.databases.bioprocess_basic import (
             BIOPROCESS_BASIC, NH4Cl, KH2PO4,
@@ -1020,6 +1027,8 @@ class TestEquilibrateToPH:
             phases={"liquid": liquid},
             reaction_system=rxns,
             label="test_eq_pH",
+            # Spectator ions: in no reaction, so passed for charge accounting.
+            species=[Cl_minus, K_plus, Na_plus],
         )
 
     def test_ionic_medium_gives_acidic_baseline(self):
@@ -1030,28 +1039,45 @@ class TestEquilibrateToPH:
         assert 3.0 < pH < 6.0, f"Expected baseline pH 3–6, got {pH:.3f}"
 
     def test_naoh_raises_ph_to_setpoint(self):
-        """equilibrate_to_pH('NaOH', 6.0) must reach pH 6 ± 0.01 without error."""
+        """Dosing NaOH as its ions must reach pH 6 ± 0.01 without error."""
         cv = self._make_cv()
-        n_added = cv.equilibrate_to_pH("NaOH", 6.0)
+        n_added = cv.equilibrate_to_pH(_NAOH, 6.0)
         pH_final = float(cv["liquid"].pH)
         assert n_added > 0, "Expected positive moles of NaOH added"
         assert abs(pH_final - 6.0) < 0.01, f"Expected pH ≈ 6.0, got {pH_final:.4f}"
 
     def test_naoh_adds_na_plus_to_n_mol(self):
-        """Strong-corrector path must increase Na+ in n_mol, not NaOH."""
-        from PyOMES.chemistry.common_species import Na_plus
+        """The dose adds Na+ to n_mol; no NaOH species appears."""
+        from PyOMES.databases.bioprocess_basic import Na_plus
         cv = self._make_cv()
         na_before = cv["liquid"].n_mol.get(Na_plus.id, 0.0)
-        cv.equilibrate_to_pH("NaOH", 6.0)
+        cv.equilibrate_to_pH(_NAOH, 6.0)
         na_after = cv["liquid"].n_mol.get(Na_plus.id, 0.0)
         assert na_after > na_before, "Na+ should increase after NaOH correction"
         assert cv["liquid"].n_mol.get("NaOH", 0.0) == 0.0, "NaOH should not appear in n_mol"
 
     def test_unknown_corrector_raises(self):
-        """A corrector not in equilibrium stoichiometry must raise ValueError."""
+        """A dose naming a species the model does not have raises."""
         cv = self._make_cv()
-        with pytest.raises(ValueError, match="does not appear in any EquilibriumReaction"):
-            cv.equilibrate_to_pH("NaOH_unknown_salt", 6.0)
+        with pytest.raises(ValueError, match="not among the species passed"):
+            cv.equilibrate_to_pH("NaOH", 6.0)
+
+    def test_charged_dose_warns(self):
+        """A dose that is not charge-neutral warns, and is still dosed."""
+        cv = self._make_cv()
+        with pytest.warns(UserWarning, match="net charge of \\+1"):
+            n_added = cv.equilibrate_to_pH("Na+", 6.0)
+        assert n_added > 0
+
+    def test_ions_give_the_same_dose_as_the_cation_alone(self):
+        """The engine computes OH- from charge balance, so dosing OH- with
+        Na+ reaches pH 6 with the same amount of Na+ as Na+ alone."""
+        import warnings
+        n_ions = self._make_cv().equilibrate_to_pH(_NAOH, 6.0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            n_cation = self._make_cv().equilibrate_to_pH("Na+", 6.0)
+        assert n_ions == pytest.approx(n_cation, rel=1e-9)
 
     def test_advance_after_equilibrate_no_conservation_warning(self):
         """10 advance steps after equilibrate_to_pH must fire no ConservationWarning.
@@ -1064,7 +1090,7 @@ class TestEquilibrateToPH:
         from PyOMES.monitoring.conservation import ConservationWarning
 
         cv = self._make_cv()
-        cv.equilibrate_to_pH("NaOH", 6.0)
+        cv.equilibrate_to_pH(_NAOH, 6.0)
 
         with warnings.catch_warnings():
             warnings.simplefilter("error", ConservationWarning)

@@ -61,6 +61,33 @@ class ConservationWarning(UserWarning):
     """
 
 
+class UnresolvedSpeciesWarning(UserWarning):
+    """Emitted when a species id the model has no ``Species`` for enters it:
+    in a phase's ``n_mol``, a feed or the template's set-up.
+
+    The simulation carries such an amount correctly; the conservation
+    checks cannot, since element and charge totals need its atoms and
+    charge. Declare the species to resolve it. Each id warns once per
+    control volume.
+    """
+
+
+def warn_unresolved(ids, where: str, *, stacklevel: int = 3) -> None:
+    """Warn with :class:`UnresolvedSpeciesWarning` that *ids* (sorted) have
+    no ``Species``; *where* names the call or event that introduced them."""
+    ids = sorted(ids)
+    if not ids:
+        return
+    warnings.warn(
+        f"{where}: {ids} {'has' if len(ids) == 1 else 'have'} no Species among "
+        f"the model's species, so the conservation checks skip "
+        f"{'it' if len(ids) == 1 else 'them'}. Declare each one, e.g. "
+        f"species=[Species(id={ids[0]!r}, atoms=..., charge=...)].",
+        UnresolvedSpeciesWarning,
+        stacklevel=stacklevel,
+    )
+
+
 # Module-level emission counter (parallel to AccuracyMonitor's).
 _summary_counter: Counter = Counter()
 
@@ -102,13 +129,13 @@ class ConservationMonitor:
     (mirrors :meth:`attach_monitor` for the AccuracyMonitor).
 
     Species composition comes from the
-    :attr:`_species_registry` dict, populated automatically by
-    :meth:`ControlVolume.__init__` by walking the reaction
-    stoichiometries. Species in ``phase.n_mol`` without a registry
-    entry are skipped — typical for unnamed strong-ion lumps like
-    ``S_cat``/``S_an`` (``atoms={}``, only charge contributes;
-    those are looked up from the engine's strong-ion mapping in
-    a separate code path if needed).
+    :attr:`_species_registry` dict, which :meth:`ControlVolume.__init__`
+    fills with the model's species (``cv.species``: those passed, the
+    database's, and those in the reaction stoichiometries). Species in
+    ``phase.n_mol`` without a registry entry are skipped; the CV warns
+    about each once (:class:`UnresolvedSpeciesWarning`). Charge-only
+    lumps such as BSM2's ``S_cat`` / ``S_an`` are declared as
+    ``Species`` with ``atoms={}``, so only their charge contributes.
     """
 
     def __init__(self) -> None:

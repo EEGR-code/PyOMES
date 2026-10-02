@@ -73,7 +73,9 @@ A stirred tank is a plain `ControlVolume` whose `phases` dict is
 `{"gas": GasPhase, "liquid": LiquidPhase}` and whose
 `internal_interfaces` list contains a `KineticGasLiquidLink` acting
 as a `PhaseInterface`.  Callers construct one via
-`StirredTankBuilder().build()` (or `StirredTankFactory.create_volume(...)`).
+`StirredTankBuilder().build()` (or `StirredTankFactory.create_volume(...)`),
+given the model's chemistry (`.chemistry(chemistry_db=..., species=...)`;
+there is no default database).
 
 Controllers never touch the link directly: they read a snapshot and
 change link parameters such as kLa through `params_changed` paths
@@ -377,8 +379,7 @@ PyOMES/
   __init__.py
   units.py                       # Shared constants and unit conversions
   config.py                      # PyOMES.config — WarningConfig, env-var presets
-  compounds.py                   # ChemicalRegistry, Chemical — standalone compound database
-  chemistry/                     # species.py (Species), common_species.py (inorganic aqueous species),
+  chemistry/                     # species.py (Species),
                                  # species_check.py (cross-reaction consistency), partition.py
                                  # (phase-partition protocols, ideal-gas VLE model)
   databases/                     # ChemistryDatabase (species + reactions + ThermoFramework bundle) and

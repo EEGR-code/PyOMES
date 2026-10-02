@@ -4,6 +4,113 @@ Standalone follow-up items surfaced during other phases — not yet
 scoped as their own phase, no branch, no checklist. Referenced from
 [`upcoming/README.md`](upcoming/README.md).
 
+## Findings from the explicit-species-resolution work
+
+Found 2026-09-30 while running the audits in
+[`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](upcoming/EXPLICIT_SPECIES_RESOLUTION.md)
+and working its checkpoints, not fixed.
+
+- **Core code assumes the gas ids `"O2"`, `"CO2"` and `"N2"`.** The DO sensor,
+  `GasFeed`'s and the membrane boundary's default air, the gas-liquid link's
+  CO2 defaults, the DO controllers' kLa paths and the vent physics' gas
+  tables. Scoped as its own design note:
+  [`upcoming/GAS_SPECIES_IN_CORE.md`](upcoming/GAS_SPECIES_IN_CORE.md).
+- **Aerobic growth ignores elements it does not balance.** The stirred-tank
+  tutorials grow `Yeast` (N 0.16) with `balance_basis="CHO"`, so the biomass
+  nitrogen is unaccounted for; a nitrogen source carrying S is not
+  balanced for S; a charged source leaves the reaction charged. Scoped as
+  its own design note:
+  [`upcoming/GROWTH_STOICHIOMETRY.md`](upcoming/GROWTH_STOICHIOMETRY.md).
+- **`docs/tutorials/templates/batch_fermenter.ipynb` cell 10 does not
+  compile.** Two `print("...")` calls have a literal line break inside the
+  string (`print("` then a newline then `Final ...`) where `\n` was meant,
+  so the cell raises `SyntaxError`; the same on `main`. The cells before it
+  (build and run) are unaffected.
+- **`ControlVolume.snapshot()` drops `chemistry_db`.** It rebuilds the CV
+  without it (the species set is carried across as `species=`), so a
+  snapshot's `chemistry_db` is `None` and
+  `Simulation._warn_thermo_mismatch` skips it. Passing it through would let
+  that check run on snapshotted simulations, which may warn where it does
+  not today.
+- **The conservation monitor does not net out boundary flows.** It compares
+  element and charge totals between steps, so gas leaving through a vent or
+  material entering with a feed reads as drift ("a kinetic reaction or
+  boundary that does not close"). In ADM1's fingerprint case the N2 vented
+  in one step (1.911e-4 mol N) is reported as N drift, alongside the O and H
+  drift from vented CO2 and water. Subtracting each boundary's flux would
+  leave only genuine imbalances. Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
+- **The liquid volume never changes (high priority).** `LiquidPhase.apply_flux`
+  changes moles only, `LiquidFeed` adds solute without volume, and nothing in
+  `PyOMES/` or `models/` sets a phase's `V_L` after construction. So a
+  fed-batch run never dilutes: `docs/tutorials/templates/fed_batch_fermenter.py`
+  feeds 5 L/h and its liquid is 1600 L at the start and at the end, and every
+  concentration it reports is computed on the starting volume. Its comment
+  that `V_L` "climbs as moles accumulate" is wrong. A CSTR with matched feed
+  and drain is unaffected. Fixing it means feeds, drains and doses carry a
+  volume and the phase's `V_L` follows; solution dosing
+  ([`upcoming/DOSING_AGENTS.md`](upcoming/DOSING_AGENTS.md)) depends on it.
+  Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
+- **The FBA notebooks declare no species.** `docs/tutorials/reactions/fba/fba_toy.ipynb`
+  and `fba_ecoli_core.ipynb` run a `BlackBoxReactionModel`, which exposes no
+  stoichiometry, and pass no `species=`, so every metabolite (Glucose, Biomass,
+  O2, CO2, Acetate, ...) raises `UnresolvedSpeciesWarning` and is invisible to
+  the conservation checks. Declaring them needs formulas (biomass's in
+  particular), and the monitor would then check the FBA rates, which are not
+  guaranteed to balance elements, so new drift warnings would follow. A
+  decision about those demos, not a mechanical fix.
+- **`docs/solvers.md` links to a folder that moved.** Three links (around
+  line 308) point at `../demos/features/SolverProtocols/`; the notebooks now
+  live in `docs/tutorials/protocols/SolverProtocols/`. Broken on `main` too.
+- **ADM1 / BSM2 helpers fall back to biomass for unknown ids.** ADM1's
+  `_mw()` returns the biomass MW, and BSM2's `_mw()` / `_thod()` / `_atoms()`
+  the biomass MW, ThOD and formula, for any id not in their tables. Every
+  current caller passes a table id or an organism, so nothing is wrong
+  today, but a misspelt id would be treated as biomass without a word (ADM1's
+  `_get_species` now raises instead). ADM1's `_at()` has no caller anywhere
+  in the repo (searched `.py`, `.ipynb`, `.md`).
+
+- **The engines never debit or credit solvent water.** The Bisection engine treats
+  `H2O` as a fixed solvent (`_SOLVENT_IDS = ("H2O",)` in
+  `engines/bisection/engine.py`): water consumed or produced by a declared
+  equilibrium such as `CO2 + H2O <-> HCO3- + H+` is not taken from or added
+  to `n_mol`, so each HCO3- formed adds 2 H and 1 O. In
+  `tests/standalone/test_user_defined_model.py` that is +2.5e-8 relative in H
+  and O over 1 h (strict expected failures there). Fixing it moves every
+  model's water amounts. Related name-keyed ids in the same engine: the
+  solvent is recognised by the id `"H2O"`, the proton by `"H+"`
+  (`_H_PLUS_ID`), and the solver reports H+ and OH- under those fixed ids
+  whatever ids the model declared. The NR engine writes its own H2O, and all
+  three engines solve pH from a charge balance and overwrite (or ignore)
+  H+ and OH- in `n_mol`, so H+ or OH- a feed or dose adds leaves the H and
+  O books too. Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
+- **BSM2's nitrogen inhibition reads molecular NH3 as total nitrogen.**
+  `_I_IN` and `_I_nh3` in `models/vlmodels/adm1/bsm2.py` read
+  `concentrations["NH3"]` as S_IN (total inorganic nitrogen), and `_I_nh3`
+  then applies the free-NH3 fraction to it again. The speciation engine has
+  always written the NH3 / NH4+ split back to `n_mol`, so both see molecular
+  NH3 only.
+- **Some inventory floors are silent.** The step solvers warn
+  (`AccuracyWarning`) when `clamp_fn` scales a reaction, feed or boundary
+  flux, but `Phase.apply_flux`'s default `clamp=True` floors at zero without
+  a warning, and it is what internal gas-liquid transfer
+  (`ControlVolume.step_internal_transfer`), `apply_external_flux` and
+  inter-CV links (`Simulation`) use. `SimultaneousAdaptiveSolver` floors
+  trial states with `floor_nonnegative`, also without a warning.
+
+- **`build_adm1_cv(..., ethanol=True)` cannot build.** It calls
+  `.transfer_species("Ethanol")` without a Henry constant, and the
+  anaerobic-digestion database has no Ethanol partition model, so the
+  factory raises `ValueError: No partition model for 'Ethanol'`. No test
+  or notebook passes `ethanol=True`.
+- **The stirred-tank template's pH controller never doses.** A tank built by
+  `StirredTankBuilder` carries no acid-base equilibria: the database is used
+  only for partition models, and the reaction system is the growth reaction
+  alone. So `pH` is NaN at every step and a `PHController` configured on it
+  adds nothing. Measured on the fed-batch tutorial's configuration
+  (`docs/tutorials/templates/fed_batch_fermenter.py`, 2 h): no Na+ ever
+  appears. The batch, CSTR and microplate tutorials configure the same
+  controller on the same kind of tank.
+
 ## Four small findings from the molar-mass and `plot_vant_hoff` audit
 
 Found 2026-09-30 while checking the molar-mass and `plot_vant_hoff` items
@@ -575,8 +682,8 @@ nothing downstream would have worked with it even if it had been kept.
 
 If a "weighed salt → initial condition" convenience is wanted again, it
 should be species-based rather than pooled-total-based: given a compound name
-(resolved via `PyOMES.compounds.ChemicalRegistry`, which already carries
-molar masses) and a mass or stock-solution dose, emit species amounts
+(resolved against the `Species` passed to the model, which carry molar
+masses) and a mass or stock-solution dose, emit species amounts
 directly (`{"Na+": n_mol, "Cl-": n_mol, ...}`), not `CT_Na`/`CT_Cl`-style
 pooled totals. This also supersedes the recipe-layer open question in
 `docs/dev/implementation/upcoming/STRONG_ION_INFERENCE_GENERALIZATION.md`.
@@ -613,8 +720,8 @@ Logged 2026-09-22, `chemistry-reactions-kinetics-cleanup` checkpoint 12
 (decisions D5/D6). `reactions/kinetic/rate_laws.py`'s `DualSubstrateMonod` takes
 exactly one secondary species through four scalar arguments (`secondary_id`,
 `Ko`, `secondary_in_mol_L`, `secondary_MW`), and
-`ReactionBuilder.monod_aerobic_growth` exposes only an O2 term (`Ko2_gL`)
-with the id `"O2"` fixed. Neither extends to a second or third limiting
+`ReactionBuilder.monod_aerobic_growth` exposes only an O2 term (`Ko2_gL`,
+on the O2 `Species` it is given). Neither extends to a second or third limiting
 species (e.g. NH3 or a phosphate source) without a new class or a new
 argument.
 

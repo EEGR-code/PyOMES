@@ -16,10 +16,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    CO2, HCO3_minus, CO3_2minus,
-)
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from PyOMES.thermo import DaviesLiquidModel

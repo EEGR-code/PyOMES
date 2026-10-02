@@ -4,8 +4,6 @@ from __future__ import annotations
 
 __version__ = "0.12.5"
 
-from .compounds import ChemicalRegistry, Chemical
-
 from .control import (
     PressureReliefController,
     InstantPressureReliefController,
@@ -25,6 +23,7 @@ from .monitoring import (
     reset_accuracy_summary,
     ConservationMonitor,
     ConservationWarning,
+    UnresolvedSpeciesWarning,
     print_conservation_summary,
     reset_conservation_summary,
 )
@@ -39,8 +38,6 @@ from .properties import (
 )
 
 __all__ = [
-    'ChemicalRegistry',
-    'Chemical',
     'PressureReliefController',
     'InstantPressureReliefController',
     'SmoothPressureReliefController',
@@ -64,6 +61,7 @@ __all__ = [
     'reset_accuracy_summary',
     'ConservationMonitor',
     'ConservationWarning',
+    'UnresolvedSpeciesWarning',
     'print_conservation_summary',
     'reset_conservation_summary',
 ]

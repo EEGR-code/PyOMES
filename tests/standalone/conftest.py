@@ -17,15 +17,6 @@ for p in (_ROOT, _MODELS):
         sys.path.insert(0, p)
 
 
-# ── Chemical registry ──────────────────────────────────────────────────
-
-@pytest.fixture
-def registry():
-    """Default ChemicalRegistry with all built-in compounds."""
-    from PyOMES.compounds import ChemicalRegistry
-    return ChemicalRegistry.default()
-
-
 # ── Controllers ────────────────────────────────────────────────────────
 
 @pytest.fixture
@@ -40,7 +31,7 @@ def pressure_ctrl():
 def ph_ctrl():
     from PyOMES import PHController
     return PHController(
-        setpoint=6.6, chemical_id="H3PO4", base_chemical_id="KOH",
+        setpoint=6.6, acid_dose="H3PO4", base_dose={"K+": 1, "OH-": 1},
         Kp=1.0, Ki=1.0, max_add_molL_hr=10,
     )
 

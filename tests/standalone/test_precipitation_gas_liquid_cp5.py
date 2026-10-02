@@ -28,7 +28,14 @@ from PyOMES.units import R_L_ATM_PER_MOL_K
 
 
 def _carbonate_reactions():
-    from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+    from PyOMES.databases.aqueous import (
+        H2O,
+        H_plus,
+        OH_minus,
+        CO2,
+        HCO3_minus,
+        CO3_2minus,
+    )
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
 
     water = EquilibriumReaction(
@@ -49,13 +56,14 @@ def _carbonate_reactions():
 
 
 def _calcite_reaction():
-    from PyOMES.chemistry.common_species import Ca_plus_plus, CO3_2minus
+    from PyOMES.databases.bioprocess_basic import Ca_2plus
+    from PyOMES.databases.aqueous import CO3_2minus
     from PyOMES.chemistry.species import Species
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
 
     CaCO3 = Species(id="CaCO3", atoms={"Ca": 1, "C": 1, "O": 3}, charge=0, MW=100.086)
     return EquilibriumReaction(
-        stoichiometry=[E(CaCO3, "solid", -1), E(Ca_plus_plus, "liquid", +1),
+        stoichiometry=[E(CaCO3, "solid", -1), E(Ca_2plus, "liquid", +1),
                        E(CO3_2minus, "liquid", +1)],
         log_K=-8.48, label="calcite",
     )
@@ -63,8 +71,9 @@ def _calcite_reaction():
 
 def _co2_henry():
     from PyOMES.reactions import HenryEquilibrium
+    from PyOMES.databases.aqueous import CO2
     return HenryEquilibrium(
-        H_ref=3.4e-4, dlnH=2400.0, gas_species="CO2", liquid_species="CO2",
+        H_ref=3.4e-4, dlnH=2400.0, gas_species=CO2, liquid_species=CO2,
         label="henry_CO2",
     )
 

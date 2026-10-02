@@ -54,8 +54,12 @@ from PyOMES.core.boundaries import GasFeed, PressureReliefVent
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.control.cv_loops import PHController
 from PyOMES.chemistry import Species
-from PyOMES.chemistry.common_species import (
-    H_plus, H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import (
     EquilibriumReaction,
@@ -80,27 +84,30 @@ warnings.filterwarnings("ignore", category=ConservationWarning)
 # ── Chemistry (inlined — see docs/tutorials/reactions/reaction_system.ipynb
 #    for the same declarations as their own standalone, importable demo) ──
 
-# Acetic acid: HA (neutral) and its conjugate base. Acetate⁻ isn't in
-# common_species (which only holds universal inorganics), so it's
-# declared here alongside the dissociation it participates in.
+# Acetic acid: HA (neutral) and its conjugate base, declared here
+# alongside the dissociation they take part in.
 ACETIC_ACID = Species(
     id="AceticAcid", atoms={"C": 2, "H": 4, "O": 2}, charge=0, MW=60.052,
 )
 ACETATE_MINUS = Species(
     id="Acetate-", atoms={"C": 2, "H": 3, "O": 2}, charge=-1, MW=59.044,
 )
-# CO2 declared locally (rather than imported from common_species) so its
-# MW matches the value ReactionBuilder.aerobic_growth uses when it
-# constructs its own internal CO2 — without the match, the CV's
-# species-consistency check raises on the tiny MW disagreement (44.009
-# vs common_species' 44.01).
+# CO2 and O2 declared here; the growth reaction and the CO2 partition below
+# use these same objects.
 CO2 = Species(id="CO2", atoms={"C": 1, "O": 2}, charge=0, MW=44.009)
+O2 = Species(id="O2", atoms={"O": 2}, charge=0)
 
 # Biomass: a CHO pseudo-molecule "Yeast", the nitrogen-free composition
-# listed as "Yeast_CHO" in PyOMES.compounds.ChemicalRegistry.
+# listed as "Yeast_CHO" in PyOMES.databases.bioprocess_basic.
 YEAST = Species(
-    id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0, MW=24.626,
+    id="Yeast", atoms={"C": 1, "H": 1.61, "O": 0.56}, charge=0,
 )
+
+# Sodium: the pH controller doses NaOH as Na+ + OH-. Na+ is in no reaction,
+# so it is passed to the CV as one of the model's species.
+NA_PLUS = Species(id="Na+", atoms={"Na": 1}, charge=+1)
+# Nitrogen: in the headspace and the sparged air, in no reaction.
+N2 = Species(id="N2", atoms={"N": 2}, charge=0)
 
 
 def make_aerobic_growth_on_acetate(
@@ -114,7 +121,10 @@ def make_aerobic_growth_on_acetate(
     Y = float(yield_gX_gS)
 
     def rate_fn(env):
-        C_S = env.concentrations.get("AceticAcid", 0.0)
+        # Substrate: acetic acid and acetate together (the speciation engine
+        # writes both forms back to n_mol).
+        C_S = (env.concentrations.get("AceticAcid", 0.0)
+               + env.concentrations.get("Acetate-", 0.0))
         C_X = env.concentrations.get("Yeast", 0.0)
         S_gL = C_S * MW_S
         X_gL = C_X * MW_X
@@ -124,12 +134,8 @@ def make_aerobic_growth_on_acetate(
         return (mu / Y) * X_gL / MW_S * env.V_L
 
     return ReactionBuilder.aerobic_growth(
-        substrate_id=ACETIC_ACID.id,
-        substrate_atoms=dict(ACETIC_ACID.atoms),
-        MW_substrate=MW_S,
-        biomass_id=YEAST.id,
-        biomass_atoms=dict(YEAST.atoms),
-        MW_biomass=MW_X,
+        ACETIC_ACID, YEAST,
+        o2=O2, co2=CO2, h2o=H2O,
         yield_gX_gS=Y,
         rate_fn=rate_fn,
         balance="CHO",
@@ -151,6 +157,24 @@ def make_acetate_dissociation(pKa: float = 4.756) -> EquilibriumReaction:
     )
 
 
+def make_water_dissociation(pKw: float = 14.0) -> EquilibriumReaction:
+    """Water autoionisation: H2O ⇌ H⁺ + OH⁻. log_K = -pKw.
+
+    The speciation engine includes water in the charge balance only when
+    this reaction is declared.
+    """
+    return EquilibriumReaction(
+        stoichiometry=[
+            StoichiometryEntry(species=H2O, phase="liquid", coefficient=-1.0),
+            StoichiometryEntry(species=H_plus, phase="liquid", coefficient=+1.0),
+            StoichiometryEntry(species=OH_minus, phase="liquid", coefficient=+1.0),
+        ],
+        log_K=-float(pKw),
+        balance_elements=("H", "O"),
+        label="eq_water",
+    )
+
+
 def make_co2_partition() -> EquilibriumReaction:
     """Cross-phase partition: CO2(gas) <-> CO2aq(liquid). log_K lives on the link, not here."""
     return EquilibriumReaction(
@@ -167,10 +191,9 @@ def make_phosphate_ladder() -> list:
     """Phosphate equilibrium ladder: H3PO4 <-> H2PO4- <-> HPO4-- <-> PO4---.
 
     The PHController below doses raw ``H3PO4`` as its acid corrector.
-    ``H3PO4`` isn't a recognised strong-corrector alias (unlike
-    ``NaOH`` -> ``Na+``, resolved automatically by
-    ``ControlVolume.apply_external_flux``) -- it only shifts pH by
-    actually dissociating, which requires this ladder to be declared
+    Unlike its base dose (``Na+`` + ``OH-``, where the charged ``Na+``
+    moves pH through charge balance), ``H3PO4`` is neutral -- it only
+    shifts pH by actually dissociating, which requires this ladder to be declared
     in the CV's own reaction_system. Without it, dosed H3PO4
     accumulates as inert neutral acid and never releases H+, silently
     disabling the acid half of the pH loop. Same log_K values as
@@ -267,7 +290,7 @@ def build_liquid_phase(gas_phase: GasPhase) -> LiquidPhase:
 
     # Acetic acid: 1.2 g/L total acetate (MW = 60.052 g/mol).
     n_acetate_total = (1.2 / float(ACETIC_ACID.MW)) * V_LIQ
-    # Yeast inoculum: 0.1 g/L (MW = 24.626 g/mol).
+    # Yeast inoculum: 0.1 g/L (MW = 22.593 g/mol, from the atoms).
     n_yeast = (0.1 / float(YEAST.MW)) * V_LIQ
 
     n_mol = {
@@ -319,8 +342,8 @@ def build() -> Simulation:
     liquid = build_liquid_phase(gas)
 
     # ReactionSystem from the factories declared above. They produce one
-    # kinetic reaction, single-phase equilibria (acetate + the phosphate
-    # ladder the pH controller's H3PO4 corrector needs), and one
+    # kinetic reaction, single-phase equilibria (water, acetate and the
+    # phosphate ladder the pH controller's H3PO4 corrector needs), and one
     # cross-phase equilibrium reaction; the system pre-buckets them at
     # construction and the CV routes each bucket appropriately.
     rxn_system = ReactionSystem(
@@ -328,6 +351,7 @@ def build() -> Simulation:
             make_aerobic_growth_on_acetate(
                 mu_max_per_h=0.5, Ks_g_per_L=5e-3, yield_gX_gS=0.36,
             ),
+            make_water_dissociation(pKw=14.0),
             make_acetate_dissociation(pKa=4.756),
             *make_phosphate_ladder(),
             make_co2_partition(),
@@ -340,6 +364,7 @@ def build() -> Simulation:
         transfer_models=build_transfer_models(),
         reaction_system=rxn_system,
         label="raw_construction",
+        species=[NA_PLUS, N2],
     )
 
     # Boundaries: append after construction (mirrors the builder demos).
@@ -357,7 +382,7 @@ def build() -> Simulation:
     controllers = [
         PHController(
             setpoint=PH_SETPOINT, Kp=0.5, Ki=0.0,
-            chemical_id="H3PO4", base_chemical_id="NaOH",
+            acid_dose="H3PO4", base_dose={"Na+": 1, "OH-": 1},
             max_add_molL_hr=0.05,
         ),
     ]

@@ -30,6 +30,7 @@ from .links import CVLink, LinkFlowRecord
 from .recorder import BatchRecorder
 from .snapshot import CVSnapshot, build_cv_snapshot, build_simulation_snapshot
 from PyOMES.control.actions import ControlAction, ProfileRecord
+from PyOMES.monitoring.conservation import warn_unresolved
 
 
 class Simulation:
@@ -117,6 +118,35 @@ class Simulation:
         # representing physically distinct phases (e.g. aqueous + organic);
         # potentially a bug if they represent zones of the same phase.
         self._warn_thermo_mismatch()
+
+        # Pre-flight validation: controllers that dose species check them
+        # against their target CV's species (the CV named by target_cv_key,
+        # or the only CV).
+        for ctrl in self._controllers:
+            check = getattr(ctrl, "check_species", None)
+            if check is None:
+                continue
+            tcv = getattr(ctrl, "target_cv_key", None)
+            if tcv is not None and tcv in self.cvs:
+                check(self.cvs[tcv])
+            elif tcv is None and len(self.cvs) == 1:
+                check(next(iter(self.cvs.values())))
+
+        # Boundaries that bring species into a CV (feeds, membranes) warn
+        # for ids the CV's model has no Species for.
+        for key, cv in self.cvs.items():
+            for boundary in cv.boundaries:
+                species_ids = getattr(boundary, "species_ids", None)
+                if species_ids is None:
+                    continue
+                new = set(species_ids()) - cv.species.keys() - cv._unresolved_reported
+                if new:
+                    cv._unresolved_reported |= new
+                    warn_unresolved(
+                        new,
+                        f"{type(boundary).__name__}({boundary.label!r}) on "
+                        f"ControlVolume({key!r})",
+                    )
 
         # Pre-flight validation: no CV is already owned by another
         # Simulation. Raise before wiring so a half-owned partial

@@ -60,17 +60,20 @@ For example, here's a 2 L batch fermenter with pH control, built with the `templ
 
 ```python
 from PyOMES.templates.stirred_tank import StirredTankBuilder
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
+from PyOMES.databases.bioprocess_basic import AIR
 from PyOMES.control import PHController
 
 builder = (
     StirredTankBuilder()
     .vessel(V_total_L=2.0, T_K=305.15)
+    .initial_gas(AIR)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
-    .transfer_kinetic(kLa_O2=150.0)
-    .chemistry()
+    .transfer_kinetic({"O2": 150.0, "CO2": 135.0}, equilibrium=["N2"])
+    .chemistry(chemistry_db=AD_BASIC)
     .organism("Yeast")
     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
-    .controller(PHController(setpoint=5.0, Kp=0.5, Ki=0.0))
+    .controller(PHController(setpoint=5.0, Kp=0.5, Ki=0.0, acid_dose="H3PO4"))
 )
 sim = builder.build_simulation()
 result = sim.run(tau_h=5.0, n_steps=1000)
@@ -149,7 +152,7 @@ As of this writing, `tests/standalone/` and `tests/validation/` cover:
 | Aqueous chemical equilibrium / speciation | `test_speciation.py`, `test_speciation_protocols.py`, `test_nr_speciation_engine.py`, `test_equilibrium_classification.py` |
 | PHREEQC cross-validation | `test_phreeqc_engine.py`, `tests/validation/speciation/test_phreeqc_nr_agreement.py` |
 | NIST / analytical reference validation | `tests/validation/speciation/test_carbonate_phosphate_benchmarks.py`, `test_iron_oxidation.py`, `test_saturation_index.py` |
-| Chemistry database & species | `test_chemistry_database.py`, `test_compounds.py`, `test_species.py`, `test_partition_model.py`, `test_thermo_framework.py`, `test_liquid_phase_model.py` |
+| Chemistry database & species | `test_chemistry_database.py`, `test_species.py`, `test_partition_model.py`, `test_thermo_framework.py`, `test_liquid_phase_model.py` |
 | Reaction stoichiometry & kinetics | `test_reactions.py`, `test_stoichiometry.py`, `test_equilibrium_constraint.py` |
 | Control loops | `test_controller_state_protocol.py`, `test_descriptors.py`, `test_param_path.py` |
 | StirredTank templates | `test_builder.py`, `test_configs.py` |

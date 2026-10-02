@@ -24,18 +24,16 @@ Usage
 
 from __future__ import annotations
 
+import types
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 
-# Strong-corrector map: user-facing name → ion added to n_mol.
-# Only the charge-carrying ion is added; the counter-ion (OH- for bases,
-# H+ for acids) is produced automatically by the charge-balance solver.
-_STRONG_CORRECTOR_ION: Dict[str, str] = {
-    "NaOH": "Na+",
-    "KOH":  "K+",
-}
+from PyOMES.chemistry.dose import Dose, check_dose
+from PyOMES.chemistry.species import Species
+from PyOMES.chemistry.species_check import check_species_consistency, merge_species
+from PyOMES.monitoring.conservation import warn_unresolved
 
 from .phases import Phase, GasPhase, LiquidPhase
 from .interfaces import PhaseInterface, TransferDiagnostics, AdvanceResult
@@ -160,8 +158,20 @@ class ControlVolume:
         system are silently skipped during integration (they have
         no rate) and routed elsewhere by the system's internal
         pre-bucketing.
+    reactions : sequence of reactions, optional
+        The model's reactions, as an alternative to ``reaction_system``:
+        the CV wraps them in a
+        :class:`~PyOMES.reactions.reaction_system.ReactionSystem`. Passing
+        both raises.
     label : str
         Human-readable label for this CV (e.g. ``"fermenter"``, ``"ring_1"``).
+    chemistry_db : ChemistryDatabase, optional
+        The model's chemistry database, if it uses one. Stored as given;
+        its ``species`` join :attr:`species`. Its reactions are not run:
+        pass the ones the model uses in ``reactions`` or
+        ``reaction_system``.
+    species : mapping or iterable of Species, optional
+        Species the model defines itself. They join :attr:`species`.
     transfer_models : dict, optional
         ``{species_id: TransferModel}`` — the canonical way to declare
         intra-CV phase mass transfer.  Each entry is either a
@@ -191,7 +201,17 @@ class ControlVolume:
         chemistry_db: Optional[Any] = None,
         transfer_models: Optional[Dict[str, Any]] = None,
         phase_pair: Optional[tuple] = None,
+        reactions: Optional[Any] = None,
+        species: Optional[Any] = None,
     ):
+        if reactions is not None:
+            if reaction_system is not None:
+                raise ValueError(
+                    "Pass the model's reactions either as reactions= or as "
+                    "reaction_system=, not both."
+                )
+            from PyOMES.reactions.reaction_system import ReactionSystem
+            reaction_system = ReactionSystem(list(reactions), label=str(label))
         self.phases = dict(phases)
         self.label = str(label)
         # transfer_models is the canonical construction-time interface for
@@ -258,7 +278,6 @@ class ControlVolume:
         # stoichiometry (e.g. a bare BlackBoxReactionModel attached
         # directly without wrapping in a ReactionSystem).
         if self.reaction_system is not None:
-            from PyOMES.chemistry.species_check import check_species_consistency
             rxns = getattr(self.reaction_system, "reactions", None)
             if rxns is None and hasattr(self.reaction_system, "stoichiometry"):
                 rxns = [self.reaction_system]
@@ -279,6 +298,20 @@ class ControlVolume:
                 for iface in self.internal_interfaces:
                     if isinstance(iface, KineticGasLiquidLink):
                         iface.derive_speciation_keys(self.reaction_system)
+
+        # The model's species: the database's, those passed, and every
+        # species in the reaction stoichiometries. The same id with
+        # different data raises SpeciesConflictError. Stored as a dict
+        # (picklable); the species property gives a read-only view.
+        self._species = merge_species(
+            chemistry_db.species if chemistry_db is not None else {},
+            species if species is not None else {},
+            self._stoichiometry_species(),
+        )
+        # Ids in n_mol already reported as having no Species (each warns
+        # once); checked when the CV advances, see _check_unresolved.
+        self._unresolved_reported: set = set()
+        self._has_advanced: bool = False
 
         # AccuracyMonitor: per-CV check runner for cheap numerical
         # accuracy heuristics (pH change, Newton iters, scipy step
@@ -346,6 +379,15 @@ class ControlVolume:
     @property
     def phase_keys(self) -> list:
         return list(self.phases.keys())
+
+    @property
+    def species(self) -> Mapping[str, Species]:
+        """The model's species, ``{id: Species}``, read-only.
+
+        Built once at construction from ``chemistry_db.species``, the
+        ``species`` passed and the species in the reaction stoichiometries.
+        """
+        return types.MappingProxyType(self._species)
 
     # ── Gated reaction_system access (C6) ──────────────────────────────
 
@@ -503,13 +545,7 @@ class ControlVolume:
         This is used by the orchestrator for feeds, vents, and inter-CV
         transport.  It is *not* tracked by ``step_internal_transfer``
         diagnostics (because external fluxes intentionally change the
-        CV's total inventory).
-
-        Strong-corrector aliases (``"NaOH"`` → ``"Na+"``,
-        ``"KOH"`` → ``"K+"``) are resolved here so that controller
-        dosing via :class:`~PyOMES.control.cv_loops.PHController`
-        is consistent with :meth:`equilibrate_to_pH`, which uses
-        the same mapping.
+        CV's total inventory). Each species id is applied as given.
 
         Parameters
         ----------
@@ -520,11 +556,7 @@ class ControlVolume:
         dt_h : float
             Timestep duration (hours).
         """
-        resolved = {
-            _STRONG_CORRECTOR_ION.get(sp, sp): mol_h
-            for sp, mol_h in flux_mol_per_h.items()
-        }
-        self.phases[phase_key].apply_flux(resolved, dt_h)
+        self.phases[phase_key].apply_flux(dict(flux_mol_per_h), dt_h)
 
     # ── Advance (reactions + equilibrium + properties) ─────────────────
 
@@ -655,10 +687,34 @@ class ControlVolume:
         # explicitly, wrapped, or placed in a config-driven dispatch
         # dict like any other StepSolver.
         solver = solver if solver is not None else SequentialAdvanceSolver()
-        return solver.solve_step(
+        self._check_unresolved(t_h)
+        result = solver.solve_step(
             self, dt_h, t_h,
             external_source_terms=external_source_terms,
         )
+        self._check_unresolved(t_h + dt_h)
+        return result
+
+    def _check_unresolved(self, t_h: float) -> None:
+        """Warn (:class:`~PyOMES.monitoring.UnresolvedSpeciesWarning`) for
+        ids in any phase's ``n_mol`` that have no ``Species`` in
+        :attr:`species`, once per id: those present when the CV first
+        advances, then any that appear later (feeds, doses, engine
+        write-back)."""
+        new = {
+            sp_id
+            for phase in self.phases.values()
+            for sp_id in getattr(phase, "n_mol", {})
+        } - self._species.keys() - self._unresolved_reported
+        if not new:
+            self._has_advanced = True
+            return
+        self._unresolved_reported |= new
+        where = (f"ControlVolume({self.label!r}) n_mol by t = {t_h:g} h"
+                 if self._has_advanced
+                 else f"ControlVolume({self.label!r}) n_mol when it first advanced")
+        self._has_advanced = True
+        warn_unresolved(new, where, stacklevel=5)
 
     # ── CV compute interface (Phase A — CV_COMPUTE_INTERFACE) ─────────────
 
@@ -838,53 +894,30 @@ class ControlVolume:
     # ── ConservationMonitor wiring (state-unification C6) ──────────────
 
     def _collect_species_registry(self) -> Dict[str, Any]:
-        """Build ``{species_id: Species}`` from the reaction
-        stoichiometries.
-
-        Used by :meth:`__init__` to seed the
-        :class:`ConservationMonitor`'s registry without requiring
-        the user to declare species twice. Species not appearing
-        in any reaction stoichiometry (e.g. unnamed strong-ion
-        lumps ``S_cat`` / ``S_an``) are absent from the registry
-        and silently skipped during conservation accounting.
+        """Return ``{species_id: Species}`` for the
+        :class:`ConservationMonitor`: the model's species
+        (:attr:`species`). An id in ``n_mol`` with no ``Species`` there
+        is skipped during conservation accounting.
         """
-        registry: Dict[str, Any] = {}
+        return dict(self.species)
+
+    def _stoichiometry_species(self) -> List[Species]:
+        """Every ``Species`` in the reaction stoichiometries (none for a
+        reaction model that does not expose them)."""
         if self.reaction_system is None:
-            return registry
+            return []
         rxns = getattr(self.reaction_system, "reactions", None)
         if rxns is None:
             # Bare KineticReaction attached directly
             if hasattr(self.reaction_system, "stoichiometry"):
                 rxns = [self.reaction_system]
             else:
-                return registry
-        for rxn in rxns:
-            stoich = getattr(rxn, "stoichiometry", None)
-            if stoich is None:
-                continue
-            for entry in stoich:
-                sp = entry.species
-                registry[sp.id] = sp
-        # Supplement with any species from common_species found in phase.n_mol
-        # (e.g. Cl-, Na+, K+ which never appear in reaction stoichiometry but
-        # must be included for charge conservation accounting).
-        _catalog = self._common_species_catalog()
-        for phase in self.phases.values():
-            for sp_id in phase.n_mol:
-                if sp_id not in registry:
-                    known = _catalog.get(sp_id)
-                    if known is not None:
-                        registry[sp_id] = known
-        return registry
-
-    @staticmethod
-    def _common_species_catalog() -> Dict[str, Any]:
-        """Return ``{id: Species}`` for every Species declared in
-        ``PyOMES.chemistry.common_species``.  Lazy import avoids
-        circular-import risk at module load time."""
-        from PyOMES.chemistry import common_species as _cs
-        from PyOMES.chemistry.species import Species
-        return {obj.id: obj for obj in vars(_cs).values() if isinstance(obj, Species)}
+                return []
+        return [
+            entry.species
+            for rxn in rxns
+            for entry in (getattr(rxn, "stoichiometry", None) or ())
+        ]
 
     # ── Property calculators (state-unification C5) ────────────────────
 
@@ -1107,8 +1140,11 @@ class ControlVolume:
     # ── Snapshot ───────────────────────────────────────────────────────
 
     def snapshot(self) -> "ControlVolume":
-        """Return an independent deep copy of this CV and all its phases."""
-        return ControlVolume(
+        """Return an independent deep copy of this CV and all its phases.
+
+        Ids already reported as unresolved are not reported again by the
+        copy."""
+        snap = ControlVolume(
             phases={k: p.snapshot() for k, p in self.phases.items()},
             internal_interfaces=list(self._explicit_interfaces),  # shared (stateless)
             transfer_models=self.transfer_models,  # factory rebuilds link fresh
@@ -1116,94 +1152,97 @@ class ControlVolume:
             reaction_system=self.reaction_system,  # shared (stateless)
             property_calculators=list(self.property_calculators),  # shared (stateless)
             label=self.label,
+            species=self.species,
         )
+        snap._unresolved_reported = set(self._unresolved_reported)
+        snap._has_advanced = self._has_advanced
+        return snap
 
     # ── Initialization utilities ─────────────────────────────────────────────
 
     def equilibrate_to_pH(
         self,
-        corrector_id: str,
+        dose: Dose,
         ph_target: float,
         *,
         liquid_key: str = "liquid",
         max_add_mol_per_L: float = 1.0,
         tol_pH: float = 1e-5,
     ) -> float:
-        """Add *corrector_id* to the liquid until *ph_target* is reached.
+        """Add *dose* to the liquid until *ph_target* is reached.
 
         The search is evaluated through :meth:`advance` at ``dt_h=0`` so
         all multi-phase equilibria (gas–liquid partitioning etc.) are
         accounted for alongside liquid speciation.
 
-        Strong-corrector shorthand: ``"NaOH"`` and ``"KOH"`` are recognised
-        without requiring dissolution reactions in the database — the method
-        adds the corresponding strong cation (``Na+`` / ``K+``) to
-        ``n_mol``, and the charge-balance solver automatically adjusts
-        ``OH-`` / ``H+`` to compensate.
-
         Parameters
         ----------
-        corrector_id:
-            Species id to add.  Either a recognised strong corrector
-            (``"NaOH"``, ``"KOH"``), or a species that appears in at least
-            one :class:`~PyOMES.reactions.EquilibriumReaction` stoichiometry.
+        dose:
+            What one mole of the reagent adds, ``{species_id: mol}``, e.g.
+            ``{"Na+": 1, "OH-": 1}`` for NaOH; a plain id is one mole of that
+            species (``"H3PO4"``). Every id must be among :attr:`species`; a
+            dose that is not charge-neutral warns (see
+            :func:`~PyOMES.chemistry.dose.check_dose`). At least one of its
+            species must appear in an equilibrium or carry a charge, or it
+            cannot move pH.
         ph_target:
             Target pH.
         liquid_key:
             Key of the liquid phase in :attr:`phases`.
         max_add_mol_per_L:
-            Search upper bound in mol per litre of liquid.
+            Search upper bound in mol of reagent per litre of liquid.
         tol_pH:
             Convergence tolerance on pH.
 
         Returns
         -------
         float
-            Moles added (always ≥ 0).
+            Moles of reagent added (always ≥ 0).
 
         Raises
         ------
         ValueError
-            If *corrector_id* is not a known strong corrector or in any
-            equilibrium stoichiometry, shifts pH in the wrong direction, or
-            the target is unreachable within *max_add_mol_per_L*.
+            If the dose names a species the model does not have, none of its
+            species is in an equilibrium or charged, it shifts pH in the
+            wrong direction, or the target is unreachable within
+            *max_add_mol_per_L*.
         """
         from scipy.optimize import brentq  # lazy — not needed at module load
 
+        composition = check_dose(dose, self.species)
         liq   = self.phases[liquid_key]
         V     = float(liq.V_L)
         max_n = max_add_mol_per_L * V
 
-        # Resolve the species actually added to n_mol. Strong correctors like
-        # NaOH are represented by their charge-carrying ion (Na+) so that no
-        # dissolution reaction is needed in the database.
-        _dose_id = _STRONG_CORRECTOR_ION.get(corrector_id, corrector_id)
+        def _add(n_reagent: float) -> None:
+            for sp_id, n_per in composition.items():
+                liq.n_mol[sp_id] = liq.n_mol.get(sp_id, 0.0) + n_per * n_reagent
 
         # Suppress the ConservationMonitor for the duration of the probe and
-        # brentq search: every internal advance adds an unbalanced strong ion
-        # (e.g. Na+) to n_mol, which would trigger spurious charge/element
-        # warnings.  The monitor is restored and re-baselined to the corrected
-        # initial state in a finally block so simulation drift is tracked
-        # cleanly from there regardless of whether the correction succeeds.
+        # brentq search: every internal advance adds the dose to n_mol, which
+        # would trigger spurious charge/element warnings. The monitor is
+        # restored and re-baselined to the corrected initial state in a
+        # finally block so simulation drift is tracked cleanly from there
+        # regardless of whether the correction succeeds.
         _saved_monitor = self._conservation_monitor
         self._conservation_monitor = None
         try:
-            # 1. Validate: corrector must participate in at least one equilibrium
-            #    (skipped for known strong correctors whose ion is always tracked)
+            # 1. Validate: some species in the dose must be able to move pH,
+            #    through an equilibrium or through charge balance.
             if self.reaction_system is None:
                 raise ValueError("CV has no reaction_system; cannot evaluate pH.")
-            if corrector_id not in _STRONG_CORRECTOR_ION:
-                eq_species = {
-                    e.species.id
-                    for rxn in self.reaction_system.single_phase_equilibria
-                    for e in rxn.stoichiometry
-                }
-                if corrector_id not in eq_species:
-                    raise ValueError(
-                        f"{corrector_id!r} does not appear in any EquilibriumReaction "
-                        f"stoichiometry and therefore cannot shift pH through speciation.\n"
-                        f"Species covered by equilibria: {sorted(eq_species)}"
-                    )
+            eq_species = {
+                e.species.id
+                for rxn in self.reaction_system.single_phase_equilibria
+                for e in rxn.stoichiometry
+            }
+            if not any(sp in eq_species or self.species[sp].charge != 0
+                       for sp in composition):
+                raise ValueError(
+                    f"Dose {composition} has no species in any EquilibriumReaction "
+                    f"stoichiometry and none that carries a charge, so it cannot "
+                    f"shift pH.\nSpecies covered by equilibria: {sorted(eq_species)}"
+                )
 
             # 2. Baseline pH via zero-timestep advance
             snap0 = self.snapshot_state()
@@ -1219,7 +1258,7 @@ class ControlVolume:
             # 3. Probe direction: tiny addition reveals which way pH moves
             eps = max_n * 1e-6
             snap0 = self.snapshot_state()
-            liq.n_mol[_dose_id] = liq.n_mol.get(_dose_id, 0.0) + eps
+            _add(eps)
             self.advance(dt_h=0.0, t_h=0.0)
             pH_probe = float(liq.pH)
             self.restore_state(snap0)
@@ -1227,7 +1266,7 @@ class ControlVolume:
             dpH = pH_probe - pH_base
             if abs(dpH) < 1e-12:
                 raise ValueError(
-                    f"Adding {corrector_id!r} produced no measurable pH change at "
+                    f"Adding {composition} produced no measurable pH change at "
                     "the current composition. The species may be fully buffered or "
                     "decoupled from the proton balance at this pH."
                 )
@@ -1238,7 +1277,7 @@ class ControlVolume:
                 direction = "raises" if species_raises else "lowers"
                 needed    = "raise"  if needs_rise    else "lower"
                 raise ValueError(
-                    f"Adding {corrector_id!r} {direction} pH "
+                    f"Adding {composition} {direction} pH "
                     f"(baseline {pH_base:.3f} → probe {pH_probe:.3f}), "
                     f"but reaching ph_target={ph_target:.3f} requires a {needed}. "
                     "Choose a corrector that moves pH in the correct direction."
@@ -1247,7 +1286,7 @@ class ControlVolume:
             # 4. Bracket and root-find with brentq
             def _residual(n_add: float) -> float:
                 snap = self.snapshot_state()
-                liq.n_mol[_dose_id] = liq.n_mol.get(_dose_id, 0.0) + n_add
+                _add(n_add)
                 self.advance(dt_h=0.0, t_h=0.0)
                 pH = float(liq.pH)
                 self.restore_state(snap)
@@ -1257,7 +1296,7 @@ class ControlVolume:
             if (r_hi * (pH_base - ph_target)) > 0:
                 raise ValueError(
                     f"Target pH {ph_target:.3f} not reached within "
-                    f"{max_add_mol_per_L:.2f} mol/L of {corrector_id!r} "
+                    f"{max_add_mol_per_L:.2f} mol/L of {composition} "
                     f"(pH at max dose: {ph_target + r_hi:.3f}). "
                     "Increase max_add_mol_per_L."
                 )
@@ -1265,10 +1304,10 @@ class ControlVolume:
             n_opt = brentq(_residual, 0.0, max_n, xtol=1e-12, rtol=1e-10)
 
             # 5. Apply optimal amount and leave CV in equilibrated state.
-            liq.n_mol[_dose_id] = liq.n_mol.get(_dose_id, 0.0) + n_opt
+            _add(n_opt)
             self.advance(dt_h=0.0, t_h=0.0)
             print(
-                f"pH correction: added {n_opt * 1000:.4f} mmol {corrector_id!r} "
+                f"pH correction: added {n_opt * 1000:.4f} mmol of {composition} "
                 f"({n_opt / V * 1000:.4f} mmol/L).\n"
                 f"pH: {pH_base:.4f} → {float(liq.pH):.4f}  (target {ph_target:.4f})"
             )

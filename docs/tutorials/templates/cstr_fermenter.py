@@ -22,6 +22,8 @@ Run from the repo root::
 import numpy as np
 
 from PyOMES.templates.stirred_tank import StirredTankBuilder
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
+from PyOMES.databases.bioprocess_basic import AIR
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import PressureReliefVent, LiquidFeed, LiquidDrain
 from PyOMES.control.cv_loops import PHController, DOAgitationController
@@ -49,7 +51,7 @@ V_liq = V_total_L * (1.0 - headspace_frac)
 T_K = 305.15
 
 MW_AcOH = 60.052
-MW_yeast = 26.868
+MW_yeast = AD_BASIC.species["Yeast"].MW
 
 C_AcOH_feed_gL = 5.0
 C_AcOH_feed = C_AcOH_feed_gL / MW_AcOH
@@ -81,10 +83,11 @@ n_steps = 20000
 cv = (
     StirredTankBuilder()
     .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
+    .initial_gas(AIR)
     .gas_feed(vvm_min=1.0, composition={"O2": 0.21, "N2": 0.79})
-    .transfer_kinetic(kLa_O2=90.0, kLa_CO2_ratio=1.0)
+    .transfer_kinetic({"O2": 90.0, "CO2": 90.0}, equilibrium=["N2"])
     .transfer_species("N2", mode="kinetic", kLa_per_h=90.0)
-    .chemistry()
+    .chemistry(chemistry_db=AD_BASIC)
     .organism("Yeast", balance_basis="CHO")
     .substrate("AceticAcid", mu_max=0.5, Ks=5e-3, yield_gX_gS=0.36)
     .label("cstr")
@@ -125,7 +128,7 @@ controllers = []
 if USE_PH_CONTROL:
     controllers.append(PHController(
         setpoint=PH_SETPOINT, Kp=0.5, Ki=0.2,
-        chemical_id="H3PO4", base_chemical_id="NaOH",
+        acid_dose="H3PO4", base_dose={"Na+": 1, "OH-": 1},
         max_add_molL_hr=0.05,
     ))
 if USE_DO_CONTROL:

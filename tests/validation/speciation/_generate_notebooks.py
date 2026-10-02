@@ -51,11 +51,23 @@ SETUP = """\
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    CO2, HCO3_minus, CO3_2minus,
-    NH3, NH4_plus, Na_plus, Cl_minus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+from PyOMES.databases.aqueous import (
+    H2O,
+    H_plus,
+    OH_minus,
+    CO2,
+    HCO3_minus,
+    CO3_2minus,
+    NH3,
+    NH4_plus,
+)
+from PyOMES.databases.bioprocess_basic import (
+    Na_plus,
+    Cl_minus,
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -1123,11 +1135,8 @@ SETUP5 = """\
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    CO2, HCO3_minus, CO3_2minus,
-    Ca_plus_plus,
-)
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+from PyOMES.databases.bioprocess_basic import Ca_2plus
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -1160,7 +1169,7 @@ CaCO3 = Species(id="CaCO3", atoms={"Ca":1,"C":1,"O":3}, charge=0, MW=100.086)
 calcite = EquilibriumReaction(
     stoichiometry=[
         _e(CaCO3,       "solid",  -1),
-        _e(Ca_plus_plus,"liquid", +1),
+        _e(Ca_2plus,"liquid", +1),
         _e(CO3_2minus,  "liquid", +1),
     ],
     log_K=-8.48,
@@ -1223,7 +1232,7 @@ CaCO3 = Species(id="CaCO3", atoms={"Ca":1,"C":1,"O":3}, charge=0, MW=100.086)
 calcite = EquilibriumReaction(
     stoichiometry=[
         StoichiometryEntry(species=CaCO3,       phase="solid",  coefficient=-1),
-        StoichiometryEntry(species=Ca_plus_plus, phase="liquid", coefficient=+1),
+        StoichiometryEntry(species=Ca_2plus, phase="liquid", coefficient=+1),
         StoichiometryEntry(species=CO3_2minus,   phase="liquid", coefficient=+1),
     ],
     log_K=-8.48,   # Ksp at 25 °C
@@ -1466,11 +1475,17 @@ SETUP6 = """\
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    CO2, HCO3_minus, CO3_2minus,
-    NH3, NH4_plus, Ca_plus_plus,
+from PyOMES.databases.aqueous import (
+    H2O,
+    H_plus,
+    OH_minus,
+    CO2,
+    HCO3_minus,
+    CO3_2minus,
+    NH3,
+    NH4_plus,
 )
+from PyOMES.databases.bioprocess_basic import Ca_2plus
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -1515,7 +1530,7 @@ engine_carb_nh3 = NRChemicalEquilibriumEngine.from_reactions(
 
 CaCO3_s = Species(id='CaCO3', atoms={'Ca':1,'C':1,'O':3}, charge=0, MW=100.086)
 calcite = EquilibriumReaction(
-    stoichiometry=[_e(CaCO3_s,'solid',-1), _e(Ca_plus_plus,'liquid',+1), _e(CO3_2minus,'liquid',+1)],
+    stoichiometry=[_e(CaCO3_s,'solid',-1), _e(Ca_2plus,'liquid',+1), _e(CO3_2minus,'liquid',+1)],
     log_K=-8.48, label='calcite',
 )
 engine_precip = NRChemicalEquilibriumEngine.from_reactions(

@@ -56,9 +56,12 @@ import pytest
 
 from PyOMES.chemistry import Species
 from PyOMES.reactions import HenryEquilibrium
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
     K_plus,
 )
 from PyOMES.reactions import (
@@ -162,8 +165,9 @@ def _make_cv(pH_target, V_L=1.0, V_gas=1000.0, T_K=298.15):
         transfer_models={"O2": EquilibriumTransferModel(O2_HENRY)},
         reaction_system=_make_reaction_system(),
         label="test_batch_Fe_O2_oxidation",
+        species=[K_plus],  # counter-ion, in no reaction
     )
-    cv.equilibrate_to_pH("KOH", pH_target)
+    cv.equilibrate_to_pH({"K+": 1, "OH-": 1}, pH_target)
     return cv
 
 

@@ -17,6 +17,18 @@
 > `validate_against_cv` design (checking against strong-corrector aliases and
 > declared equilibria, not `COMPOUND_DB`) is the actual replacement, still
 > not yet implemented.
+>
+> **Update 2026-10-02 (`explicit-species-resolution`, checkpoint 13):**
+> `chemical_id` / `base_chemical_id` are now `acid_dose` / `base_dose`,
+> compositions of the model's species (`{"Na+": 1, "OH-": 1}` for NaOH;
+> a plain id is one mole of it), with no default; `_STRONG_CORRECTOR_ION`
+> is deleted. `Simulation` now checks each dose against its target CV's
+> species when it is built (an unknown id raises; a dose that is not
+> charge-neutral warns). Still open, and the remaining scope of this note:
+> whether a dose can move pH at all (some species in a declared
+> equilibrium or charged, as `equilibrate_to_pH` checks), and whether the
+> engine recognises a charged species as a strong ion. The text below
+> predates the update and uses the old names.
 
 ## Motivation
 

@@ -26,8 +26,9 @@ import pytest
 
 def _co2_henry(H_ref=3.4e-4, dlnH=2400.0):
     from PyOMES.reactions import HenryEquilibrium
+    from PyOMES.databases.aqueous import CO2
     return HenryEquilibrium(
-        H_ref=H_ref, dlnH=dlnH, gas_species="CO2", liquid_species="CO2",
+        H_ref=H_ref, dlnH=dlnH, gas_species=CO2, liquid_species=CO2,
         label="partition_CO2",
     )
 
@@ -135,7 +136,7 @@ class TestOldBugStructurallyImpossible:
         it is not prevented, only made unnecessary."""
         from PyOMES.reactions import HenryEquilibrium
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
 
         kinetic_side = HenryEquilibrium(H_ref=3.4e-4, dlnH=2400.0)
         # A hand-built "routing" reaction with no relation whatsoever to

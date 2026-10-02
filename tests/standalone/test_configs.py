@@ -5,15 +5,16 @@ Validates:
 - Default construction and derived properties
 - Validation rejects invalid inputs
 - to_dict / from_dict round-trip serialisation
-- TransferConfig convenience constructors (default_kinetic, default_equilibrium)
-- OrganismConfig.resolve() and SubstrateConfig.resolve() from registry
-- Explicit atoms/MW override registry lookup
+- TransferConfig convenience constructors (kinetic, equilibrium)
+- OrganismConfig / SubstrateConfig take an id, an id with atoms, or a Species
 - TransferMode enum string parsing
 - SpeciesTransferConfig from raw dict in TransferConfig
 """
 
 import pytest
 import copy
+
+from PyOMES.chemistry import Species
 
 from PyOMES.templates.stirred_tank import (
     TransferMode,
@@ -45,13 +46,16 @@ class TestVesselConfig:
         assert v.V_headspace_L == pytest.approx(25.0)
         assert v.V_liquid_L == pytest.approx(75.0)
 
-    def test_yN2_computed_from_balance(self):
-        v = VesselConfig(yO2_init=0.21, yCO2_init=0.04)
-        assert v.yN2_init == pytest.approx(0.75, abs=1e-10)
+    def test_gas_composition_defaults_to_empty(self):
+        assert VesselConfig().gas_composition == {}
 
-    def test_yN2_explicit(self):
-        v = VesselConfig(yO2_init=0.21, yCO2_init=0.04, yN2_init=0.5)
-        assert v.yN2_init == 0.5
+    def test_gas_composition_kept_as_given(self):
+        v = VesselConfig(gas_composition={"O2": 0.21, "Ar": 0.01})
+        assert v.gas_composition == {"O2": 0.21, "Ar": 0.01}
+
+    def test_negative_gas_fraction_raises(self):
+        with pytest.raises(ValueError, match="gas_composition"):
+            VesselConfig(gas_composition={"O2": -0.1})
 
     def test_invalid_volume_raises(self):
         with pytest.raises(ValueError, match="V_total_L"):
@@ -92,9 +96,16 @@ class TestVesselConfig:
 class TestGasFeedConfig:
 
     def test_defaults(self):
-        g = GasFeedConfig()
+        g = GasFeedConfig(composition={"N2": 1.0})
         assert g.vvm_min == 1.0
         assert g.P_inlet_atm == 1.0
+
+    def test_feed_without_composition_raises(self):
+        with pytest.raises(ValueError, match="composition"):
+            GasFeedConfig()
+
+    def test_zero_vvm_needs_no_composition(self):
+        assert GasFeedConfig(vvm_min=0.0).composition == {}
 
     def test_composition_normalised(self):
         g = GasFeedConfig(composition={"O2": 1, "N2": 3})
@@ -161,23 +172,22 @@ class TestSpeciesTransferConfig:
 
 class TestTransferConfig:
 
-    def test_default_kinetic_factory(self):
-        t = TransferConfig.default_kinetic(kLa_O2=200.0)
+    def test_kinetic_factory(self):
+        t = TransferConfig.kinetic({"O2": 200.0, "CO2": 180.0}, equilibrium=["N2"])
+        assert list(t.species) == ["O2", "CO2", "N2"]
         assert t.species["O2"].mode == TransferMode.KINETIC
         assert t.species["O2"].kLa_per_h == 200.0
-        assert t.species["CO2"].mode == TransferMode.KINETIC
-        assert t.species["CO2"].kLa_per_h == pytest.approx(180.0)
+        assert t.species["CO2"].kLa_per_h == 180.0
         assert t.species["N2"].mode == TransferMode.EQUILIBRIUM
 
-    def test_default_equilibrium_factory(self):
-        t = TransferConfig.default_equilibrium()
-        for sp in ("O2", "CO2", "N2"):
+    def test_equilibrium_factory(self):
+        t = TransferConfig.equilibrium(["CH4", "H2"])
+        assert list(t.species) == ["CH4", "H2"]
+        for sp in ("CH4", "H2"):
             assert t.species[sp].mode == TransferMode.EQUILIBRIUM
 
-    def test_custom_co2_ratio(self):
-        t = TransferConfig.default_kinetic(kLa_O2=100.0, kLa_CO2_ratio=0.8)
-        assert t.species["CO2"].kLa_per_h == pytest.approx(80.0)
-        assert t.kLa_CO2_ratio == 0.8
+    def test_default_is_no_transfer(self):
+        assert TransferConfig().species == {}
 
     def test_accepts_raw_dicts(self):
         t = TransferConfig(
@@ -194,12 +204,12 @@ class TestTransferConfig:
             TransferConfig(species={"O2": 42})
 
     def test_round_trip(self):
-        t1 = TransferConfig.default_kinetic(kLa_O2=250.0)
+        t1 = TransferConfig.kinetic({"O2": 250.0, "CO2": 225.0}, equilibrium=["N2"])
         d = t1.to_dict()
         t2 = TransferConfig.from_dict(d)
         assert t2.species["O2"].kLa_per_h == 250.0
         assert t2.species["CO2"].mode == TransferMode.KINETIC
-        assert t2.kLa_CO2_ratio == t1.kLa_CO2_ratio
+        assert t2.species["N2"].mode == TransferMode.EQUILIBRIUM
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -211,14 +221,12 @@ class TestChemistryConfig:
     def test_defaults(self):
         c = ChemistryConfig()
         assert c.activity_model == "ideal"
-        assert "AceticAcid" in c.acid_pKas
 
     def test_round_trip(self):
         c1 = ChemistryConfig(activity_model="davies")
         d = c1.to_dict()
         c2 = ChemistryConfig.from_dict(d)
         assert c2.activity_model == "davies"
-        assert c2.acid_pKas == c1.acid_pKas
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -227,15 +235,21 @@ class TestChemistryConfig:
 
 class TestOrganismConfig:
 
+    def test_organism_is_required(self):
+        with pytest.raises(TypeError):
+            OrganismConfig()
+
     def test_defaults(self):
-        o = OrganismConfig()
-        assert o.organism_id == "Yeast"
+        o = OrganismConfig("Yeast")
+        assert o.organism == "Yeast"
         assert o.balance_basis == "CHO"
-        assert o.atoms is None  # resolved later
+        assert o.atoms is None and o.MW is None
+        assert o.n_source_id is None
+        assert o.overwrite is False
 
     def test_explicit_atoms_and_mw(self):
         o = OrganismConfig(
-            organism_id="Custom",
+            organism="Custom",
             atoms={"C": 1, "H": 2, "O": 1},
             MW=30.0,
             balance_basis="CHO",
@@ -243,49 +257,54 @@ class TestOrganismConfig:
         assert o.atoms["C"] == 1
         assert o.MW == 30.0
 
+    def test_species_accepted(self):
+        sp = Species(id="E_coli", atoms={"C": 1, "H": 1.77, "O": 0.49, "N": 0.24})
+        assert OrganismConfig(sp).organism is sp
+
+    def test_species_with_atoms_raises(self):
+        sp = Species(id="E_coli", atoms={"C": 1})
+        with pytest.raises(ValueError, match="is a Species"):
+            OrganismConfig(sp, atoms={"C": 1})
+
+    def test_mw_without_atoms_raises(self):
+        with pytest.raises(ValueError, match="needs atoms="):
+            OrganismConfig("Yeast", MW=24.6)
+
+    def test_non_id_raises(self):
+        with pytest.raises(TypeError, match="species id"):
+            OrganismConfig(42)
+
     def test_invalid_balance_raises(self):
         with pytest.raises(ValueError, match="balance_basis"):
-            OrganismConfig(balance_basis="XYZ")
+            OrganismConfig("Yeast", balance_basis="XYZ")
 
     def test_normalises_balance_case(self):
-        o = OrganismConfig(balance_basis="chno")
+        o = OrganismConfig("Yeast", balance_basis="chno", n_source_id="NH3")
         assert o.balance_basis == "CHNO"
+
+    def test_chno_without_n_source_raises(self):
+        with pytest.raises(ValueError, match="n_source_id"):
+            OrganismConfig("Yeast", balance_basis="CHNO")
 
     def test_invalid_mw_raises(self):
         with pytest.raises(ValueError, match="MW"):
-            OrganismConfig(MW=-5.0)
-
-    def test_resolve_from_default_registry(self):
-        o = OrganismConfig(organism_id="Yeast")
-        resolved = o.resolve()
-        assert resolved.atoms is not None
-        assert resolved.atoms["C"] == pytest.approx(1.0)
-        assert resolved.MW is not None
-        assert resolved.MW > 0
-
-    def test_resolve_keeps_explicit_atoms(self):
-        o = OrganismConfig(
-            organism_id="Yeast",
-            atoms={"C": 99, "H": 99},
-            MW=999.0,
-        )
-        resolved = o.resolve()
-        assert resolved.atoms["C"] == 99
-        assert resolved.MW == 999.0
-
-    def test_resolve_unknown_organism_without_atoms_raises(self):
-        o = OrganismConfig(organism_id="UnknownBug")
-        with pytest.raises(KeyError):
-            o.resolve()
+            OrganismConfig("Custom", atoms={"C": 1}, MW=-5.0)
 
     def test_round_trip(self):
-        o1 = OrganismConfig(organism_id="E_coli", balance_basis="CHNO",
-                            atoms={"C": 1, "H": 1.77, "O": 0.49, "N": 0.24}, MW=23.7)
+        o1 = OrganismConfig(organism="E_coli", balance_basis="CHNO", n_source_id="NH3",
+                            atoms={"C": 1, "H": 1.77, "O": 0.49, "N": 0.24}, MW=23.7,
+                            o2_id="O2_aq", overwrite=True)
         d = o1.to_dict()
         o2 = OrganismConfig.from_dict(d)
-        assert o2.organism_id == "E_coli"
+        assert o2.organism == "E_coli"
         assert o2.balance_basis == "CHNO"
         assert o2.atoms["N"] == pytest.approx(0.24)
+        assert (o2.n_source_id, o2.o2_id, o2.overwrite) == ("NH3", "O2_aq", True)
+
+    def test_round_trip_keeps_species(self):
+        sp = Species(id="E_coli", atoms={"C": 1, "H": 1.77, "O": 0.49})
+        o2 = OrganismConfig.from_dict(OrganismConfig(sp).to_dict())
+        assert o2.organism is sp
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -294,14 +313,19 @@ class TestOrganismConfig:
 
 class TestSubstrateConfig:
 
+    def test_substrate_is_required(self):
+        with pytest.raises(TypeError):
+            SubstrateConfig()
+
     def test_defaults(self):
-        s = SubstrateConfig()
-        assert s.substrate_id == "AceticAcid"
+        s = SubstrateConfig("AceticAcid")
+        assert s.substrate == "AceticAcid"
         assert s.mu_max == 0.5
+        assert s.overwrite is False
 
     def test_explicit_atoms_and_mw(self):
         s = SubstrateConfig(
-            substrate_id="Custom",
+            substrate="Custom",
             atoms={"C": 6, "H": 12, "O": 6},
             MW=180.0,
             mu_max=0.8,
@@ -310,53 +334,36 @@ class TestSubstrateConfig:
         )
         assert s.MW == 180.0
 
+    def test_species_accepted(self):
+        sp = Species(id="Glucose", atoms={"C": 6, "H": 12, "O": 6})
+        assert SubstrateConfig(sp).substrate is sp
+
+    def test_mw_without_atoms_raises(self):
+        with pytest.raises(ValueError, match="needs atoms="):
+            SubstrateConfig("Glucose", MW=180.0)
+
     def test_invalid_mu_max_raises(self):
         with pytest.raises(ValueError, match="mu_max"):
-            SubstrateConfig(mu_max=0.0)
+            SubstrateConfig("AceticAcid", mu_max=0.0)
 
     def test_invalid_yield_raises(self):
         with pytest.raises(ValueError, match="yield_gX_gS"):
-            SubstrateConfig(yield_gX_gS=-0.1)
+            SubstrateConfig("AceticAcid", yield_gX_gS=-0.1)
 
     def test_invalid_mw_raises(self):
         with pytest.raises(ValueError, match="MW"):
-            SubstrateConfig(MW=-5.0)
+            SubstrateConfig("Custom", atoms={"C": 1}, MW=-5.0)
 
     def test_negative_ks_raises(self):
         with pytest.raises(ValueError, match="Ks"):
-            SubstrateConfig(Ks=-0.001)
-
-    def test_resolve_from_registry(self):
-        s = SubstrateConfig(substrate_id="AceticAcid")
-        resolved = s.resolve()
-        assert resolved.atoms is not None
-        assert resolved.atoms["C"] == pytest.approx(2.0)
-        assert resolved.MW == pytest.approx(60.052)
-        # Kinetics should be preserved
-        assert resolved.mu_max == s.mu_max
-        assert resolved.yield_gX_gS == s.yield_gX_gS
-
-    def test_resolve_keeps_explicit(self):
-        s = SubstrateConfig(
-            substrate_id="AceticAcid",
-            atoms={"C": 99},
-            MW=999.0,
-        )
-        resolved = s.resolve()
-        assert resolved.atoms["C"] == 99
-        assert resolved.MW == 999.0
-
-    def test_resolve_unknown_without_atoms_raises(self):
-        s = SubstrateConfig(substrate_id="UnknownSubstrate")
-        with pytest.raises(KeyError):
-            s.resolve()
+            SubstrateConfig("AceticAcid", Ks=-0.001)
 
     def test_round_trip(self):
-        s1 = SubstrateConfig(substrate_id="Glucose", atoms={"C": 6, "H": 12, "O": 6},
+        s1 = SubstrateConfig(substrate="Glucose", atoms={"C": 6, "H": 12, "O": 6},
                              MW=180.0, mu_max=0.8, Ks=0.02, yield_gX_gS=0.5)
         d = s1.to_dict()
         s2 = SubstrateConfig.from_dict(d)
-        assert s2.substrate_id == "Glucose"
+        assert s2.substrate == "Glucose"
         assert s2.MW == 180.0
         assert s2.mu_max == 0.8
 

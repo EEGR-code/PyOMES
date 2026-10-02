@@ -45,7 +45,9 @@ from PyOMES.reactions import (
     arrhenius_factor,
 )
 from PyOMES.chemistry.species import Species
-from PyOMES.chemistry.common_species import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
+from PyOMES.databases.aqueous import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
+from PyOMES.databases.anaerobic_digestion import H2S as _H2S_sp
+from PyOMES.databases.aqueous import H_plus as _H_plus_sp, OH_minus as _OH_minus_sp
 from PyOMES.thermo.temperature_correction import ln_correction
 
 logger = logging.getLogger(__name__)
@@ -79,7 +81,7 @@ SPECIES = {
     "S_I":         ({"C":1, "H":1.8, "O":0.5, "N":0.2},    24.6),
     # Sulfur species (Stage 11)
     "SO4":         ({"S":1, "O":4},                          96.06),
-    "H2S":         ({"S":1, "H":2},                          34.08),
+    "H2S":         ({"S":1, "H":2},                          _H2S_sp.MW),
     # Ethanol extension
     "Ethanol":     ({"C":2, "H":6, "O":1},                  46.068),
 }
@@ -666,11 +668,16 @@ _ADM1_SPECIES_CACHE: Dict[str, Species] = {}
 
 
 def _get_species(sp_id: str) -> Species:
-    """Return (or build and cache) a ``Species`` object for an ADM1 species id."""
+    """Return (or build and cache) a ``Species`` object for an ADM1 species id.
+
+    The id must be in ``SPECIES`` or an organism in ``ORG`` (CHON biomass
+    for ``CHON_ORGS``, CHO biomass otherwise); any other id raises
+    ``KeyError``.
+    """
     cached = _ADM1_SPECIES_CACHE.get(sp_id)
     if cached is not None:
         return cached
-    # Universal inorganics: alias the common_species objects so
+    # Universal inorganics: alias the aqueous database's objects so
     # cross-model composition does not trip the soft-conflict check.
     if sp_id == "CO2":
         sp_obj = _CO2_sp
@@ -678,13 +685,20 @@ def _get_species(sp_id: str) -> Species:
         sp_obj = _NH3_sp
     elif sp_id == "H2O":
         sp_obj = _H2O_sp
+    elif sp_id == "H2S":
+        sp_obj = _H2S_sp
     elif sp_id in SPECIES:
         atoms, mw = SPECIES[sp_id]
         sp_obj = Species(id=sp_id, atoms=dict(atoms), charge=0, MW=float(mw))
     elif sp_id in CHON_ORGS:
         sp_obj = Species(id=sp_id, atoms=dict(BIO_CHON), charge=0, MW=float(BIO_MW))
-    else:
+    elif sp_id in ORG.values():
         sp_obj = Species(id=sp_id, atoms=dict(BIO_CHO), charge=0, MW=float(BIO_MW))
+    else:
+        raise KeyError(
+            f"{sp_id!r} is not an ADM1 species: it is neither in SPECIES nor "
+            f"an organism in ORG. Add it to SPECIES (atoms, MW) or ORG."
+        )
     _ADM1_SPECIES_CACHE[sp_id] = sp_obj
     return sp_obj
 
@@ -910,6 +924,20 @@ def build_adm1_reactions(
     _log("Total: %d reactions (%d biochemical + %d decay + 1 disintegration)",
          len(reactions), n_bio, len(all_orgs))
 
+    # Water autoionisation, pKw 14 with no temperature correction: the
+    # speciation engine's charge balance includes water only when a
+    # water reaction is declared.
+    reactions.append(EquilibriumReaction(
+        stoichiometry=[
+            StoichiometryEntry(species=_H2O_sp,      phase="liquid", coefficient=-1.0),
+            StoichiometryEntry(species=_H_plus_sp,   phase="liquid", coefficient=+1.0),
+            StoichiometryEntry(species=_OH_minus_sp, phase="liquid", coefficient=+1.0),
+        ],
+        log_K=-14.0,
+        balance_elements=("H", "O"),
+        label="eq_water",
+    ))
+
     # Cross-phase partition declarations (chemistry-unification-3b C7).
     # These auto-wire speciation_keys and build speciation_ladders at CV
     # construction via derive_speciation_keys. No log_K — Henry's law
@@ -977,6 +1005,9 @@ def build_adm1_cv(
     from PyOMES.templates.stirred_tank import StirredTankBuilder
     from PyOMES.core.boundaries import PressureReliefVent
     from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
+    # The anaerobic-digestion database supplies the Henry models for the
+    # CH4, H2 and H2S transfer declared below.
+    from PyOMES.databases.anaerobic_digestion import AD_BASIC
 
     # Equilibria are pre-bucketed by the ReactionSystem; the engine
     # consumes the single-phase + cross-phase lists directly (the
@@ -1001,10 +1032,10 @@ def build_adm1_cv(
     # drive derive_speciation_keys() at CV construction; no manual
     # speciation_keys wiring needed.
     b = (StirredTankBuilder()
-         .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac,
-                 T_K=T_K, yO2_init=0.0, yCO2_init=0.0)
+         .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
+         .initial_gas({"N2": 1.0})
          .no_gas_feed()
-         .transfer_equilibrium()
+         .transfer_equilibrium(["O2", "CO2", "N2"])
          .transfer_species("CH4")
          .transfer_species("H2"))
 
@@ -1014,7 +1045,7 @@ def build_adm1_cv(
     if ethanol:
         b = b.transfer_species("Ethanol")  # no speciation correction — no dissociation
 
-    cv = (b.chemistry(activity_model=activity_model)
+    cv = (b.chemistry(activity_model=activity_model, chemistry_db=AD_BASIC)
             .reaction_system(reaction_system)
             .label("ADM1")
             .build())

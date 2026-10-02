@@ -56,22 +56,6 @@ _TOTAL_KEY_OVERRIDES = {
     "CT_NH_T": "CT_NH_T",
 }
 
-# Species written back to phase.n_mol by EquilibriumResult.apply_to_phases()
-# for this engine. This is a fixed set; it deliberately does NOT include
-# generic polyprotic-ladder keys (e.g. "{name}_HA") — those land in
-# EquilibriumResult.extra instead.
-_CANONICAL_WRITEBACK_SPECIES = (
-    "H+", "OH-",
-    "CO2", "HCO3-", "CO3--",
-    "NH3", "NH4+",
-    "H3PO4", "H2PO4-", "HPO4--", "PO4---",
-    "H2S", "HS-",
-    "HSO4-", "SO4--",
-    "K+", "Na+", "Cl-",
-    "Mg++", "Ca++",
-    "Zn++", "Mn++", "Co++", "Mo7O24------",
-)
-
 # Meta keys consumed into EquilibriumResult's named fields — excluded from
 # both species_mol_L and extra.
 _META_KEYS = frozenset({
@@ -164,11 +148,26 @@ class BisectionChemicalEquilibriumEngine:
         - **Water dissociation:** the only reaction whose products
           include both H⁺ and OH⁻. Recognised regardless of the
           species id of the consumed water (defaults to ``"H2O"``).
+          Without one, water autoionisation plays no part in the
+          charge balance and OH⁻ is zero.
         - **Acid (``HA ⇌ A⁻ + H⁺``):** one reactant with charge 0
           (or any non-positive charge), one anionic product, and H⁺.
         - **Cation acid (``BH⁺ ⇌ B + H⁺``):** one reactant with
           positive charge, one neutral or less-positive product, and
           H⁺.
+
+        **What is written back.** Each solve reads an acid's total as the
+        sum of its declared forms in ``n_mol`` and writes each form back
+        under its own id, together with H⁺ (and OH⁻ when water is
+        declared); strong ions are inputs and are not written. Nothing
+        the reactions do not declare reaches ``n_mol``. A total (e.g. HA
+        plus A⁻) is therefore the model's to compute where it needs one,
+        such as in a rate law. A kinetic reaction that consumes one form
+        is made up from the others at the next solve; if it removes more
+        of that form within one step than is present, the step solver
+        clamps it and warns (``AccuracyWarning``), which calls for a
+        smaller step or a solver that re-solves the equilibria within
+        the step (``SimultaneousAdaptiveSolver``).
 
         **Gas-liquid / solid-liquid items are not silently dropped.**
         Items that classify as ``"gas_liquid"`` or ``"solid_liquid"``
@@ -467,22 +466,25 @@ class BisectionChemicalEquilibriumEngine:
                     alphas[mol_key] = a
 
         # ------------------------------------------------------------------
-        # Build EquilibriumResult. species_mol_L is restricted to the fixed
-        # canonical tuple of species this engine writes back — generic
-        # polyprotic-ladder keys (e.g. "{name}_HA") land in `extra` instead,
-        # not species_mol_L, so apply_to_phases() only writes the canonical
-        # set.
+        # Build EquilibriumResult. With declared equilibria, species_mol_L
+        # holds only the species they declare (see _written_species), so
+        # apply_to_phases() writes back nothing the model was not given;
+        # everything else the solve reports (echoed strong ions, generic
+        # "{name}_HA" keys) lands in `extra`. Without declared equilibria
+        # there are no species to go by, and species_mol_L holds every
+        # species the solve computed.
         # ------------------------------------------------------------------
+        written = _written_species(eq_set) if eq_set is not None else None
         species_mol_L: Dict[str, float] = {}
         extra: Dict[str, Any] = {}
         for key, val in out.items():
             if key in _META_KEYS:
                 continue
-            if key in _CANONICAL_WRITEBACK_SPECIES and val is not None:
+            if (written is None or key in written) and val is not None:
                 try:
                     species_mol_L[key] = float(val)
                 except (TypeError, ValueError):
-                    pass
+                    extra[key] = val
             else:
                 extra[key] = val
 
@@ -508,9 +510,10 @@ class BisectionChemicalEquilibriumEngine:
     def get_CO2aq_from_totals(self, **kwargs) -> float:
         """Return dissolved molecular CO2(aq) (mol/L) for the given aqueous totals."""
         result = self.solve(**kwargs)
-        # "CO2aq" is not in the canonical writeback tuple (only "CO2" is),
-        # so it may land in `extra` rather than `species_mol_L` depending on
-        # which solve path produced it — check both.
+        # The solve without declared equilibria reports molecular CO2 as
+        # "CO2aq"; with them, it is the declared species' id (e.g. "CO2"),
+        # in `species_mol_L` only if declared and otherwise in `extra` —
+        # check both keys in both places.
         for key in ("CO2aq", "CO2"):
             val = result.species_mol_L.get(key)
             if val is None:
@@ -550,11 +553,7 @@ class BisectionChemicalEquilibriumEngine:
         eq_set = getattr(self, "_equilibrium_set", None)
         if eq_set is None:
             return frozenset()
-        result = {"H+", "OH-"}
-        for eq_def in eq_set:
-            for sp in eq_def.species_refs:
-                result.add(sp.id)
-        return frozenset(result)
+        return _written_species(eq_set)
 
 
 class ChemicalEquilibriumEngine(BisectionChemicalEquilibriumEngine):
@@ -584,6 +583,21 @@ class ChemicalEquilibriumEngine(BisectionChemicalEquilibriumEngine):
 # ════════════════════════════════════════════════════════════════════════
 #  Helpers for BisectionChemicalEquilibriumEngine.from_reactions
 # ════════════════════════════════════════════════════════════════════════
+
+def _written_species(eq_set) -> frozenset:
+    """Species ids the engine writes back to ``n_mol`` for *eq_set*.
+
+    The species of its declared equilibria (their ``species_refs``), plus
+    H+ when any equilibrium or water is declared and OH- when water is.
+    Strong ions are inputs to the solve, not results, and are not written.
+    """
+    ids = {sp.id for eq_def in eq_set for sp in eq_def.species_refs}
+    if len(eq_set) or eq_set.water is not None:
+        ids.add("H+")
+    if eq_set.water is not None:
+        ids.add("OH-")
+    return frozenset(ids)
+
 
 _SOLVENT_IDS = ("H2O",)
 

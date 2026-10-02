@@ -30,6 +30,7 @@ Run from the repo root::
 import numpy as np
 
 from PyOMES.templates.stirred_tank import StirredTankBuilder
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.core import Simulation
 from PyOMES.core.boundaries import MembraneGasBoundary
 from PyOMES.units import R_L_ATM_PER_MOL_K
@@ -96,11 +97,11 @@ MW_ecoli = 23.7
 
 cv = (
     StirredTankBuilder()
-    .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K,
-            yO2_init=0.1995, yCO2_init=0.05)
+    .vessel(V_total_L=V_total_L, headspace_frac=headspace_frac, T_K=T_K)
+    .initial_gas({"O2": 0.1995, "CO2": 0.05, "N2": 1.0 - 0.1995 - 0.05})
     .no_gas_feed()
-    .transfer_equilibrium()
-    .chemistry()
+    .transfer_equilibrium(["O2", "CO2", "N2"])
+    .chemistry(chemistry_db=AD_BASIC)
     .organism("E_coli", atoms={"C": 1, "H": 1.77, "O": 0.49, "N": 0.24},
               MW=MW_ecoli, balance_basis="CHO")
     .substrate("Glucose", atoms={"C": 6, "H": 12, "O": 6}, MW=MW_glucose,
@@ -125,7 +126,7 @@ controllers = []
 if USE_PH_CONTROL:
     controllers.append(PHController(
         setpoint=PH_SETPOINT, Kp=0.1, Ki=0.05,
-        chemical_id="H3PO4", base_chemical_id="NaOH",
+        acid_dose="H3PO4", base_dose={"Na+": 1, "OH-": 1},
         max_add_molL_hr=0.01,
     ))
 

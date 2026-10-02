@@ -33,7 +33,7 @@ import pytest
 
 
 def _water_rxn():
-    from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus
+    from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
     return EquilibriumReaction(
         stoichiometry=[
@@ -43,6 +43,12 @@ def _water_rxn():
         ],
         log_K=-14.0, balance_elements=("H", "O"), label="water",
     )
+
+
+def _raoult():
+    from PyOMES.databases.aqueous import H2O
+    from PyOMES.reactions import RaoultEquilibrium
+    return RaoultEquilibrium(gas_species=H2O, liquid_species=H2O)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -56,7 +62,7 @@ class TestRaoultTableauFold:
         from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
         return NRChemicalEquilibriumEngine.from_reactions(
-            [_water_rxn(), RaoultEquilibrium()], T_K=298.15,
+            [_water_rxn(), _raoult()], T_K=298.15,
         )
 
     def test_h2o_does_not_become_a_master(self, engine):
@@ -89,7 +95,7 @@ class TestRaoultTableauFold:
         from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 
-        raoult = RaoultEquilibrium()
+        raoult = _raoult()
         engine = NRChemicalEquilibriumEngine.from_reactions(
             [_water_rxn(), raoult], T_K=308.15,
         )
@@ -108,9 +114,7 @@ class TestRaoultTableauFold:
         """A CO2 ladder alongside the Raoult H2O fold: CO2 gets a real
         component/master (finite total), H2O does not — both coexist in
         the same tableau without interfering."""
-        from PyOMES.chemistry.common_species import (
-            H2O, H_plus, CO2, HCO3_minus, CO3_2minus,
-        )
+        from PyOMES.databases.aqueous import H2O, H_plus, CO2, HCO3_minus, CO3_2minus
         from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -135,7 +139,7 @@ class TestRaoultTableauFold:
             label="co2_second",
         )
         engine = NRChemicalEquilibriumEngine.from_reactions(
-            [_water_rxn(), co2_first, co2_second, RaoultEquilibrium()],
+            [_water_rxn(), co2_first, co2_second, _raoult()],
             T_K=298.15,
         )
         assert set(engine.tableau.masters) == {"H+", "CO2"}

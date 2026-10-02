@@ -35,9 +35,9 @@ def _solve_simple(*, CT_TIC=0.0, acid_totals=None, acid_pKas=None,
 
 def _species(result):
     """Merge species_mol_L + extra for membership checks against an
-    EquilibriumResult — species not in the fixed canonical writeback
-    tuple (e.g. custom acids like "AceticAcid") land in `extra` rather
-    than `species_mol_L`.
+    EquilibriumResult — anything the solve reports that its declared
+    equilibria do not declare (e.g. echoed strong ions) lands in `extra`
+    rather than `species_mol_L`.
     """
     return {**result.species_mol_L, **result.extra}
 
@@ -500,7 +500,7 @@ class TestCanonicalEmission:
         """
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus, H2O, CO2, HCO3_minus
+        from PyOMES.databases.aqueous import H_plus, H2O, CO2, HCO3_minus
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -531,7 +531,7 @@ class TestCanonicalEmission:
         """
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus, NH3, NH4_plus
+        from PyOMES.databases.aqueous import H_plus, NH3, NH4_plus
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -564,7 +564,7 @@ class TestCanonicalEmission:
         """
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus
+        from PyOMES.databases.aqueous import H_plus
         from PyOMES.chemistry.species import Species
 
         AceticAcid = Species(
@@ -603,7 +603,7 @@ class TestApplyToPhasesWriteback:
     def test_apply_to_phases_matches_species_mol_L(self):
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus, H2O, CO2, HCO3_minus
+        from PyOMES.databases.aqueous import H_plus, H2O, CO2, HCO3_minus
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -631,3 +631,47 @@ class TestApplyToPhasesWriteback:
                 f"{sp_id}: n_mol={liq.n_mol[sp_id]!r} != "
                 f"species_mol_L*V_L={conc * liq.V_L!r}"
             )
+
+
+class TestWaterDeclaration:
+    """Water autoionisation is part of the charge balance only when declared."""
+
+    def _reactions(self, *, with_water):
+        from PyOMES.chemistry.species import Species
+        from PyOMES.reactions import EquilibriumReaction
+
+        sp = {s.id: s for s in (
+            Species(id="H2O", atoms={"H": 2, "O": 1}),
+            Species(id="H+", atoms={"H": 1}, charge=+1),
+            Species(id="OH-", atoms={"O": 1, "H": 1}, charge=-1),
+            Species(id="HA", atoms={"C": 2, "H": 4, "O": 2}),
+            Species(id="A-", atoms={"C": 2, "H": 3, "O": 2}, charge=-1),
+        )}
+        rxns = [EquilibriumReaction("HA,aq <-> A-,aq + H+,aq", species=sp, log_K=-4.76)]
+        if with_water:
+            rxns.append(EquilibriumReaction("H2O,aq <-> H+,aq + OH-,aq", species=sp, log_K=-14.0))
+        return rxns
+
+    def test_new_set_has_no_water(self):
+        from PyOMES.chemical_equilibrium.engines.bisection.equilibria import EquilibriumSet
+        eq_set = EquilibriumSet()
+        assert eq_set.water is None
+        assert "no water" in repr(eq_set)
+
+    def test_set_water_requires_pKw(self):
+        from PyOMES.chemical_equilibrium.engines.bisection.equilibria import EquilibriumSet
+        with pytest.raises(TypeError):
+            EquilibriumSet().set_water()
+
+    def test_without_water_reaction_OH_is_zero(self):
+        eng = BisectionChemicalEquilibriumEngine.from_reactions(self._reactions(with_water=False))
+        assert eng._equilibrium_set.water is None
+        out = _species(eng.solve(acid_totals={"HA": 0.01}))
+        assert out["OH-"] == 0.0
+        assert out["H+"] == pytest.approx(out["A-"], rel=1e-9)  # charge balance: H+ = A-
+
+    def test_with_water_reaction_OH_follows_pKw(self):
+        eng = BisectionChemicalEquilibriumEngine.from_reactions(self._reactions(with_water=True))
+        assert eng._equilibrium_set.water.pKw == pytest.approx(14.0)
+        out = _species(eng.solve(acid_totals={"HA": 0.01}))
+        assert out["H+"] * out["OH-"] == pytest.approx(1e-14, rel=1e-6)

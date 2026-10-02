@@ -288,6 +288,13 @@ SENTINEL_FINAL_LIQUID_CONC = {
     "NH4+":   0.0049999889335691425,
 }
 
+# The VFA sentinels are totals: the speciation engine writes each VFA and its
+# conjugate base back to n_mol separately, so the test sums these ids.
+SENTINEL_LIQUID_IDS = {
+    "S_ac":  ("S_ac", "S_ac-"),
+    "S_pro": ("S_pro", "S_pro-"),
+}
+
 # End-of-trajectory gas-phase mole counts (mol).
 # Re-baselined alongside the liquid concentrations above.
 SENTINEL_FINAL_GAS_MOL = {
@@ -376,7 +383,8 @@ class TestBSM2Sentinels:
         for sp, expected in SENTINEL_FINAL_LIQUID_CONC.items():
             assert expected is not None, \
                 f"sentinel for liquid {sp} not yet captured"
-            actual = final["liquid_n_mol"].get(sp, 0.0) / V_liq
+            ids = SENTINEL_LIQUID_IDS.get(sp, (sp,))
+            actual = sum(final["liquid_n_mol"].get(i, 0.0) for i in ids) / V_liq
             assert math.isclose(actual, expected, rel_tol=RTOL_SENTINEL), (
                 f"liquid {sp}: expected {expected!r}, got {actual!r} "
                 f"(rel diff {abs(actual - expected) / max(abs(expected), 1e-30):.3e})"

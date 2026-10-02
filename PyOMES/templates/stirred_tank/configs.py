@@ -19,6 +19,7 @@ from dataclasses import dataclass, field, fields, asdict
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from PyOMES.chemistry.species import Species
 from PyOMES.thermo import ActivityModel, make_activity_model
 
 
@@ -51,22 +52,18 @@ class VesselConfig:
         Temperature (Kelvin).
     P_init_atm : float
         Initial headspace pressure (atm).
-    yO2_init : float
-        Initial O₂ mole fraction in headspace.
-    yCO2_init : float
-        Initial CO₂ mole fraction in headspace.
-    yN2_init : float or None
-        Initial N₂ mole fraction.  If ``None``, computed as
-        ``1 − yO2 − yCO2`` (balance).
+    gas_composition : dict
+        ``{species_id: mole fraction}`` of the initial headspace gas;
+        normalised by its sum. Empty (the default) means the headspace
+        starts with no gas. E.g.
+        :data:`~PyOMES.databases.bioprocess_basic.AIR`.
     """
 
     V_total_L: float = 2.0
     headspace_frac: float = 0.20
     T_K: float = 305.15
     P_init_atm: float = 1.0
-    yO2_init: float = 0.2095
-    yCO2_init: float = 0.0004
-    yN2_init: Optional[float] = None
+    gas_composition: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self):
         if self.V_total_L <= 0:
@@ -79,8 +76,10 @@ class VesselConfig:
             raise ValueError(f"T_K must be > 0, got {self.T_K}")
         if self.P_init_atm <= 0:
             raise ValueError(f"P_init_atm must be > 0, got {self.P_init_atm}")
-        if self.yN2_init is None:
-            self.yN2_init = max(0.0, 1.0 - self.yO2_init - self.yCO2_init)
+        self.gas_composition = dict(self.gas_composition)
+        negative = {sp: y for sp, y in self.gas_composition.items() if y < 0}
+        if negative:
+            raise ValueError(f"gas_composition fractions must be >= 0, got {negative}")
 
     @property
     def V_headspace_L(self) -> float:
@@ -112,16 +111,15 @@ class GasFeedConfig:
         Gas volume per liquid volume per minute (L_gas/L_liq/min).
         Set to 0 for no sparging (e.g. well plate).
     composition : dict
-        Inlet gas mole fractions, e.g. ``{"O2": 0.21, "N2": 0.79}``.
-        Normalised internally.
+        Inlet gas mole fractions by species id, e.g.
+        ``{"O2": 0.21, "N2": 0.79}``; normalised internally. No default:
+        a feed with ``vvm_min > 0`` must say what it feeds.
     P_inlet_atm : float
         Inlet gas pressure (atm).
     """
 
     vvm_min: float = 1.0
-    composition: Dict[str, float] = field(
-        default_factory=lambda: {"O2": 0.21, "N2": 0.79}
-    )
+    composition: Dict[str, float] = field(default_factory=dict)
     P_inlet_atm: float = 1.0
 
     def __post_init__(self):
@@ -129,6 +127,11 @@ class GasFeedConfig:
             raise ValueError(f"vvm_min must be >= 0, got {self.vvm_min}")
         if self.P_inlet_atm <= 0:
             raise ValueError(f"P_inlet_atm must be > 0, got {self.P_inlet_atm}")
+        if self.vvm_min > 0 and not self.composition:
+            raise ValueError(
+                "A gas feed with vvm_min > 0 needs a composition, "
+                "e.g. composition={'O2': 0.21, 'N2': 0.79}."
+            )
         # Normalise composition
         raw = dict(self.composition)
         y_sum = sum(max(0.0, float(v)) for v in raw.values())
@@ -162,8 +165,8 @@ class SpeciesTransferConfig:
         ``mode`` is ``"kinetic"``.
     henry_mol_L_atm : float or None
         Henry constant (mol/L/atm) at the vessel temperature.  If
-        ``None``, the factory will compute it from the temperature-
-        dependent correlation.
+        ``None``, the factory takes the species' partition model from the
+        model's ``chemistry_db``.
     """
 
     mode: TransferMode = TransferMode.EQUILIBRIUM
@@ -190,14 +193,10 @@ class TransferConfig:
     ----------
     species : dict
         ``{species_id: SpeciesTransferConfig}``.  Species not listed
-        are not transferred.
-    kLa_CO2_ratio : float
-        If CO₂ kLa is not explicitly set, derive it as
-        ``kLa_O2 × kLa_CO2_ratio``.  Default 0.9 (diffusivity scaling).
+        are not transferred; the default is no transfer.
     """
 
     species: Dict[str, SpeciesTransferConfig] = field(default_factory=dict)
-    kLa_CO2_ratio: float = 0.9
 
     def __post_init__(self):
         # Convert any raw dicts to SpeciesTransferConfig
@@ -215,37 +214,31 @@ class TransferConfig:
         self.species = cleaned
 
     @classmethod
-    def default_kinetic(cls, kLa_O2: float = 150.0, kLa_CO2_ratio: float = 0.9) -> "TransferConfig":
-        """Create a default config with kinetic O₂/CO₂ and equilibrium N₂."""
-        return cls(
-            species={
-                "O2": SpeciesTransferConfig(
-                    mode=TransferMode.KINETIC, kLa_per_h=kLa_O2,
-                ),
-                "CO2": SpeciesTransferConfig(
-                    mode=TransferMode.KINETIC, kLa_per_h=kLa_O2 * kLa_CO2_ratio,
-                ),
-                "N2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-            },
-            kLa_CO2_ratio=kLa_CO2_ratio,
-        )
+    def kinetic(
+        cls,
+        kLa: Dict[str, float],
+        equilibrium: Sequence[str] = (),
+    ) -> "TransferConfig":
+        """Kinetic transfer for the species in *kLa* (``{id: kLa_per_h}``),
+        then equilibrium transfer for those in *equilibrium*."""
+        species = {
+            sp: SpeciesTransferConfig(mode=TransferMode.KINETIC, kLa_per_h=k)
+            for sp, k in kLa.items()
+        }
+        for sp in equilibrium:
+            species[sp] = SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM)
+        return cls(species=species)
 
     @classmethod
-    def default_equilibrium(cls) -> "TransferConfig":
-        """Create a default config with all species at equilibrium."""
-        return cls(
-            species={
-                "O2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-                "CO2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-                "N2": SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM),
-            },
-        )
+    def equilibrium(cls, species_ids: Sequence[str]) -> "TransferConfig":
+        """Equilibrium transfer for each of *species_ids*."""
+        return cls(species={
+            sp: SpeciesTransferConfig(mode=TransferMode.EQUILIBRIUM)
+            for sp in species_ids
+        })
 
     def to_dict(self) -> dict:
-        return {
-            "species": {sp: cfg.to_dict() for sp, cfg in self.species.items()},
-            "kLa_CO2_ratio": self.kLa_CO2_ratio,
-        }
+        return {"species": {sp: cfg.to_dict() for sp, cfg in self.species.items()}}
 
     @classmethod
     def from_dict(cls, d: dict) -> "TransferConfig":
@@ -255,10 +248,7 @@ class TransferConfig:
                 species[sp] = SpeciesTransferConfig(**cfg)
             else:
                 species[sp] = cfg
-        return cls(
-            species=species,
-            kLa_CO2_ratio=d.get("kLa_CO2_ratio", 0.9),
-        )
+        return cls(species=species)
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -275,8 +265,6 @@ class ChemistryConfig:
         ``"ideal"`` (default), ``"davies"``, ``"sit"``, or a model object such
         as ``SITLiquidModel(epsilon=...)``. Checked at construction by
         :func:`~PyOMES.thermo.make_activity_model` and stored as given.
-    acid_pKas : dict
-        ``{acid_id: pKa_or_list}`` for weak acid systems.
 
     Notes
     -----
@@ -286,14 +274,6 @@ class ChemistryConfig:
     """
 
     activity_model: Union[str, ActivityModel] = "ideal"
-    acid_pKas: Dict[str, Any] = field(
-        default_factory=lambda: {
-            "AceticAcid": 4.76,
-            "PropionicAcid": 4.87,
-            "ButyricAcid": 4.82,
-            "CitricAcid": [3.13, 4.76, 6.40],
-        }
-    )
 
     def __post_init__(self) -> None:
         make_activity_model(self.activity_model)  # raises on a bad name or object
@@ -318,33 +298,83 @@ class ChemistryConfig:
 #  OrganismConfig
 # ════════════════════════════════════════════════════════════════════════
 
+def _check_definition(name: str, given: Any, atoms: Any, MW: Any) -> None:
+    """Check that *given* (an id or a ``Species``) with *atoms* / *MW* is
+    one complete way of naming or defining a species."""
+    if isinstance(given, Species):
+        if atoms is not None or MW is not None:
+            raise ValueError(
+                f"{name}={given.id!r} is a Species, which carries its own atoms "
+                "and MW; do not pass atoms= or MW= with it."
+            )
+    elif not isinstance(given, str) or not given:
+        raise TypeError(
+            f"{name} must be a species id (str) or a Species, got {given!r}"
+        )
+    if atoms is None and MW is not None:
+        raise ValueError(
+            f"MW= for {name}={given!r} needs atoms=: a molar mass alone does "
+            "not define a species (with atoms=, MW defaults to the value "
+            "computed from them)."
+        )
+    if MW is not None and MW <= 0:
+        raise ValueError(f"MW must be > 0, got {MW}")
+
+
+def _definition_dict(config: Any) -> dict:
+    """``asdict`` that keeps a ``Species`` field as the object itself."""
+    return {
+        f.name: (
+            getattr(config, f.name) if isinstance(getattr(config, f.name), Species)
+            else copy.deepcopy(getattr(config, f.name))
+        )
+        for f in fields(config)
+    }
+
+
 @dataclass
 class OrganismConfig:
     """Organism identity and composition.
 
-    If ``atoms`` and ``MW`` are ``None``, the factory will look them up
-    from the :class:`~PyOMES.compounds.ChemicalRegistry`.
+    The organism is named by an id, defined by an id with ``atoms``, or given
+    as a :class:`~PyOMES.chemistry.species.Species`. The factory resolves it
+    against the model's species: an id alone must be among them; a
+    definition is added to them, and one that differs from an existing
+    species of the same id raises unless ``overwrite=True``.
 
     Parameters
     ----------
-    organism_id : str
-        Identifier (e.g. ``"Yeast"``, ``"E_coli"``).  Must match either
-        a registry entry or have explicit ``atoms``/``MW``.
+    organism : str or Species
+        The organism's id (e.g. ``"Yeast"``, ``"E_coli"``) or its ``Species``.
     atoms : dict or None
         Elemental composition, e.g. ``{"C": 1, "H": 1.61, "O": 0.56, "N": 0.16}``.
+        With an id, defines the organism.
     MW : float or None
-        Molecular weight (g/mol).
+        Molecular weight (g/mol). Only with ``atoms``; computed from them
+        when not given.
     balance_basis : str
         ``"CHO"`` or ``"CHNO"``.
-    n_source_id : str
-        Nitrogen source chemical ID (for CHNO mode).
+    n_source_id : str or None
+        Id of the nitrogen source, resolved against the model's species.
+        Required for ``"CHNO"``.
+    o2_id, co2_id, h2o_id : str
+        Ids of the oxygen consumed and the carbon dioxide and water produced
+        by the growth reaction (default ``"O2"``, ``"CO2"``, ``"H2O"``),
+        resolved against the model's species.
+    overwrite : bool
+        Replace a model species of the same id whose data differ from this
+        definition, instead of raising.
     """
 
-    organism_id: str = "Yeast"
+    organism: Union[str, Species]
     atoms: Optional[Dict[str, float]] = None
     MW: Optional[float] = None
     balance_basis: str = "CHO"
-    n_source_id: str = "NH3"
+    n_source_id: Optional[str] = None
+    o2_id: str = "O2"
+    co2_id: str = "CO2"
+    h2o_id: str = "H2O"
+    overwrite: bool = False
 
     def __post_init__(self):
         self.balance_basis = self.balance_basis.upper().strip()
@@ -352,51 +382,15 @@ class OrganismConfig:
             raise ValueError(
                 f"balance_basis must be 'CHO' or 'CHNO', got {self.balance_basis!r}"
             )
-        if self.MW is not None and self.MW <= 0:
-            raise ValueError(f"MW must be > 0, got {self.MW}")
-
-    def resolve(self, registry=None) -> "OrganismConfig":
-        """Return a copy with atoms/MW filled from the registry if needed.
-
-        Parameters
-        ----------
-        registry : ChemicalRegistry or None
-            If ``None``, uses the default registry.
-
-        Returns
-        -------
-        OrganismConfig
-            A new config with atoms and MW guaranteed non-None.
-
-        Raises
-        ------
-        KeyError
-            If the organism is not in the registry and atoms/MW are not set.
-        """
-        if self.atoms is not None and self.MW is not None:
-            return copy.copy(self)
-
-        if registry is None:
-            from PyOMES.compounds import ChemicalRegistry
-            registry = ChemicalRegistry.default()
-
-        chem = registry[self.organism_id]
-        atoms = dict(self.atoms) if self.atoms is not None else dict(
-            getattr(chem, "atoms", {}) or {}
-        )
-        MW = self.MW if self.MW is not None else float(
-            getattr(chem, "MW", 0.0) or 0.0
-        )
-        return OrganismConfig(
-            organism_id=self.organism_id,
-            atoms=atoms,
-            MW=MW,
-            balance_basis=self.balance_basis,
-            n_source_id=self.n_source_id,
-        )
+        _check_definition("organism", self.organism, self.atoms, self.MW)
+        if self.balance_basis == "CHNO" and self.n_source_id is None:
+            raise ValueError(
+                "balance_basis='CHNO' needs a nitrogen source: pass "
+                "n_source_id, e.g. n_source_id='NH3'."
+            )
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        return _definition_dict(self)
 
     @classmethod
     def from_dict(cls, d: dict) -> "OrganismConfig":
@@ -411,32 +405,41 @@ class OrganismConfig:
 class SubstrateConfig:
     """Substrate identity, kinetic parameters, and yield.
 
-    If ``atoms`` and ``MW`` are ``None``, the factory will look them up
-    from the :class:`~PyOMES.compounds.ChemicalRegistry`.
+    The substrate is named or defined as the organism is (see
+    :class:`OrganismConfig`) and resolved against the model's species by
+    the same rules.
 
     Parameters
     ----------
-    substrate_id : str
-        Chemical identifier (e.g. ``"AceticAcid"``).
+    substrate : str or Species
+        The substrate's id (e.g. ``"AceticAcid"``) or its ``Species``.
     atoms : dict or None
-        Elemental composition, e.g. ``{"C": 2, "H": 4, "O": 2}``.
+        Elemental composition, e.g. ``{"C": 2, "H": 4, "O": 2}``. With an
+        id, defines the substrate.
     MW : float or None
-        Molecular weight (g/mol).
+        Molecular weight (g/mol). Only with ``atoms``; computed from them
+        when not given.
     mu_max : float
         Maximum specific growth rate (1/h).
     Ks : float
         Monod half-saturation constant (g/L).
     yield_gX_gS : float
         Biomass yield (g biomass / g substrate consumed).  Must be > 0.
+    kinetics : GrowthKinetics or None
+        Rate law; default Monod with ``mu_max`` and ``Ks``.
+    overwrite : bool
+        Replace a model species of the same id whose data differ from this
+        definition, instead of raising.
     """
 
-    substrate_id: str = "AceticAcid"
+    substrate: Union[str, Species]
     atoms: Optional[Dict[str, float]] = None
     MW: Optional[float] = None
     mu_max: float = 0.5
     Ks: float = 5e-3
     yield_gX_gS: float = 0.36
     kinetics: Optional[Any] = None
+    overwrite: bool = False
 
     def __post_init__(self):
         if self.kinetics is None:
@@ -447,53 +450,10 @@ class SubstrateConfig:
                 raise ValueError(f"Ks must be >= 0, got {self.Ks}")
         if self.yield_gX_gS <= 0:
             raise ValueError(f"yield_gX_gS must be > 0, got {self.yield_gX_gS}")
-        if self.MW is not None and self.MW <= 0:
-            raise ValueError(f"MW must be > 0, got {self.MW}")
-
-    def resolve(self, registry=None) -> "SubstrateConfig":
-        """Return a copy with atoms/MW filled from the registry if needed.
-
-        Parameters
-        ----------
-        registry : ChemicalRegistry or None
-            If ``None``, uses the default registry.
-
-        Returns
-        -------
-        SubstrateConfig
-            A new config with atoms and MW guaranteed non-None.
-
-        Raises
-        ------
-        KeyError
-            If the substrate is not in the registry and atoms/MW are not set.
-        """
-        if self.atoms is not None and self.MW is not None:
-            return copy.copy(self)
-
-        if registry is None:
-            from PyOMES.compounds import ChemicalRegistry
-            registry = ChemicalRegistry.default()
-
-        chem = registry[self.substrate_id]
-        atoms = dict(self.atoms) if self.atoms is not None else dict(
-            getattr(chem, "atoms", {}) or {}
-        )
-        MW = self.MW if self.MW is not None else float(
-            getattr(chem, "MW", 0.0) or 0.0
-        )
-        return SubstrateConfig(
-            substrate_id=self.substrate_id,
-            atoms=atoms,
-            MW=MW,
-            mu_max=self.mu_max,
-            Ks=self.Ks,
-            yield_gX_gS=self.yield_gX_gS,
-            kinetics=self.kinetics,
-        )
+        _check_definition("substrate", self.substrate, self.atoms, self.MW)
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        return _definition_dict(self)
 
     @classmethod
     def from_dict(cls, d: dict) -> "SubstrateConfig":

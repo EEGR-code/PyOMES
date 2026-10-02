@@ -45,18 +45,54 @@ that still describe open work are "Open phases" and the pending stages in
   `HenryEquilibrium`/`RaoultEquilibrium` and the `ControlVolume`
   conservation map; `compounds.py`'s `ChemicalRegistry`; the stirred-tank
   template's `AD_BASIC` default; the strong-corrector map), retires
-  `common_species.py` into the database modules, and makes unresolved
-  `n_mol` ids warn instead of being skipped silently. Five phases, each
-  shippable on its own; decisions agreed, five open questions and five
-  audits listed. Resolves OPEN_WORK's molar-mass item. No branch, no
+  `common_species.py` into the database modules, removes the Bisection
+  engine's fixed write-back list, and makes unresolved `n_mol` ids warn
+  instead of being skipped silently. Five phases, each shippable on its
+  own. Audits run and questions settled 2026-09-30, including treating
+  the stirred-tank yeast molar masses as a copy error (results move by
+  about 8–9 %, recorded in their own checkpoint). Completes the
+  molar-mass unification moved here from OPEN_WORK. Branch
+  `explicit-species-resolution` cut; no checklist or code yet.
+- **[GAS_SPECIES_IN_CORE.md](GAS_SPECIES_IN_CORE.md)** — 2026-10-01.
+  Surfaced by `explicit-species-resolution` checkpoint 8, which removed the
+  stirred-tank template's fixed gas ids: core still assumes `"O2"` / `"CO2"` /
+  `"N2"` in the DO sensor, `GasFeed`'s and the membrane boundary's default
+  air, the gas-liquid link's `{"CO2": "CO2"}` alpha default and
+  `set_kLa_with_co2_ratio`, the DO controllers' kLa paths, and the vent
+  physics' gas tables. Proposes passing the model's ids and dropping the
+  defaults that invent gases. Four open questions. No branch, no checklist,
+  no code yet.
+- **[GROWTH_STOICHIOMETRY.md](GROWTH_STOICHIOMETRY.md)** — 2026-10-01.
+  Surfaced by `explicit-species-resolution` checkpoint 9: aerobic growth
+  has fixed participants, balances C, H, O and optionally N only, ignores
+  other elements (a sulfate source's S, the biomass N under `"CHO"`) and
+  has no charge balance. Proposes a linear solver for one reaction from
+  its participants, basis and yields that raises when under- or
+  over-specified, with several reactions (each with its own rate law)
+  rather than fixed product ratios. Four open questions. No branch, no
   checklist, no code yet.
+- **[DOSING_AGENTS.md](DOSING_AGENTS.md)** — 2026-10-01. Surfaced by
+  `explicit-species-resolution` checkpoint 13, which makes pH correctors
+  compositions of the model's species: dosing a solution (composition per
+  litre plus the volume it adds), a solid that dissolves through a declared
+  equilibrium, and warnings when an engine cannot honour a declaration.
+  Depends on the liquid volume becoming variable. Three open questions. No
+  branch, no checklist, no code yet.
+- **[MASS_BALANCE_CLOSURE.md](MASS_BALANCE_CLOSURE.md)** — 2026-10-01. Sets
+  strict closure as the standard: every element and charge conserved to
+  roundoff, boundary flows accounted for, in every engine. Gathers the
+  gaps: the engines treat water as an unlimited solvent and do not take
+  H+ / OH- as input, the monitor does not net out boundary flows, and the
+  liquid volume never changes. Follows `explicit-species-resolution`. Four
+  open questions. No branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
-  configured `chemical_id`/`base_chemical_id` can't actually shift pH (not a
-  recognised strong-corrector alias and not declared in any equilibrium
-  reaction) — the same check `ControlVolume.equilibrate_to_pH` already has,
-  just not reused on `PHController`'s actual dosing path. Scoped strictly to
+  `acid_dose`/`base_dose` can't actually shift pH (no species in any
+  equilibrium reaction and none charged) — the same check
+  `ControlVolume.equilibrate_to_pH` already has, just not reused on
+  `PHController`'s dosing path. Its doses are already checked against the
+  CV's species (`explicit-species-resolution` checkpoint 13). Scoped strictly to
   `PHController`'s own two fields; no other controller/boundary is touched.
   Open questions: warn vs. raise, new warning category vs. plain
   `UserWarning`. No branch, no checklist, no code yet.

@@ -17,6 +17,9 @@ modes can occur silently:
 
 :func:`check_species_consistency` walks every ``StoichiometryEntry`` in
 a list of reactions, groups by id, and applies the rules above.
+:func:`merge_species` combines species given directly (e.g. a model's own
+``species=`` and a database's ``species``) into one dict, raising on the
+same id with different data.
 :class:`~PyOMES.core.control_volume.ControlVolume` runs this check
 automatically in ``__init__`` after a reaction model is attached.
 
@@ -29,7 +32,7 @@ Usage
 from __future__ import annotations
 
 import warnings
-from typing import Iterable, List
+from typing import Dict, Iterable, List, Mapping, Union
 
 from .species import Species, SpeciesConflictError
 
@@ -125,6 +128,53 @@ def check_species_consistency(
         if soft_conflicts == "raise":
             raise SpeciesConflictError(msg, species_id=sp_id, details=msg)
         warnings.warn(msg, UserWarning, stacklevel=2)
+
+
+def merge_species(
+    *sources: Union[Mapping[str, Species], Iterable[Species]],
+) -> Dict[str, Species]:
+    """Merge species from several sources into one ``{id: Species}`` dict.
+
+    Each source is a ``{id: Species}`` mapping (such as a database's
+    ``species``) or an iterable of ``Species``. The same id may appear in
+    several sources only with equal data; the first object seen is kept.
+
+    Raises
+    ------
+    SpeciesConflictError
+        If one id arrives with different atoms, charge or MW.
+    ValueError
+        If a mapping holds a ``Species`` under a key other than its id.
+    """
+    merged: Dict[str, Species] = {}
+    for source in sources:
+        if isinstance(source, Mapping):
+            for key, sp in source.items():
+                if key != sp.id:
+                    raise ValueError(
+                        f"Species {sp.id!r} is listed under the key {key!r}; "
+                        "a species mapping must key each Species by its id."
+                    )
+            items = source.values()
+        else:
+            items = source
+        for sp in items:
+            ref = merged.get(sp.id)
+            if ref is None:
+                merged[sp.id] = sp
+            elif ref is not sp and (
+                dict(ref.atoms) != dict(sp.atoms)
+                or ref.charge != sp.charge
+                or ref.MW != sp.MW
+            ):
+                details = _format_hard_conflict(sp.id, ref, [sp])
+                raise SpeciesConflictError(
+                    f"Species id {sp.id!r} is given twice with different "
+                    f"data:\n{details}",
+                    species_id=sp.id,
+                    details=details,
+                )
+    return merged
 
 
 def _format_hard_conflict(sp_id: str, ref: Species, others: List[Species]) -> str:

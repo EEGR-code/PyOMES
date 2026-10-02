@@ -261,6 +261,10 @@ class GasFeed:
 
     # ── Flux computation ────────────────────────────────────────────
 
+    def species_ids(self) -> set:
+        """Ids this boundary brings into the CV (its feed composition)."""
+        return set(self.y)
+
     def compute_flux(self, cv: Any, dt_h: float,
                      instantaneous: bool = False) -> Dict[str, float]:
         """Compute species feed rates (mol/h) into the gas phase.
@@ -572,6 +576,10 @@ class MembraneGasBoundary:
 
     # ── Flux computation ────────────────────────────────────────────
 
+    def species_ids(self) -> set:
+        """Ids this boundary brings into the CV (those that permeate)."""
+        return set(self.permeability)
+
     def compute_flux(self, cv: Any, dt_h: float,
                      instantaneous: bool = False) -> Dict[str, float]:
         """Compute membrane permeation fluxes (mol/h).
@@ -696,6 +704,10 @@ class LiquidFeed:
     @property
     def label(self) -> str:
         return self._label
+
+    def species_ids(self) -> set:
+        """Ids this boundary brings into the CV (its feed composition)."""
+        return set(self.feed_conc_mol_L)
 
     def compute_flux(self, cv: Any, dt_h: float,
                      instantaneous: bool = False) -> Dict[str, float]:
