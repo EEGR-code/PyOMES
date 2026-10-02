@@ -305,10 +305,10 @@ Writing your own `SystemSolver` is the same shape as writing your own
 `StepSolver` — one method, composing `sim._apply_links`/
 `cv._advance_unchecked`/`sim._invoke_controllers` in whatever order
 your model needs. See
-[demos/features/SolverProtocols/](../demos/features/SolverProtocols/) —
-[`0_README.ipynb`](../demos/features/SolverProtocols/0_README.ipynb)
+[tutorials/protocols/SolverProtocols/](tutorials/protocols/SolverProtocols/) —
+[`0_README.ipynb`](tutorials/protocols/SolverProtocols/0_README.ipynb)
 for the protocol overview, then
-[`01_writing_a_custom_solver.ipynb`](../demos/features/SolverProtocols/01_writing_a_custom_solver.ipynb)
+[`01_writing_a_custom_solver.ipynb`](tutorials/protocols/SolverProtocols/01_writing_a_custom_solver.ipynb)
 for a worked example at both axes.
 
 ---

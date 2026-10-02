@@ -21,11 +21,6 @@ and working its checkpoints, not fixed.
   balanced for S; a charged source leaves the reaction charged. Scoped as
   its own design note:
   [`upcoming/GROWTH_STOICHIOMETRY.md`](upcoming/GROWTH_STOICHIOMETRY.md).
-- **`docs/tutorials/templates/batch_fermenter.ipynb` cell 10 does not
-  compile.** Two `print("...")` calls have a literal line break inside the
-  string (`print("` then a newline then `Final ...`) where `\n` was meant,
-  so the cell raises `SyntaxError`; the same on `main`. The cells before it
-  (build and run) are unaffected.
 - **`ControlVolume.snapshot()` drops `chemistry_db`.** It rebuilds the CV
   without it (the species set is carried across as `species=`), so a
   snapshot's `chemistry_db` is `None` and
@@ -44,10 +39,9 @@ and working its checkpoints, not fixed.
   `PyOMES/` or `models/` sets a phase's `V_L` after construction. So a
   fed-batch run never dilutes: `docs/tutorials/templates/fed_batch_fermenter.py`
   feeds 5 L/h and its liquid is 1600 L at the start and at the end, and every
-  concentration it reports is computed on the starting volume. Its comment
-  that `V_L` "climbs as moles accumulate" is wrong. A CSTR with matched feed
-  and drain is unaffected. Fixing it means feeds, drains and doses carry a
-  volume and the phase's `V_L` follows; solution dosing
+  concentration it reports is computed on the starting volume. A CSTR with
+  matched feed and drain is unaffected. Fixing it means feeds, drains and
+  doses carry a volume and the phase's `V_L` follows; solution dosing
   ([`upcoming/DOSING_AGENTS.md`](upcoming/DOSING_AGENTS.md)) depends on it.
   Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
 - **The FBA notebooks declare no species.** `docs/tutorials/reactions/fba/fba_toy.ipynb`
@@ -58,9 +52,6 @@ and working its checkpoints, not fixed.
   particular), and the monitor would then check the FBA rates, which are not
   guaranteed to balance elements, so new drift warnings would follow. A
   decision about those demos, not a mechanical fix.
-- **`docs/solvers.md` links to a folder that moved.** Three links (around
-  line 308) point at `../demos/features/SolverProtocols/`; the notebooks now
-  live in `docs/tutorials/protocols/SolverProtocols/`. Broken on `main` too.
 - **ADM1 / BSM2 helpers fall back to biomass for unknown ids.** ADM1's
   `_mw()` returns the biomass MW, and BSM2's `_mw()` / `_thod()` / `_atoms()`
   the biomass MW, ThOD and formula, for any id not in their tables. Every
@@ -556,18 +547,16 @@ across just `chemistry/partition.py` (since split into it and
 `reactions/kinetic/rate_laws.py` and `PyOMES/databases/*.py` post-move. Re-running the
 survey against the new layout is part of picking this sweep up, not done here.
 
-## Two notebooks do not parse, and the notebooks edited for the gas constant were not re-run
+## One notebook does not parse on Python 3.10, and the notebooks edited for the gas constant were not re-run
 
 Found 2026-09-20 while checking `chemical-equilibrium-engines-subfolder` before
-merging (a parse of every notebook code cell). Both problems predate that phase.
+merging (a parse of every notebook code cell). The problem predates that phase.
 
-- `docs/tutorials/templates/batch_fermenter.ipynb`, cell 10, fails with
-  "unterminated string literal" on every Python version tried (3.10 and 3.12).
 - `tests/validation/speciation/05_precipitation_equilibrium.ipynb`, cell 6, uses an
   f-string form that only Python 3.12 accepts (`f-string: unmatched '['` on 3.10),
   while `pyproject.toml` declares `requires-python = ">=3.10"`.
 
-No test executes a notebook, so CI does not notice either. Separately, the
+No test executes a notebook, so CI does not notice. Separately, the
 gas-constant change edited eight notebooks and one generator by text (the import,
 the identifier, and three literal values) and validated that each parses, but did
 not re-execute them. Their saved outputs still show numbers from before `R`

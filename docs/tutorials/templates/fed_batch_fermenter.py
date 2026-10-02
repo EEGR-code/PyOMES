@@ -88,10 +88,12 @@ cv = (
 # Step 3 — Boundaries: pressure relief + substrate feed (no drain)
 # ─────────────────────────────────────────────────────────────────────
 # Two boundaries: pressure relief (constant) and a liquid feed at
-# Q_feed L/h. Crucially there is NO matching drain — the vessel
-# fills up over the simulation, and ``cv.phases["liquid"].V_L``
-# climbs as moles accumulate. Run too long and you'll overflow the
-# vessel; this is normal fed-batch trade-off territory.
+# Q_feed L/h. Crucially there is NO matching drain, so the fed
+# substrate accumulates. The feed adds moles only:
+# ``cv.phases["liquid"].V_L`` keeps its starting value, so the liquid
+# is not diluted and the concentrations printed below are computed on
+# the starting volume. See "The liquid volume never changes" in
+# docs/dev/implementation/OPEN_WORK.md.
 
 cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="instant"))
 cv.boundaries.append(LiquidFeed(
