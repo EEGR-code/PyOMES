@@ -1,7 +1,15 @@
 # Explicit Species Resolution — Design Note
 
-> Status: branch `explicit-species-resolution` cut; checklist not yet
-> written; no code yet. First written 2026-09-22 while investigating
+> **Status: Shipped 2026-10-02** — implemented on branch
+> `explicit-species-resolution`, merged into `main` via `git merge --no-ff`
+> as commit `1d75ef4`, tagged `explicit-species-resolution-shipped`. The
+> checklist, [`EXPLICIT_SPECIES_RESOLUTION_CHECKLIST.md`](EXPLICIT_SPECIES_RESOLUTION_CHECKLIST.md),
+> records the 17 checkpoints, the decisions settled along the way and each
+> measured change. Work it led to is in four design notes in
+> `../upcoming/`: `GAS_SPECIES_IN_CORE.md`, `GROWTH_STOICHIOMETRY.md`,
+> `DOSING_AGENTS.md` and `MASS_BALANCE_CLOSURE.md`.
+>
+> First written 2026-09-22 while investigating
 > whether `chemistry/common_species.py` should move to `PyOMES/databases/`.
 > Rewritten 2026-09-30 after working through the OPEN_WORK item on
 > molar-mass unification between `compounds.py`'s `Chemical` and
@@ -76,9 +84,9 @@ not given, and there is no default database.
 
 Related name-keyed tables with their own notes, not duplicated here:
 `_STRONG_ION_SPECIES_TO_KEY` and the `_STRONG_CHARGES` copies
-([STRONG_ION_INFERENCE_GENERALIZATION.md](STRONG_ION_INFERENCE_GENERALIZATION.md)),
+([STRONG_ION_INFERENCE_GENERALIZATION.md](../upcoming/STRONG_ION_INFERENCE_GENERALIZATION.md)),
 and `PHController`'s corrector ids
-([PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)).
+([PHCONTROLLER_CORRECTOR_VALIDATION.md](../upcoming/PHCONTROLLER_CORRECTOR_VALIDATION.md)).
 Both should follow the rule above when they are picked up.
 
 `thermo/gas/peng_robinson.py`'s critical-property table is keyed by name
@@ -365,13 +373,13 @@ the repo, no behaviour change) that logged every id reaching a fallback:
 
 ## Relationship to other notes
 
-- [STRONG_ION_INFERENCE_GENERALIZATION.md](STRONG_ION_INFERENCE_GENERALIZATION.md):
+- [STRONG_ION_INFERENCE_GENERALIZATION.md](../upcoming/STRONG_ION_INFERENCE_GENERALIZATION.md):
   another closed name allowlist, in the speciation engines. Same rule;
   it can reuse this note's species set once Phase 2 lands. Phase 2 here
   removes the Bisection engine's fixed write-back tuple and gives
   `S_cat` / `S_an` `Species`; the strong-ion note keeps the
   `_STRONG_ION_SPECIES_TO_KEY` and `_STRONG_CHARGES` tables.
-- [PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md):
+- [PHCONTROLLER_CORRECTOR_VALIDATION.md](../upcoming/PHCONTROLLER_CORRECTOR_VALIDATION.md):
   the controller's corrector ids should resolve the same way as
   `equilibrate_to_pH`'s after Phase 2, which also changes
   `apply_external_flux`, the path `PHController` doses through.
@@ -380,7 +388,7 @@ the repo, no behaviour change) that logged every id reaching a fallback:
 
 ## How to start one
 
-Per this folder's convention ([README.md](README.md#how-to-start-one)).
+Per this folder's convention ([README.md](../upcoming/README.md#how-to-start-one)).
 The branch `explicit-species-resolution` is cut, the audits are run and
 the questions settled; what remains is
 `EXPLICIT_SPECIES_RESOLUTION_CHECKLIST.md`, with each fallback removal

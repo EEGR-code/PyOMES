@@ -8,7 +8,7 @@
 
 ## The rule
 
-The same rule as [EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md):
+The same rule as [EXPLICIT_SPECIES_RESOLUTION.md](../shipped/EXPLICIT_SPECIES_RESOLUTION.md):
 **a model only knows the species and reactions it was given.** A model whose
 oxygen is `Species(id="O2_aq", ...)` should work everywhere a model whose
 oxygen is `"O2"` does. Today the template does; the core sites below do not.
@@ -56,7 +56,7 @@ oxygen is `"O2"` does. Today the template does; the core sites below do not.
 
 ## Relationship to other notes
 
-- [EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md): same rule;
+- [EXPLICIT_SPECIES_RESOLUTION.md](../shipped/EXPLICIT_SPECIES_RESOLUTION.md): same rule;
   its checkpoint 8 made the stirred-tank template's gas phase come from the
   model's declarations.
 - [PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md):

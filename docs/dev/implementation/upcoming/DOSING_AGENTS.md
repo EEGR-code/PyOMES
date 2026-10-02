@@ -62,7 +62,7 @@ Three things that are not covered:
 
 ## Relationship to other notes
 
-- [EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md): its
+- [EXPLICIT_SPECIES_RESOLUTION.md](../shipped/EXPLICIT_SPECIES_RESOLUTION.md): its
   checkpoint 13 makes correctors compositions of the model's species with a
   charge-neutrality warning.
 - [PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md):

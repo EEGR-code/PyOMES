@@ -108,6 +108,6 @@ species, an id with `atoms=`, or a `Species`). `balance_basis` and
 
 ## Relationship to other notes
 
-- [EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md): its
+- [EXPLICIT_SPECIES_RESOLUTION.md](../shipped/EXPLICIT_SPECIES_RESOLUTION.md): its
   checkpoint 9 resolves `n_source_id` against the model's species and
   leaves the shape of growth participants to this note.

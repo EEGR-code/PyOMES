@@ -1,11 +1,16 @@
 # Phase Kickoff Checklist — explicit-species-resolution
 
+> **Status: Shipped 2026-10-02** — merged into `main` via `git merge --no-ff`
+> as commit `1d75ef4`, tagged `explicit-species-resolution-shipped`. Full suite
+> green on the final tree: 2199 passed, 2 xfailed, 0 failed. Feature branch
+> deleted, locally and on `origin`.
+
 > Checklist for [`EXPLICIT_SPECIES_RESOLUTION.md`](EXPLICIT_SPECIES_RESOLUTION.md),
 > the source of truth for the rule, decisions, settled questions and audit
 > results; do not restate them here. Where this checklist and the note disagree,
-> this checklist wins. See [`README.md`](README.md)'s "Branching and tagging
+> this checklist wins. See [`README.md`](../upcoming/README.md)'s "Branching and tagging
 > convention". Modelled on
-> [`../shipped/VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md`](../shipped/VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md).
+> [`VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md`](VANT_HOFF_SINGLE_SOURCE_CHECKLIST.md).
 
 **Working rules**
 
@@ -1160,12 +1165,14 @@ database) that states which ion it adds.
 ## Shipping
 
 - [x] Full test suite green on the branch (2199 passed, 2 xfailed, 0 failed)
-- [ ] `git switch main`
-- [ ] `git merge --no-ff explicit-species-resolution -m "Merge explicit-species-resolution: <summary>"`
-- [ ] `git tag explicit-species-resolution-shipped`
-- [ ] `git push origin main` and `git push origin explicit-species-resolution-shipped`
-- [ ] `git branch -d explicit-species-resolution`
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`,
+- [x] `git switch main`
+- [x] `git merge --no-ff explicit-species-resolution -m "Merge explicit-species-resolution: <summary>"` (`1d75ef4`)
+- [x] `git tag explicit-species-resolution-shipped`
+- [x] `git push origin main` and `git push origin explicit-species-resolution-shipped`
+- [x] `git branch -d explicit-species-resolution` (after `git push origin --delete
+      explicit-species-resolution`: the branch had been pushed and its remote copy
+      was behind, so `-d` refused)
+- [x] Move the design note and this checklist to `docs/dev/implementation/shipped/`,
       add a "Shipped" banner to both
-- [ ] Update `docs/dev/implementation/upcoming/README.md`: remove the "Design
+- [x] Update `docs/dev/implementation/upcoming/README.md`: remove the "Design
       discussions" entry and add one to "Recently shipped"

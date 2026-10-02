@@ -37,22 +37,6 @@ that still describe open work are "Open phases" and the pending stages in
   measured at about 50× slower per evaluation than the standalone column without
   it. Ten open questions, mostly on the template's set-up information. No
   checklist or code yet.
-- **[EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md)** —
-  2026-09-22, rewritten 2026-09-30. Rule: a model only knows the species
-  and reactions it was given, whether built by hand, picked from a
-  database, or passed as a whole database. Removes every ambient name
-  lookup (the `common_species` scans in string stoichiometry,
-  `HenryEquilibrium`/`RaoultEquilibrium` and the `ControlVolume`
-  conservation map; `compounds.py`'s `ChemicalRegistry`; the stirred-tank
-  template's `AD_BASIC` default; the strong-corrector map), retires
-  `common_species.py` into the database modules, removes the Bisection
-  engine's fixed write-back list, and makes unresolved `n_mol` ids warn
-  instead of being skipped silently. Five phases, each shippable on its
-  own. Audits run and questions settled 2026-09-30, including treating
-  the stirred-tank yeast molar masses as a copy error (results move by
-  about 8–9 %, recorded in their own checkpoint). Completes the
-  molar-mass unification moved here from OPEN_WORK. Branch
-  `explicit-species-resolution` cut; no checklist or code yet.
 - **[GAS_SPECIES_IN_CORE.md](GAS_SPECIES_IN_CORE.md)** — 2026-10-01.
   Surfaced by `explicit-species-resolution` checkpoint 8, which removed the
   stirred-tank template's fixed gas ids: core still assumes `"O2"` / `"CO2"` /
@@ -193,6 +177,25 @@ that still describe open work are "Open phases" and the pending stages in
   no longer exists (`demos/` was retired 2026-09-17), so it needs a new home,
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
+
+- `explicit-species-resolution` (2026-10-02) — a model knows only the species
+  and reactions it was given: built by hand, picked from a database, or a whole
+  database passed in. Every ambient name lookup is gone: string stoichiometry
+  and `HenryEquilibrium`/`RaoultEquilibrium` take only what they are given;
+  the stirred-tank template has no default database, no fixed gas ids and no
+  compound registry (`compounds.py` deleted), its organism and substrate are
+  an id among the model's species or a definition; `ControlVolume` takes
+  `species=` / `reactions=` and builds `cv.species`, which the conservation
+  monitor uses; pH correctors are compositions of the model's species (NaOH
+  as Na+ + OH-), checked and charge-neutral; the Bisection engine writes back
+  only what was declared; an undeclared id raises `UnresolvedSpeciesWarning`;
+  `common_species.py` is split into the database modules. Seventeen
+  checkpoints, each measured: results unchanged except the yeast molar masses
+  (now from atoms, checkpoint 10). Four follow-up design notes:
+  `GAS_SPECIES_IN_CORE.md`, `GROWTH_STOICHIOMETRY.md`, `DOSING_AGENTS.md`,
+  `MASS_BALANCE_CLOSURE.md`. Full suite green: 2199 passed, 2 xfailed, 0
+  failed. Tag `explicit-species-resolution-shipped`. See
+  [`../shipped/EXPLICIT_SPECIES_RESOLUTION_CHECKLIST.md`](../shipped/EXPLICIT_SPECIES_RESOLUTION_CHECKLIST.md).
 
 - `vant-hoff-single-source` (2026-09-28) — the relation
   X(T) = X_ref·exp(−(E/R)(1/T − 1/T_ref)), written out by hand in 15 places, now
@@ -340,7 +343,7 @@ that still describe open work are "Open phases" and the pending stages in
   moved to `PyOMES/databases/` (D7); `chemistry.__all__` shrunk to names
   still used, plus a new `plots` extra. Three checkpoints added after the
   original D1-D8 audit closed, from a conversational review that also
-  produced [`EXPLICIT_SPECIES_RESOLUTION.md`](EXPLICIT_SPECIES_RESOLUTION.md)
+  produced [`EXPLICIT_SPECIES_RESOLUTION.md`](../shipped/EXPLICIT_SPECIES_RESOLUTION.md)
   (logged separately, not part of this phase): `_ATOMIC_WEIGHTS` moved from
   `chemistry/species.py` to `PyOMES/units.py` (a physical-constants table,
   not domain data); `chemistry/compounds.py` moved to `PyOMES/compounds.py`

@@ -79,7 +79,7 @@ totals are.
 
 ## Relationship to other notes
 
-- [EXPLICIT_SPECIES_RESOLUTION.md](EXPLICIT_SPECIES_RESOLUTION.md): every id
+- [EXPLICIT_SPECIES_RESOLUTION.md](../shipped/EXPLICIT_SPECIES_RESOLUTION.md): every id
   in `n_mol` resolves to a `Species` with atoms, which element closure needs.
 - [DOSING_AGENTS.md](DOSING_AGENTS.md): solution dosing needs the variable
   volume; dose compositions are the inputs closure books.

@@ -7,7 +7,7 @@ scoped as their own phase, no branch, no checklist. Referenced from
 ## Findings from the explicit-species-resolution work
 
 Found 2026-09-30 while running the audits in
-[`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](upcoming/EXPLICIT_SPECIES_RESOLUTION.md)
+[`upcoming/EXPLICIT_SPECIES_RESOLUTION.md`](shipped/EXPLICIT_SPECIES_RESOLUTION.md)
 and working its checkpoints, not fixed.
 
 - **Core code assumes the gas ids `"O2"`, `"CO2"` and `"N2"`.** The DO sensor,
