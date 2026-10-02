@@ -49,10 +49,14 @@ from PyOMES.reactions import (
 from PyOMES.chemistry.species import Species
 from PyOMES.databases.bioprocess_basic import N2 as N2_sp
 from PyOMES.thermo.temperature_correction import ln_correction
-from PyOMES.chemistry.common_species import (
-    H_plus, OH_minus, H2O as H2O_sp,
-    CO2 as CO2_sp, HCO3_minus,
-    NH3 as NH3_sp, NH4_plus,
+from PyOMES.databases.aqueous import (
+    H_plus,
+    OH_minus,
+    H2O as H2O_sp,
+    CO2 as CO2_sp,
+    HCO3_minus,
+    NH3 as NH3_sp,
+    NH4_plus,
 )
 
 logger = logging.getLogger(__name__)
@@ -99,13 +103,13 @@ SPECIES_BSM2 = {
 # ── Species objects (chemistry-unification-1) ───────────────────────
 # Derived from SPECIES_BSM2 so the model-specific ThOD table and the
 # universal Species type stay in sync. Inorganic CO₂, NH₃, H₂O alias
-# the universal common_species objects so cross-model composition does
+# the aqueous database's objects so cross-model composition does
 # not trip the soft-conflict check.
 SPECIES: Dict[str, Species] = {}
 for _sp_id, (_atoms_dict, _mw, _thod_val) in SPECIES_BSM2.items():
     if _sp_id == "CO2":
         # chemistry-unification-3b: phase-agnostic id. Use the shared
-        # common_species CO2 object directly so no soft-conflict warning.
+        # aqueous database's CO2 object directly so no soft-conflict warning.
         SPECIES["CO2"] = CO2_sp
     elif _sp_id == "NH3":
         SPECIES["NH3"] = NH3_sp

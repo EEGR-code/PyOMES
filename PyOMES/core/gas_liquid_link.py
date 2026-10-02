@@ -65,7 +65,7 @@ independently-parameterized declaration to keep in sync; species without
 that need (O2, N2, CH4, H2, NH3 below) simply omit ``gas_species``/
 ``liquid_species`` and stay ``PartitionModel``-only.
 
->>> from PyOMES.chemistry.common_species import CO2
+>>> from PyOMES.databases.aqueous import CO2
 >>> from PyOMES.reactions import HenryEquilibrium
 >>> from PyOMES.core.gas_liquid_link import KineticGasLiquidLink
 >>> co2_henry = HenryEquilibrium(

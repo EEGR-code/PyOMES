@@ -37,7 +37,7 @@ def _n2_species():
 
 
 def _water_rxn():
-    from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus
+    from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
     return EquilibriumReaction(
         stoichiometry=[
@@ -100,9 +100,7 @@ class TestOwnedSpeciesIdentification:
         must report no owned species — over-filtering here would break
         legitimate transfer_models usage for CO2-style species."""
         from PyOMES.core.transfer_models import KineticTransferModel
-        from PyOMES.chemistry.common_species import (
-            H2O, H_plus, CO2, HCO3_minus,
-        )
+        from PyOMES.databases.aqueous import H2O, H_plus, CO2, HCO3_minus
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
 
         co2_first = EquilibriumReaction(

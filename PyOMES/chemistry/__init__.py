@@ -11,7 +11,6 @@ from .partition import (
 from .species import Species, SpeciesConflictError
 from .species_check import check_species_consistency, merge_species
 from .dose import as_dose, check_dose
-from . import common_species
 
 __all__ = [
     "PartitionModel",
@@ -23,5 +22,4 @@ __all__ = [
     "merge_species",
     "as_dose",
     "check_dose",
-    "common_species",
 ]

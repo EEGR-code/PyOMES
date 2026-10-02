@@ -472,7 +472,7 @@ class TestEquilibriumDeclaration:
 
     def test_equilibrium_construction(self):
         from PyOMES.reactions import EquilibriumReaction
-        from PyOMES.chemistry.common_species import H_plus, OH_minus, H2O
+        from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
         rxn = EquilibriumReaction(
             stoichiometry=[
                 _entry_sp(H2O, -1.0), _entry_sp(H_plus, +1.0), _entry_sp(OH_minus, +1.0),
@@ -490,7 +490,7 @@ class TestEquilibriumDeclaration:
         equilibrium reactions are routed to BisectionChemicalEquilibriumEngine.
         """
         from PyOMES.reactions import EquilibriumReaction
-        from PyOMES.chemistry.common_species import H_plus, OH_minus, H2O
+        from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
         rxn = EquilibriumReaction(
             stoichiometry=[
                 _entry_sp(H2O, -1.0), _entry_sp(H_plus, +1.0), _entry_sp(OH_minus, +1.0),
@@ -502,7 +502,7 @@ class TestEquilibriumDeclaration:
 
     def test_equilibrium_without_log_K_rejected(self):
         from PyOMES.reactions import EquilibriumReaction
-        from PyOMES.chemistry.common_species import H_plus, OH_minus, H2O
+        from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
         with pytest.raises(ValueError):
             EquilibriumReaction(
                 stoichiometry=[
@@ -516,7 +516,7 @@ class TestEquilibriumDeclaration:
         stoichiometry spans more than one phase.
         """
         from PyOMES.reactions import EquilibriumReaction
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
 
         single_phase = EquilibriumReaction(
             stoichiometry=[
@@ -544,7 +544,7 @@ class TestEquilibriumDeclaration:
         gas-liquid link (Henry's law), not on the reaction.
         """
         from PyOMES.reactions import EquilibriumReaction
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
         rxn = EquilibriumReaction(
             stoichiometry=[
                 _entry_sp(CO2, -1.0, phase="gas"),
@@ -574,7 +574,7 @@ class TestReactionSystemBucketing:
 
     def _equilibrium_rxn(self, label="eq"):
         from PyOMES.reactions import EquilibriumReaction
-        from PyOMES.chemistry.common_species import H_plus, OH_minus, H2O
+        from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
         return EquilibriumReaction(
             stoichiometry=[
                 _entry_sp(H2O, -1.0), _entry_sp(H_plus, +1.0), _entry_sp(OH_minus, +1.0),

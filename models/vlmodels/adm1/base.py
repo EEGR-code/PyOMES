@@ -45,9 +45,9 @@ from PyOMES.reactions import (
     arrhenius_factor,
 )
 from PyOMES.chemistry.species import Species
-from PyOMES.chemistry.common_species import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
-from PyOMES.chemistry.common_species import H2S as _H2S_sp
-from PyOMES.chemistry.common_species import H_plus as _H_plus_sp, OH_minus as _OH_minus_sp
+from PyOMES.databases.aqueous import CO2 as _CO2_sp, NH3 as _NH3_sp, H2O as _H2O_sp
+from PyOMES.databases.anaerobic_digestion import H2S as _H2S_sp
+from PyOMES.databases.aqueous import H_plus as _H_plus_sp, OH_minus as _OH_minus_sp
 from PyOMES.thermo.temperature_correction import ln_correction
 
 logger = logging.getLogger(__name__)
@@ -677,7 +677,7 @@ def _get_species(sp_id: str) -> Species:
     cached = _ADM1_SPECIES_CACHE.get(sp_id)
     if cached is not None:
         return cached
-    # Universal inorganics: alias the common_species objects so
+    # Universal inorganics: alias the aqueous database's objects so
     # cross-model composition does not trip the soft-conflict check.
     if sp_id == "CO2":
         sp_obj = _CO2_sp

@@ -500,7 +500,7 @@ class TestCanonicalEmission:
         """
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus, H2O, CO2, HCO3_minus
+        from PyOMES.databases.aqueous import H_plus, H2O, CO2, HCO3_minus
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -531,7 +531,7 @@ class TestCanonicalEmission:
         """
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus, NH3, NH4_plus
+        from PyOMES.databases.aqueous import H_plus, NH3, NH4_plus
 
         rxn = EquilibriumReaction(
             stoichiometry=[
@@ -564,7 +564,7 @@ class TestCanonicalEmission:
         """
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus
+        from PyOMES.databases.aqueous import H_plus
         from PyOMES.chemistry.species import Species
 
         AceticAcid = Species(
@@ -603,7 +603,7 @@ class TestApplyToPhasesWriteback:
     def test_apply_to_phases_matches_species_mol_L(self):
         from PyOMES.core.phases import GasPhase, LiquidPhase
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H_plus, H2O, CO2, HCO3_minus
+        from PyOMES.databases.aqueous import H_plus, H2O, CO2, HCO3_minus
 
         rxn = EquilibriumReaction(
             stoichiometry=[

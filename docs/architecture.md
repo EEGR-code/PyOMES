@@ -379,7 +379,7 @@ PyOMES/
   __init__.py
   units.py                       # Shared constants and unit conversions
   config.py                      # PyOMES.config — WarningConfig, env-var presets
-  chemistry/                     # species.py (Species), common_species.py (inorganic aqueous species),
+  chemistry/                     # species.py (Species),
                                  # species_check.py (cross-reaction consistency), partition.py
                                  # (phase-partition protocols, ideal-gas VLE model)
   databases/                     # ChemistryDatabase (species + reactions + ThermoFramework bundle) and

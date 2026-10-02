@@ -26,20 +26,39 @@ Usage::
 """
 from __future__ import annotations
 
-from PyOMES.chemistry.common_species import (
-    H_plus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-    HSO4_minus, SO4_2minus,
-    K_plus, Cl_minus, Na_plus,
-)
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
 from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
 from PyOMES.reactions.reaction_system import ReactionSystem
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
-from .aqueous import AQUEOUS_DEFAULT
+from .aqueous import AQUEOUS_DEFAULT, H_plus
 
 _T_REF_K = 298.15
+
+# ---------------------------------------------------------------------------
+# Medium ions: the phosphate and sulfate systems, spectator ions, and the
+# divalent metals and molybdate of growth-medium salts and trace elements.
+# MW is computed from the atoms.
+# ---------------------------------------------------------------------------
+H3PO4       = Species(id="H3PO4",  atoms={"H": 3, "P": 1, "O": 4}, charge=0)
+H2PO4_minus = Species(id="H2PO4-", atoms={"H": 2, "P": 1, "O": 4}, charge=-1)
+HPO4_2minus = Species(id="HPO4--", atoms={"H": 1, "P": 1, "O": 4}, charge=-2)
+PO4_3minus  = Species(id="PO4---", atoms={"P": 1, "O": 4},          charge=-3)
+
+HSO4_minus = Species(id="HSO4-", atoms={"H": 1, "S": 1, "O": 4}, charge=-1)
+SO4_2minus = Species(id="SO4--", atoms={"S": 1, "O": 4},          charge=-2)
+
+K_plus   = Species(id="K+",  atoms={"K":  1},         charge=+1)
+Cl_minus = Species(id="Cl-", atoms={"Cl": 1},         charge=-1)
+Na_plus  = Species(id="Na+", atoms={"Na": 1},         charge=+1)
+
+Ca_2plus = Species(id="Ca++", atoms={"Ca": 1}, charge=+2)
+Mg_2plus = Species(id="Mg++", atoms={"Mg": 1}, charge=+2)
+Zn_2plus = Species(id="Zn++", atoms={"Zn": 1}, charge=+2)
+Mn_2plus = Species(id="Mn++", atoms={"Mn": 1}, charge=+2)
+Cu_2plus = Species(id="Cu++", atoms={"Cu": 1}, charge=+2)
+Co_2plus = Species(id="Co++", atoms={"Co": 1}, charge=+2)
+MoO4_2minus = Species(id="MoO4--", atoms={"Mo": 1, "O": 4}, charge=-2)
 
 # ---------------------------------------------------------------------------
 # Undissociated salt / corrector species
@@ -78,6 +97,13 @@ _EXTRA_SPECIES = {
     "K+":     K_plus,
     "Cl-":    Cl_minus,
     "Na+":    Na_plus,
+    "Ca++":   Ca_2plus,
+    "Mg++":   Mg_2plus,
+    "Zn++":   Zn_2plus,
+    "Mn++":   Mn_2plus,
+    "Cu++":   Cu_2plus,
+    "Co++":   Co_2plus,
+    "MoO4--": MoO4_2minus,
     "AceticAcid":    AceticAcid,
     "PropionicAcid": PropionicAcid,
     "ButyricAcid":   ButyricAcid,

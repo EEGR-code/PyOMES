@@ -195,7 +195,7 @@ def test_detector_catches_every_import_form():
     assert found("from .partition import X", "PyOMES.chemistry", True) == {"chemistry"}
     # Allowed and irrelevant imports.
     assert found("from ..units import R") == {"units"}
-    assert found("from .species import S\nfrom . import common_species") == {"chemistry"}
+    assert found("from .species import S\nfrom . import partition") == {"chemistry"}
     assert found("import math\nfrom dataclasses import dataclass\nimport numpy") == set()
 
 
@@ -359,7 +359,7 @@ def test_parent_relative_import_detector_catches_every_form():
     assert bad("class C:\n    def m(self):\n        from ...protocols import P") == 1
     assert bad("if TYPE_CHECKING:\n    from ..thermo import X") == 1
     # Allowed: the own folder, and absolute imports.
-    assert bad("from .species import S\nfrom . import common_species") == 0
+    assert bad("from .species import S\nfrom . import partition") == 0
     assert bad("from PyOMES.units import R\nimport math") == 0
 
 

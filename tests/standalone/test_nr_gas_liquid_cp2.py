@@ -47,7 +47,7 @@ from PyOMES.units import R_L_ATM_PER_MOL_K
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _water_rxn():
-    from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus
+    from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
     return EquilibriumReaction(
         stoichiometry=[
@@ -60,7 +60,7 @@ def _water_rxn():
 
 
 def _carbonate_ladder():
-    from PyOMES.chemistry.common_species import H2O, H_plus, CO2, HCO3_minus, CO3_2minus
+    from PyOMES.databases.aqueous import H2O, H_plus, CO2, HCO3_minus, CO3_2minus
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry as E
     co2_first = EquilibriumReaction(
         stoichiometry=[
@@ -84,7 +84,7 @@ def _carbonate_ladder():
 
 def _co2_henry(H_ref=3.4e-4, dlnH=2400.0):
     from PyOMES.reactions import HenryEquilibrium
-    from PyOMES.chemistry.common_species import CO2
+    from PyOMES.databases.aqueous import CO2
     return HenryEquilibrium(
         H_ref=H_ref, dlnH=dlnH, gas_species=CO2, liquid_species=CO2,
         label="henry_CO2",

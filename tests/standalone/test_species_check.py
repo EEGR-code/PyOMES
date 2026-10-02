@@ -24,7 +24,7 @@ class TestCheckSpeciesConsistency:
 
     def test_clean_imports_no_warning(self):
         from PyOMES.chemistry import check_species_consistency
-        from PyOMES.chemistry.common_species import H2O, CO2, H_plus, OH_minus
+        from PyOMES.databases.aqueous import H2O, CO2, H_plus, OH_minus
         with warnings.catch_warnings():
             warnings.simplefilter("error")  # any warning would fail
             check_species_consistency([

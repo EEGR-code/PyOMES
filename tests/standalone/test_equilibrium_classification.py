@@ -26,7 +26,7 @@ import pytest
 
 def _water_reaction():
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-    from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus
+    from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
     return EquilibriumReaction(
         stoichiometry=[
             StoichiometryEntry(species=H2O, phase="liquid", coefficient=-1.0),
@@ -39,7 +39,7 @@ def _water_reaction():
 
 def _co2_acid_reaction():
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-    from PyOMES.chemistry.common_species import CO2, H2O, HCO3_minus, H_plus
+    from PyOMES.databases.aqueous import CO2, H2O, HCO3_minus, H_plus
     return EquilibriumReaction(
         stoichiometry=[
             StoichiometryEntry(species=CO2, phase="liquid", coefficient=-1.0),
@@ -56,7 +56,7 @@ def _co2_gas_liquid_declaration():
     """Cross-phase EquilibriumReaction: CO2(gas) <-> CO2(liquid), no log_K
     (a partition declaration, consumed by KineticGasLiquidLink)."""
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-    from PyOMES.chemistry.common_species import CO2
+    from PyOMES.databases.aqueous import CO2
     return EquilibriumReaction(
         stoichiometry=[
             StoichiometryEntry(species=CO2, phase="gas", coefficient=-1.0),
@@ -68,7 +68,7 @@ def _co2_gas_liquid_declaration():
 
 def _henry_co2():
     from PyOMES.reactions import HenryEquilibrium
-    from PyOMES.chemistry.common_species import CO2
+    from PyOMES.databases.aqueous import CO2
     return HenryEquilibrium(
         H_ref=3.4e-4, dlnH=2400.0, gas_species=CO2, liquid_species=CO2,
     )
@@ -76,14 +76,15 @@ def _henry_co2():
 
 def _calcite_reaction():
     """Calcite dissolution: CaCO3(s) <-> Ca++ + CO3--  log_K = -8.48 (Ksp at 25 C)."""
-    from PyOMES.chemistry.common_species import Ca_plus_plus, CO3_2minus
+    from PyOMES.databases.bioprocess_basic import Ca_2plus
+    from PyOMES.databases.aqueous import CO3_2minus
     from PyOMES.chemistry.species import Species
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
     CaCO3 = Species(id="CaCO3", atoms={"Ca": 1, "C": 1, "O": 3}, charge=0, MW=100.086)
     return EquilibriumReaction(
         stoichiometry=[
             StoichiometryEntry(species=CaCO3, phase="solid", coefficient=-1.0),
-            StoichiometryEntry(species=Ca_plus_plus, phase="liquid", coefficient=+1.0),
+            StoichiometryEntry(species=Ca_2plus, phase="liquid", coefficient=+1.0),
             StoichiometryEntry(species=CO3_2minus, phase="liquid", coefficient=+1.0),
         ],
         log_K=-8.48, label="calcite",
@@ -116,7 +117,7 @@ class TestClassifyEquilibriumConstraint:
     def test_raoult_equilibrium_is_gas_liquid(self):
         from PyOMES.reactions import RaoultEquilibrium
         from PyOMES.reactions.equilibrium.constraint import classify_equilibrium_constraint
-        from PyOMES.chemistry.common_species import H2O
+        from PyOMES.databases.aqueous import H2O
         raoult = RaoultEquilibrium(gas_species=H2O, liquid_species=H2O)
         assert classify_equilibrium_constraint(raoult) == "gas_liquid"
 
@@ -227,9 +228,7 @@ class TestChemicalEquilibriumEngineCrossPhaseExposure:
 class TestNRChemicalEquilibriumEngineAutoPrecipitation:
     def _carbonate_reactions(self):
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import (
-            CO2, H2O, HCO3_minus, CO3_2minus, H_plus,
-        )
+        from PyOMES.databases.aqueous import CO2, H2O, HCO3_minus, CO3_2minus, H_plus
         co2_second = EquilibriumReaction(
             stoichiometry=[
                 StoichiometryEntry(species=HCO3_minus, phase="liquid", coefficient=-1.0),

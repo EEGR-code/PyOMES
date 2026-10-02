@@ -65,9 +65,7 @@ def _make_speciation_reactions():
     on first access (state-unification C4)."""
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
     from PyOMES.chemistry import Species
-    from PyOMES.chemistry.common_species import (
-        H_plus, OH_minus, H2O, CO2, HCO3_minus,
-    )
+    from PyOMES.databases.aqueous import H_plus, OH_minus, H2O, CO2, HCO3_minus
 
     HAc = Species(id="AceticAcid", atoms={"C": 2, "H": 4, "O": 2}, charge=0, MW=60.052)
     Ac_minus = Species(id="AceticAcid-", atoms={"C": 2, "H": 3, "O": 2}, charge=-1)
@@ -982,9 +980,15 @@ class TestEquilibrateToPH:
     """
 
     def _make_cv(self):
-        from PyOMES.chemistry.common_species import (
-            NH4_plus, Cl_minus, K_plus, H2PO4_minus, HPO4_2minus, PO4_3minus,
-            H3PO4, Na_plus,
+        from PyOMES.databases.aqueous import NH4_plus
+        from PyOMES.databases.bioprocess_basic import (
+            Cl_minus,
+            K_plus,
+            H2PO4_minus,
+            HPO4_2minus,
+            PO4_3minus,
+            H3PO4,
+            Na_plus,
         )
         from PyOMES.databases.bioprocess_basic import (
             BIOPROCESS_BASIC, NH4Cl, KH2PO4,
@@ -1044,7 +1048,7 @@ class TestEquilibrateToPH:
 
     def test_naoh_adds_na_plus_to_n_mol(self):
         """The dose adds Na+ to n_mol; no NaOH species appears."""
-        from PyOMES.chemistry.common_species import Na_plus
+        from PyOMES.databases.bioprocess_basic import Na_plus
         cv = self._make_cv()
         na_before = cv["liquid"].n_mol.get(Na_plus.id, 0.0)
         cv.equilibrate_to_pH(_NAOH, 6.0)

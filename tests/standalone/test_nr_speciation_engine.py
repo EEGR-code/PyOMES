@@ -6,7 +6,7 @@ Bespoke test chemistry
 All tests use a hand-crafted carbonate + ammonia system that covers the
 key structural cases without requiring the full BSM2 model:
 
-    Species (from common_species):
+    Species (from PyOMES.databases.aqueous):
         H2O, H+, OH-            — water equilibrium
         CO2, HCO3-, CO3--       — two-step carbonate ladder  (total_id="CO2")
         NH4+, NH3                — one-step ammonia           (total_id="NH3")
@@ -50,10 +50,15 @@ import numpy as np
 
 def _make_reactions():
     """Return the four bespoke equilibrium reactions used across all tests."""
-    from PyOMES.chemistry.common_species import (
-        H2O, H_plus, OH_minus,
-        CO2, HCO3_minus, CO3_2minus,
-        NH3, NH4_plus,
+    from PyOMES.databases.aqueous import (
+        H2O,
+        H_plus,
+        OH_minus,
+        CO2,
+        HCO3_minus,
+        CO3_2minus,
+        NH3,
+        NH4_plus,
     )
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
@@ -556,7 +561,14 @@ class TestPhaseWriteback:
 
 def _make_carbonate_reactions():
     """Carbonate-only reactions (water + 2-step carbonate ladder)."""
-    from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+    from PyOMES.databases.aqueous import (
+        H2O,
+        H_plus,
+        OH_minus,
+        CO2,
+        HCO3_minus,
+        CO3_2minus,
+    )
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     def _e(sp, phase, coeff):
@@ -581,7 +593,8 @@ def _make_carbonate_reactions():
 
 def _make_calcite_reaction():
     """Calcite dissolution: CaCO3(s) <-> Ca++ + CO3--  log_K = -8.48 (Ksp at 25°C)."""
-    from PyOMES.chemistry.common_species import Ca_plus_plus, CO3_2minus
+    from PyOMES.databases.bioprocess_basic import Ca_2plus
+    from PyOMES.databases.aqueous import CO3_2minus
     from PyOMES.chemistry.species import Species
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
@@ -593,7 +606,7 @@ def _make_calcite_reaction():
     return EquilibriumReaction(
         stoichiometry=[
             _e(CaCO3,       "solid",  -1),
-            _e(Ca_plus_plus,"liquid", +1),
+            _e(Ca_2plus,"liquid", +1),
             _e(CO3_2minus,  "liquid", +1),
         ],
         log_K=-8.48,
@@ -693,7 +706,7 @@ class TestPrecipitationEquilibria:
         precipitation since log_Ksp is large → always undersaturated).
         """
         from PyOMES.chemistry.species import Species
-        from PyOMES.chemistry.common_species import CO3_2minus, H2O, H_plus, OH_minus
+        from PyOMES.databases.aqueous import CO3_2minus, H2O, H_plus, OH_minus
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
         from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 

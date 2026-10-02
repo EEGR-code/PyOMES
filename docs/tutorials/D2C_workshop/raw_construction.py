@@ -54,8 +54,12 @@ from PyOMES.core.boundaries import GasFeed, PressureReliefVent
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.control.cv_loops import PHController
 from PyOMES.chemistry import Species
-from PyOMES.chemistry.common_species import (
-    H_plus, OH_minus, H2O, H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import (
     EquilibriumReaction,
@@ -80,9 +84,8 @@ warnings.filterwarnings("ignore", category=ConservationWarning)
 # ── Chemistry (inlined — see docs/tutorials/reactions/reaction_system.ipynb
 #    for the same declarations as their own standalone, importable demo) ──
 
-# Acetic acid: HA (neutral) and its conjugate base. Acetate⁻ isn't in
-# common_species (which only holds universal inorganics), so it's
-# declared here alongside the dissociation it participates in.
+# Acetic acid: HA (neutral) and its conjugate base, declared here
+# alongside the dissociation they take part in.
 ACETIC_ACID = Species(
     id="AceticAcid", atoms={"C": 2, "H": 4, "O": 2}, charge=0, MW=60.052,
 )

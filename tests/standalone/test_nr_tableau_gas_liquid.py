@@ -33,10 +33,15 @@ def _base_reactions():
     test_nr_speciation_engine.py's _make_reactions(), reused here so the
     carbonate/ammonia components already exist before gas-liquid folding
     is attempted onto them."""
-    from PyOMES.chemistry.common_species import (
-        H2O, H_plus, OH_minus,
-        CO2, HCO3_minus, CO3_2minus,
-        NH3, NH4_plus,
+    from PyOMES.databases.aqueous import (
+        H2O,
+        H_plus,
+        OH_minus,
+        CO2,
+        HCO3_minus,
+        CO3_2minus,
+        NH3,
+        NH4_plus,
     )
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
@@ -93,7 +98,8 @@ def _base_reactions():
 def _h2s_ladder():
     """H2S <-> HS- + H+, pKa=7.0 — a third single-component acid-base
     ladder to exercise the CO2/NH3/H2S 'attach' case named in the plan."""
-    from PyOMES.chemistry.common_species import H2S, HS_minus, H_plus
+    from PyOMES.databases.anaerobic_digestion import H2S, HS_minus
+    from PyOMES.databases.aqueous import H_plus
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
     return EquilibriumReaction(
@@ -110,7 +116,7 @@ def _h2s_ladder():
 
 def _co2_henry():
     from PyOMES.reactions import HenryEquilibrium
-    from PyOMES.chemistry.common_species import CO2
+    from PyOMES.databases.aqueous import CO2
     return HenryEquilibrium(
         H_ref=3.4e-4, dlnH=2400.0, gas_species=CO2, liquid_species=CO2,
         label="henry_CO2",
@@ -119,7 +125,7 @@ def _co2_henry():
 
 def _nh3_henry():
     from PyOMES.reactions import HenryEquilibrium
-    from PyOMES.chemistry.common_species import NH3
+    from PyOMES.databases.aqueous import NH3
     return HenryEquilibrium(
         H_ref=5.9e-1, dlnH=4200.0, gas_species=NH3, liquid_species=NH3,
         label="henry_NH3",
@@ -128,7 +134,7 @@ def _nh3_henry():
 
 def _h2s_henry():
     from PyOMES.reactions import HenryEquilibrium
-    from PyOMES.chemistry.common_species import H2S
+    from PyOMES.databases.anaerobic_digestion import H2S
     return HenryEquilibrium(
         H_ref=1.0e-3, dlnH=2100.0, gas_species=H2S, liquid_species=H2S,
         label="henry_H2S",
@@ -136,7 +142,7 @@ def _h2s_henry():
 
 
 def _inert_gas_species():
-    """O2/CH4/N2/H2 — not in common_species; local Species objects with no
+    """O2/CH4/N2/H2 — local Species objects with no
     acid-base chemistry, matching the plan's inert-gas singleton case."""
     from PyOMES.chemistry.species import Species
     return {
@@ -282,7 +288,7 @@ class TestBridgingRaisesConfigurationError:
         require merging two multi-species components. balance_elements=()
         skips elemental validation since the placeholder gas species is
         deliberately not a real formula."""
-        from PyOMES.chemistry.common_species import CO2, NH3
+        from PyOMES.databases.aqueous import CO2, NH3
         from PyOMES.chemistry.species import Species
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 
@@ -333,7 +339,7 @@ class TestUnparameterizedGasLiquidStillSkipped:
         (pure KineticGasLiquidLink routing declaration) must still be
         silently skipped, exactly as before CP1 — it carries no mass-
         action constant to fold in."""
-        from PyOMES.chemistry.common_species import CO2
+        from PyOMES.databases.aqueous import CO2
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
         from PyOMES.chemical_equilibrium.engines.nr.tableau import build_tableau
 

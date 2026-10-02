@@ -61,10 +61,12 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-    NH3, NH4_plus,
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus, NH3, NH4_plus
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -823,7 +825,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
 from PyOMES.databases.bioprocess_basic import N2, O2
 from PyOMES.reactions import HenryEquilibrium
 from PyOMES.reactions import EquilibriumReaction, ReactionSystem, StoichiometryEntry
@@ -1201,11 +1203,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PyOMES.chemistry.species import Species
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
-    NH3, NH4_plus,
-    CO2, HCO3_minus, CO3_2minus,
+from PyOMES.databases.aqueous import (
+    H2O,
+    H_plus,
+    OH_minus,
+    NH3,
+    NH4_plus,
+    CO2,
+    HCO3_minus,
+    CO3_2minus,
+)
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import HenryEquilibrium
 from PyOMES.reactions import (

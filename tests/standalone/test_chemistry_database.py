@@ -72,7 +72,7 @@ class TestChemistryDatabaseExtend:
         assert extended.thermo == base.thermo
 
     def test_extend_adds_reactions(self):
-        from PyOMES.chemistry.common_species import CO2, H_plus, H2O, HCO3_minus
+        from PyOMES.databases.aqueous import CO2, H_plus, H2O, HCO3_minus
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
         base = self._base()
         rxn = EquilibriumReaction(
@@ -100,7 +100,7 @@ class TestChemistryDatabaseExtendPreservesReactionSystemConfig:
 
     def _rxn(self, label):
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import CO2, HCO3_minus, H_plus, H2O
+        from PyOMES.databases.aqueous import CO2, HCO3_minus, H_plus, H2O
         return EquilibriumReaction(
             stoichiometry=[
                 StoichiometryEntry(species=CO2,        phase="liquid", coefficient=-1.0),
@@ -199,7 +199,7 @@ class TestStockDatabases:
 
     def test_ad_basic_h2s_equilibrium(self):
         from PyOMES.databases.anaerobic_digestion import AD_BASIC
-        from PyOMES.chemistry.common_species import H2S, HS_minus
+        from PyOMES.databases.anaerobic_digestion import H2S, HS_minus
         from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
         from PyOMES.reactions.equilibrium.constraint import classify_equilibrium_constraint
 

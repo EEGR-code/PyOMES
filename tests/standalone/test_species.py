@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for the Species type and common_species declarations."""
+"""Tests for the Species type and the aqueous database's species."""
 
 import pytest
 
@@ -68,32 +68,32 @@ class TestSpecies:
         assert "CO2" in repr(s)
 
 
-# ── common_species ───────────────────────────────────────────────────
+# ── The aqueous database's species ──────────────────────────────────
 
-class TestCommonSpecies:
+class TestAqueousSpecies:
 
     def test_water_atoms(self):
-        from PyOMES.chemistry.common_species import H2O
+        from PyOMES.databases.aqueous import H2O
         assert dict(H2O.atoms) == {"H": 2, "O": 1}
         assert H2O.charge == 0
 
     def test_protons_and_hydroxide_charges(self):
-        from PyOMES.chemistry.common_species import H_plus, OH_minus
+        from PyOMES.databases.aqueous import H_plus, OH_minus
         assert H_plus.charge == 1
         assert OH_minus.charge == -1
 
     def test_carbonate_double_negative(self):
-        from PyOMES.chemistry.common_species import CO3_2minus
+        from PyOMES.databases.aqueous import CO3_2minus
         assert CO3_2minus.charge == -2
 
     def test_ammonium_positive(self):
-        from PyOMES.chemistry.common_species import NH4_plus
+        from PyOMES.databases.aqueous import NH4_plus
         assert NH4_plus.charge == 1
         assert dict(NH4_plus.atoms) == {"N": 1, "H": 4}
 
     def test_identity_preserved_across_imports(self):
-        from PyOMES.chemistry.common_species import CO2 as A
-        from PyOMES.chemistry.common_species import CO2 as B
+        from PyOMES.databases.aqueous import CO2 as A
+        from PyOMES.databases.aqueous import CO2 as B
         assert A is B
 
 
@@ -103,7 +103,7 @@ class TestChargeBalance:
 
     def test_balanced_dissociation_passes(self):
         from PyOMES.reactions import StoichiometryEntry, validate_balance
-        from PyOMES.chemistry.common_species import H_plus, OH_minus, H2O
+        from PyOMES.databases.aqueous import H_plus, OH_minus, H2O
         entries = [
             StoichiometryEntry(species=H2O,      phase="liquid", coefficient=-1.0),
             StoichiometryEntry(species=H_plus,   phase="liquid", coefficient=+1.0),
@@ -114,7 +114,7 @@ class TestChargeBalance:
     def test_imbalanced_charge_raises(self):
         from PyOMES.reactions import StoichiometryEntry, StoichiometryError, validate_balance
         from PyOMES.chemistry import Species
-        from PyOMES.chemistry.common_species import H_plus, H2O
+        from PyOMES.databases.aqueous import H_plus, H2O
         # H2O -> H+ + neutral OH placeholder: elements balance, charge does not.
         entries = [
             StoichiometryEntry(species=H2O,    phase="liquid", coefficient=-1.0),

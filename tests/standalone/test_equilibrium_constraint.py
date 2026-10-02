@@ -25,7 +25,7 @@ _T_REF = 298.15
 class TestEquilibriumReactionConformance:
     def _rxn(self, **kwargs):
         from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-        from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus
+        from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
         return EquilibriumReaction(
             stoichiometry=[
                 StoichiometryEntry(species=H2O,      phase="liquid", coefficient=-1.0),
@@ -83,7 +83,7 @@ _H2S_DLN_H = 2100.0
 class TestHenryEquilibriumConformance:
     def _henry(self, **kwargs):
         from PyOMES.reactions import HenryEquilibrium
-        from PyOMES.chemistry.common_species import H2S
+        from PyOMES.databases.anaerobic_digestion import H2S
         return HenryEquilibrium(
             H_ref=_H2S_H_REF, dlnH=_H2S_DLN_H,
             gas_species=H2S, liquid_species=H2S,
@@ -184,7 +184,7 @@ class TestRaoultEquilibriumConformance:
 
     def test_stoichiometry_gas_liquid_water(self):
         from PyOMES.reactions import RaoultEquilibrium
-        from PyOMES.chemistry.common_species import H2O
+        from PyOMES.databases.aqueous import H2O
         rp = RaoultEquilibrium(gas_species=H2O, liquid_species=H2O)
         entries = rp.stoichiometry
         assert len(entries) == 2
@@ -261,14 +261,15 @@ class TestKspEquilibriumSingleIon:
 class TestKspEquilibriumMultiIon:
     def _ksp(self):
         from PyOMES.reactions import KspEquilibrium
-        from PyOMES.chemistry.common_species import Ca_plus_plus, CO3_2minus
+        from PyOMES.databases.bioprocess_basic import Ca_2plus
+        from PyOMES.databases.aqueous import CO3_2minus
         from PyOMES.chemistry.species import Species
         from PyOMES.reactions import StoichiometryEntry
         CaCO3_solid = Species(id="CaCO3(s)", atoms={"Ca": 1, "C": 1, "O": 3}, charge=0)
         return KspEquilibrium(
             stoichiometry=[
                 StoichiometryEntry(species=CaCO3_solid, phase="solid", coefficient=-1.0),
-                StoichiometryEntry(species=Ca_plus_plus, phase="liquid", coefficient=+1.0),
+                StoichiometryEntry(species=Ca_2plus, phase="liquid", coefficient=+1.0),
                 StoichiometryEntry(species=CO3_2minus, phase="liquid", coefficient=+1.0),
             ],
             Ksp=3.3e-9,

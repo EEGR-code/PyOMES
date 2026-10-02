@@ -19,10 +19,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from PyOMES.chemistry.common_species import (
-    H2O, H_plus, OH_minus,
-    CO2, HCO3_minus, CO3_2minus,
-    H3PO4, H2PO4_minus, HPO4_2minus, PO4_3minus,
+from PyOMES.databases.aqueous import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+from PyOMES.databases.bioprocess_basic import (
+    H3PO4,
+    H2PO4_minus,
+    HPO4_2minus,
+    PO4_3minus,
 )
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine

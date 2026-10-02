@@ -56,9 +56,7 @@ def _make_speciation_reactions():
     """Minimal equilibrium reaction set: water + CO2 + acetate."""
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
     from PyOMES.chemistry import Species
-    from PyOMES.chemistry.common_species import (
-        H_plus, OH_minus, H2O, CO2, HCO3_minus,
-    )
+    from PyOMES.databases.aqueous import H_plus, OH_minus, H2O, CO2, HCO3_minus
     HAc = Species(id="AceticAcid", atoms={"C": 2, "H": 4, "O": 2}, charge=0)
     Ac = Species(id="AceticAcid-", atoms={"C": 2, "H": 3, "O": 2}, charge=-1)
     return [
@@ -94,7 +92,7 @@ def _make_synthetic_equilibrium_set():
     """Small EquilibriumSet: carbonate and ammonium ladders that carry
     ``species_refs``, plus two acids that do not."""
     from PyOMES.chemical_equilibrium.engines.bisection.equilibria import EquilibriumSet
-    from PyOMES.chemistry.common_species import CO2, HCO3_minus, NH4_plus, NH3
+    from PyOMES.databases.aqueous import CO2, HCO3_minus, NH4_plus, NH3
     eq_set = EquilibriumSet(T_ref_K=298.15)
     eq_set.set_water(pKw=14.0)
     eq_set.add("CO2", category="inorganic_acid", pKas=(6.35,),
@@ -278,7 +276,7 @@ class TestAlgebraicSpecies:
     def test_from_reactions_includes_ladder_species(self):
         """species_refs from each EquilibriumReaction appear in algebraic_species."""
         from PyOMES.chemical_equilibrium import BisectionChemicalEquilibriumEngine
-        from PyOMES.chemistry.common_species import CO2, HCO3_minus
+        from PyOMES.databases.aqueous import CO2, HCO3_minus
         engine = BisectionChemicalEquilibriumEngine.from_reactions(_make_speciation_reactions())
         alg = engine.algebraic_species()
         # CO2 ladder: CO2, HCO3-

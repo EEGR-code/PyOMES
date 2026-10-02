@@ -21,7 +21,7 @@ import pytest
 
 def _water_reaction():
     from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
-    from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus
+    from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
     return EquilibriumReaction(
         stoichiometry=[
             StoichiometryEntry(species=H2O, phase="liquid", coefficient=-1.0),

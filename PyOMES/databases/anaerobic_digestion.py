@@ -29,15 +29,19 @@ Usage::
 """
 from __future__ import annotations
 
-from PyOMES.chemistry.common_species import CO2, H_plus, H2S, HS_minus
 from PyOMES.chemistry.species import Species
 from PyOMES.reactions.equilibrium.reaction import EquilibriumReaction
 from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
 from PyOMES.reactions.reaction_system import ReactionSystem
 from PyOMES.reactions.stoichiometry import StoichiometryEntry
+from .aqueous import CO2, H_plus
 from .bioprocess_basic import BIOPROCESS_BASIC
 
 _T_REF_K = 298.15
+
+# The sulfide system. MW is computed from the atoms.
+H2S      = Species(id="H2S", atoms={"H": 2, "S": 1}, charge=0)
+HS_minus = Species(id="HS-", atoms={"H": 1, "S": 1}, charge=-1)
 
 CH4 = Species(id="CH4", atoms={"C": 1, "H": 4})
 H2  = Species(id="H2",  atoms={"H": 2})

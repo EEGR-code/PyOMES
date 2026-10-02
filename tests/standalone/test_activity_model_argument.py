@@ -21,8 +21,13 @@ from PyOMES.thermo import DaviesLiquidModel, IdealLiquidModel, SITLiquidModel, m
 
 def _carbonate_reactions():
     """Water and the two carbonate dissociations, for building either engine."""
-    from PyOMES.chemistry.common_species import (
-        CO2, CO3_2minus, H2O, H_plus, HCO3_minus, OH_minus,
+    from PyOMES.databases.aqueous import (
+        CO2,
+        CO3_2minus,
+        H2O,
+        H_plus,
+        HCO3_minus,
+        OH_minus,
     )
 
     def e(species, coeff):

@@ -26,10 +26,10 @@ Usage
 >>> CO2 == Species(id="CO2", atoms={"C": 1, "O": 2}, charge=0)
 True
 
-For universal inorganic aqueous species, prefer importing from
-:mod:`~PyOMES.chemistry.common_species`:
+Shared definitions live in the database modules; import them from there,
+e.g. :mod:`~PyOMES.databases.aqueous`:
 
->>> from PyOMES.chemistry.common_species import CO2, H2O, NH3
+>>> from PyOMES.databases.aqueous import CO2, H2O, NH3
 """
 
 from __future__ import annotations

@@ -247,7 +247,7 @@
 
 ### Retire `common_species`
 
-- [ ] **16. Definitions into the databases.** The 26 definitions move into
+- [x] **16. Definitions into the databases.** The 26 definitions move into
       the database modules (`aqueous.py`: water, carbonate, ammonia; which
       module owns phosphate, sulfate, sulfide, the spectator ions and the
       metal ions is settled in the notes); each database lists every species
@@ -1066,6 +1066,51 @@ cases, warning counts unchanged. Engine-basics notebooks 01 (38 lines) and
 02 (26 lines) print the same as a `git archive HEAD` export. No string can
 reach a resolver now (it is deleted), so there is nothing for the recorder
 to show.
+
+16:
+
+Agreed before starting (2026-10-02): the metal ions (Ca, Mg, Zn, Mn, Cu, Co,
+molybdate) go to `bioprocess_basic` with the medium's other ions. Asked
+during the checkpoint: the divalent cations' Python names follow the
+existing `_2minus` / `_3minus` pattern, so `Ca_plus_plus` -> `Ca_2plus`
+(likewise Mg, Zn, Mn, Cu, Co) everywhere; single charges stay `_plus` /
+`_minus`; `Species` ids are unchanged (`"Ca++"`, which engine tables and
+results key on).
+
+- Definitions moved, values copied exactly, each listed in its database's
+  `species`: `databases/aqueous.py` H+, OH-, H2O, CO2, HCO3-, CO3--, NH3,
+  NH4+; `databases/bioprocess_basic.py` H3PO4, H2PO4-, HPO4--, PO4---,
+  HSO4-, SO4--, K+, Na+, Cl- and the seven metal ions (newly listed);
+  `databases/anaerobic_digestion.py` H2S, HS-. The later modules import what
+  they use from `.aqueous`.
+- `PyOMES/chemistry/common_species.py` deleted, with its
+  `chemistry/__init__.py` import and `__all__` entry.
+- Importers rewritten by script (`from PyOMES.chemistry.common_species import
+  ...`, single-line or parenthesised, with aliases, split per owning module,
+  one name per line when longer than 88 characters): 33 `.py` files (tests,
+  `models/vlmodels/adm1/base.py` and `bsm2.py`, both notebook generators,
+  `raw_construction.py`) and 18 notebooks (two that do not round-trip
+  through `json`, ArXiv 03 and validation 10, edited as escaped text). No
+  dynamic use of the module was left to rewrite.
+- Text: `species.py` and `gas_liquid_link.py` docstrings point to
+  `PyOMES.databases.aqueous`; comments in ADM1 / BSM2,
+  `raw_construction.py`, two test docstrings, `test_species.py`'s section
+  (`TestAqueousSpecies`) and `docs/architecture.md` follow;
+  `reaction_system.ipynb`'s markdown dropped a claim stale since checkpoint
+  5 (that `aerobic_growth` builds its own CO2); the layering test's example
+  source uses `partition` instead of the deleted module's name.
+- `10_engine_protocol_hierarchy.ipynb` was already `i/mixed` in HEAD (3 bare
+  LF in a saved warning output); unchanged.
+
+Sanity: the 26 objects compared with HEAD's `common_species`: identical id,
+atoms, charge and MW, each listed in AD_BASIC's species. Sweep: no
+`common_species` and no `_plus_plus` outside `docs/dev/`. Suite 2199 passed,
+2 xfailed before and after. Measurement against 15: 0 values differ in all
+five cases, warning counts unchanged. `raw_construction.py` output identical
+to HEAD; the 18 notebooks (run in the owner's terminal against a `git
+archive HEAD` export) identical except the ArXiv notebooks' wall-clock
+timing columns (01 `mean (ms)` / `std (ms)`, 02 `mean (ms/h)`, 03 `Run
+Time, ms`) and the path their figures were saved to.
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder
