@@ -47,6 +47,7 @@ from PyOMES.reactions import (
     KineticReaction, EquilibriumReaction, ReactionSystem, StoichiometryEntry,
 )
 from PyOMES.chemistry.species import Species
+from PyOMES.databases.bioprocess_basic import N2 as N2_sp
 from PyOMES.thermo.temperature_correction import ln_correction
 from PyOMES.chemistry.common_species import (
     H_plus, OH_minus, H2O as H2O_sp,
@@ -124,6 +125,8 @@ SPECIES.update(_BSM2_BIO_SPECIES)
 # only, no atoms (so MW 0).
 SPECIES["S_cat"] = Species(id="S_cat", atoms={}, charge=+1)
 SPECIES["S_an"] = Species(id="S_an", atoms={}, charge=-1)
+# The headspace starts as N2 (build_bsm2_cv); it takes part in no reaction.
+SPECIES["N2"] = N2_sp
 del _sp_id, _atoms_dict, _mw, _thod_val
 
 def _mw(sp):

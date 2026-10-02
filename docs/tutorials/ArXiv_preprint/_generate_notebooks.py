@@ -824,6 +824,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PyOMES.chemistry.common_species import H2O, H_plus, OH_minus, CO2, HCO3_minus, CO3_2minus
+from PyOMES.databases.bioprocess_basic import N2, O2
 from PyOMES.reactions import HenryEquilibrium
 from PyOMES.reactions import EquilibriumReaction, ReactionSystem, StoichiometryEntry
 from PyOMES.core import (
@@ -1004,6 +1005,7 @@ def build_cv(kLa, label="pure_water"):
         phases={"gas": gas_phase, "liquid": liquid_phase},
         transfer_models=transfer_models,
         reaction_system=system,
+        species=[O2, N2],  # air gases, in no reaction
         label=label,
     )
 
@@ -1369,6 +1371,10 @@ Yxs          = 0.36    # g biomass / g acetate -- unchanged
 Ko2_gL       = 0.2e-3  # g O2 / L          -- unchanged
 
 O2 = Species(id="O2", atoms={"O": 2}, charge=0)
+# In no reaction: sparged N2 and the feed's counter-ions.
+N2 = Species(id="N2", atoms={"N": 2}, charge=0)
+K_PLUS = Species(id="K+", atoms={"K": 1}, charge=+1)
+CL_MINUS = Species(id="Cl-", atoms={"Cl": 1}, charge=-1)
 
 growth = ReactionBuilder.monod_aerobic_growth(
     substrate=ACETIC_ACID, biomass=ECOLI,
@@ -1564,6 +1570,7 @@ def build_cv(D_per_h, X0_gL=0.05):
         phases={"gas": gas_phase, "liquid": liquid_phase},
         transfer_models=make_transfer_models(), boundaries=boundaries,
         reaction_system=system, label=f"cstr_D{D_per_h:.3f}",
+        species=[N2, K_PLUS, CL_MINUS],
     )
 
 def run_to_steady_state(D_per_h, n_res=15.0, dt_h=0.01):

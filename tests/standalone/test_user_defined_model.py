@@ -375,3 +375,86 @@ class TestModelSpecies:
         cv = _build_tank()
         assert {"O2", "CO2", "H2O", "N2", "Yeast", "AceticAcid"} <= set(cv.species)
         assert cv.species["N2"] is N2
+
+
+# ── Ids the model has no Species for ─────────────────────────────────────────
+
+class TestUnresolvedSpecies:
+    """An id in n_mol, a feed or the template's set-up that the model has no
+    Species for warns once, naming where it entered."""
+
+    @staticmethod
+    def _unresolved(record):
+        from PyOMES import UnresolvedSpeciesWarning
+        return [str(w.message) for w in record
+                if issubclass(w.category, UnresolvedSpeciesWarning)]
+
+    def test_declared_model_does_not_warn(self):
+        import warnings
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            cv = _build_cv()
+            cv.advance(dt_h=0.05)
+        assert self._unresolved(record) == []
+
+    def test_undeclared_id_warns_once(self):
+        import warnings
+        liquid = LiquidPhase(n_mol={"H2O": 55.5, "Na +": 0.01}, V_L=V_L, T_K=298.15)
+        cv = ControlVolume(phases={"liquid": liquid}, species=[H2O], label="typo")
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            for _ in range(3):
+                cv.advance(dt_h=0.05)
+        msgs = self._unresolved(record)
+        assert len(msgs) == 1
+        assert "ControlVolume('typo') n_mol when it first advanced: ['Na +']" in msgs[0]
+
+    def test_id_appearing_mid_run_warns(self):
+        import warnings
+        liquid = LiquidPhase(n_mol={"H2O": 55.5}, V_L=V_L, T_K=298.15)
+        cv = ControlVolume(phases={"liquid": liquid}, species=[H2O], label="late")
+        cv.advance(dt_h=0.05)
+        liquid.n_mol["Na+"] = 0.01
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            cv.advance(dt_h=0.05, t_h=0.05)
+        assert any("n_mol by t = 0.05 h: ['Na+']" in m for m in self._unresolved(record))
+
+    def test_snapshot_does_not_warn_again(self):
+        import warnings
+        liquid = LiquidPhase(n_mol={"H2O": 55.5, "X": 1.0}, V_L=V_L, T_K=298.15)
+        cv = ControlVolume(phases={"liquid": liquid}, species=[H2O])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            cv.advance(dt_h=0.05)
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            cv.snapshot().advance(dt_h=0.05)
+        assert self._unresolved(record) == []
+
+    def test_feed_warns_naming_the_boundary(self):
+        import warnings
+        from PyOMES.core import Simulation
+        from PyOMES.core.boundaries import LiquidFeed
+        liquid = LiquidPhase(n_mol={"H2O": 55.5}, V_L=V_L, T_K=298.15)
+        cv = ControlVolume(phases={"liquid": liquid}, species=[H2O])
+        cv.boundaries.append(LiquidFeed(Q_L_per_h=1.0, feed_conc_mol_L={"Glucose": 0.1},
+                                        label="sugar"))
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            Simulation(cvs={"main": cv})
+        assert any("LiquidFeed('sugar') on ControlVolume('main'): ['Glucose']" in m
+                   for m in self._unresolved(record))
+
+    def test_template_set_up_warns_naming_the_call(self):
+        import warnings
+        from PyOMES.templates.stirred_tank import StirredTankBuilder
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            (StirredTankBuilder()
+             .initial_gas({"O2": 0.21, "N2": 0.79})
+             .chemistry(species=[O2])
+             .label("tank")
+             .build())
+        assert any("Stirred tank 'tank': the vessel's gas_composition "
+                   "(.initial_gas()): ['N2']" in m for m in self._unresolved(record))

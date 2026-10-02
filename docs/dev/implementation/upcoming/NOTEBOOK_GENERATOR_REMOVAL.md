@@ -200,7 +200,10 @@ batch_fermenter.ipynb`.
    plotting cell, so this is no longer open. The notebook still needs
    re-running to embed its outputs — as of 2026-09-20 it has no executed
    cells at all, not just a missing Section 6 — that part of this item
-   stands.
+   stands. **Update 2026-10-02:** Section 6 (the dynamic batch
+   simulation) has been removed; the notebook is now the closed-form
+   stoichiometry of Sections 1-5 only, which still need re-running to
+   embed outputs.
 
 ## Related, separate item from the same conversation
 

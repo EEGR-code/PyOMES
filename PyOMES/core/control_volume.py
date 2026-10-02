@@ -33,6 +33,7 @@ import numpy as np
 from PyOMES.chemistry.dose import Dose, check_dose
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.species_check import check_species_consistency, merge_species
+from PyOMES.monitoring.conservation import warn_unresolved
 
 from .phases import Phase, GasPhase, LiquidPhase
 from .interfaces import PhaseInterface, TransferDiagnostics, AdvanceResult
@@ -307,6 +308,10 @@ class ControlVolume:
             species if species is not None else {},
             self._stoichiometry_species(),
         )
+        # Ids in n_mol already reported as having no Species (each warns
+        # once); checked when the CV advances, see _check_unresolved.
+        self._unresolved_reported: set = set()
+        self._has_advanced: bool = False
 
         # AccuracyMonitor: per-CV check runner for cheap numerical
         # accuracy heuristics (pH change, Newton iters, scipy step
@@ -682,10 +687,34 @@ class ControlVolume:
         # explicitly, wrapped, or placed in a config-driven dispatch
         # dict like any other StepSolver.
         solver = solver if solver is not None else SequentialAdvanceSolver()
-        return solver.solve_step(
+        self._check_unresolved(t_h)
+        result = solver.solve_step(
             self, dt_h, t_h,
             external_source_terms=external_source_terms,
         )
+        self._check_unresolved(t_h + dt_h)
+        return result
+
+    def _check_unresolved(self, t_h: float) -> None:
+        """Warn (:class:`~PyOMES.monitoring.UnresolvedSpeciesWarning`) for
+        ids in any phase's ``n_mol`` that have no ``Species`` in
+        :attr:`species`, once per id: those present when the CV first
+        advances, then any that appear later (feeds, doses, engine
+        write-back)."""
+        new = {
+            sp_id
+            for phase in self.phases.values()
+            for sp_id in getattr(phase, "n_mol", {})
+        } - self._species.keys() - self._unresolved_reported
+        if not new:
+            self._has_advanced = True
+            return
+        self._unresolved_reported |= new
+        where = (f"ControlVolume({self.label!r}) n_mol by t = {t_h:g} h"
+                 if self._has_advanced
+                 else f"ControlVolume({self.label!r}) n_mol when it first advanced")
+        self._has_advanced = True
+        warn_unresolved(new, where, stacklevel=5)
 
     # ── CV compute interface (Phase A — CV_COMPUTE_INTERFACE) ─────────────
 
@@ -1111,8 +1140,11 @@ class ControlVolume:
     # ── Snapshot ───────────────────────────────────────────────────────
 
     def snapshot(self) -> "ControlVolume":
-        """Return an independent deep copy of this CV and all its phases."""
-        return ControlVolume(
+        """Return an independent deep copy of this CV and all its phases.
+
+        Ids already reported as unresolved are not reported again by the
+        copy."""
+        snap = ControlVolume(
             phases={k: p.snapshot() for k, p in self.phases.items()},
             internal_interfaces=list(self._explicit_interfaces),  # shared (stateless)
             transfer_models=self.transfer_models,  # factory rebuilds link fresh
@@ -1122,6 +1154,9 @@ class ControlVolume:
             label=self.label,
             species=self.species,
         )
+        snap._unresolved_reported = set(self._unresolved_reported)
+        snap._has_advanced = self._has_advanced
+        return snap
 
     # ── Initialization utilities ─────────────────────────────────────────────
 

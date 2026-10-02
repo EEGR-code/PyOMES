@@ -23,6 +23,7 @@ from .monitoring import (
     reset_accuracy_summary,
     ConservationMonitor,
     ConservationWarning,
+    UnresolvedSpeciesWarning,
     print_conservation_summary,
     reset_conservation_summary,
 )
@@ -60,6 +61,7 @@ __all__ = [
     'reset_accuracy_summary',
     'ConservationMonitor',
     'ConservationWarning',
+    'UnresolvedSpeciesWarning',
     'print_conservation_summary',
     'reset_conservation_summary',
 ]

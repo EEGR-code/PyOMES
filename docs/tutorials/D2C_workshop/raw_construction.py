@@ -103,6 +103,8 @@ YEAST = Species(
 # Sodium: the pH controller doses NaOH as Na+ + OH-. Na+ is in no reaction,
 # so it is passed to the CV as one of the model's species.
 NA_PLUS = Species(id="Na+", atoms={"Na": 1}, charge=+1)
+# Nitrogen: in the headspace and the sparged air, in no reaction.
+N2 = Species(id="N2", atoms={"N": 2}, charge=0)
 
 
 def make_aerobic_growth_on_acetate(
@@ -359,7 +361,7 @@ def build() -> Simulation:
         transfer_models=build_transfer_models(),
         reaction_system=rxn_system,
         label="raw_construction",
-        species=[NA_PLUS],
+        species=[NA_PLUS, N2],
     )
 
     # Boundaries: append after construction (mirrors the builder demos).

@@ -50,6 +50,14 @@ and working its checkpoints, not fixed.
   volume and the phase's `V_L` follows; solution dosing
   ([`upcoming/DOSING_AGENTS.md`](upcoming/DOSING_AGENTS.md)) depends on it.
   Part of [`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md).
+- **The FBA notebooks declare no species.** `docs/tutorials/reactions/fba/fba_toy.ipynb`
+  and `fba_ecoli_core.ipynb` run a `BlackBoxReactionModel`, which exposes no
+  stoichiometry, and pass no `species=`, so every metabolite (Glucose, Biomass,
+  O2, CO2, Acetate, ...) raises `UnresolvedSpeciesWarning` and is invisible to
+  the conservation checks. Declaring them needs formulas (biomass's in
+  particular), and the monitor would then check the FBA rates, which are not
+  guaranteed to balance elements, so new drift warnings would follow. A
+  decision about those demos, not a mechanical fix.
 - **ADM1 / BSM2 helpers fall back to biomass for unknown ids.** ADM1's
   `_mw()` returns the biomass MW, and BSM2's `_mw()` / `_thod()` / `_atoms()`
   the biomass MW, ThOD and formula, for any id not in their tables. Every

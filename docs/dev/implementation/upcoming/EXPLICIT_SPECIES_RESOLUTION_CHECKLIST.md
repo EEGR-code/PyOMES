@@ -227,7 +227,7 @@
       `PHController` configuration, `test_cv_advance.py`,
       `test_iron_oxidation.py`, `test_simulation.py`, `conftest.py`. Sanity:
       pH-control results unchanged; suite green.
-- [ ] **14. `UnresolvedSpeciesWarning`.** New `UserWarning` subclass in
+- [x] **14. `UnresolvedSpeciesWarning`.** New `UserWarning` subclass in
       `monitoring/`, exported next to `ConservationWarning`. Warns where an
       id enters (CV construction, feeds, dosing, template set-up), naming
       the id and the call, and in the monitor once per id whenever it first
@@ -963,6 +963,68 @@ Example3 identical except "3 equilibria" -> "6 equilibria" (the acid dose
 never fires in that run), iron-oxidation 07 (60 lines) and 08 (62 lines)
 identical (NR engine). `batch_fermenter.ipynb` fails at cell 10 on both
 (logged).
+
+14:
+- `monitoring/conservation.py`: `UnresolvedSpeciesWarning(UserWarning)` and
+  `warn_unresolved(ids, where)` (one message per call, ids sorted, naming
+  where they entered and how to declare them); exported from
+  `PyOMES.monitoring` and `PyOMES`.
+- `control_volume.py`: the CV checks `n_mol` ids against `cv.species` when it
+  advances (`_advance_unchecked`, the path every solver takes): before the
+  first step ("n_mol when it first advanced") and after every step ("n_mol by
+  t = ... h", for ids that appear mid-run: feeds, doses, engine write-back,
+  seeding helpers). Each id warns once per CV (`_unresolved_reported`);
+  `snapshot()` copies the set. Not checked in `__init__`, because
+  `solvers.py` builds a throwaway CV from a snapshot every step to compute
+  rates.
+- Entry points that name the call: `Simulation.__init__` checks each CV's
+  boundaries that bring species in (new `species_ids()` on `GasFeed`,
+  `MembraneGasBoundary`, `LiquidFeed`), e.g. "LiquidFeed('sugar') on
+  ControlVolume('main')"; the stirred-tank factory checks the vessel's gas
+  composition, the transfer species and the gas feed's composition, e.g.
+  "Stirred tank 'tank': the vessel's gas_composition (.initial_gas())". Ids
+  reported there count as reported for that CV. Dosing already raises
+  (checkpoint 13).
+- BSM2 declares its headspace N2 (`SPECIES["N2"]`, the bioprocess
+  database's N2), found by the template check.
+- Tests: `test_user_defined_model.py` `TestUnresolvedSpecies` (6): a
+  declared model is silent, an undeclared id warns once naming it, an id
+  appearing mid-run warns with the time, a snapshot does not warn again, a
+  feed warns naming the boundary, the template names `.initial_gas()`. No
+  existing test failed: none promotes `UserWarning` on a path that now warns.
+- Who warns in the suite (run with the warning promoted to an error: 227
+  failed, 8 errors before BSM2's N2; 2198 pass normally): abstract solver and
+  orchestration tests whose CVs hold placeholder ids (`S`, `X`, `A`, `P`,
+  `MeOH`, `analyte`) with no chemistry, and test CVs with gases or ions but
+  no `species=` (O2, N2, CO2, CO3--, H+, CaCO3, AceticAcid; a gas feed's
+  O2 / N2). Correct as warnings; left as they are. No NR `H2O` or PHREEQC
+  write-back case occurs in the suite.
+- Tutorials and notebooks (surveyed in the owner's terminal, every tutorial
+  `.py` / `.ipynb` and the speciation validation notebooks): declared the
+  species where the chemistry is real - N2 in ArXiv 02 (with O2) and 03,
+  D2C Examples 1-3, `raw_construction.py`, validation 07 / 08; K+ / Cl- from
+  ArXiv 03's sterile feed; Na+ in `SolverProtocols/01`'s `'cv'`. D2C
+  Examples 1 and 2 carried `"CO3--": 0.0` with no carbonate second
+  dissociation, so the placeholder is removed rather than declared. ArXiv
+  edits go through `_generate_notebooks.py` too. Left warning: the
+  `SolverProtocols` notebooks' abstract `S`, and the FBA notebooks' every
+  metabolite (black-box model, no `Species`; logged in OPEN_WORK).
+- `reactions/aerobic_fermentation_stoichiometry.ipynb`: section 6 (the 60 h
+  dynamic batch simulation, explicit DOP853 on a stiff problem; not needed
+  for the notebook's stoichiometry question) removed by agreement; the
+  notebook now runs in 2 s instead of not finishing in 30 min. README and
+  `NOTEBOOK_GENERATOR_REMOVAL.md` follow.
+- `CLAUDE.md`: runs expected to take more than about 5 minutes under the CPU
+  cap are handed to the owner as a one-line command.
+
+Sanity: suite 2192 passed, 2 xfailed before; 2198 passed, 2 xfailed, 0
+failed after (+6); warnings 168 -> 477 (the new category). Measurement
+against 13: 0 values differ in all five cases, warning counts unchanged.
+Tutorials against a `git archive HEAD` export: `raw_construction.py` output
+identical; D2C Examples 1-3, `SolverProtocols/01`, validation 07 / 08
+identical; ArXiv 02 and 03 identical except their wall-clock timing columns
+(`mean (ms/h)`, `Run Time, ms`). The survey after the edits: every listed
+file `[ok]`, only the intended `S` warnings remain.
 
 **Before checkpoint 11: what `reactions=` means on a `ControlVolume` and on the
 stirred-tank template.** Both already take `reaction_system=` (the builder

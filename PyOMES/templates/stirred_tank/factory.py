@@ -61,6 +61,7 @@ from PyOMES.chemistry.species import Species, SpeciesConflictError
 from PyOMES.chemistry.species_check import merge_species
 from PyOMES.reactions.equilibrium.interphase import HenryEquilibrium
 from PyOMES.databases.database import ChemistryDatabase
+from PyOMES.monitoring.conservation import warn_unresolved
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -251,7 +252,7 @@ class StirredTankFactory:
                     partition_model=pm,
                     k_transfer=float(kLa_dict.get(sp, 0.0)),
                 )
-        return ControlVolume(
+        cv = ControlVolume(
             phases={"gas": gas_phase, "liquid": liquid_phase},
             transfer_models=transfer_models,
             boundaries=list(boundaries),
@@ -259,6 +260,19 @@ class StirredTankFactory:
             label=label,
             species=model_species,
         )
+
+        # Ids the set-up introduces that the model has no Species for.
+        for where, ids in (
+            ("the vessel's gas_composition (.initial_gas())", vessel.gas_composition),
+            ("the transfer species (.transfer...())", transfer.species),
+            ("the gas feed's composition (.gas_feed())",
+             gas_feed.composition if gas_feed is not None else {}),
+        ):
+            new = set(ids) - cv.species.keys() - cv._unresolved_reported
+            if new:
+                cv._unresolved_reported |= new
+                warn_unresolved(new, f"Stirred tank {label!r}: {where}")
+        return cv
 
     @staticmethod
     def _build_reaction_system(
