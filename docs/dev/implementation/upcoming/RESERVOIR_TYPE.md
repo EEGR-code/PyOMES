@@ -17,6 +17,16 @@
 > [`MASS_EXCHANGE_ARCHITECTURE.md`](../../ideas/MASS_EXCHANGE_ARCHITECTURE.md)
 > §7 and §12 Q1.
 >
+> **Related work (2026-10-05).** The first phase of
+> [`MASS_BALANCE_CLOSURE.md`](MASS_BALANCE_CLOSURE.md), `conservation-ledger`,
+> has each control volume record what every boundary, dose and link applied,
+> with a cumulative total per boundary. That delivers the passive accounting
+> of §3.1 and the whole-model audit named under "Trigger conditions", without
+> a `Reservoir` type. What stays with this note is the `FlowBoundary`
+> protocol and reservoirs that are named and shared between boundaries (one
+> atmosphere behind a gas feed and a vent); the per-boundary total is kept as
+> its own record so a `Reservoir` can adopt it.
+>
 > **Explicitly not resolved here:** how `PartitionModel` relates to
 > `FlowBoundary` (and to `EquilibriumPhenomena` — see
 > [`PHENOMENA_PROTOCOL.md`](PHENOMENA_PROTOCOL.md)). Under active discussion

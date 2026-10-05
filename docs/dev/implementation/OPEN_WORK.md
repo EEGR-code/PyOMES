@@ -282,6 +282,34 @@ Also to correct when this is picked up: the module docstring of
 engine, and the Bisection engine's module docstring lists it as one of three
 peer implementations.
 
+## Water's activity is taken as 1 whatever the activity model
+
+Logged 2026-10-05 while settling the decisions for
+[`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md), not
+changed. The Bisection and NR engines leave water out of every equilibrium
+expression (the NR tableau's comment: "log[a_H2O] ≈ 0, absorbed into log_K"),
+which treats its activity as exactly 1. The activity models
+(`thermo/liquid/`: ideal, Davies, SIT) give coefficients for ions only; the
+`ActivityModel` and `LiquidPhaseModel` protocols have no water term.
+
+That is an approximation, and it is not consistent with a non-ideal model: ion
+activity coefficients and the solvent's activity are tied together, so
+coefficients below 1 imply a water activity below 1. Even an ideal solution
+has a water activity equal to water's mole fraction. As a rough estimate
+(not measured), water activity is about 1 − 0.018 × the total dissolved
+mol/kg, which shifts log K of any reaction that consumes or forms water (CO2
+hydration, water's own dissociation) by about -0.002 at an ionic strength of
+0.1 mol/L, -0.008 in 0.5 mol/L NaCl, and -0.05 in a concentrated brine. So it
+is negligible where Davies is valid and starts to matter in the range SIT is
+meant for. `RaoultEquilibrium`'s treatment of the liquid-side water activity
+has not been checked against this.
+
+A fix would have the activity model supply a water activity consistent with
+its ion coefficients and the engines use it. It changes results for every
+model with a non-ideal activity model (BSM2 and ADM1 use Davies), so BSM2's
+sentinels would be re-baselined. Once liquids hold their water as an explicit
+amount, its mole fraction is available directly, which is the starting point.
+
 ## Four small findings from the molar-mass and `plot_vant_hoff` audit
 
 Found 2026-09-30 while checking the molar-mass and `plot_vant_hoff` items
