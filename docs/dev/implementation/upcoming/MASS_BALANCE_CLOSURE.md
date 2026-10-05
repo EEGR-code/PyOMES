@@ -309,8 +309,9 @@ and leaves, for the models that select it. Unblocks
    template tank and its tutorials. The owner sees the numbers before anything
    is committed.
 2. The recorder keeps the liquid volume at each step.
-3. The volume model on `LiquidPhase`: stated or ideal mixing; `V_L` read-only;
-   the public setter goes.
+3. Every `LiquidPhase` has a volume model (ideal mixing first). A stated
+   volume holds `V_L` constant; otherwise `V_L` is the model's value for the
+   contents. `V_L` is read-only and the public setter goes.
 4. The make-up utility and the stream helper.
 5. The template tank and its tutorials carry their solvent water and derive
    their volume; feeds and drains carry water. The comment in

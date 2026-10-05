@@ -62,13 +62,21 @@ that still describe open work are "Open phases" and the pending stages in
   equilibrium, and warnings when an engine cannot honour a declaration.
   Depends on the liquid volume becoming variable. Three open questions. No
   branch, no checklist, no code yet.
-- **[MASS_BALANCE_CLOSURE.md](MASS_BALANCE_CLOSURE.md)** — 2026-10-01. Sets
-  strict closure as the standard: every element and charge conserved to
-  roundoff, boundary flows accounted for, in every engine. Gathers the
-  gaps: the engines treat water as an unlimited solvent and do not take
-  H+ / OH- as input, the monitor does not net out boundary flows, and the
-  liquid volume never changes. Follows `explicit-species-resolution`. Four
-  open questions. No branch, no checklist, no code yet.
+- **[MASS_BALANCE_CLOSURE.md](MASS_BALANCE_CLOSURE.md)** — 2026-10-01,
+  design settled 2026-10-05. Sets strict closure as the standard: every
+  element and the charge conserved to roundoff, boundary flows accounted for,
+  with the Bisection or NR engine in a control volume, and no repair of a
+  specification behind the user's back. Audited against the code and
+  measured: the engines never book water and force the liquid neutral, the
+  monitor does not net out boundary flows (and runs under one step solver
+  only), the liquid volume never changes, and six further gaps. Decided: the
+  solve conserves the liquid's net charge and books water, with an
+  electroneutral closure that BSM2 and ADM1 select explicitly; a charged
+  specification warns; liquids hold their solvent water and take their
+  volume from a volume model, stated or derived; no clamp by default. Three
+  phases, each with its own branch and checklist: `conservation-ledger`,
+  `variable-liquid-volume`, `engine-closure`. Follows
+  `explicit-species-resolution`. No branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
