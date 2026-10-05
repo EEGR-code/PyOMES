@@ -102,6 +102,186 @@ and working its checkpoints, not fixed.
   appears. The batch, CSTR and microplate tutorials configure the same
   controller on the same kind of tank.
 
+## Amounts are kept non-negative by default, without the model asking for it
+
+Found 2026-10-02 while auditing
+[`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md), not
+fixed. When a step would take more of a species than the phase holds, the
+backend changes the step so the amount stays at or above zero. Nothing in the
+model definition asks for this, and it does not conserve mass.
+
+- **The clamp is a solver default.** `SequentialAdvanceSolver` and
+  `SimultaneousEulerSolver` take `clamp_fn=proportional_clamp` unless told
+  otherwise, and a `ControlVolume` advanced without a solver gets the
+  sequential one. `clamp_fn=None` switches it off; amounts can then go
+  negative and `AccuracyMonitor.check_negative_mole` warns.
+- **It scales one species at a time.** `proportional_clamp`
+  (`core/clamping.py`) scales the removal of each overdrawn species on its
+  own. The other species of the same reaction are applied in full, so the
+  reaction's proportions are broken for that step. Its docstring says it
+  preserves "the relative stoichiometry", which the code does not do.
+- **Measured.** The fed-batch tutorial's configuration
+  (`docs/tutorials/templates/fed_batch_fermenter.py`, 2 h in 100 steps): growth
+  asks for more dissolved O2 than there is in 39 steps; the clamp cuts the O2
+  consumption and leaves the CO2, water and biomass production as it was,
+  which creates 0.870 mol O2 (1.74 mol O, 2.7 % of the O inventory). One
+  `AccuracyWarning` is raised for the 39 steps, and it does not say that mass
+  was created.
+- **Other floors say nothing.** `Phase.apply_flux` floors at zero by default
+  (internal gas-liquid transfer, `apply_external_flux`, inter-CV links),
+  `SimultaneousAdaptiveSolver` floors its trial and final states, and
+  `ControlVolume._integrate_reactions` floors each amount. See "Some inventory
+  floors are silent" above.
+
+**Decided 2026-10-03 (owner):** an effect of this kind is applied only when it
+is explicit. In the meantime the default becomes no clamp: amounts may go
+negative, with a warning, and a clamp is something the user passes to the
+solver. Not yet done. It changes the result of every run that clamps today, so
+it needs its own checkpoint with a before and after measurement. To check
+first: which runs clamp today (the stirred-tank tutorials on O2; BSM2 on H2O in
+one step, which goes away once its liquid holds water), and what each rate law
+in `reactions/kinetic/rate_laws.py`, `models/vlmodels/adm1/` and the tutorials
+does with a negative concentration. The silent floors need the same treatment:
+off by default, or a warning.
+
+Still open: what an explicit clamp should do. Scaling a whole reaction by its
+limiting species conserves mass (a reaction cannot run faster than its scarcest
+reactant allows), but the clamp sees only the net change per phase, not each
+reaction, so it changes the `clamp_fn` interface and the step solvers that call
+it.
+
+## `engine.solve()` takes totals or species, under one name
+
+Logged 2026-10-03 while settling the decisions for
+[`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md), not
+changed. The Bisection and NR engines answer two different questions through
+the same method, told apart only by the arguments passed:
+
+- `solve(totals=..., strong_ions=...)`: given the total of each component and
+  the strong ions, the pH at which they are neutral and how each component
+  splits. The validation suites, the pH-prediction tutorial and the engines'
+  Jacobian use this form. It is also the way to build a neutral starting state
+  from totals.
+- `solve(phases=...)`: given an amount of every form in a liquid's `n_mol`,
+  the equilibrium those amounts reach. A `ControlVolume` uses this form. The
+  mass-balance-closure work makes it conserve every element and the liquid's
+  net charge, while the totals form keeps its meaning.
+
+Both are kept. Two follow-ups:
+
+- **Distinct names for the two calls,** so the meaning is in the method and
+  not in the argument list. A rename across tests, notebooks and tutorials,
+  with no alias.
+- **The Bisection engine has a third input form:** `acid_totals` /
+  `acid_pKas` / `CT_*` keywords with no declared reactions, routed to
+  `solve_acid_base`. Only tests reach it. It can go once those tests declare
+  their reactions; see "Deprecated `{name}_HA` fallback is unreachable from
+  repo code" below.
+
+## Container volume, and liquids that keep a stated volume
+
+Logged 2026-10-05 while settling the decisions for
+[`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md). That
+work lets a liquid derive its volume from its contents; the items below were
+left out of it on purpose.
+
+- **Nothing knows how much space a vessel has.** The stirred-tank template
+  sizes its gas and liquid phases from `VesselConfig` (total volume and
+  headspace fraction) and keeps neither number afterwards. A gas phase's
+  volume is whatever it was built with. So when a liquid grows, the headspace
+  does not shrink, and nothing reports that liquid plus gas exceeds the
+  vessel. In `docs/tutorials/templates/fed_batch_fermenter.py` the liquid
+  gains 50 L over 10 h beside a 400 L headspace; the relief vent holds the
+  pressure, so the headspace ends up holding about 12.5 % more gas than it
+  should. Amounts and balances are unaffected.
+- **A vessel type is the likely home.** Equipment that holds a total volume
+  and how that space behaves (rigid, so the gas takes what the liquid leaves
+  and its pressure follows; fixed pressure, so the gas volume follows; or an
+  open cell that only reports the excess), and contains one or more control
+  volumes. It would check the contents against the space and warn when they
+  do not fit, and give relief elements a shared reference in place of each
+  one's own set point. Not started; first case would be a stirred tank with
+  one gas and one liquid phase. Check `upcoming/RESERVOIR_TYPE.md` and
+  `upcoming/HPLC_CV_GRAPH_TEMPLATE.md` for overlap first.
+- **No liquid overflow outlet.** `LiquidDrain` removes liquid at a fixed
+  volumetric rate. A CSTR whose volume is derived from its contents can
+  therefore drift in volume when feed and contents differ in density or a
+  reaction makes water. An outlet that removes whatever exceeds a set volume
+  (the liquid counterpart of `PressureReliefVent`) would hold it. The drift
+  has not been measured.
+- **BSM2 and ADM1 keep a stated liquid volume.** That is the benchmark's own
+  assumption: a completely mixed digester at constant level, with outflow
+  equal to inflow, constant density, and the water used or made by reactions
+  neglected. Moving them to a derived volume means seeding their solvent
+  water from the water density at their temperature and re-checking BSM2's
+  sentinels, and their volume would then no longer be exactly constant.
+  `build_adm1_cv` already seeds water at 55.51 mol/L beside its stated
+  volume; at its 35 °C the density gives about 55.18 mol/L, so the two would
+  disagree by about 0.6 % under a derived volume.
+- **Whether the stated-volume form should stay.** About 160 places build a
+  liquid with a stated volume (tests, tutorials, notebooks, models). It is a
+  real modelling assumption and what the benchmarks define, so it is kept;
+  retiring it would mean every liquid carrying its solvent.
+- **Temperature dependence of solute molar volumes.** The volume model takes
+  one molar volume per solute; only water's follows temperature.
+
+## The PHREEQC engine is a reference calculator, not a control-volume engine
+
+Found 2026-10-02 while auditing
+[`upcoming/MASS_BALANCE_CLOSURE.md`](upcoming/MASS_BALANCE_CLOSURE.md), not
+fixed. Decided 2026-10-05 (owner): PHREEQC is not a core part of the package.
+The Bisection and NR engines are the ones a `ControlVolume` is expected to
+close its balances with; `PHREEQCChemicalEquilibriumEngine` is an optional
+convenience, sound for a direct `solve(totals=...)` (which is how
+`tests/validation/speciation/test_phreeqc_nr_agreement.py` uses it) and not
+for time-stepping. Nothing in the repo attaches it to a `ControlVolume`
+(searched `.py` and `.ipynb` for the constructor and `attach_engine`), and
+attaching it gives no warning.
+
+What happens if it is attached:
+
+- **It loses mass.** `_read_from_phases` reads `n_mol[component id]` as the
+  component's total, and the shared write-back then stores each PHREEQC
+  species under its own name. For carbon both use the key `"CO2"`, so the
+  total is replaced by the molecular part and the next solve re-splits a
+  smaller total. Measured on 10 mmol/L of carbonate at pH 4.17: 0.6 % of the
+  inorganic carbon lost per solve. In a test water at pH 8.87 molecular CO2 is
+  0.24 % of the carbon (the rest is `HCO3-`, `CO3-2` and ion pairs such as
+  `CaHCO3+`, `MgCO3`, `NaCO3-`), so nearly all of it would be dropped in one
+  step; that case was not run in a control volume.
+- **It writes species the model never declared:** every ion pair PHREEQC
+  reports, and its redox species `H2` and `O2`, whose ids collide with
+  dissolved gases.
+- **It makes the liquid neutral on every solve** (`"pH": "7 charge"` on a
+  fresh solution), whatever the liquid's net charge was.
+
+What a control-volume PHREEQC engine would have to settle, as a starting list
+for a design note:
+
+1. **The proton balance.** Element totals do not say how many protons the
+   solution holds. A stated pH, "adjust pH until neutral", or total hydrogen,
+   total oxygen and the charge imbalance has to supply it. Whether
+   `phreeqpython` exposes the last form has not been checked.
+2. **Redox.** PHREEQC groups an element's oxidation states and, in its
+   reaction calculations, brings them to redox equilibrium. A bioprocess model
+   holds dissolved O2 beside acetate and ammonium on purpose.
+3. **Species the database does not know:** organic acids, biomass, sugars,
+   lumps such as `S_cat`. Each needs a database definition or is invisible to
+   the solve.
+4. **Two sources of equilibrium constants.** PHREEQC uses its database's; the
+   model's declared reactions are ignored.
+5. **Returned species the model did not declare.** Each must be declared or
+   folded into a declared species, and folding is ambiguous because an ion
+   pair's charge differs from its parts.
+6. **Concentration basis and cost.** PHREEQC works per kilogram of water (it
+   reported 10.008 mmol of carbon for 10 mmol/L supplied), and the engine
+   builds a fresh solution for every solve.
+
+Also to correct when this is picked up: the module docstring of
+`engines/phreeqc.py` calls the engine "a drop-in replacement" for the NR
+engine, and the Bisection engine's module docstring lists it as one of three
+peer implementations.
+
 ## Four small findings from the molar-mass and `plot_vant_hoff` audit
 
 Found 2026-09-30 while checking the molar-mass and `plot_vant_hoff` items
