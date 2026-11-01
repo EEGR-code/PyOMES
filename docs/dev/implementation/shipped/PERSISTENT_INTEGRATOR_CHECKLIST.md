@@ -1,5 +1,9 @@
 # Phase Checklist — persistent-integrator
 
+> **Status: Shipped 2026-11-01** — merged into `main` by pull request, tagged
+> `persistent-integrator-shipped`. Full suite on the final tree: 2292 passed, 87 skipped,
+> 2 xfailed.
+
 Design: [PERSISTENT_INTEGRATOR.md](PERSISTENT_INTEGRATOR.md).
 
 ## Pre-flight
@@ -181,7 +185,7 @@ the owner's full suite run has passed; each entry gives that result.
 - `freeze_speciation` logged in `OPEN_WORK.md` at the owner's request.
 - Full suite: 2292 passed, 87 skipped, 2 xfailed.
 
-### Checkpoint 9: notebooks (fixes in `d08f1fc`; outputs in the commit after it)
+### Checkpoint 9: notebooks (`d08f1fc`, `f562270`)
 
 - A scan of every notebook's code found 4 that build this solver: `07_iron_oxidation`,
   `08_iron_oxidation_and_precipitation`, `10_engine_protocol_hierarchy` and
@@ -219,13 +223,13 @@ the owner's full suite run has passed; each entry gives that result.
 
 ## Shipping
 
-- [ ] Full test suite green on the branch
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff persistent-integrator -m "Merge persistent-integrator: <summary>"`
-- [ ] `git tag persistent-integrator-shipped <commit-hash>`
-- [ ] `git push` and `git push --tags`
-- [ ] `git branch -d persistent-integrator` and
-      `git push origin --delete persistent-integrator`
-- [ ] Move the design note and this checklist to `docs/dev/implementation/shipped/`,
-      add a "Shipped" banner to both
-- [ ] Update `docs/dev/implementation/upcoming/README.md`'s "Recently shipped" list
+Merged by pull request to `EEGR-code/PyOMES`, as recent work has been, in place of a
+direct `--no-ff` merge.
+
+- [x] Full test suite green on the branch
+- [x] Pull request merged with a merge commit
+- [x] `persistent-integrator-shipped` tagged on the merge commit and pushed
+- [x] Feature branch deleted
+- [x] The design note and this checklist moved to `docs/dev/implementation/shipped/`,
+      with a "Shipped" banner on both
+- [x] `docs/dev/implementation/upcoming/README.md`'s "Recently shipped" list updated

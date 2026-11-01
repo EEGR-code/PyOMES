@@ -1,7 +1,12 @@
 # Persistent integrator for `SimultaneousAdaptiveSolver`
 
-Status: design agreed with the owner, 2026-11-01. Default-on decided. No code yet.
-Checklist: [PERSISTENT_INTEGRATOR_CHECKLIST.md](PERSISTENT_INTEGRATOR_CHECKLIST.md).
+> **Status: Shipped 2026-11-01** — implemented on branch `persistent-integrator`, merged
+> into `main` by pull request, tagged `persistent-integrator-shipped`. The checklist,
+> [`PERSISTENT_INTEGRATOR_CHECKLIST.md`](PERSISTENT_INTEGRATOR_CHECKLIST.md), records the
+> implementation and every measurement; where the two differ, the checklist wins.
+
+Design agreed with the owner, 2026-11-01. The prototype figures below were later refined:
+the shipped solver adds a restart when a run goes quiet, at about ×12 on iron BDF.
 
 ## Problem
 
