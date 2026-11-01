@@ -147,6 +147,18 @@ def _compute_concentrations(
     return c
 
 
+def _capped_step(dx: np.ndarray, max_step: float) -> np.ndarray:
+    """Scale a Newton step so that its largest component is at most *max_step*.
+
+    The whole step is scaled, which keeps its direction. A step with a NaN or
+    infinite component is returned as it is.
+    """
+    peak = float(np.max(np.abs(dx)))
+    if peak > max_step and np.isfinite(peak):
+        return dx * (max_step / peak)
+    return dx
+
+
 def _limit_effects(
     tableau: NRTableau,
     x: np.ndarray,
@@ -416,6 +428,7 @@ def solve_nr(
     max_inner: int = 50,
     max_outer: int = 20,
     max_backtrack: int = 10,
+    max_newton_step: float = 4.0,
     cache: Optional[NRSolverCache] = None,
     I_init: float = 0.01,
     I_tol: float = 1e-8,
@@ -449,6 +462,12 @@ def solve_nr(
         Newton iteration and activity-outer loop limits.
     max_backtrack : int
         Maximum backtracking halvings per Newton step.
+    max_newton_step : float
+        Largest change in any log10-activity on one Newton step, before
+        backtracking; a larger step is scaled down as a whole.  Without it, a
+        first step in a poorly conditioned system can be large enough that no
+        halving reduces the residual, and the solve stalls with species held at
+        ``±max_log_activity``.  ``float("inf")`` turns it off.  Default ``4.0``.
     cache : NRSolverCache, optional
         Mutable warmstart cache shared across calls.
     I_init : float
@@ -595,6 +614,8 @@ def solve_nr(
                 # Singular Jacobian — fall back to gradient-descent step
                 dx = -R * 0.01
                 logger.warning("NR Jacobian singular at iter %d/%d", _outer, _inner)
+
+            dx = _capped_step(dx, max_newton_step)
 
             # Backtracking line search
             alpha = 1.0
