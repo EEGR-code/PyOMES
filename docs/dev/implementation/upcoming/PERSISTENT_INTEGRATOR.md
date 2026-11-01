@@ -48,9 +48,10 @@ any of these holds:
 2. A `MutableScalar` or `MutableDict` write happened anywhere since then, detected by a
    generation counter in `control/descriptors.py`. State comparison cannot see these:
    profiles change parameters, never amounts.
-3. `Simulation` reports a profile record or controller action in the last step. This
-   covers `_write_leaf`'s direct write into a plain dict (`link.kLa["O2"]`), which
-   bypasses the descriptors.
+3. `Simulation` reports a profile record, or a controller action with a parameter
+   change, in the last step. This covers `_write_leaf`'s direct write into a plain dict
+   (`link.kLa["O2"]`), which bypasses the descriptors. A controller that runs and does
+   nothing must not force a restart; doses are caught by trigger 1.
 4. `dt_h` or `external_source_terms` differ from the previous call, because `f` closes
    over them.
 5. `freeze_speciation=True`, which keeps its per-macro-step meaning.

@@ -7,18 +7,20 @@ Design: [PERSISTENT_INTEGRATOR.md](PERSISTENT_INTEGRATOR.md).
 - [x] `git status -sb` clean, `main` level with `origin/main` at `c0613d0`
 - [x] Baseline suite at `c0613d0`, as reported by the owner: 2226 passed, 87 skipped,
       2 xfailed
-- [ ] Branch created off current `main`: `persistent-integrator`
-- [ ] This checklist and the design note committed as the first commit
+- [x] Branch created off current `main`: `persistent-integrator`
+- [x] This checklist and the design note committed as the first commit
 
 ## Checkpoints
 
 One commit per checkpoint. The owner runs the full suite after each checkpoint that
 changes `PyOMES/` or `tests/`.
 
-- [ ] 1. **Benchmark** in `tests/performance/`: iron (ideal, Davies), BSM2, a controller
+- [x] 1. **Benchmark** in `tests/performance/`: iron (ideal, Davies), BSM2, a controller
       model, a feed-and-drain model. Records counters, CPU time and error against a
       stored tight reference. Baselines recorded before any package change. No change
       to `PyOMES/`.
+      Recorded on Python 3.14.3, numpy 2.4.4, scipy 1.17.1. Iron BDF: 5,770 solves,
+      3.19 s, worst error 6.65e-5. BSM2 BDF: 5,768 solves, 4.59 s, 1.93e-5.
 - [ ] 2. **Refactor only:** build `f` and `jac` outside the integrator call; add
       `_make_stepper`. Results must be **bit-identical** on every benchmark model.
 - [ ] 3. **Persistent stepping behind an option, default off:** per-CV stepper,
