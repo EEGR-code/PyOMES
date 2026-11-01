@@ -127,7 +127,7 @@ def _compute_concentrations(
 
     # Masters: log(a_k) = x[k], c_k = 10^x[k] / gamma_k
     for idx, m_id in enumerate(tableau.masters):
-        log_a = float(np.clip(x[idx], lo, hi))
+        log_a = min(max(float(x[idx]), lo), hi)
         g = gammas.get(m_id, 1.0)
         c[m_id] = 10.0 ** log_a / max(g, 1e-30)
 
@@ -140,7 +140,7 @@ def _compute_concentrations(
             nu_k * x[tableau.masters.index(k_id)]
             for k_id, nu_k in sec.nu.items()
         )
-        log_a = float(np.clip(log_a, lo, hi))
+        log_a = min(max(float(log_a), lo), hi)
         g = gammas.get(sec.c_key, 1.0)
         c[sec.c_key] = 10.0 ** log_a / max(g, 1e-30)
 
