@@ -8,11 +8,13 @@ The clamp is written with Python's ``min``/``max`` on floats, so these tests
 state the behaviour any replacement has to keep: an array version would give
 ``inf`` and a NumPy warning on overflow, and reversing the arguments to
 ``min``/``max`` would turn NaN into a limit. They also cover the engine's limit
-on ``max_log_activity`` and its report of when the limit or the pin affects a
-final answer.
+on ``max_log_activity``, its report of when the limit or the pin affects a final
+answer, and the cap on the Newton step. The cap keeps most solves away from the
+clamp, so tests that need to reach it pass ``max_newton_step=float("inf")``.
 """
 from __future__ import annotations
 
+import inspect
 import math
 import warnings
 from types import SimpleNamespace
@@ -25,12 +27,14 @@ from PyOMES.chemical_equilibrium.engines.nr import solver
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from PyOMES.chemical_equilibrium.engines.nr.solver import (
     NRSolverCache,
+    _capped_step,
     _compute_concentrations,
     _limit_effects,
     solve_nr,
 )
 from PyOMES.chemical_equilibrium.engines.nr.tableau import NRTableau, SecondaryEntry, build_tableau
 from PyOMES.chemistry.species import Species
+from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.databases.aqueous import CO2, CO3_2minus, H2O, H_plus, HCO3_minus, NH3, NH4_plus, OH_minus
 from PyOMES.databases.bioprocess_basic import Ca_2plus
 from PyOMES.reactions import EquilibriumReaction, StoichiometryEntry
@@ -128,7 +132,7 @@ class TestExtremeValuesAreClamped:
             )
 
     def test_full_solve_survives_clamped_trial_steps(self, tableau, monkeypatch):
-        """A cold start in strong acid clamps on trial steps, then converges cleanly."""
+        """With the step cap off, a strong-acid cold start clamps on trial steps and converges."""
         raw_peaks = []
 
         def spy(tableau_, x, gammas, max_log_activity=50.0):
@@ -137,7 +141,10 @@ class TestExtremeValuesAreClamped:
 
         monkeypatch.setattr(solver, "_compute_concentrations", spy)
         totals = {"CO2": 1e-3, "NH3": 1e-3}
-        out = solve_nr(tableau, totals, {"CT_Cl": 1.0}, activity_model=IdealLiquidModel())
+        out = solve_nr(
+            tableau, totals, {"CT_Cl": 1.0}, activity_model=IdealLiquidModel(),
+            max_newton_step=float("inf"),
+        )
 
         assert max(raw_peaks) > 50.0, "this case no longer clamps, so it tests nothing"
         assert raw_peaks[-1] <= 50.0
@@ -247,7 +254,7 @@ class TestUnsafeLimitsAreRejected:
         assert NRChemicalEquilibriumEngine(tableau).max_log_activity == 50.0
 
     def test_largest_accepted_limit_clamps_without_numeric_warnings(self, tableau, monkeypatch):
-        """Trial steps pass the ceiling here; a higher limit overflows the line search."""
+        """With the step cap off, trial steps pass the ceiling; a higher limit overflows."""
         raw_peaks = []
 
         def spy(tableau_, x, gammas, max_log_activity=50.0):
@@ -260,6 +267,7 @@ class TestUnsafeLimitsAreRejected:
             out = solve_nr(
                 tableau, {"CO2": 1e-6, "NH3": 1e-3}, {"CT_Na": 1.0},
                 activity_model=IdealLiquidModel(), max_log_activity=150.0,
+                max_newton_step=float("inf"),
             )
         assert max(raw_peaks) > 150.0, "this case no longer clamps, so it tests nothing"
         assert out["pH"] == pytest.approx(14.0, abs=1e-2)
@@ -396,12 +404,22 @@ class TestEngineReportsLimitEffects:
             out = self._engine().solve(totals={"CO2": 0.05, "NH3": 0.04})
         assert out.extra == {}
 
-    def test_clamping_only_on_trial_steps_reports_nothing(self):
-        """The strong-acid cold start clamps on trial steps: see the test above."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            out = self._engine(use_warmstart=False).solve(**self.ACID)
-        assert out.extra == {}
+    def test_clamping_only_on_trial_steps_reports_nothing(self, tableau, monkeypatch):
+        raw_peaks = []
+
+        def spy(tableau_, x, gammas, max_log_activity=50.0):
+            raw_peaks.append(max(_raw_log_activities(tableau_, x)))
+            return _compute_concentrations(tableau_, x, gammas, max_log_activity=max_log_activity)
+
+        monkeypatch.setattr(solver, "_compute_concentrations", spy)
+        out = solve_nr(
+            tableau, self.ACID["totals"], self.ACID["strong_ions"],
+            activity_model=IdealLiquidModel(), max_newton_step=float("inf"),
+            report_limit_effects=True,
+        )
+        assert max(raw_peaks) > 50.0, "this case no longer clamps, so it tests nothing"
+        assert "_clamped_log_activities" not in out
+        assert "_absent_component_species" not in out
 
     def test_absent_component_below_the_limit_reports_nothing(self, tableau):
         """At high pH, NH4+ of an absent NH3 falls below the limit: no false alarm."""
@@ -571,3 +589,151 @@ class TestPrecipitationReportsOnce:
                 totals={"CO2": 0.010, "NH3": 1e-3}, strong_ions={"CT_Ca": 0.002, "CT_Na": 0.005},
             )
         assert set(out.extra) == {"minerals_xi_mol_L"}
+
+
+def _ad_reactions():
+    reactions = AD_BASIC.reactions
+    return list(reactions.single_phase_equilibria) + list(reactions.cross_phase_equilibria)
+
+
+class TestCappedStep:
+    """_capped_step on its own."""
+
+    def test_small_step_is_returned_as_it_is(self):
+        dx = np.array([1.0, -3.0])
+        assert _capped_step(dx, 4.0) is dx
+
+    def test_step_at_the_cap_is_returned_as_it_is(self):
+        dx = np.array([4.0, -1.0])
+        assert _capped_step(dx, 4.0) is dx
+
+    def test_large_step_is_scaled_as_a_whole(self):
+        capped = _capped_step(np.array([100.0, -1000.0, 10.0]), 4.0)
+        np.testing.assert_allclose(capped, [0.4, -4.0, 0.04], rtol=1e-14, atol=0)
+
+    @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+    def test_non_finite_step_is_returned_as_it_is(self, bad):
+        dx = np.array([1e6, bad])
+        assert _capped_step(dx, 4.0) is dx
+
+    def test_infinite_cap_turns_it_off(self):
+        dx = np.array([1e300, -1e300])
+        assert _capped_step(dx, float("inf")) is dx
+
+    def test_solver_default_is_four(self):
+        default = inspect.signature(solve_nr).parameters["max_newton_step"].default
+        assert default == 4.0
+
+
+class TestStepCapPreventsFailures:
+    """Inputs on which the first Newton step is so large that no halving helps.
+
+    With the cap off these stall with species held at the clamp. The first
+    assertion in each cap-off test is what makes the cap necessary here.
+    """
+
+    # 1 mol/L Na+ with almost nothing else: OH- has to carry the charge.
+    TOTALS = {"CO2": 0.0, "NH3": 1e-6, "H3PO4": 0.0, "HSO4-": 1e-6, "H2S": 1e-6}
+    STRONG = {"CT_Na": 1.0}
+    VOLUMES = {"V_liq_L": 1.0, "V_gas_L": 0.1}
+
+    def _solve_uncapped(self, activity_model):
+        engine = NRChemicalEquilibriumEngine.from_reactions(
+            _ad_reactions(), activity_model=activity_model, T_K=308.15, use_warmstart=False,
+        )
+        return solve_nr(
+            engine.tableau, self.TOTALS, self.STRONG, T_K=308.15,
+            activity_model=engine.activity_model, max_newton_step=float("inf"), **self.VOLUMES,
+        )
+
+    def _solve(self, activity_model):
+        engine = NRChemicalEquilibriumEngine.from_reactions(
+            _ad_reactions(), activity_model=activity_model, T_K=308.15, use_warmstart=False,
+        )
+        return engine.solve(totals=self.TOTALS, strong_ions=self.STRONG, **self.VOLUMES)
+
+    def test_ideal_stalls_without_the_cap(self):
+        assert abs(self._solve_uncapped("ideal")["charge_residual"]) > 1.0
+
+    def test_davies_raises_without_the_cap(self):
+        with pytest.raises(OverflowError):
+            self._solve_uncapped("davies")
+
+    def test_ideal_converges_with_the_cap(self):
+        out = self._solve("ideal")
+        assert abs(out.charge_residual) < 1e-9
+        assert out.species_mol_L["OH-"] == pytest.approx(1.0, rel=1e-3)
+        assert 13.0 < out.pH < 14.5
+        assert out.extra == {}
+
+    def test_davies_converges_with_the_cap(self):
+        out = self._solve("davies")
+        assert abs(out.charge_residual) < 1e-8
+        assert out.species_mol_L["OH-"] == pytest.approx(1.0, rel=1e-3)
+        assert 13.0 < out.pH < 14.5
+        assert out.extra == {}
+
+    def test_every_step_respects_the_cap(self, monkeypatch):
+        sizes = []
+        original = solver._capped_step
+
+        def spy(dx, max_step):
+            capped = original(dx, max_step)
+            sizes.append((float(np.max(np.abs(dx))), float(np.max(np.abs(capped)))))
+            return capped
+
+        monkeypatch.setattr(solver, "_capped_step", spy)
+        self._solve("ideal")
+        assert max(before for before, _ in sizes) > 4.0, "the cap no longer acts here"
+        assert max(after for _, after in sizes) <= 4.0 + 1e-12
+
+    def test_warm_start_after_a_distant_composition(self):
+        """A warm start from a very different solution reaches the cold answer."""
+        kwargs = {"activity_model": "davies", "T_K": 308.15}
+        first = {"CO2": 0.0, "NH3": 1e-6, "H3PO4": 1e-3, "HSO4-": 0.0, "H2S": 1e-3}
+        second = {"CO2": 1e-3, "NH3": 0.1, "H3PO4": 1e-6, "HSO4-": 0.1, "H2S": 0.1}
+        warm = NRChemicalEquilibriumEngine.from_reactions(_ad_reactions(), **kwargs)
+        warm.solve(totals=first, strong_ions={"CT_Cl": 0.1}, **self.VOLUMES)
+        out = warm.solve(totals=second, strong_ions={"CT_Cl": 1.0}, **self.VOLUMES)
+
+        cold = NRChemicalEquilibriumEngine.from_reactions(
+            _ad_reactions(), use_warmstart=False, **kwargs,
+        ).solve(totals=second, strong_ions={"CT_Cl": 1.0}, **self.VOLUMES)
+        assert out.pH == pytest.approx(cold.pH, abs=1e-6)
+
+    def test_precipitation_loop_with_the_cap(self):
+        """Excess calcium: this used to return pH 30 from the active-set loop."""
+        out = TestPrecipitationReportsOnce._engine().solve(
+            totals={"CO2": 1e-3, "NH3": 0.0}, strong_ions={"CT_Ca": 0.1},
+        )
+        assert abs(out.charge_residual) < 1e-9
+        assert 12.0 < out.pH < 14.0
+        assert out.extra["minerals_xi_mol_L"]["calcite"] > 0.0
+
+
+class TestStepCapLeavesOrdinarySolvesAlone:
+    def test_nearby_warm_start_is_identical_with_and_without_the_cap(self, tableau):
+        """Consecutive time steps make small changes, which never reach the cap."""
+        start = NRSolverCache()
+        model = IdealLiquidModel()
+        solve_nr(tableau, {"CO2": 0.05, "NH3": 0.04}, {"CT_Na": 0.01}, activity_model=model, cache=start)
+
+        results = []
+        for cap in (4.0, float("inf")):
+            cache = NRSolverCache(log_x=start.log_x.copy(), I_last=start.I_last)
+            results.append(solve_nr(
+                tableau, {"CO2": 0.0505, "NH3": 0.0396}, {"CT_Na": 0.0101},
+                activity_model=model, cache=cache, max_newton_step=cap,
+            ))
+        assert results[0] == results[1]
+
+    def test_cap_keeps_a_cold_start_away_from_the_clamp(self, tableau, monkeypatch):
+        raw_peaks = []
+
+        def spy(tableau_, x, gammas, max_log_activity=50.0):
+            raw_peaks.append(max(_raw_log_activities(tableau_, x)))
+            return _compute_concentrations(tableau_, x, gammas, max_log_activity=max_log_activity)
+
+        monkeypatch.setattr(solver, "_compute_concentrations", spy)
+        solve_nr(tableau, {"CO2": 1e-3, "NH3": 1e-3}, {"CT_Cl": 1.0}, activity_model=IdealLiquidModel())
+        assert max(raw_peaks) <= 50.0

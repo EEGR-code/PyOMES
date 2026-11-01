@@ -84,9 +84,9 @@ _JACOBIAN_DISABLED_MSG = (
 
 _LN10 = float(np.log(10.0))
 
-# Largest accepted max_log_activity. Above about 154 the squared residual in
-# the line search overflows, and at 309 10.0 ** max_log_activity itself raises
-# OverflowError.
+# Largest accepted max_log_activity. If a species reaches a limit above about
+# 154, the squared residual in the line search overflows, and at 309
+# 10.0 ** max_log_activity itself raises OverflowError.
 _MAX_LOG_ACTIVITY_CEILING = 150.0
 
 # Strong-ion charge dictionary (mirrors the ones in solver.py)
@@ -178,8 +178,7 @@ class NRChemicalEquilibriumEngine:
         self._cache = NRSolverCache() if use_warmstart else None
         self.n_solve_calls = 0
         self._precipitation_reactions: List = []  # set by from_reactions()
-        # Species already warned about. Kept across reset_cache(), which runs
-        # often enough that clearing it would defeat the limit on warnings.
+        # Species already warned about. reset_cache() does not clear this.
         self._warned_limit_effects: set = set()
 
         # White-box cached state (populated when retain_jacobian=True)

@@ -1053,29 +1053,34 @@ if nothing else needs them, the generic-key half of the suffix rule described
 under the ionic-strength duplication entry above. Check the tests that build
 generic keys directly (`test_speciation.py`) before removing anything.
 
-## The Newton engine can fail outright on ordinary inputs at its default settings
+## The Newton line search accepts a step it could not improve
 
-Found 2026-11-01 while measuring the log-activity clamp, not fixed. With
-`AD_BASIC`'s equilibria at 35 °C, cold start and the default
-`max_log_activity=50`, totals `NH3`, `HSO4-` and `H2S` of 1e-6 mol/L, zero `CO2`
-and `H3PO4`, and `CT_Na` of 1 mol/L (`V_liq_L=1`, `V_gas_L=0.1`; the same at
-25 °C):
+Found 2026-11-01 while measuring the log-activity clamp, not fixed. When
+`max_backtrack` halvings all fail to reduce the residual, `solve_nr` takes the last
+trial step anyway. Before `max_newton_step` existed, this stranded a solve with
+species held at the clamp: ideal activity returned pH 30 with a charge residual of
+-9e50, and Davies raised `OverflowError` from `DaviesLiquidModel.gamma`. The step
+cap removes that on the workloads measured (`AD_BASIC`, carbonate-ammonia, calcite,
+the iron oxidation test), which then had no failed line searches, but nothing
+prevents it in other chemistry. Two gaps remain if it happens:
 
-- **Ideal activity returns a wrong answer without raising:** pH 30 and a charge
-  residual of -9e50. The `RuntimeWarning` and `EquilibriumResult.extra` report on
-  limit effects list the affected species, and a `logger.warning` says the inner
-  loop did not converge.
-- **Davies raises `OverflowError`** from `DaviesLiquidModel.gamma`, before the
-  report can be made. From reading the code: the non-converged state holds a
-  species at the 1e50 clamp, so the ionic strength becomes enormous and the Davies
-  exponent overflows. That chain was not traced step by step.
+- `solve_nr` returns the state it reached. A non-converged solve is visible only
+  through a `logger.warning` and, if species reach the limit, the limit-effects
+  report, and `EquilibriumResult` has no converged flag.
+- A warm-started engine stores that state in its cache, so one failed solve can
+  carry into the next.
 
-Measured over random totals and strong ions from the same chemistry, Davies
-raised in 2 of 200 cold solves and in 25 of 60 warm-started ones. The warm-started
-sequence jumps between unrelated compositions, which a time-stepped run does not
-do, so that rate overstates what a simulation would see. Limiting Newton's step
-size may remove the cause; `_ionic_strength` staying finite would remove the
-crash but not the failed solve.
+## Very small component totals are not resolved
+
+Found 2026-11-01 while comparing Newton step caps, not fixed. Mass balances
+converge to an absolute tolerance (`tol=1e-10` mol/L), while totals are treated as
+present down to `min_component_total=1e-20`. With `AD_BASIC`, 0.01 mol/L NH3 and
+ideal activity, a carbon total of 1e-19 mol/L was reported as about 1e-14, and
+1e-14 as about 1.7e-14; 1e-12 and above were correct. pH was unaffected. Measured
+on that one chemistry at nine totals, so the point where this starts is not
+general. Totals of about 1e-6 mol/L are resolved to about 1 part in 10,000, for the
+same reason. A tolerance relative to each row's total would fix it, but it would
+change results and may cost iterations.
 
 ## An absent component's species are not held to its zero total
 
