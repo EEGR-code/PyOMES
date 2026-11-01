@@ -150,6 +150,90 @@ reactant allows), but the clamp sees only the net change per phase, not each
 reaction, so it changes the `clamp_fn` interface and the step solvers that call
 it.
 
+## `freeze_speciation=True` leaves rate laws reading stale species
+
+Found 2026-11-01 in a speed review, not fixed. After the first right-hand side of a macro
+step, `SimultaneousAdaptiveSolver` skips the engine and restores only `H+` from the
+frozen pH. Every other speciated species stays at its raw integrated state value, and
+that is what rate laws read, so `env.pH` and the concentrations no longer agree.
+
+Measured on the iron oxidation model (BDF, 2 h, 200 steps), whose rate law reads `OH-`:
+the second evaluation read `OH-` at 1.6e-5 mol/L where the frozen pH implies 3.2e-8, and
+the largest Fe2+ error against a tight reference was 96% of the starting amount. The
+option's warning says it "may reduce accuracy for pH-sensitive systems", which understates
+this. A rate law reading only `env.pH` would not be affected this way; that was not tested.
+
+`docs/solvers.md` recommends the option for reproducing BSM2 and PyADM1 results. BSM2 was
+not run with it, so whether that recommendation holds is open. A fix would freeze the
+whole speciated set rather than `H+` alone, which changes results for anyone using it.
+
+## `save_checkpoint` fails for a model with `Species`
+
+Found 2026-11-01 while building `persistent-integrator`, not fixed.
+`Species.__post_init__` stores `atoms` as a `types.MappingProxyType`
+(`chemistry/species.py:101-104`), which cannot be pickled, so
+`Simulation.save_checkpoint` raises `TypeError: cannot pickle 'mappingproxy' object`
+for any CV whose reactions hold a `Species`. Confirmed on the iron model and on BSM2,
+both with no step solver set. `tests/standalone/test_hpc_checkpointing.py` does not use
+one, so nothing catches it. `Species` would need `__getstate__`/`__setstate__` or
+`__reduce__`, or `atoms` held some other way.
+
+## `env.t_h` means different things under different solvers
+
+Found 2026-11-01 while building `persistent-integrator`, not fixed. Measured over a 1 h
+run with `dt_h = 0.1`, a rate law reads:
+
+| Solver | `env.t_h` |
+|---|---|
+| `SimultaneousAdaptiveSolver(persistent=True)` | 0.1 upward, continuous |
+| `SimultaneousAdaptiveSolver(persistent=False)` | 0 to 0.1, again at every step |
+| `SequentialAdvanceSolver`, `SimultaneousEulerSolver` | 0.1 to 1.0, one value per step |
+| `MonolithicODESolver` | 0.1 to 1.1 |
+
+`Simulation.run` passes the end of each step as `t_h`, so every solver that uses it leads
+true time by one step, and the first step of a run reads `dt_h`, not 0. A direct
+`cv.advance(dt_h, t_h)` passes the start of the step by convention. Under
+`persistent=False`, a rate law with a lag phase or a schedule gets the wrong time
+altogether. Correcting `Simulation` changes every time-dependent model on every solver.
+
+## Flooring a resolved species creates material, and guards are not all inventoried
+
+Found 2026-11-01 while building `persistent-integrator`, not fixed. This adds to
+the clamp entries above and to `CONSERVATION_LEDGER_CHECKLIST.md`, which plan the
+no-clamp default; neither covers these points.
+
+- **`floor_nonnegative` does not only affect rates.** The adaptive solver's state
+  holds each speciated species, and the engine reads their sum as the total. A
+  flux in proportion to a speciated amount (a drain, a rate law) can take one entry
+  negative while the total is fine; flooring it raises the total. With a feed and
+  drain at the starting composition, total Fe must stay constant, and it drifts by
+  9.8e-5 with this floor and 1.2e-7 without. Checkpoint 2d of the ledger checklist
+  says the trial-state floor "does not add or remove material"; this contradicts
+  that. `persistent=True` exempts resolved species;
+  `persistent=False` keeps the floor.
+- **A floor on a strong ion can cost accuracy without creating much material.** In
+  the persistent run with a pH controller, trial states take `Fe2+` negative 97
+  times in 6,020 evaluations, and the floor raises the worst error from 3.16e-5 to
+  3.63e-5. Restarting at each macro step never reaches these states.
+- **Restarts lose material on their own.** Total Fe drifts 1.6e-6 on the iron run
+  with or without the floor, against 1e-7 for one integrator across the run. The
+  likely cause, not traced, is each re-speciation carrying its Newton residual
+  (up to 1e-10 mol/L) into the state over 200 restarts.
+- **No inventory of guards.** Bounds sit in the Newton solver, both engines, the
+  gas-liquid link, boundaries, controllers and rate laws, and differ in kind:
+
+  | Kind | Examples | Can it be turned off? |
+  |---|---|---|
+  | User parameter | `clamp_fn`, `max_add_molL_hr`, `CT_P_max`, `max_log_activity` (not fully: at most 150) | Yes, or tunable |
+  | Parameter no caller exposes | `Phase.apply_flux(clamp=)` from transfer and links; `solve_nr(max_newton_step=)` from the engine | No, in practice |
+  | Hard-coded | `floor_nonnegative`, `_clamp_flux`, vent cap, `max(S_IN, 1e-12)`, `max(g, 1e-30)`, zero-total fallback in `_read_from_phases` | No |
+
+  Most of the hard-coded ones guard against dividing by zero or overflow and fire
+  rarely or never; a counter over 7 benchmark cases saw only the state floor change
+  a value during a run. That counter covers `min` and `max` in 10 modules, not
+  `if` guards, `np.clip` or `rate_laws.py`, and only those cases. The open question
+  is which guards can change a result, and whether those should warn.
+
 ## `engine.solve()` takes totals or species, under one name
 
 Logged 2026-10-03 while settling the decisions for

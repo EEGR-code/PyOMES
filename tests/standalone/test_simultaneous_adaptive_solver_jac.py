@@ -337,6 +337,29 @@ class TestAnalyticalJacobian:
                         f"{phase_key}.{sp}: without_jac={v1}, with_jac={v2}"
                     )
 
+    @staticmethod
+    def _capture_stepper(solver, cv):
+        """Run one step, returning what the solver gave its integrator."""
+        import PyOMES.core.solvers as solvers_mod
+
+        captured = {}
+        real = solvers_mod._make_stepper
+
+        def capturing(method, f, y0, **kwargs):
+            captured["jac"] = kwargs.get("jac")
+            captured["y0"] = y0
+            captured["f"] = f
+            return real(method, f, y0, **kwargs)
+
+        solvers_mod._make_stepper = capturing
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                solver.solve_step(cv, dt_h=0.01, t_h=0.0)
+        finally:
+            solvers_mod._make_stepper = real
+        return captured
+
     def test_jac_callable_returns_finite_matrix(self):
         """jac_callable returns a finite (n_ode, n_ode) numpy array."""
         from PyOMES.core.solvers import SimultaneousAdaptiveSolver
@@ -344,34 +367,9 @@ class TestAnalyticalJacobian:
 
         cv = _make_cv_with_nr_engine(retain_jacobian=True)
         solver = SimultaneousAdaptiveSolver(method="BDF", use_engine_jacobian=True)
+        captured = self._capture_stepper(solver, cv)
 
-        # Capture the jac callable by running one step and introspecting via monkeypatch
-        captured = {}
-
-        from scipy.integrate import solve_ivp as real_solve_ivp
-
-        def patched_solve_ivp(f, t_span, y0, **kwargs):
-            captured["jac"] = kwargs.get("jac")
-            captured["y0"] = y0
-            captured["f"] = f
-            return real_solve_ivp(f, t_span, y0, **kwargs)
-
-        import PyOMES.core.solvers as solvers_mod
-        orig = getattr(solvers_mod, "_real_solve_ivp", None)
-
-        # Patch scipy.integrate.solve_ivp inside the solver's import namespace
-        import scipy.integrate
-        orig_ivp = scipy.integrate.solve_ivp
-        scipy.integrate.solve_ivp = patched_solve_ivp
-
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                solver.solve_step(cv, dt_h=0.01, t_h=0.0)
-        finally:
-            scipy.integrate.solve_ivp = orig_ivp
-
-        assert "jac" in captured, "jac= kwarg not passed to solve_ivp"
+        assert "jac" in captured, "jac= kwarg not passed to the integrator"
         jac_fn = captured["jac"]
         assert jac_fn is not None, "jac= was None for use_engine_jacobian=True"
 
@@ -388,22 +386,7 @@ class TestAnalyticalJacobian:
 
         cv = _make_cv_with_nr_engine(retain_jacobian=True)
         solver = SimultaneousAdaptiveSolver(method="DOP853", use_engine_jacobian=True)
-
-        captured = {}
-        import scipy.integrate
-        orig_ivp = scipy.integrate.solve_ivp
-
-        def patched(f, t_span, y0, **kwargs):
-            captured["jac"] = kwargs.get("jac")
-            return orig_ivp(f, t_span, y0, **kwargs)
-
-        scipy.integrate.solve_ivp = patched
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                solver.solve_step(cv, dt_h=0.01, t_h=0.0)
-        finally:
-            scipy.integrate.solve_ivp = orig_ivp
+        captured = self._capture_stepper(solver, cv)
 
         # jac should be None because DOP853 is not in _JAC_METHODS
         assert captured.get("jac") is None
@@ -412,29 +395,12 @@ class TestAnalyticalJacobian:
         """When engine Jacobian raises RuntimeError (retain_jacobian=False),
         jac_callable falls back to full FD and still returns a finite matrix."""
         from PyOMES.core.solvers import SimultaneousAdaptiveSolver
+        import numpy as np
 
         cv = _make_cv_with_nr_engine(retain_jacobian=False)  # jac raises RuntimeError
         solver = SimultaneousAdaptiveSolver(method="BDF", use_engine_jacobian=True)
-
-        captured = {}
-        import scipy.integrate
-        orig_ivp = scipy.integrate.solve_ivp
-
-        def patched(f, t_span, y0, **kwargs):
-            captured["jac"] = kwargs.get("jac")
-            captured["y0"] = y0
-            return orig_ivp(f, t_span, y0, **kwargs)
-
-        scipy.integrate.solve_ivp = patched
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                solver.solve_step(cv, dt_h=0.01, t_h=0.0)
-        finally:
-            scipy.integrate.solve_ivp = orig_ivp
+        captured = self._capture_stepper(solver, cv)
 
         assert captured.get("jac") is not None
-        y0 = captured["y0"]
-        J = captured["jac"](0.0, y0)
-        import numpy as np
+        J = captured["jac"](0.0, captured["y0"])
         assert np.all(np.isfinite(J))

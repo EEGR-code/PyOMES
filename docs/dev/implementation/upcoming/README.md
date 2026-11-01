@@ -191,6 +191,25 @@ that still describe open work are "Open phases" and the pending stages in
   likely under `docs/tutorials/`. No branch, no checklist, no code yet.
 ## Recently shipped
 
+- `persistent-integrator` (2026-11-01) — `SimultaneousAdaptiveSolver` keeps one integrator
+  per CV across macro steps (`persistent=True`, the default) instead of calling `solve_ivp`
+  afresh at each, so `n_steps` is an output grid unless something disturbs the model. About
+  ×12 on iron oxidation with BDF and ×8 on BSM2 with BDF, and more accurate against a tight
+  reference; ×4-5 with a dose every 20 steps; ×1 and identical results when the state or a
+  parameter changes every step. Linked CVs on the split system solvers gain nothing.
+  Explicit methods, including the default `DOP853`, become 2-3× faster and less accurate at
+  the same `rtol`, which `docs/solvers.md` states plainly; `persistent=False` restores the
+  old results bit for bit. Restart detection compares the state exactly and counts parameter
+  changes, with one test per trigger, each checked by removing the trigger. Resolved species
+  are exempt from the state floor, because flooring one created material: total Fe drifted
+  1e-4 on a feed-and-drain model under restarting, and the error reached 0.89 without
+  restarts. `env.t_h` runs on across macro steps. Added
+  `tests/performance/bench_adaptive_solver.py`. Logged in `OPEN_WORK.md`: `save_checkpoint`
+  fails for a model with `Species`, `env.t_h` differs between solvers, and
+  `freeze_speciation=True` leaves rate laws reading stale species. Full suite green: 2292
+  passed, 87 skipped, 2 xfailed. Tag `persistent-integrator-shipped`. See
+  [`../shipped/PERSISTENT_INTEGRATOR_CHECKLIST.md`](../shipped/PERSISTENT_INTEGRATOR_CHECKLIST.md).
+
 - `explicit-species-resolution` (2026-10-02) — a model knows only the species
   and reactions it was given: built by hand, picked from a database, or a whole
   database passed in. Every ambient name lookup is gone: string stoichiometry

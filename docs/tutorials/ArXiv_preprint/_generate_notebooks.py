@@ -963,7 +963,7 @@ them.
 
 Sections 3-5 all integrate through `SimultaneousAdaptiveSolver(method="BDF")`
 rather than the plain forward-Euler `cv.advance()` default — an implicit,
-adaptive-step ODE solver (via `scipy.integrate.solve_ivp`) suited to
+adaptive-step ODE solver (one of scipy's) suited to
 gas-liquid transfer coupled to pH-sensitive speciation, and the natural
 choice once Section 4/5 sweep kLa across three-plus orders of magnitude
 (0.1-1000 /h): a fixed explicit step size that's stable at kLa = 0.1 /h
@@ -1011,7 +1011,7 @@ def build_cv(kLa, label="pure_water"):
         label=label,
     )
 
-# Shared solver instance -- stateless (all state lives on the CV), so one
+# Shared solver instance -- it keeps one integrator per CV, so one
 # instance is reused across every Simulation.run() call in this notebook.
 bdf_solver = SimultaneousAdaptiveSolver(method="BDF")
 
@@ -1140,7 +1140,7 @@ how much *wall-clock* time does `SimultaneousAdaptiveSolver(method="BDF")`
 itself spend, at low, medium, and high kLa? Each of the three kLa values
 below (0.1, 10, 1000 /h — spanning the same static-to-vigorous range as
 Section 4) is run for the same fixed 1-hour simulated window, as a
-**single** `n_steps=1` macro step — letting `solve_ivp`'s own adaptive
+**single** `n_steps=1` macro step — letting the integrator's own adaptive
 internal stepping do all the work, rather than forcing it through many
 Python-level macro-step calls, so the timing reflects the solver's own
 cost per simulated experimental hour rather than Python call overhead.
