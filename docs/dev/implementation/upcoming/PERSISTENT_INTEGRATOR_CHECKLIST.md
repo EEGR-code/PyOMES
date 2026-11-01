@@ -21,9 +21,9 @@ changes `PyOMES/` or `tests/`.
       to `PyOMES/`.
       Recorded on Python 3.14.3, numpy 2.4.4, scipy 1.17.1. Iron BDF: 5,770 solves,
       3.19 s, worst error 6.65e-5. BSM2 BDF: 5,768 solves, 4.59 s, 1.93e-5.
-- [ ] 2. **Refactor only:** build `f` and `jac` outside the integrator call; add
-      `_make_stepper`. Results must be **bit-identical** on every benchmark model.
-- [ ] 3. **Persistent stepping behind an option, default off:** per-CV stepper,
+- [x] 2. **Refactor only:** build `f` and `jac` outside the integrator call. Results
+      must be **bit-identical** on every benchmark model.
+- [ ] 3. **Persistent stepping behind an option, default off:** `_make_stepper`, per-CV stepper,
       interpolation at macro-step ends, state-snapshot restart (trigger 1), `dt_h` and
       `external_source_terms` (trigger 4), `freeze_speciation` (trigger 5),
       `solver.restart()` (trigger 6). With the option off, results stay bit-identical.

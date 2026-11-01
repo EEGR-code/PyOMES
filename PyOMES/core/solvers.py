@@ -23,7 +23,7 @@ Usage
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Protocol, runtime_checkable
 
 from .phases import Phase
 from .interfaces import AdvanceResult
@@ -522,6 +522,15 @@ class SimultaneousEulerSolver:
 #  SimultaneousAdaptiveSolver
 # ════════════════════════════════════════════════════════════════════════
 
+class _Integrand(NamedTuple):
+    """What :meth:`SimultaneousAdaptiveSolver._build_integrand` builds for one CV."""
+    sv: Any                  # StateVector for the CV
+    y0: Any                  # packed state at build time
+    f: Callable              # right-hand side, f(t, y)
+    jac: Optional[Callable]  # Jacobian for implicit methods, or None
+    engine: Any              # speciation engine, or None
+
+
 class SimultaneousAdaptiveSolver:
     """Adaptive ODE solver via ``scipy.integrate.solve_ivp``.
 
@@ -577,39 +586,20 @@ class SimultaneousAdaptiveSolver:
                 "performance but may reduce accuracy for pH-sensitive systems.",
                 UserWarning, stacklevel=2,
             )
-    def solve_step(
+
+    def _build_integrand(
         self,
         cv: Any,
         dt_h: float,
-        t_h: float,
-        external_source_terms: Optional[Dict[str, Dict[str, float]]] = None,
-    ) -> AdvanceResult:
-        """Advance by dt_h using adaptive scipy ODE solver.
+        external_source_terms: Optional[Dict[str, Dict[str, float]]],
+    ) -> _Integrand:
+        """Build the ODE state vector, right-hand side and Jacobian for *cv*.
 
-        Phase-generic (STEP_SOLVER_INTERFACE_REFINEMENT.md item 6,
-        checkpoint 7b): the ODE state vector, RHS closure, and Jacobian
-        cover whatever phases ``cv`` has — only a ``"liquid"`` phase is
-        required, since speciation and reactions are liquid-scoped
-        (matching ``SequentialAdvanceSolver``/``SimultaneousEulerSolver``).
-        Every registered ``cv.internal_interfaces`` entry is processed
-        generically via its ``phase_a_key``/``phase_b_key``, not just a
-        single gas-liquid link found by isinstance search.
-
-        state-unification C4d: speciation routes through
-        cv.reaction_system.engine; PropertyResult / property_solvers
-        gone.
+        The right-hand side and Jacobian write to scratch phases built here,
+        and to the live phases of *cv*.
         """
         import numpy as np
-        from scipy.integrate import solve_ivp
         from .state_vector import StateVector
-
-        # ── 0. VALIDATE phase keys ──────────────────────────────────
-        if "liquid" not in cv.phases:
-            raise ValueError(
-                f"SimultaneousAdaptiveSolver requires a 'liquid' phase "
-                f"(speciation and reactions are liquid-scoped); got "
-                f"{list(cv.phases.keys())}"
-            )
 
         # _SV_KEY is an internal placeholder for this solver's single-CV
         # StateVector scope; never surfaced to the caller.
@@ -618,9 +608,6 @@ class SimultaneousAdaptiveSolver:
         y0 = sv.pack()
         phase_layout = sv.phase_species(_SV_KEY)   # {phase_key: [species, ...]}
         phase_offset = sv.phase_offset(_SV_KEY)     # {phase_key: starting index}
-
-        # Save original state for restoration on failure
-        y0_copy = y0.copy()
 
         # Capture CV internals for the derivative function
         boundaries = cv.boundaries
@@ -662,7 +649,7 @@ class SimultaneousAdaptiveSolver:
                 "engine satisfies GrayBoxEngineProtocol but use_engine_jacobian=False. "
                 "Pass use_engine_jacobian=True to SimultaneousAdaptiveSolver to enable analytical Jacobian.",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
         # Mutable slot used by jac_callable to skip speciation re-solve for
@@ -886,15 +873,59 @@ class SimultaneousAdaptiveSolver:
 
                 return J
 
+        return _Integrand(sv=sv, y0=y0, f=f, jac=jac_callable, engine=engine)
+
+    def solve_step(
+        self,
+        cv: Any,
+        dt_h: float,
+        t_h: float,
+        external_source_terms: Optional[Dict[str, Dict[str, float]]] = None,
+    ) -> AdvanceResult:
+        """Advance by dt_h using adaptive scipy ODE solver.
+
+        Phase-generic (STEP_SOLVER_INTERFACE_REFINEMENT.md item 6,
+        checkpoint 7b): the ODE state vector, RHS closure, and Jacobian
+        cover whatever phases ``cv`` has — only a ``"liquid"`` phase is
+        required, since speciation and reactions are liquid-scoped
+        (matching ``SequentialAdvanceSolver``/``SimultaneousEulerSolver``).
+        Every registered ``cv.internal_interfaces`` entry is processed
+        generically via its ``phase_a_key``/``phase_b_key``, not just a
+        single gas-liquid link found by isinstance search.
+
+        state-unification C4d: speciation routes through
+        cv.reaction_system.engine; PropertyResult / property_solvers
+        gone.
+        """
+        from scipy.integrate import solve_ivp
+
+        # ── 0. VALIDATE phase keys ──────────────────────────────────
+        if "liquid" not in cv.phases:
+            raise ValueError(
+                f"SimultaneousAdaptiveSolver requires a 'liquid' phase "
+                f"(speciation and reactions are liquid-scoped); got "
+                f"{list(cv.phases.keys())}"
+            )
+
+        integrand = self._build_integrand(cv, dt_h, external_source_terms)
+        sv = integrand.sv
+        y0 = integrand.y0
+        engine = integrand.engine
+        has_speciation = engine is not None
+        liq_phase = cv.phases["liquid"]
+
+        # Save original state for restoration on failure
+        y0_copy = y0.copy()
+
         # Run the adaptive solver
         result = solve_ivp(
-            f, [0.0, dt_h], y0,
+            integrand.f, [0.0, dt_h], y0,
             method=self.method,
             rtol=self.rtol,
             atol=self.atol,
             max_step=self.max_step,
             dense_output=False,
-            jac=jac_callable,
+            jac=integrand.jac,
         )
 
         if not result.success:
