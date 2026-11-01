@@ -1052,3 +1052,46 @@ A candidate for deletion, together with the `else` branch of
 if nothing else needs them, the generic-key half of the suffix rule described
 under the ionic-strength duplication entry above. Check the tests that build
 generic keys directly (`test_speciation.py`) before removing anything.
+
+## The Newton engine can fail outright on ordinary inputs at its default settings
+
+Found 2026-11-01 while measuring the log-activity clamp, not fixed. With
+`AD_BASIC`'s equilibria at 35 °C, cold start and the default
+`max_log_activity=50`, totals `NH3`, `HSO4-` and `H2S` of 1e-6 mol/L, zero `CO2`
+and `H3PO4`, and `CT_Na` of 1 mol/L (`V_liq_L=1`, `V_gas_L=0.1`; the same at
+25 °C):
+
+- **Ideal activity returns a wrong answer without raising:** pH 30 and a charge
+  residual of -9e50. The only notice is the `logger.warning` that the inner loop
+  did not converge.
+- **Davies raises `OverflowError`** from `DaviesLiquidModel.gamma`. From reading
+  the code: the non-converged state holds a species at the 1e50 clamp, so the
+  ionic strength becomes enormous and the Davies exponent overflows. That chain
+  was not traced step by step.
+
+Measured over random totals and strong ions from the same chemistry, Davies
+raised in 2 of 200 cold solves and in 25 of 60 warm-started ones. The warm-started
+sequence jumps between unrelated compositions, which a time-stepped run does not
+do, so that rate overstates what a simulation would see. Limiting Newton's step
+size may remove the cause; `_ionic_strength` staying finite would remove the
+crash but not the failed solve.
+
+## An absent component's species are not held to its zero total
+
+Found 2026-11-01 while measuring the log-activity clamp, not fixed. `solve_nr`
+replaces an absent component's mass balance with a pin at `-max_log_activity`, so
+nothing limits that component's secondaries, which still enter the charge balance
+and ionic strength. A secondary with several protons removed rises with pH: at a
+limit of 20, in 1 mol/L Na+, `PO4---` reaches 0.108 mol/L from a zero `H3PO4`
+total and pH falls by 0.167. At the default limit of 50 the largest such amount
+measured on `AD_BASIC` is 2.8e-31 mol/L, but a species with more protons removed
+would leave less margin. Dropping an absent component's species from the charge
+balance and ionic strength would fix the cause, and would also let the pin value
+stop mattering, as separating it from the clamp limit would not.
+
+## `equilibrate_to_pH` can fail on its own progress message
+
+Found 2026-11-01. `core/control_volume.py` prints a message containing `→`, which
+raises `UnicodeEncodeError` when standard output is a pipe or file in a legacy
+Windows code page such as cp1252. pytest's capture hides it. Setting
+`PYTHONIOENCODING=utf-8` avoids it; an ASCII `->` in the message would remove it.

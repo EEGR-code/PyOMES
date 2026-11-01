@@ -84,6 +84,11 @@ _JACOBIAN_DISABLED_MSG = (
 
 _LN10 = float(np.log(10.0))
 
+# Largest accepted max_log_activity. Above about 154 the squared residual in
+# the line search overflows, and at 309 10.0 ** max_log_activity itself raises
+# OverflowError.
+_MAX_LOG_ACTIVITY_CEILING = 150.0
+
 # Strong-ion charge dictionary (mirrors the ones in solver.py)
 _STRONG_CHARGES: Dict[str, int] = {
     "CT_K": +1, "CT_Na": +1, "CT_cation": +1,
@@ -113,11 +118,21 @@ class NRChemicalEquilibriumEngine:
         Operating temperature (°C).  Default ``25.0``.
     use_warmstart : bool
         Reuse the last converged state as initial guess.  Default ``True``.
+    max_log_activity : float
+        Limit on the magnitude of each log10-activity before exponentiation,
+        and the value at which an absent component's master is pinned (as
+        ``-max_log_activity``).  Default ``50.0``.  Must be positive and at
+        most ``150``.
     retain_jacobian : bool
         Cache the converged NR Jacobian matrix after each ``solve()`` call,
         unlocking the white-box methods ``jacobian_dg_dz()``,
         ``jacobian_dg_dy()``, ``jacobian_dz_dy()``, and ``residual()``.
         When ``False`` (default) those methods raise ``RuntimeError``.
+
+    Raises
+    ------
+    ValueError
+        If ``max_log_activity`` is not a positive number of at most ``150``.
     """
 
     def __init__(
@@ -131,6 +146,13 @@ class NRChemicalEquilibriumEngine:
         min_component_total: float = 1e-20,
         retain_jacobian: bool = False,
     ):
+        if not 0.0 < float(max_log_activity) <= _MAX_LOG_ACTIVITY_CEILING:
+            raise ValueError(
+                f"NRChemicalEquilibriumEngine: max_log_activity must be positive "
+                f"and at most {_MAX_LOG_ACTIVITY_CEILING:g}, got {max_log_activity!r}. "
+                "Larger values overflow when a Newton step sends a log10-activity "
+                "to the limit."
+            )
         self._tableau = tableau
         if retain_jacobian and any(sec.phase == "gas" for sec in tableau.secondaries):
             raise NotImplementedError(
