@@ -43,7 +43,7 @@ changes `PyOMES/` or `tests/`.
       plainly in `docs/solvers.md` and the solver docstring that explicit methods,
       including the default `DOP853`, become faster and less accurate at the same `rtol`,
       with both remedies: a tighter `rtol`, or `persistent=False`.
-- [ ] 9. **Owner re-runs the 4 notebooks that build this solver**; review any changed outputs.
+- [x] 9. **Owner re-runs the 4 notebooks that build this solver**; review any changed outputs.
 
 ## Implementation log
 
@@ -181,7 +181,7 @@ the owner's full suite run has passed; each entry gives that result.
 - `freeze_speciation` logged in `OPEN_WORK.md` at the owner's request.
 - Full suite: 2292 passed, 87 skipped, 2 xfailed.
 
-### Checkpoint 9: notebooks (pending)
+### Checkpoint 9: notebooks (fixes in `d08f1fc`; outputs in the commit after it)
 
 - A scan of every notebook's code found 4 that build this solver: `07_iron_oxidation`,
   `08_iron_oxidation_and_precipitation`, `10_engine_protocol_hierarchy` and
@@ -202,7 +202,20 @@ the owner's full suite run has passed; each entry gives that result.
   against the tight 13.7788 at kLa 96 and 3.46, an error of 1e-5 where restarting matches.
   This model holds about 1e-6 mol of CO2 against `atol=1e-9`.
 - Its comment calling the solver stateless was corrected, in the notebook and its generator.
-- Saved outputs not yet regenerated, so plots were not compared.
+- The owner regenerated all four with `nbconvert`: no errors, and printed results as above.
+  All P1-P5 checks in `07` and `08` still pass.
+- Plots reviewed by eye for `07`, `10` and `ArXiv 02`, and look right. `07` and `08` had no
+  saved plots before, so there is nothing to compare them with, and each file grew from
+  about 45 KB to about 300 KB. `08`'s plots were extracted but not viewed; its printed
+  results match `07`'s.
+- `10`'s PHREEQC cells now say "skipped", because `phreeqpython` is not installed. The old
+  saved output was an error message.
+- Notebook text that said these run through `solve_ivp` corrected, in the `ArXiv 02`
+  generator too.
+- Left as they are: the `~70` vs `~15` accepted BDF steps and the `~0.0005%` to
+  `~0.00005%` drift in `07` and `08`, which describe earlier measurements on restarting
+  runs; and "analytical Jacobian" in `07`, `08` and `10`, which `noteworthy.md` already
+  records as not what this route does.
 
 ## Shipping
 
