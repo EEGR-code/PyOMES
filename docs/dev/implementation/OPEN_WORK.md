@@ -150,6 +150,123 @@ reactant allows), but the clamp sees only the net change per phase, not each
 reaction, so it changes the `clamp_fn` interface and the step solvers that call
 it.
 
+## Minerals that cannot precipitate
+
+Found 2026-11-01 in a speed review, not fixed. Measured with the Newton engine on the iron
+oxidation chemistry (`H3PO4` 0.22 mol/L, `Fe3+` 8.8e-4 mol/L, `CT_K` 0.25 mol/L, ideal).
+
+- **A mineral whose reaction includes `H2O`.** `solve_nr` output has no `H2O`, so
+  `_compute_iap_and_si` floors its activity at 1e-300. Ferrihydrite written as
+  `Fe(OH)3(s) + 3 H+ = Fe3+ + 3 H2O` reports SI -894 and ξ 0 with `converged=True` and no
+  warning; by hand, with water activity 1, SI is +5.84. Notebook `08` declares its five
+  minerals with `H2O`, so its precipitation section may not do what it says. The source was
+  read; the effect on that notebook was not checked.
+- **A mineral written with `OH-`.** `OH-` is not a component, so its available total reads 0
+  and the ξ step is capped at 0. It reports SI +5.5 and ξ 0 with `converged=True`, at about
+  166 ms per solve in a CV. That the active set cycles is inferred from the cost.
+- **A mineral that does precipitate can still end supersaturated.** The same reaction without
+  `H2O` takes nearly all the iron (ξ 8.7998e-4 of 8.8e-4) and ends at SI +1.13 with
+  `converged=True`. The cause is not traced, and that reaction does not balance elements.
+
+## `use_engine_jacobian=True` does little, and falls back silently
+
+Found 2026-11-01, not fixed.
+
+- **Silent fallback.** On `ReactionSystem(..., solver="newton_raphson")` the lazily built
+  engine has `retain_jacobian=False`, so `jacobian_dz_dy` raises and `jac_callable` catches it
+  and uses finite differences for every column. In the iron run that is 3,000 of 5,550
+  right-hand-side calls, with no warning. Detail in the parent folder's `noteworthy.md`.
+- **Fixing that would not speed runs up.** The analytical path skips a solve only for
+  columns of component masters: 2 of 14 on iron. Attaching a retaining engine gave ×1.01.
+- **`jacobian_dz_dy(totals=...)` ignores `totals`**, and uses the cached solve. From reading
+  the code.
+
+## Smaller solver and engine findings
+
+Found 2026-11-01, not fixed.
+
+- **`MonolithicODESolver` has no tolerance settings**, so it always runs at scipy's defaults
+  (`rtol=1e-3`). From reading the code. Its missing boundaries and transfer are recorded in
+  `upcoming/CONSERVATION_LEDGER_CHECKLIST.md` and `upcoming/HPLC_CV_GRAPH_TEMPLATE.md`.
+- **The engines differ by 0.026 pH on the same BSM2 run** (2,000 sequential steps over 20 h).
+  This may be by design, since Bisection applies activity corrections only to H+ and OH-, and
+  takes ionic strength with unit coefficients. Cause not traced.
+
+## Dead code in the solvers and the Newton engine
+
+Found 2026-11-01, not removed. Searched across `.py`, `.ipynb`, `.md` and config files; no
+dynamic lookup of these names turned up in those searches, but none was specifically ruled out.
+
+- `_write_temp_state` (`core/solvers.py`): defined, never called.
+- `spec_result` in the adaptive solver's `f` (`core/solvers.py`): always `None`, so the branch
+  that reads it cannot run. Other hits are in `shipped/` docs.
+- `NRSolverCache.jacobian` (`engines/nr/solver.py`): copied on every solve; read only by one
+  test asserting it is `None`, and by a script in the gitignored `scratch/`. Removing it means
+  changing that test.
+- The `log_K_prime` parameter of `_accum` (`engines/nr/solver.py`): passed and never read.
+
+## Stale text in notebooks and notes
+
+Found 2026-11-01, not changed.
+
+- `07_iron_oxidation` and `08_iron_oxidation_and_precipitation` say
+  `cv.equilibrate_to_pH('KOH', 6.5)`; doses are now species compositions.
+- `07`, `08` and `10_engine_protocol_hierarchy` say `use_engine_jacobian=True` supplies an
+  analytical Jacobian, which the iron route does not do (see above).
+- `07` and `08` quote "~70 vs ~15 accepted BDF steps" and "~0.0005% to ~0.00005%" Fe drift. Both
+  come from restarting runs, and neither matches a run under `persistent=True`.
+- `upcoming/README.md` line 9 is a stray `+-*`.
+
+## Test gaps found by the persistent integrator work
+
+Found 2026-11-01.
+
+- **The suite does not run notebooks.** A `KeyError` in notebook `10`, caused by the
+  persistent default, got past 2,292 passing tests and was found only by running the cells.
+- **Not exercised under `persistent=True`:** a real integrator failure (the retry tests force
+  one), the stirred-tank template, and a full run with a controller that changes a parameter
+  (`DOAgitationController`). Only the restart trigger for that last case has tests.
+- **`bench_adaptive_solver.py clamps` does not see everything:** `if` guards, `np.clip` and
+  bounds with no literal value, such as the vent cap. It also covers only the benchmark cases.
+
+## Limits of the persistent integrator
+
+Documented in `docs/solvers.md` or the solver docstring, and worth revisiting.
+
+- A plain attribute written directly, such as `LiquidFeed.Q_L_per_h`, does not restart the
+  integrator; it needs `solver.restart()`. Comparing boundary attributes was considered, but
+  boundaries that record state in `compute_flux` would restart needlessly.
+- A `cv.advance` loop that repeats the same `t_h` restarts every step, safely but slowly.
+- Linked CVs on the split system solvers restart every step and gain nothing. A co-integrating
+  solver would need `MonolithicODESolver` to apply boundaries and transfer first.
+- The parameter counter is process-wide, so a change restarts every CV, including CVs in other
+  simulations in the same process.
+
+## Speedups measured but not built
+
+From a speed review, 2026-11-01. Figures are from in-memory patches and predate the persistent
+integrator, except where stated, so most apply to less of a run now. Measured on these models
+only: iron oxidation, `AD_BASIC`, calcite and BSM2.
+
+| Change | Measured gain | Results |
+|---|---|---|
+| Mineral handling: warm inner solves, keep ξ and the active set between solves, drop duplicate calls | ×15 when no mineral is active, ×2.8 when one is (calcite). Iron with a declared mineral runs 22× slower than without | pH moves up to 3.4e-8 |
+| Newton on arrays, compiled from the tableau | ×1.5-1.6 per run, ×1.7-3.2 per solve; ×1.5 on top of `persistent=True` | Up to 1e-12 relative. Six tests spy on helpers an array version bypasses |
+| Removing activity damping in the Newton outer loop | ×1.45 on Davies runs | 4.5e-7 relative; six cold cases, dilute to 6 M, gave the same pH to 8 decimals |
+| Bisection: precomputed constants and a ±0.1 pH bracket with widening | ×1.31 sequential, ×1.43 Euler | About 1e-13 relative |
+| Reusing the Jacobian at a restart | ×1.8 with a restart every step | 3e-7 relative at the end of the run |
+| Grouping identical Jacobian columns of a component's species | ×1.25; no gain on top of `persistent=True` | 2e-12 relative |
+| Removing repeated Newton evaluations at the same point | ×1.12-1.18 | **Bit-identical**; all 276 Newton-related tests pass |
+| Vectorising the conservation monitor | At most ×1.1 (estimated) on the sequential solver | None if kept equivalent |
+| RHS assembly: index map, no live-phase writes | ×1.07 on iron | **Bit-identical** |
+| No per-step `ControlVolume` in `SimultaneousEulerSolver` | ×1.07 | **Bit-identical** |
+| Cached `StateVector` in `MonolithicODESolver` | ×1.06 per evaluation | **Identical right-hand side** |
+
+Not worth separate work, by the same measurements: `_limit_effects` (about 3% of a run, and a
+required safeguard), the `_STRONG_CHARGES` rebuild (under 0.5% of a solve), `masters.index`
+(about 1.6% of a solve) and the recorder (at most 2.5%). Compiling the CV graph is planned in
+`upcoming/HPLC_CV_GRAPH_TEMPLATE.md`.
+
 ## `freeze_speciation=True` leaves rate laws reading stale species
 
 Found 2026-11-01 in a speed review, not fixed. After the first right-hand side of a macro
