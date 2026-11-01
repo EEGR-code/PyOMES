@@ -61,7 +61,7 @@ from PyOMES.reactions import (
 
 BASELINE_FILE = Path(__file__).with_name("baselines") / "adaptive_solver.json"
 REFERENCE_TOLERANCES = {
-    "method": "Radau", "rtol": 1e-9, "atol": 1e-11, "restart_each_step": False,
+    "method": "Radau", "rtol": 1e-9, "atol": 1e-11, "persistent": True,
 }
 REFERENCE_POINTS = 50  # stored per trajectory, at most
 ERROR_FLOOR = 5e-7     # errors below this are not told apart from the reference's own

@@ -53,13 +53,16 @@ any of these holds:
 1. Any `n_mol` entry, `T_K` or `V_L` differs **exactly** from the snapshot taken at the
    end of the previous `solve_step`, after the closing solve. This catches controller
    doses, links and direct writes without listing them.
-2. A `MutableScalar` or `MutableDict` write happened anywhere since then, detected by a
+2. A `MutableScalar` or `MutableDict` value changed anywhere since then, detected by a
    generation counter in `control/descriptors.py`. State comparison cannot see these:
-   profiles change parameters, never amounts.
-3. `Simulation` reports a profile record, or a controller action with a parameter
-   change, in the last step. This covers `_write_leaf`'s direct write into a plain dict
-   (`link.kLa["O2"]`), which bypasses the descriptors. A controller that runs and does
-   nothing must not force a restart; doses are caught by trigger 1.
+   profiles change parameters, never amounts. Only a change to an existing value
+   counts. Scratch phases are built through the same descriptors, so counting every
+   write would make linked CVs restart each other, and rewriting a value unchanged
+   needs no restart. The counter is process-wide, so a change restarts every CV.
+3. `Simulation` notes the changes the descriptors do not see: a changed profile report,
+   `_write_leaf`'s direct write into a plain dict (`link.kLa["O2"]`), and the
+   `_set_x_unchecked` fallback. A controller that runs and does nothing does not force
+   a restart; doses are caught by trigger 1.
 4. `dt_h` or `external_source_terms` differ from the previous call, because `f` closes
    over them.
 5. `freeze_speciation=True`, which keeps its per-macro-step meaning.
@@ -84,8 +87,8 @@ restarts once, so it matches a continuous run within tolerance, not bit for bit.
 **Accuracy monitor.** `check_scipy_rejections` receives per-macro-step deltas, and is
 skipped when the integrator took no step in that macro step.
 
-**Opt-out.** `SimultaneousAdaptiveSolver(restart_each_step=True)` keeps today's
-behaviour exactly, through `solve_ivp`.
+**The keyword.** `SimultaneousAdaptiveSolver(persistent=False)` keeps today's behaviour
+exactly, through `solve_ivp`. The default becomes `True` when the default flips.
 
 ## Decisions
 
@@ -104,23 +107,28 @@ behaviour exactly, through `solve_ivp`.
 ## Acceptance
 
 Before the default flips, each model in the benchmark must show persistent error no
-worse than `restart_each_step=True` against a tight reference, and no more engine
+worse than `persistent=False` against a tight reference, and no more engine
 solves. This includes the two untested cases: a real controller and a feed-and-drain
 model. A model that fails this stops the work until it is understood.
 
-**Open, for the owner:** two kinds of case fail this as written, and the gate needs a
-decision before the default flips.
+Two kinds of case fail this as first written:
 
-- *Explicit methods.* Restarting holds them well below the requested tolerance by
-  forcing short steps: RK45 reaches 3e-8 at `rtol=1e-6` at about 3× the cost, where
-  persistent reaches 1.2e-6. At `rtol=1e-7` persistent passes for RK45, RK23 and DOP853,
-  with fewer solves than restarting (253 vs 973, 709 vs 997, 487 vs 1,501).
+- *Explicit methods.* **Decided by the owner, 2026-11-01:** RK45, RK23 and DOP853 pass if
+  their error is within 10× `rtol`, and are persistent by default like every other
+  method. Restarting holds them well below the requested tolerance by forcing short
+  steps: RK45 reaches 3e-8 at `rtol=1e-6` at about 3× the cost, where persistent reaches
+  1.2e-6. So explicit runs become 2-3× faster and less accurate than before at the same
+  `rtol`. **The docs must say this plainly**, since `DOP853` is the solver's default
+  method, and must give the remedy: at `rtol=1e-7` errors are 8e-8 to 8e-7 with fewer
+  solves than restarting (253 vs 973, 709 vs 997, 487 vs 1,501), or use
+  `persistent=False`.
 - *A controller dosing every step.* Both restart every step, at the same cost, and
   persistent's error is 16% larger (3.6e-5 vs 3.1e-5). Stepping past the macro-step end
   takes `Fe2+` negative in 97 of 6,020 trial states, and the floor acts on it. Either
   stopping at the macro-step end (3.13e-5) or removing the floor (3.16e-5) closes the
-  gap. A run that has just restarted could stop at the macro-step end until the state
-  stops changing.
+  gap. **Decided:** fixed, not excused. A run that has just restarted stops at the
+  macro-step end until the state stops changing; the strict gate stays for implicit
+  methods.
 
 Every restart trigger has a test that fails if the trigger is removed.
 

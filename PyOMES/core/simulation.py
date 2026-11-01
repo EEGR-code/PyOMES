@@ -30,6 +30,7 @@ from .links import CVLink, LinkFlowRecord
 from .recorder import BatchRecorder
 from .snapshot import CVSnapshot, build_cv_snapshot, build_simulation_snapshot
 from PyOMES.control.actions import ControlAction, ProfileRecord
+from PyOMES.control.descriptors import note_parameter_change
 from PyOMES.monitoring.conservation import warn_unresolved
 
 
@@ -107,6 +108,11 @@ class Simulation:
         # to 0; .run() resets to 0 at entry (decision 10, always
         # destructive). Updated by _step at C4.
         self._t_h: float = 0.0
+
+        # What each profile last reported, keyed by id(profile). A profile may
+        # write to anything, so a change in its report counts as a parameter
+        # change even when no descriptor saw the write.
+        self._profile_targets: Dict[int, Any] = {}
 
         # Pre-flight validation: link endpoints reference existing
         # CV keys and phase keys (raise before any state mutation).
@@ -912,7 +918,11 @@ class Simulation:
             return []
         records: List[ProfileRecord] = []
         for profile in self._profiles:
-            records.append(profile.apply(float(t_h), self))
+            record = profile.apply(float(t_h), self)
+            if self._profile_targets.get(id(profile)) != record.targets:
+                note_parameter_change()
+            self._profile_targets[id(profile)] = record.targets
+            records.append(record)
         return records
 
     # ── Controller invocation + dispatch (C9) ──────────────────────────
@@ -1133,6 +1143,8 @@ class Simulation:
         from PyOMES.control.descriptors import MutableScalar, MutableDict
 
         if isinstance(target, dict):
+            if target.get(attr_name) != value:
+                note_parameter_change()
             target[attr_name] = value
             return
 
@@ -1152,6 +1164,7 @@ class Simulation:
 
         unchecked_fn = getattr(target, f"_set_{attr_name}_unchecked", None)
         if unchecked_fn is not None:
+            note_parameter_change()
             unchecked_fn(float(value))
             return
 

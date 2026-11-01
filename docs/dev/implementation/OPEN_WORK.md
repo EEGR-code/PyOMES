@@ -163,8 +163,8 @@ no-clamp default; neither covers these points.
   drain at the starting composition, total Fe must stay constant, and it drifts by
   9.8e-5 with this floor and 1.2e-7 without. Checkpoint 2d of the ledger checklist
   says the trial-state floor "does not add or remove material"; this contradicts
-  that. `restart_each_step=False` exempts resolved species;
-  `restart_each_step=True` keeps the floor.
+  that. `persistent=True` exempts resolved species;
+  `persistent=False` keeps the floor.
 - **A floor on a strong ion can cost accuracy without creating much material.** In
   the persistent run with a pH controller, trial states take `Fe2+` negative 97
   times in 6,020 evaluations, and the floor raises the worst error from 3.16e-5 to

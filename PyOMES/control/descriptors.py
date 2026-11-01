@@ -37,6 +37,25 @@ _UNSET = object()
 #  MutableScalar
 # ══════════════════════════════════════════════════════════════════════
 
+_parameter_generation = 0
+
+
+def parameter_generation() -> int:
+    """How many parameter changes this process has made so far.
+
+    Something that depends on parameters it does not otherwise see compares this
+    between uses. Only a change to an existing value counts: building a new object
+    does not, so one CV's scratch phases do not look like a change to another CV.
+    """
+    return _parameter_generation
+
+
+def note_parameter_change() -> None:
+    """Record a parameter change made other than through a descriptor."""
+    global _parameter_generation
+    _parameter_generation += 1
+
+
 class MutableScalar:
     """Descriptor for a scalar mutable attribute with lifecycle gating.
 
@@ -106,7 +125,11 @@ class MutableScalar:
 
     def _set_unchecked(self, obj: Any, value: Any) -> None:
         """Orchestrator-mediated unchecked path (Pattern B)."""
-        obj.__dict__[self.storage_attr] = self._validate(value)
+        value = self._validate(value)
+        old = obj.__dict__.get(self.storage_attr, _UNSET)
+        if old is not _UNSET and old != value:
+            note_parameter_change()
+        obj.__dict__[self.storage_attr] = value
 
     def _validate(self, value: Any) -> Any:
         value = self.type_(value)
@@ -189,7 +212,11 @@ class MutableDict:
 
     def _set_unchecked(self, obj: Any, value: Any) -> None:
         """Replace the whole dict. Orchestrator-mediated unchecked path."""
-        obj.__dict__[self.storage_attr] = dict(value)
+        value = dict(value)
+        old = obj.__dict__.get(self.storage_attr)
+        if old is not None and old != value:
+            note_parameter_change()
+        obj.__dict__[self.storage_attr] = value
 
     def _set_item_unchecked(self, obj: Any, key: str, value: Any) -> None:
         """Update a single key. Orchestrator-mediated unchecked path."""
@@ -197,7 +224,10 @@ class MutableDict:
         if d is None:
             d = {}
             obj.__dict__[self.storage_attr] = d
-        d[key] = self.value_type(value)
+        value = self.value_type(value)
+        if d.get(key, _UNSET) != value:
+            note_parameter_change()
+        d[key] = value
 
 
 # ══════════════════════════════════════════════════════════════════════

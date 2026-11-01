@@ -29,18 +29,81 @@ changes `PyOMES/` or `tests/`.
       `solver.restart()` (trigger 6), species and engine changes (trigger 7), totals
       not floored. With the option off, results stay bit-identical. Benchmark reference
       rebuilt on persistent Radau, because restarting does not conserve totals as well.
-- [ ] 4. **Parameter triggers:** generation counter in `control/descriptors.py`
+- [ ] 4. **Parameter triggers:** the keyword renamed to `persistent`; generation counter in `control/descriptors.py`
       (trigger 2) and the `Simulation` signal (trigger 3). A test for each trigger that
       fails when it is removed, including `link.kLa["O2"]`.
-- [ ] 5. **Robustness:** retry on failure, pickling, one solver across several CVs,
+- [ ] 5. **Robustness:** after a restart, stop at the macro-step end until the state stops changing; retry on failure, pickling, one solver across several CVs,
       monitor deltas. Check `tests/standalone/test_package_layering.py` still passes.
 - [ ] 6. **`env.t_h` continuous under this solver**, with a test. Log `Simulation`'s
       end-of-step `t_h` in `OPEN_WORK.md`.
 - [ ] 7. **Acceptance run:** every benchmark model meets the gate in the design note,
       all `solve_ivp` methods included. Stop here if one does not.
-- [ ] 8. **Flip the default**; add `restart_each_step=True` as the opt-out. Move the
-      three `solve_ivp`-patching tests to the `_make_stepper` seam. Update docs.
+- [ ] 8. **Flip the default** to `persistent=True`. Move the
+      three `solve_ivp`-patching tests to the `_make_stepper` seam. Update docs, and state
+      plainly in `docs/solvers.md` and the solver docstring that explicit methods,
+      including the default `DOP853`, become faster and less accurate at the same `rtol`,
+      with both remedies: a tighter `rtol`, or `persistent=False`.
 - [ ] 9. **Owner re-runs the listed notebooks**; review any changed outputs.
+
+## Implementation log
+
+Results are from Python 3.14.3, numpy 2.4.4, scipy 1.17.1. A checkpoint is ticked once
+the owner's full suite run has passed; each entry gives that result.
+
+### Checkpoint 1: benchmark (`5d45471`)
+
+- Added `tests/performance/bench_adaptive_solver.py`: 13 cases, gating on engine solves
+  and error, or on a bit-level fingerprint with `--exact`.
+- Baseline, restarting: iron BDF 5,770 solves, 3.19 s, error 6.65e-5; BSM2 BDF 5,768
+  solves, 4.59 s, 1.93e-5.
+- Found: `iron_ph_sampled_bdf` never dosed inside its 0.05 deadband. The band was
+  tightened, and the idle version kept as its own case. So an idle controller must not
+  force a restart, and the design changed.
+- Full suite: not needed, no package or collected test changed.
+
+### Checkpoint 2: refactor (`1c16b9e`)
+
+- `solve_step` gets its right-hand side and Jacobian from `_build_integrand`. Logic only
+  moved, plus a `stacklevel` bump so a warning points at the same caller.
+- `_make_stepper` moved to checkpoint 3, so nothing unused was added.
+- All 13 cases bit-identical.
+- Full suite: 2226 passed, 87 skipped, 2 xfailed.
+
+### Checkpoint 3: persistent stepping, opt-in (`2b8a824`)
+
+- Off: all 13 cases bit-identical to the committed baseline.
+- On: iron BDF ×12.9, error 6.6e-5 → 3.2e-6; BSM2 ×7.9, 1.9e-5 → 1.3e-6; iron Radau
+  ×17.6; iron LSODA ×35; feed and drain ×12.9, 1.2e-4 → 6.6e-6. A dosing controller and
+  a temperature ramp restart every step, ×1.0.
+- Found: the feed-and-drain error reached 0.89, because flooring individual speciated
+  species creates material. Resolved species are now exempt from the floor under
+  persistent. The iron-only prototype could not show this.
+- Found: restarting drifts total Fe by 9.8e-5 on feed and drain, and 1.6e-6 on iron
+  with the floor fixed, against about 1e-7 for persistent. The first Radau reference was
+  restarted and carried that bias, so it was rebuilt on persistent Radau. Persistent
+  Radau, BDF and LSODA agreed to within 3e-7 on feed and drain and weak acid; on plain
+  iron only total Fe supports the choice, since restarted Radau differs by 1.7e-6.
+- Found: the extra dosing-controller error (3.1e-5 → 3.6e-5) comes from overshoot past
+  the macro-step end taking `Fe2+` negative in 97 of 6,020 evaluations, where the floor
+  acts. Stopping at the end gives 3.13e-5, and removing the floor gives 3.16e-5.
+- Found: explicit methods get less accurate at the same `rtol`, because restarting
+  capped their steps (RK45 median step 0.02 h vs 0.14 h).
+- Logged the clamp findings in `OPEN_WORK.md`.
+- Full suite: 2256 passed, 87 skipped, 2 xfailed.
+
+### Checkpoint 4: parameter triggers (commit and full suite pending)
+
+- Keyword renamed from `restart_each_step` to `persistent`, still default `False`.
+- Generation counter in `control/descriptors.py`, counting only changes to an existing
+  value, so scratch phases and unchanged rewrites do not restart. `Simulation` notes
+  changed profile reports, plain-dict writes and the unchecked-setter fallback.
+- Owner decisions: explicit methods pass within 10× `rtol`, documented plainly; the
+  dosing-controller gap is fixed rather than excused.
+- Removed each restart check in memory to test the tests: the species and
+  reaction-system checks had no real protection, and now have their own tests. The
+  `freeze_speciation` test was not put through this check.
+- Default path: all 13 cases bit-identical. Persistent numbers unchanged from
+  checkpoint 3.
 
 ## Shipping
 

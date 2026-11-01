@@ -31,6 +31,7 @@ from .interfaces import AdvanceResult
 from .links import LinkFlowRecord
 from .boundaries import ExternalFluxRecord
 from .clamping import proportional_clamp, floor_clamp, floor_nonnegative
+from PyOMES.control.descriptors import parameter_generation
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -582,6 +583,7 @@ class _PersistentRun:
         self.reaction_system = cv.reaction_system
         self.species = _species_sets(cv)
         self.snapshot = None
+        self.generation = None
 
     def can_continue(self, cv, dt_h, external_source_terms) -> bool:
         """Whether nothing the integrator depends on has changed.
@@ -593,6 +595,7 @@ class _PersistentRun:
         """
         return (
             self.snapshot == _phase_snapshot(cv)
+            and self.generation == parameter_generation()
             and self.dt_h == dt_h
             and self.sources == _source_copy(external_source_terms)
             and self.reaction_system is cv.reaction_system
@@ -661,29 +664,30 @@ class SimultaneousAdaptiveSolver:
         different gas transfer dynamics than BSM2).
     use_engine_jacobian : bool
         Build the Jacobian from the engine's sensitivities where it can.
-    restart_each_step : bool
-        If True (default), start a new integration at every macro step. If
-        False, keep one integrator per CV across macro steps, interpolate at
+    persistent : bool
+        If True, keep one integrator per CV across macro steps, interpolate at
         each step's end, and restart only when something it depends on has
         changed: an amount, temperature or volume, the species set, ``dt_h``,
-        the external source terms, the reaction system or its engine. Changes
-        elsewhere, such as a plain attribute on a boundary or state held by a
-        rate function, need :meth:`restart`. ``freeze_speciation=True`` always
-        restarts each step.
+        the external source terms, the reaction system or its engine, or a
+        parameter written through a descriptor, a controller action or a
+        profile. A parameter change restarts every CV. Changes elsewhere, such
+        as a plain attribute on a boundary or state held by a rate function,
+        need :meth:`restart`. If False (default), start a new integration at
+        every macro step. ``freeze_speciation=True`` always restarts each step.
     """
 
     def __init__(self, rtol: float = 1e-6, atol: float = 1e-9,
                  max_step: float = 1.0, method: str = "DOP853",
                  freeze_speciation: bool = False,
                  use_engine_jacobian: bool = False,
-                 restart_each_step: bool = True):
+                 persistent: bool = False):
         self.rtol = rtol
         self.atol = atol
         self.max_step = max_step
         self.method = method
         self.freeze_speciation = freeze_speciation
         self.use_engine_jacobian = use_engine_jacobian
-        self.restart_each_step = restart_each_step
+        self.persistent = persistent
         self._runs = weakref.WeakKeyDictionary()  # {cv: _PersistentRun}
         if freeze_speciation and use_engine_jacobian:
             raise ValueError(
@@ -1057,7 +1061,7 @@ class SimultaneousAdaptiveSolver:
                 f"{list(cv.phases.keys())}"
             )
 
-        persist = not (self.restart_each_step or self.freeze_speciation)
+        persist = self.persistent and not self.freeze_speciation
         run = self._runs.get(cv) if persist else None
         if run is not None and not run.can_continue(cv, dt_h, external_source_terms):
             run = None
@@ -1145,6 +1149,7 @@ class SimultaneousAdaptiveSolver:
 
         if run is not None:
             run.snapshot = _phase_snapshot(cv)
+            run.generation = parameter_generation()
 
         # Build result (lightweight — no per-boundary records for adaptive solver)
         return AdvanceResult()
@@ -1153,7 +1158,7 @@ class SimultaneousAdaptiveSolver:
         return (f"SimultaneousAdaptiveSolver(method={self.method!r}, rtol={self.rtol}, "
                 f"atol={self.atol}, max_step={self.max_step}, "
                 f"use_engine_jacobian={self.use_engine_jacobian}, "
-                f"restart_each_step={self.restart_each_step})")
+                f"persistent={self.persistent})")
 
 
 def _write_temp_state(cv, gas_mol, liq_mol):

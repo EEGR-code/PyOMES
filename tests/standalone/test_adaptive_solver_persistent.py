@@ -12,7 +12,9 @@ import numpy as np
 import pytest
 
 from PyOMES.chemistry import Species
-from PyOMES.core import ControlVolume, LiquidPhase
+from PyOMES.control.actions import ControlAction, ProfileRecord
+from PyOMES.control.descriptors import MutableDict, MutableScalar, parameter_generation
+from PyOMES.core import ControlVolume, LiquidPhase, Simulation
 from PyOMES.core import solvers as solvers_mod
 from PyOMES.core.solvers import SimultaneousAdaptiveSolver
 from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
@@ -61,7 +63,7 @@ def _make_cv(extra_mol=None):
 
 def _solver(**kwargs):
     kwargs.setdefault("method", "BDF")
-    kwargs.setdefault("restart_each_step", False)
+    kwargs.setdefault("persistent", True)
     return SimultaneousAdaptiveSolver(**kwargs)
 
 
@@ -99,8 +101,8 @@ class TestKeepsOneIntegrator:
         _advance(cv, solver, n=5)
         assert len(builds) == 1
 
-    def test_restart_each_step_builds_no_stepper(self, builds):
-        cv, solver = _make_cv(), _solver(restart_each_step=True)
+    def test_not_persistent_builds_no_stepper(self, builds):
+        cv, solver = _make_cv(), _solver(persistent=False)
         _advance(cv, solver, n=3)
         assert builds == []
 
@@ -113,7 +115,7 @@ class TestKeepsOneIntegrator:
     def test_agrees_with_restarting_within_tolerance(self, method):
         a, b = _make_cv(), _make_cv()
         _advance(a, _solver(method=method), n=20)
-        _advance(b, _solver(method=method, restart_each_step=True), n=20)
+        _advance(b, _solver(method=method, persistent=False), n=20)
         for sp in ("P", "AcOH"):
             assert a.phases["liquid"].n_mol[sp] == pytest.approx(
                 b.phases["liquid"].n_mol[sp], rel=1e-4,
@@ -230,6 +232,26 @@ class TestRestartTriggers:
             cv.reaction_system.attach_engine(type(old)(old.tableau, T_C=old.T_C))
         assert self._two_steps(swap, builds) == 2
 
+    def test_species_added_by_the_closing_solve(self, builds):
+        """The snapshot is taken after the closing solve, so it cannot see this. The
+        state vector was built without the species the solve then writes."""
+        cv = _make_cv()
+        liquid = cv.phases["liquid"].n_mol
+        del liquid["Ac-"], liquid["OH-"]
+        solver = _solver()
+        _advance(cv, solver)
+        assert "Ac-" in liquid
+        _advance(cv, solver)
+        assert len(builds) == 2
+
+    def test_reaction_system_replaced_with_the_same_engine(self, builds):
+        """The engine check cannot see this: only the rate laws differ."""
+        def swap(cv, solver):
+            system = _make_cv().reaction_system
+            system.attach_engine(cv.reaction_system.engine)
+            cv._set_reaction_system_unchecked(system)
+        assert self._two_steps(swap, builds) == 2
+
     def test_explicit_restart(self, builds):
         assert self._two_steps(lambda cv, solver: solver.restart(), builds) == 2
 
@@ -241,6 +263,118 @@ class TestRestartTriggers:
         cv.phases["liquid"].n_mol["P"] = before + 0.5
         _advance(cv, solver)
         assert cv.phases["liquid"].n_mol["P"] > before + 0.5
+
+
+class _Knob:
+    """A parameter holder of the kind boundaries and links are."""
+    k = MutableScalar(float)
+    table = MutableDict(value_type=float)
+
+    def __init__(self):
+        self.k = 1.0
+        self.table = {"O2": 1.0}
+
+
+class TestParameterGeneration:
+    def _changes(self, write):
+        before = parameter_generation()
+        write()
+        return parameter_generation() - before
+
+    def test_new_objects_do_not_count(self):
+        assert self._changes(_Knob) == 0
+        assert self._changes(lambda: LiquidPhase(n_mol={"X": 1.0}, V_L=1.0, T_K=300.0)) == 0
+
+    def test_scalar_change_counts_and_same_value_does_not(self):
+        knob = _Knob()
+        assert self._changes(lambda: setattr(knob, "k", 2.0)) == 1
+        assert self._changes(lambda: setattr(knob, "k", 2.0)) == 0
+
+    def test_dict_replacement_counts_and_same_value_does_not(self):
+        knob = _Knob()
+        assert self._changes(lambda: setattr(knob, "table", {"O2": 2.0})) == 1
+        assert self._changes(lambda: setattr(knob, "table", {"O2": 2.0})) == 0
+
+    def test_dict_item_counts_and_same_value_does_not(self):
+        knob = _Knob()
+        write = lambda value: type(knob).__dict__["table"]._set_item_unchecked(knob, "O2", value)
+        assert self._changes(lambda: write(3.0)) == 1
+        assert self._changes(lambda: write(3.0)) == 0
+        assert self._changes(lambda: write(3.0) or
+                             type(knob).__dict__["table"]._set_item_unchecked(knob, "CO2", 1.0)) == 1
+
+    def test_plain_dict_leaf_counts_and_same_value_does_not(self):
+        """`_write_leaf` writes `link.kLa["O2"]` into a plain dict."""
+        sim = Simulation(cvs={"main": _make_cv()}, label="t")
+        table = {"O2": 1.0}
+        assert self._changes(lambda: sim._write_leaf(table, "O2", 2.0, None)) == 1
+        assert self._changes(lambda: sim._write_leaf(table, "O2", 2.0, None)) == 0
+
+    def test_unchecked_setter_fallback_counts(self):
+        class Target:
+            def _set_rate_unchecked(self, value):
+                self.rate = value
+
+        sim = Simulation(cvs={"main": _make_cv()}, label="t")
+        assert self._changes(lambda: sim._write_leaf(Target(), "rate", 2.0, None)) == 1
+
+
+class TestParameterTriggers:
+    def test_a_parameter_change_restarts(self, builds):
+        cv, solver, knob = _make_cv(), _solver(), _Knob()
+        _advance(cv, solver)
+        knob.k = 5.0
+        _advance(cv, solver)
+        assert len(builds) == 2
+
+    def test_rewriting_a_parameter_unchanged_does_not_restart(self, builds):
+        cv, solver, knob = _make_cv(), _solver(), _Knob()
+        _advance(cv, solver)
+        knob.k = 1.0
+        _advance(cv, solver)
+        assert len(builds) == 1
+
+    def test_scratch_phases_of_another_cv_do_not_restart(self, builds):
+        """A restart in one CV builds phases; that must not restart the other."""
+        solver = _solver()
+        a, b = _make_cv(), _make_cv()
+        _advance(a, solver)
+        _advance(b, solver)
+        for _ in range(3):
+            b.phases["liquid"].n_mol["Na+"] += 1e-4  # b restarts every step
+            _advance(b, solver)
+            _advance(a, solver)
+        assert len([s for s in builds]) == 5  # a once, b four times
+
+    def _run(self, **kwargs):
+        cv = _make_cv()
+        sim = Simulation(cvs={"main": cv}, solver=_solver(), label="t", **kwargs)
+        sim.run(tau_h=0.1, n_steps=5)
+
+    @staticmethod
+    def _profile(targets_at):
+        class Profile:
+            def apply(self, t_h, sim):
+                return ProfileRecord(profile_label="p", t_h=t_h, targets=targets_at(t_h))
+        return Profile()
+
+    def test_profile_with_a_changing_report_restarts(self, builds):
+        self._run(profiles=[self._profile(lambda t_h: {"plain.attribute": t_h})])
+        assert len(builds) == 5
+
+    def test_profile_with_a_constant_report_does_not_restart(self, builds):
+        self._run(profiles=[self._profile(lambda t_h: {"plain.attribute": 1.0})])
+        assert len(builds) == 1
+
+    def test_controller_doing_nothing_does_not_restart(self, builds):
+        class Idle:
+            label = "idle"
+
+            def compute(self, state, dt_h):
+                return ControlAction(controller_label="idle", target_cv_key="main",
+                                     t_h=0.0, dt_h=dt_h)
+        self._run(controllers=[Idle()])
+        assert len(builds) == 1
 
 
 class TestScope:
@@ -262,7 +396,7 @@ class TestScope:
         cv, solver = _make_cv(), _solver()
         _advance(cv, solver, n=2)
         loaded = pickle.loads(pickle.dumps(solver))
-        assert loaded.restart_each_step is False
+        assert loaded.persistent is True
         _advance(cv, loaded)
         assert len(builds) == 2
 
