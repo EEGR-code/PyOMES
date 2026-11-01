@@ -178,8 +178,9 @@ class NRChemicalEquilibriumEngine:
         self._cache = NRSolverCache() if use_warmstart else None
         self.n_solve_calls = 0
         self._precipitation_reactions: List = []  # set by from_reactions()
-        # Species already warned about. reset_cache() does not clear this.
+        # What has been warned about already. reset_cache() does not clear these.
         self._warned_limit_effects: set = set()
+        self._warned_not_converged = False
 
         # White-box cached state (populated when retain_jacobian=True)
         self._cached_jacobian: Optional[np.ndarray] = None
@@ -366,6 +367,12 @@ class NRChemicalEquilibriumEngine:
             secondary. The first time a species appears in either, a
             ``RuntimeWarning`` names it; each engine warns once per species.
 
+            ``converged`` is ``False`` when the final residual shows the solve
+            did not reach a solution, in which case the other fields are not
+            one either. Each engine gives one ``RuntimeWarning`` for this. The
+            next warm-started solve continues from the failed state, unless a
+            species in it is above the limit, when it starts cold.
+
         .. note::
             Mineral amounts are reported in the result only; this engine
             does not write ξ back to ``n_mol`` or create a ``SolidPhase``.
@@ -410,6 +417,7 @@ class NRChemicalEquilibriumEngine:
         clamped = out.pop("_clamped_log_activities", {})
         absent = out.pop("_absent_component_species", {})
         self._warn_limit_effects(clamped, absent)
+        self._warn_not_converged(out["converged"], out["max_residual"])
 
         if self.retain_jacobian:
             self._cached_jacobian = out.pop("_jacobian_matrix", None)
@@ -485,6 +493,8 @@ class NRChemicalEquilibriumEngine:
             partial_pressures_atm=partial_pressures_atm,
             saturation_indices=saturation_indices,
             extra=extra,
+            converged=out["converged"],
+            max_residual=out["max_residual"],
         )
         return result
 
@@ -551,6 +561,24 @@ class NRChemicalEquilibriumEngine:
         return self._tableau
 
     # ── Private helpers ───────────────────────────────────────────────
+
+    def _warn_not_converged(self, converged: bool, max_residual: float) -> None:
+        """Warn the first time this engine returns a failed solve.
+
+        The engine solves once per ODE right-hand-side evaluation, so later
+        failures are left to ``EquilibriumResult.converged``.
+        """
+        if converged or self._warned_not_converged:
+            return
+        self._warned_not_converged = True
+        warnings.warn(
+            f"NR speciation: a solve did not converge (largest residual "
+            f"{max_residual:.2e} mol/L), so its pH and concentrations are not a "
+            "solution. See EquilibriumResult.converged; this engine warns only "
+            "once.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
 
     def _warn_limit_effects(
         self, clamped: Dict[str, float], absent: Dict[str, float],
