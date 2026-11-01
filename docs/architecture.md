@@ -94,8 +94,10 @@ A `StepSolver` advances one CV by one step and returns an
   from one frozen snapshot of the state and applies them together,
   so the result does not depend on sub-step order.
 - `SimultaneousAdaptiveSolver` — integrates the same combined
-  right-hand side with `scipy.integrate.solve_ivp`, solving
+  right-hand side with scipy's ODE integrators, solving
   speciation algebraically at every internal step.
+  It keeps one integrator per CV across macro steps unless the state or a
+  parameter changes (`persistent=True`, the default).
 
 Only `SequentialAdvanceSolver` runs property calculators; under the
 two simultaneous solvers `phase.properties` is not refreshed.

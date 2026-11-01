@@ -668,7 +668,7 @@ class SimultaneousAdaptiveSolver:
     max_step : float
         Maximum internal step size (hours).  Default 1.0.
     method : str
-        scipy solve_ivp method.  Default ``"DOP853"`` (explicit,
+        scipy ODE method.  Default ``"DOP853"`` (explicit,
         high-order).  For stiff systems (e.g. AD with H₂ kinetics),
         use ``"Radau"`` or ``"BDF"`` (implicit).
     freeze_speciation : bool
@@ -682,7 +682,7 @@ class SimultaneousAdaptiveSolver:
     use_engine_jacobian : bool
         Build the Jacobian from the engine's sensitivities where it can.
     persistent : bool
-        If True, keep one integrator per CV across macro steps, interpolate at
+        If True (default), keep one integrator per CV across macro steps, interpolate at
         each step's end, and restart only when something it depends on has
         changed: an amount, temperature or volume, the species set, ``dt_h``, a
         ``t_h`` that does not follow on from the last step, the external source
@@ -691,17 +691,23 @@ class SimultaneousAdaptiveSolver:
         profile. A parameter change restarts every CV. Changes elsewhere, such
         as a plain attribute on a boundary or state held by a rate function,
         need :meth:`restart`. Rate laws read ``env.t_h`` as the *t_h* passed to
-        :meth:`solve_step` plus the time since. If False (default), start a new
-        integration at every macro step, and ``env.t_h`` runs from 0 to ``dt_h``
-        each time, whatever *t_h* is. ``freeze_speciation=True`` always restarts
-        each step.
+        :meth:`solve_step` plus the time since. If False, start a new integration
+        at every macro step, and ``env.t_h`` runs from 0 to ``dt_h`` each time,
+        whatever *t_h* is. ``freeze_speciation=True`` always restarts each step.
+
+        Explicit methods, including the default ``DOP853``, are less accurate
+        with True than with False at the same ``rtol``: restarting caps their
+        steps at the macro step, which holds them well below the tolerance at
+        extra cost. On a small non-stiff model at ``rtol=1e-6``, ``RK45`` goes
+        from an error of about 3e-8 to about 1e-6 and runs about 3 times faster.
+        To get the old accuracy, tighten ``rtol`` or pass ``persistent=False``.
     """
 
     def __init__(self, rtol: float = 1e-6, atol: float = 1e-9,
                  max_step: float = 1.0, method: str = "DOP853",
                  freeze_speciation: bool = False,
                  use_engine_jacobian: bool = False,
-                 persistent: bool = False):
+                 persistent: bool = True):
         self.rtol = rtol
         self.atol = atol
         self.max_step = max_step

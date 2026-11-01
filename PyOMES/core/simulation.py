@@ -732,7 +732,9 @@ class Simulation:
             Number of timesteps. Must be >= 1. For
             :class:`SimultaneousEulerSolver` this is the number of
             explicit steps; for adaptive solvers (e.g.
-            ``SimultaneousAdaptiveSolver``) this is the output grid resolution.
+            ``SimultaneousAdaptiveSolver``) this is the output grid resolution,
+            unless a controller, profile or link changes the state or a parameter
+            at every step, which restarts the integrator each time.
         start_t_h : float, optional
             Start of the output time grid (hours). Default ``0.0``
             preserves all existing behaviour (grid runs

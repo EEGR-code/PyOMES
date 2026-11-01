@@ -131,7 +131,7 @@ the owner's full suite run has passed; each entry gives that result.
 - No benchmark case has a time-dependent rate law, so this rests on the new tests.
 - Full suite: result not reported at this commit; covered by the run for checkpoint 7.
 
-### Checkpoint 7: acceptance (commit and full suite pending)
+### Checkpoint 7: acceptance (`bbd9dcd`)
 
 - Added to the benchmark: `iron_pulse_bdf`, a controller with quiet spells between doses,
   and a `clamps` command. Added tests: a time-dependent rate law against its closed form
@@ -167,6 +167,17 @@ the owner's full suite run has passed; each entry gives that result.
   `OPEN_WORK.md`.
 - Not covered: a real integrator failure; the stirred-tank template; a controller that
   changes a parameter (`DOAgitationController`) in a full run.
+- Full suite: result not reported at this commit; covered by the run for checkpoint 8.
+
+### Checkpoint 8: default flipped (commit and full suite pending)
+
+- `persistent=True` is the default. `persistent=False` stays as the way back.
+- The three `solve_ivp`-patching tests capture through `_make_stepper`, with the same
+  assertions.
+- `docs/solvers.md` and the solver docstring state that explicit methods, including the
+  default `DOP853`, become faster and less accurate at the same `rtol`, with both remedies.
+- Benchmark: `persistent=False` is pinned as the yardstick, and persistent fingerprints are
+  stored, so a later refactor can be checked bit for bit on the default path.
 
 ## Shipping
 

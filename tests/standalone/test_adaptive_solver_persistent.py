@@ -121,6 +121,12 @@ class TestKeepsOneIntegrator:
         _advance(cv, solver, n=5)
         assert len(builds) == 1
 
+    def test_persistent_is_the_default(self, steppers):
+        cv, solver = _make_cv(), SimultaneousAdaptiveSolver(method="BDF")
+        assert solver.persistent is True
+        _advance(cv, solver, n=2)
+        assert steppers
+
     def test_not_persistent_builds_no_stepper(self, steppers):
         cv, solver = _make_cv(), _solver(persistent=False)
         _advance(cv, solver, n=3)

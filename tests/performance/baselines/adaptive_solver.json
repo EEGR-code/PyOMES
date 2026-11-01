@@ -3072,5 +3072,187 @@
     "pH": 8.172823058316681e-07
    }
   }
+ },
+ "persistent_baseline": {
+  "bsm2_bdf": {
+   "engine_solves": 713,
+   "fingerprint": "c136f38038f3d3266dde1e7c4256d99d779c22f4b742003869d8bdbe067e827c",
+   "cpu_s_median": 0.609375,
+   "cpu_s_min": 0.578125,
+   "cpu_s_max": 0.65625,
+   "errors": {
+    "S_ac": 4.256064099683434e-10,
+    "S_h2": 1.1770335924231192e-06,
+    "S_ch4": 1.3764635249004802e-06,
+    "CO2": 9.78617363192709e-07,
+    "pH": 5.46206102569613e-09
+   }
+  },
+  "iron_bdf": {
+   "engine_solves": 396,
+   "fingerprint": "f8be61f0d179278ac6c4539813c55f5efaeb58c6a53eb744953e767ba256a278",
+   "cpu_s_median": 0.28125,
+   "cpu_s_min": 0.265625,
+   "cpu_s_max": 0.296875,
+   "errors": {
+    "Fe2+": 4.4513028257126355e-06,
+    "O2": 1.003102155015515e-10,
+    "Fe(OH)2+": 4.5213549339899405e-06,
+    "pH": 5.586789697531458e-08
+   }
+  },
+  "iron_davies_bdf": {
+   "engine_solves": 537,
+   "fingerprint": "1d714294dec7b42ae521c2e87055b31094fd779e1a6299c2d101ee481414945d",
+   "cpu_s_median": 0.796875,
+   "cpu_s_min": 0.78125,
+   "cpu_s_max": 0.8125,
+   "errors": {
+    "Fe2+": 4.038202971405315e-06,
+    "O2": 5.812587569778114e-11,
+    "Fe(OH)2+": 4.03815989418717e-06,
+    "pH": 2.898574980036983e-08
+   }
+  },
+  "iron_feed_drain_bdf": {
+   "engine_solves": 434,
+   "fingerprint": "583886ca20b775ec264fb0525a5ed0d898106f043eba4e33640eb040d5cc1dae",
+   "cpu_s_median": 0.328125,
+   "cpu_s_min": 0.296875,
+   "cpu_s_max": 0.328125,
+   "errors": {
+    "Fe2+": 4.439108890966799e-06,
+    "O2": 1.1747480474642808e-10,
+    "Fe(OH)2+": 5.966861704779843e-06,
+    "pH": 1.1805704236422798e-07
+   }
+  },
+  "iron_lsoda": {
+   "engine_solves": 617,
+   "fingerprint": "78cddef828cdece6f73e508e171d15e738a866a81db54fab09e471b1ce186281",
+   "cpu_s_median": 0.3125,
+   "cpu_s_min": 0.3125,
+   "cpu_s_max": 0.328125,
+   "errors": {
+    "Fe2+": 2.1274103259985585e-06,
+    "O2": 3.3880817621375385e-07,
+    "Fe(OH)2+": 2.242825409832297e-06,
+    "pH": 2.611825244969168e-08
+   }
+  },
+  "iron_ph_control_bdf": {
+   "engine_solves": 5880,
+   "fingerprint": "f2a54cc768f38ea5970aabb821677a9156947de0242cf0566506a8dc7152160b",
+   "cpu_s_median": 3.453125,
+   "cpu_s_min": 3.359375,
+   "cpu_s_max": 3.59375,
+   "errors": {
+    "Fe2+": 3.128209516596276e-05,
+    "O2": 7.020178901812143e-10,
+    "Fe(OH)2+": 3.0780009295390954e-05,
+    "pH": 8.915777893747645e-08
+   }
+  },
+  "iron_ph_idle_bdf": {
+   "engine_solves": 396,
+   "fingerprint": "f8be61f0d179278ac6c4539813c55f5efaeb58c6a53eb744953e767ba256a278",
+   "cpu_s_median": 0.28125,
+   "cpu_s_min": 0.265625,
+   "cpu_s_max": 0.296875,
+   "errors": {
+    "Fe2+": 4.4513028257126355e-06,
+    "O2": 1.003102155015515e-10,
+    "Fe(OH)2+": 4.5213549339899405e-06,
+    "pH": 5.586789697531458e-08
+   }
+  },
+  "iron_ph_sampled_bdf": {
+   "engine_solves": 6224,
+   "fingerprint": "0519897d0747b3619d13fa68221fb311c5a538b31a037cf969c8881402b93333",
+   "cpu_s_median": 3.5625,
+   "cpu_s_min": 3.546875,
+   "cpu_s_max": 3.640625,
+   "errors": {
+    "Fe2+": 3.197095181926322e-05,
+    "O2": 7.288101448173426e-10,
+    "Fe(OH)2+": 3.178387968594935e-05,
+    "pH": 1.414138863786718e-05
+   }
+  },
+  "iron_pulse_bdf": {
+   "engine_solves": 998,
+   "fingerprint": "1931b6f50d5070bf44c9fa7beeef4bfd5ab21ef370e74574cdf3e7a9a5c2d61b",
+   "cpu_s_median": 0.65625,
+   "cpu_s_min": 0.640625,
+   "cpu_s_max": 0.65625,
+   "errors": {
+    "Fe2+": 9.230921177145026e-06,
+    "O2": 2.0867674982294842e-10,
+    "Fe(OH)2+": 9.415150377258191e-06,
+    "pH": 1.1483058415251435e-07
+   }
+  },
+  "iron_radau": {
+   "engine_solves": 765,
+   "fingerprint": "37b9556eea4af18f2b1528cc072188e8c41383c0ea38c8e8e0fad2d57cd9304e",
+   "cpu_s_median": 0.53125,
+   "cpu_s_min": 0.5,
+   "cpu_s_max": 0.53125,
+   "errors": {
+    "Fe2+": 2.5518544443628273e-07,
+    "O2": 5.711380199658284e-12,
+    "Fe(OH)2+": 3.028350123829154e-07,
+    "pH": 3.449599716986995e-09
+   }
+  },
+  "iron_temperature_ramp_bdf": {
+   "engine_solves": 12186,
+   "fingerprint": "6eaf1eb1770c2c663817bf2e9ccb5b2b1aba75b88b11cbfb2d5b8fe0a918ab72",
+   "cpu_s_median": 6.609375,
+   "cpu_s_min": 6.53125,
+   "cpu_s_max": 7.5,
+   "errors": {
+    "Fe2+": 7.103770904145475e-05,
+    "O2": 1.5593615914936182e-09,
+    "Fe(OH)2+": 7.128250474519562e-05,
+    "pH": 8.991997555440889e-07
+   }
+  },
+  "weak_acid_dop853": {
+   "engine_solves": 474,
+   "fingerprint": "5875fa56e7b03c6dbc24fe08ef2a3c0e84069fb763702af29873668fbb99a31d",
+   "cpu_s_median": 0.28125,
+   "cpu_s_min": 0.265625,
+   "cpu_s_max": 0.296875,
+   "errors": {
+    "AcOH": 3.4578126867351974e-07,
+    "P": 3.5200133743028274e-07,
+    "pH": 1.5088994391732058e-06
+   }
+  },
+  "weak_acid_rk23": {
+   "engine_solves": 393,
+   "fingerprint": "267a879006d2a00a4a8753b1c6df116d6a3fcdfe9ae0673bb84f0294b9efc414",
+   "cpu_s_median": 0.21875,
+   "cpu_s_min": 0.203125,
+   "cpu_s_max": 0.28125,
+   "errors": {
+    "AcOH": 8.609128111079273e-07,
+    "P": 8.780712316158893e-07,
+    "pH": 7.66377479521907e-06
+   }
+  },
+  "weak_acid_rk45": {
+   "engine_solves": 213,
+   "fingerprint": "6eccbfde3476ff99f79a31e52522d3bfa0cef4fda3a5875c7deef8ddc0be2808",
+   "cpu_s_median": 0.125,
+   "cpu_s_min": 0.109375,
+   "cpu_s_max": 0.125,
+   "errors": {
+    "AcOH": 1.6335328671563063e-07,
+    "P": 1.6642367062123093e-07,
+    "pH": 1.084777747628607e-06
+   }
+  }
  }
 }

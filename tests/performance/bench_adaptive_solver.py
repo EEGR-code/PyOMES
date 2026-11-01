@@ -5,6 +5,7 @@ Run by hand from the repo root; pytest does not collect it::
 
     python tests/performance/bench_adaptive_solver.py check
     python tests/performance/bench_adaptive_solver.py check --exact
+    python tests/performance/bench_adaptive_solver.py check --exact --solver-kwargs "{\"persistent\": false}"
     python tests/performance/bench_adaptive_solver.py check --cases iron_bdf bsm2_bdf
     python tests/performance/bench_adaptive_solver.py check --solver-kwargs "{\\"rtol\\": 1e-7}"
     python tests/performance/bench_adaptive_solver.py clamps --cases iron_bdf
@@ -13,8 +14,9 @@ Run by hand from the repo root; pytest does not collect it::
 
 ``check`` compares a run against ``baselines/adaptive_solver.json``. It gates on
 numbers that do not depend on the machine: engine solves and error against the stored
-reference, or, with ``--exact``, a fingerprint of every recorded value. Error must be no
-worse than the baseline's, except that an explicit method may reach ``EXPLICIT_RTOL_FACTOR``
+reference, with ``persistent=False`` as the yardstick, or, with ``--exact``, a fingerprint
+of every recorded value on the path being run. Error must be no worse than
+``persistent=False``'s, except that an explicit method may reach ``EXPLICIT_RTOL_FACTOR``
 times ``rtol``: restarting holds explicit methods well below the requested tolerance by
 capping their steps, which is a cost and not a promise. CPU time is reported and never
 gated. ``baseline`` and ``reference`` rewrite their parts of that
@@ -453,15 +455,17 @@ def _command_reference(names, data):
 
 
 def _command_baseline(names, data, repeats):
+    data.setdefault("persistent_baseline", {})
     for name in names:
         if name not in data["reference"]:
             sys.exit(f"{name}: no reference stored; run the reference command first.")
-        row = _measure(name, {}, repeats, data["reference"][name])
-        data["baseline"][name] = row
-        _save(data)
-        print(f"{name:28s} solves={row['engine_solves']:7d} "
-              f"cpu={row['cpu_s_median']:7.3f} s "
-              f"worst error={max(row['errors'].values()):.2e}", flush=True)
+        for table, persistent in (("baseline", False), ("persistent_baseline", True)):
+            row = _measure(name, {"persistent": persistent}, repeats, data["reference"][name])
+            data[table][name] = row
+            _save(data)
+            print(f"{name:28s} persistent={persistent!s:5s} solves={row['engine_solves']:7d} "
+                  f"cpu={row['cpu_s_median']:7.3f} s "
+                  f"worst error={max(row['errors'].values()):.2e}", flush=True)
 
 
 def _command_check(names, data, repeats, solver_kwargs, exact):
@@ -473,7 +477,8 @@ def _command_check(names, data, repeats, solver_kwargs, exact):
         row = _measure(name, solver_kwargs, repeats, data["reference"][name])
         worst = max(row["errors"].values())
         worst_base = max(base["errors"].values())
-        same = row["fingerprint"] == base["fingerprint"]
+        table = "baseline" if solver_kwargs.get("persistent") is False else "persistent_baseline"
+        same = row["fingerprint"] == data[table][name]["fingerprint"]
         print(f"{name:28s} solves {base['engine_solves']:7d} -> {row['engine_solves']:7d}  "
               f"cpu {base['cpu_s_median']:7.3f} -> {row['cpu_s_median']:7.3f} s "
               f"(x{base['cpu_s_median'] / row['cpu_s_median']:5.1f})  "

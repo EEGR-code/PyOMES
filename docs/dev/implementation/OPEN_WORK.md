@@ -150,6 +150,23 @@ reactant allows), but the clamp sees only the net change per phase, not each
 reaction, so it changes the `clamp_fn` interface and the step solvers that call
 it.
 
+## `freeze_speciation=True` leaves rate laws reading stale species
+
+Found 2026-11-01 in a speed review, not fixed. After the first right-hand side of a macro
+step, `SimultaneousAdaptiveSolver` skips the engine and restores only `H+` from the
+frozen pH. Every other speciated species stays at its raw integrated state value, and
+that is what rate laws read, so `env.pH` and the concentrations no longer agree.
+
+Measured on the iron oxidation model (BDF, 2 h, 200 steps), whose rate law reads `OH-`:
+the second evaluation read `OH-` at 1.6e-5 mol/L where the frozen pH implies 3.2e-8, and
+the largest Fe2+ error against a tight reference was 96% of the starting amount. The
+option's warning says it "may reduce accuracy for pH-sensitive systems", which understates
+this. A rate law reading only `env.pH` would not be affected this way; that was not tested.
+
+`docs/solvers.md` recommends the option for reproducing BSM2 and PyADM1 results. BSM2 was
+not run with it, so whether that recommendation holds is open. A fix would freeze the
+whole speciated set rather than `H+` alone, which changes results for anyone using it.
+
 ## `save_checkpoint` fails for a model with `Species`
 
 Found 2026-11-01 while building `persistent-integrator`, not fixed.

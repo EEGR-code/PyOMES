@@ -156,10 +156,10 @@ the combined multi-source delta dict (step 4 above). Same
 
 ---
 
-## `SimultaneousAdaptiveSolver` — adaptive `solve_ivp`
+## `SimultaneousAdaptiveSolver` — adaptive scipy integrator
 
-Wraps `scipy.integrate.solve_ivp` to integrate the full system as a
-single ODE over `[0, dt_h]`. Phase-generic, like `SimultaneousEulerSolver`
+Uses scipy's ODE integrators to integrate the full system as a single
+ODE. Phase-generic, like `SimultaneousEulerSolver`
 — only `"liquid"` is required. State is packed via
 `StateVector` ([PyOMES/core/state_vector.py](../PyOMES/core/state_vector.py))
 into a flat array covering every phase the CV has, alphabetically by
@@ -176,8 +176,70 @@ derivative `f(t, y)` evaluates:
 6. Sum into dy/dt
 ```
 
-`solve_ivp` then chooses sub-steps adaptively to satisfy `rtol` /
+The integrator then chooses sub-steps adaptively to satisfy `rtol` /
 `atol`.
+
+### One integrator across macro steps
+
+By default (`persistent=True`) each CV keeps one integrator across macro
+steps, and values at each `n_steps` point are interpolated, so `n_steps` is
+an output grid rather than a restart rate.
+
+It restarts when something it depends on changes: an amount, temperature or
+volume; the species in a phase; `dt_h`; a `t_h` that does not follow on from
+the last step; the external source terms; the reaction system or its engine;
+a parameter written through a descriptor, a controller or a profile. A
+parameter change restarts every CV. After a restart it stops exactly at each
+macro-step end until a step passes with nothing changed.
+
+So the gain depends on how often the model is disturbed. Measured on an iron
+oxidation model with BDF, against restarting every step:
+
+| Disturbance | Speedup |
+|---|---|
+| None | ×12 |
+| A dose every 20 macro steps | ×4-5 |
+| A dose or a temperature change every macro step | ×1 (identical results) |
+
+Inter-CV links change the state every macro step, so linked CVs on the split
+system solvers restart every step and gain nothing.
+
+> **Explicit methods become faster and less accurate at the same `rtol`.**
+> This includes `DOP853`, the default method. Restarting caps every step at the
+> macro step, which holds an explicit method well below the requested tolerance
+> at extra cost. With `persistent=True` the error stays close to `rtol` instead.
+> Measured on a small non-stiff model at `rtol=1e-6`:
+>
+> | Method | Error, `persistent=False` → `True` | Speedup |
+> |---|---|---|
+> | `RK45` | 2.6e-8 → 1.1e-6 | ×3 |
+> | `DOP853` | 7.2e-8 → 1.5e-6 | ×2 |
+> | `RK23` | 2.7e-6 → 7.7e-6 | ×2 |
+>
+> For the old accuracy, tighten `rtol` (at `1e-7` these errors are 8e-8 to 8e-7,
+> still with fewer evaluations) or pass `persistent=False`. Implicit methods
+> (`BDF`, `Radau`, `LSODA`) were more accurate with `persistent=True` on every
+> model measured unless disturbed at every step.
+
+**What it does not notice.** A change the framework cannot see does not restart
+the integrator: a plain attribute such as `LiquidFeed.Q_L_per_h` written directly,
+or state kept inside a rate function. Call `solver.restart()` after one.
+
+**Time in rate laws.** `env.t_h` is the `t_h` passed to `solve_step` plus the time
+since. A loop calling `cv.advance` directly should pass a running `t_h`: repeating
+the same value looks like a jump in time and restarts every step. `Simulation.run`
+does this for you, and passes the end of each step as `t_h`, so `env.t_h` leads
+true time by one step, as it does under the other solvers.
+
+**`persistent=False`** restores a new `solve_ivp` call at every macro step, with
+results as before. There, `env.t_h` runs from 0 to `dt_h` at each step, whatever
+the simulation time, so a rate law with a lag phase or schedule gets the wrong
+time. A flux that takes a speciated species negative is floored, which creates
+material: on a feed-and-drain model total iron drifted by 1e-4. `freeze_speciation=True`
+always restarts each step.
+
+A checkpoint does not save the integrator. A resumed run restarts once, so it
+matches an unbroken run within tolerance, not bit for bit.
 
 **Configuration:**
 - `method`: `"DOP853"` (explicit, high-order, default), `"Radau"` /
@@ -185,6 +247,8 @@ derivative `f(t, y)` evaluates:
   etc.
 - `rtol` / `atol`: solver tolerances. Defaults `1e-6` / `1e-9`.
 - `max_step`: caps the internal step (hours). Default `1.0`.
+- `persistent`: keep one integrator across macro steps. Default `True`; see
+  above.
 - `freeze_speciation`: if `True`, speciation is solved once at the
   start of the macro step and reused for all internal sub-steps. This
   matches BSM2/PyADM1's DAE convention where ion states are frozen
@@ -194,7 +258,8 @@ derivative `f(t, y)` evaluates:
 - Handles genuinely stiff systems that explicit Euler cannot
   (BSM2 anaerobic digestion with H₂ kinetics, pH-coupled CO₂
   transfer).
-- Adaptive step control means much larger macro `dt_h` is acceptable.
+- Adaptive step control means much larger macro `dt_h` is acceptable, and a
+  fine output grid costs little when nothing disturbs the model.
 - High-order methods (DOP853) give better accuracy per derivative
   evaluation when the system is non-stiff.
 
@@ -207,7 +272,7 @@ derivative `f(t, y)` evaluates:
   With aggressive removal rates the integrator may waste steps near
   zero.
 - Diagnostics are sparser than the snapshot path (no per-boundary
-  records, no transfer record) — this is intentional, since `solve_ivp`
+  records, no transfer record) — this is intentional, since the integrator
   evaluates each sub-system many times per macro step and per-step
   records would be misleading.
 - Pulls in `scipy` as a dependency for any model that uses it.
@@ -225,7 +290,7 @@ swappable implementations:
 |---|---|---|
 | `proportional_clamp` (default for both discrete-step solvers) | `SequentialAdvanceSolver`, `SimultaneousEulerSolver` | Scales a removal rate down so the result lands at exactly zero, preserving relative stoichiometry across whatever species share the delta dict |
 | `floor_clamp` | Either discrete-step solver, passed explicitly | Per-species floor (optionally at `eps` instead of exact zero) — simpler, does not preserve relative stoichiometry |
-| `floor_nonnegative` | `SimultaneousAdaptiveSolver` (always, not swappable) | Floors a raw ODE state array — a different failure mode (adaptive-integrator overshoot on a trial state), not a `(deltas, current_mol, dt_h)` decision |
+| `floor_nonnegative` | `SimultaneousAdaptiveSolver` (always, not swappable) | Floors a raw ODE state array — a different failure mode (adaptive-integrator overshoot on a trial state), not a `(deltas, current_mol, dt_h)` decision. With `persistent=True`, liquid species the engine resolves are exempt: their entries are only parts of a total, and flooring one would create material |
 
 `clamp_fn` is a plain callable, `clamp_fn(deltas, current_mol, dt_h) ->
 deltas`, operating correctly on an **arbitrary subset** of species (not
