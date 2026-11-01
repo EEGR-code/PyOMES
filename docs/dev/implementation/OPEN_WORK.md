@@ -1062,13 +1062,36 @@ species held at the clamp: ideal activity returned pH 30 with a charge residual 
 -9e50, and Davies raised `OverflowError` from `DaviesLiquidModel.gamma`. The step
 cap removes that on the workloads measured (`AD_BASIC`, carbonate-ammonia, calcite,
 the iron oxidation test), which then had no failed line searches, but nothing
-prevents it in other chemistry. Two gaps remain if it happens:
+prevents it in other chemistry. If it happens, `EquilibriumResult.converged` is
+false, and the state is not kept for the next warm start.
 
-- `solve_nr` returns the state it reached. A non-converged solve is visible only
-  through a `logger.warning` and, if species reach the limit, the limit-effects
-  report, and `EquilibriumResult` has no converged flag.
-- A warm-started engine stores that state in its cache, so one failed solve can
-  carry into the next.
+## Failed Newton solves are flagged, but nothing acts on the flag
+
+Found 2026-11-01 while adding `EquilibriumResult.converged`, not fixed.
+
+- **Warm starts across a large jump can fail with ideal activity.** Newton is still
+  making progress at about 0.43 log units per step when it reaches `max_inner`, and
+  ideal activity has no outer loop to give it another pass. 10 of 600 solves failed
+  on `AD_BASIC` when each solve jumped to an unrelated composition, with pH wrong by
+  up to 3.4. Solving again converged in all 10, and small time-step changes did not
+  fail. Retrying from a cold start inside `engine.solve()` would probably fix these;
+  it has not been tried.
+- **Simulations write a failed result into their state.** All 7 call sites in `core/`
+  call `apply_to_phases` without checking `converged`. In a warm-started run the next
+  solve usually recovers: with `solve_nr` forced to 3 Newton steps, 8 of 949 solves
+  failed and pH stayed correct to 2e-14. The step-closing solve at `core/solvers.py`
+  commits to the live state, so a simulation needs a decision on what to do there:
+  warn and keep the last speciation, stop with an error, or a setting.
+- **`AccuracyMonitor` does not hear about it.** `check_charge_residual` and
+  `check_newton_iters` have no callers. The one `RuntimeWarning` per engine is the
+  only signal during a run, and it can come from a rejected ODE trial state.
+- **A failed Davies solve can still raise `OverflowError`** from
+  `DaviesLiquidModel.gamma`, with no chemistry context and before any result exists.
+  This was seen only with Newton steps forced low.
+- **The active-set loop is not judged.** `converged` describes the final inner solve
+  in `_solve_with_precipitation`, not whether the mineral loop itself finished.
+- **`retain_jacobian=True` keeps a failed state's Jacobian.** `jacobian_dz_dy()` would
+  differentiate from it.
 
 ## Very small component totals are not resolved
 

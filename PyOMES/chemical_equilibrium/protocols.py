@@ -86,6 +86,12 @@ class EquilibriumResult:
     diagnostics that don't warrant a named field (e.g. mineral
     ``xi_mol_L``, or generic polyprotic-ladder keys, which are not part of
     the phase writeback).
+
+    ``converged`` says whether the solve reached a solution and ``max_residual``
+    gives the evidence, the largest final residual across every balance (mol/L).
+    :class:`NRChemicalEquilibriumEngine` sets both; for the other engines they stay
+    ``None``, which means not known. A result with ``converged=False`` is not a
+    solution, and :meth:`apply_to_phases` does not check this.
     """
 
     pH: float
@@ -102,6 +108,8 @@ class EquilibriumResult:
     saturation_indices: Dict[str, float] = field(default_factory=dict)
     alphas: Dict[str, float] = field(default_factory=dict)
     extra: Dict[str, Any] = field(default_factory=dict)
+    converged: Optional[bool] = None
+    max_residual: Optional[float] = None
 
     def apply_to_phases(self, phases: Any, liquid_key: str = "liquid") -> None:
         """Commit this result to phase state.

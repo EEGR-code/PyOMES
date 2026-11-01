@@ -53,6 +53,12 @@ logger = logging.getLogger(__name__)
 
 _LN10 = float(np.log(10.0))
 
+# Largest final residual (mol/L, across every balance) of a converged solve. It
+# sits above the convergence tolerance because the last residual is evaluated
+# after the final activity update: good Davies solves reached 6e-9 in ordinary
+# solutions and 6e-8 at several mol/L.
+_CONVERGED_RESIDUAL = 1e-7
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Warmstart cache
@@ -225,6 +231,25 @@ def _limit_effects(
             absent[sec.c_key] = c[sec.c_key]
 
     return clamped, absent
+
+
+def _is_stranded(
+    tableau: NRTableau,
+    x: np.ndarray,
+    c: Dict[str, float],
+    pin_specs: List[Tuple[int, int, float]],
+    max_log_activity: float,
+    tol: float,
+) -> bool:
+    """Whether a failed state is unusable as a starting point.
+
+    It is if any log10-activity is not finite or any species is above
+    ``+max_log_activity``, where the clamp hides the direction back to a solution.
+    """
+    if not np.all(np.isfinite(x)):
+        return True
+    clamped, _ = _limit_effects(tableau, x, c, pin_specs, max_log_activity, tol)
+    return any(log_a > max_log_activity for log_a in clamped.values())
 
 
 def _residual_and_jacobian(
@@ -503,7 +528,10 @@ def solve_nr(
     dict
         ``{species_id: concentration, "pH": ..., "logH": ...,
            "IonicStrength": ..., "gamma_H": ..., "gamma_OH": ...,
-           "pH_conc": ..., "aH": ..., "charge_residual": ...}``.
+           "pH_conc": ..., "aH": ..., "charge_residual": ...,
+           "max_residual": ..., "converged": ...}``.
+        ``max_residual`` is the largest final residual across every balance,
+        and ``converged`` says whether it is below ``_CONVERGED_RESIDUAL``.
         For a folded gas-phase secondary, its entry is a partial pressure
         (atm), not a concentration — see :func:`_compute_concentrations`.
 
@@ -667,6 +695,8 @@ def solve_nr(
     R_final, J_final = _residual_and_jacobian(tableau, x, c, totals, strong_charge,
                                                pin_specs=pin_specs, gas_scale=gas_scale)
     charge_residual = float(R_final[-1])   # charge balance is the last row
+    max_residual = float(np.max(np.abs(R_final)))
+    converged = max_residual < _CONVERGED_RESIDUAL  # False for a NaN residual
 
     # ── Build output dict ─────────────────────────────────────────────
     # Concentrations for all species
@@ -688,12 +718,22 @@ def solve_nr(
     out["gamma_OH"] = float(gamma_OH)
     out["IonicStrength"] = float(I)
     out["charge_residual"] = float(charge_residual)
+    out["max_residual"] = max_residual
+    out["converged"] = converged
 
-    # Update warmstart cache (and optional Jacobian retention)
+    # Update warmstart cache (and optional Jacobian retention). A failed state
+    # is still kept, because a solve that ran out of iterations is usually
+    # closer to the answer and the next solve finishes the job. A stranded one
+    # is dropped, so the next solve starts cold.
     if cache is not None:
-        cache.log_x = x.copy()
-        cache.I_last = float(I)
-        cache.jacobian = J_final.copy()
+        if converged or not _is_stranded(tableau, x, c, pin_specs, max_log_activity, tol):
+            cache.log_x = x.copy()
+            cache.I_last = float(I)
+            cache.jacobian = J_final.copy()
+        else:
+            cache.log_x = None
+            cache.I_last = None
+            cache.jacobian = None
 
     # Pack white-box state into output for retain_jacobian=True callers
     if retain_jacobian:

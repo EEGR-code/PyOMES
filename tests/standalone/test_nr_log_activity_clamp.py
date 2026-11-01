@@ -9,11 +9,13 @@ state the behaviour any replacement has to keep: an array version would give
 ``inf`` and a NumPy warning on overflow, and reversing the arguments to
 ``min``/``max`` would turn NaN into a limit. They also cover the engine's limit
 on ``max_log_activity``, its report of when the limit or the pin affects a final
-answer, and the cap on the Newton step. The cap keeps most solves away from the
-clamp, so tests that need to reach it pass ``max_newton_step=float("inf")``.
+answer, the cap on the Newton step, and how a failed solve is flagged and cached.
+The cap keeps most solves away from the clamp, so tests that need to reach it pass
+``max_newton_step=float("inf")``.
 """
 from __future__ import annotations
 
+import functools
 import inspect
 import math
 import warnings
@@ -22,6 +24,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from PyOMES.chemical_equilibrium.engines.bisection.engine import BisectionChemicalEquilibriumEngine
 from PyOMES.chemical_equilibrium.engines.nr import engine as engine_module
 from PyOMES.chemical_equilibrium.engines.nr import solver
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
@@ -29,10 +32,12 @@ from PyOMES.chemical_equilibrium.engines.nr.solver import (
     NRSolverCache,
     _capped_step,
     _compute_concentrations,
+    _is_stranded,
     _limit_effects,
     solve_nr,
 )
 from PyOMES.chemical_equilibrium.engines.nr.tableau import NRTableau, SecondaryEntry, build_tableau
+from PyOMES.chemical_equilibrium.protocols import EquilibriumResult
 from PyOMES.chemistry.species import Species
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.databases.aqueous import CO2, CO3_2minus, H2O, H_plus, HCO3_minus, NH3, NH4_plus, OH_minus
@@ -737,3 +742,237 @@ class TestStepCapLeavesOrdinarySolvesAlone:
         monkeypatch.setattr(solver, "_compute_concentrations", spy)
         solve_nr(tableau, {"CO2": 1e-3, "NH3": 1e-3}, {"CT_Cl": 1.0}, activity_model=IdealLiquidModel())
         assert max(raw_peaks) <= 50.0
+
+
+def _limit_newton_steps(monkeypatch, max_inner):
+    """Make every engine solve stop after *max_inner* Newton steps per activity iteration."""
+    monkeypatch.setattr(engine_module, "solve_nr", functools.partial(solver.solve_nr, max_inner=max_inner))
+
+
+class TestConvergedFlag:
+    """EquilibriumResult says whether the solve reached a solution."""
+
+    TOTALS = {"CO2": 0.05, "NH3": 0.04}
+    STRONG = {"CT_Na": 0.05}
+
+    @staticmethod
+    def _engine(**kwargs):
+        return NRChemicalEquilibriumEngine.from_reactions(_reactions(), **kwargs)
+
+    def test_ordinary_solve_is_converged(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            out = self._engine().solve(totals=self.TOTALS, strong_ions=self.STRONG)
+        assert out.converged is True
+        assert out.max_residual < 1e-9
+
+    def test_solve_stopped_early_is_not_converged(self, monkeypatch):
+        _limit_newton_steps(monkeypatch, 2)
+        with pytest.warns(RuntimeWarning, match="did not converge"):
+            out = self._engine().solve(totals=self.TOTALS, strong_ions=self.STRONG)
+        assert out.converged is False
+        assert out.max_residual > 1e-7
+
+    def test_warning_gives_the_residual(self, monkeypatch):
+        _limit_newton_steps(monkeypatch, 2)
+        with pytest.warns(RuntimeWarning, match=r"largest residual \d\.\d\de[+-]\d+ mol/L"):
+            self._engine().solve(totals=self.TOTALS, strong_ions=self.STRONG)
+
+    def test_warns_once_per_engine_but_flags_every_failure(self, monkeypatch):
+        _limit_newton_steps(monkeypatch, 1)
+        engine = self._engine(use_warmstart=False)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            results = [engine.solve(totals=self.TOTALS, strong_ions=self.STRONG) for _ in range(3)]
+            engine.reset_cache()
+            results.append(engine.solve(totals=self.TOTALS, strong_ions=self.STRONG))
+        assert len([w for w in caught if "did not converge" in str(w.message)]) == 1
+        assert [result.converged for result in results] == [False] * 4
+
+    def test_each_engine_warns_for_itself(self, monkeypatch):
+        _limit_newton_steps(monkeypatch, 2)
+        for _ in range(2):
+            with pytest.warns(RuntimeWarning, match="did not converge"):
+                self._engine().solve(totals=self.TOTALS, strong_ions=self.STRONG)
+
+    def test_residual_covers_mass_balances_as_well_as_charge(self, tableau, monkeypatch):
+        rows = []
+        original = solver._residual_and_jacobian
+
+        def spy(*args, **kwargs):
+            R, J = original(*args, **kwargs)
+            rows.append(R.copy())
+            return R, J
+
+        monkeypatch.setattr(solver, "_residual_and_jacobian", spy)
+        out = solve_nr(
+            tableau, self.TOTALS, self.STRONG, activity_model=IdealLiquidModel(), max_inner=2,
+        )
+        assert out["max_residual"] == float(np.max(np.abs(rows[-1])))
+        assert out["max_residual"] > abs(out["charge_residual"]), "charge alone would catch this case"
+
+    def test_residual_just_above_the_threshold_fails(self, tableau):
+        """A loose tolerance stops Newton early enough to land above the threshold."""
+        out = solve_nr(
+            tableau, self.TOTALS, self.STRONG, activity_model=IdealLiquidModel(), tol=1e-3,
+        )
+        assert 1e-7 < out["max_residual"] < 1e-3, "this case no longer lands in the band"
+        assert out["converged"] is False
+
+    @pytest.mark.parametrize("activity_model", ["ideal", "davies", "sit"])
+    def test_concentrated_solution_is_not_a_false_alarm(self, activity_model):
+        """The last residual follows the final activity update, and grows with strength."""
+        engine = NRChemicalEquilibriumEngine.from_reactions(
+            _ad_reactions(), activity_model=activity_model, T_K=308.15, use_warmstart=False,
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            out = engine.solve(
+                totals={"CO2": 3.0, "NH3": 1.0, "H3PO4": 1.0, "HSO4-": 0.1, "H2S": 3.0},
+                strong_ions={"CT_Na": 6.0}, V_liq_L=1.0, V_gas_L=0.1,
+            )
+        assert out.converged is True
+
+    def test_nan_residual_is_not_converged(self, tableau):
+        cache = NRSolverCache()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            out = solve_nr(
+                tableau, {"CO2": float("nan"), "NH3": 0.04}, {},
+                activity_model=IdealLiquidModel(), cache=cache,
+            )
+        assert out["converged"] is False
+        assert cache.log_x is None
+
+    def test_precipitation_reports_its_final_solve(self):
+        out = TestPrecipitationReportsOnce._engine().solve(
+            totals={"CO2": 0.010, "NH3": 1e-3}, strong_ions={"CT_Ca": 0.002, "CT_Na": 0.005},
+        )
+        assert out.converged is True
+
+    def test_precipitation_failure_is_flagged(self, monkeypatch):
+        _limit_newton_steps(monkeypatch, 1)
+        with pytest.warns(RuntimeWarning, match="did not converge"):
+            out = TestPrecipitationReportsOnce._engine().solve(
+                totals={"CO2": 0.010, "NH3": 1e-3}, strong_ions={"CT_Ca": 0.002, "CT_Na": 0.005},
+            )
+        assert out.converged is False
+
+    def test_flag_stays_out_of_the_species(self):
+        out = self._engine(retain_jacobian=True).solve(totals=self.TOTALS, strong_ions=self.STRONG)
+        assert "converged" not in out.species_mol_L
+        assert "max_residual" not in out.species_mol_L
+        assert "converged" not in out.extra
+
+    def test_flag_appears_in_to_dict(self):
+        snapshot = self._engine().solve(totals=self.TOTALS, strong_ions=self.STRONG).to_dict()
+        assert snapshot["converged"] is True
+        assert snapshot["max_residual"] < 1e-9
+
+    def test_unset_means_not_known(self):
+        result = EquilibriumResult(pH=7.0)
+        assert result.converged is None
+        assert result.max_residual is None
+
+    def test_bisection_engine_leaves_it_unset(self):
+        engine = BisectionChemicalEquilibriumEngine.from_reactions(_reactions())
+        out = engine.solve(totals=self.TOTALS, strong_ions=self.STRONG)
+        assert out.converged is None
+        assert out.max_residual is None
+
+
+class TestFailedStateInTheCache:
+    """A failed state usually helps the next solve; a stranded one never does."""
+
+    TOTALS = TestStepCapPreventsFailures.TOTALS
+    STRONG = TestStepCapPreventsFailures.STRONG
+    VOLUMES = TestStepCapPreventsFailures.VOLUMES
+
+    def test_converged_state_is_kept(self, tableau):
+        cache = NRSolverCache()
+        out = solve_nr(tableau, {"CO2": 0.05, "NH3": 0.04}, {}, activity_model=IdealLiquidModel(), cache=cache)
+        assert out["converged"] is True
+        assert cache.log_x is not None
+
+    def test_failed_state_still_making_progress_is_kept(self, tableau):
+        cache = NRSolverCache()
+        out = solve_nr(
+            tableau, {"CO2": 0.05, "NH3": 0.04}, {"CT_Na": 0.05},
+            activity_model=IdealLiquidModel(), cache=cache, max_inner=2,
+        )
+        assert out["converged"] is False
+        assert cache.log_x is not None
+
+    def test_repeated_short_solves_reach_the_answer(self, monkeypatch):
+        """Each solve continues from the last, as in a warm-started simulation."""
+        reference = NRChemicalEquilibriumEngine.from_reactions(_reactions()).solve(
+            totals={"CO2": 0.05, "NH3": 0.04}, strong_ions={"CT_Na": 0.05},
+        )
+        _limit_newton_steps(monkeypatch, 2)
+        engine = NRChemicalEquilibriumEngine.from_reactions(_reactions())
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            results = [
+                engine.solve(totals={"CO2": 0.05, "NH3": 0.04}, strong_ions={"CT_Na": 0.05})
+                for _ in range(30)
+            ]
+        assert results[0].converged is False
+        assert results[-1].converged is True
+        assert results[-1].pH == pytest.approx(reference.pH, abs=1e-8)
+
+    def test_stranded_state_is_dropped(self):
+        engine = NRChemicalEquilibriumEngine.from_reactions(_ad_reactions(), T_K=308.15)
+        # No starting x, so the solve is cold and strands; the rest must be cleared.
+        cache = NRSolverCache(I_last=0.5, jacobian=np.eye(2))
+        out = solve_nr(
+            engine.tableau, self.TOTALS, self.STRONG, T_K=308.15,
+            activity_model=engine.activity_model, cache=cache,
+            max_newton_step=float("inf"), **self.VOLUMES,
+        )
+        assert out["converged"] is False
+        assert cache.log_x is None
+        assert cache.I_last is None
+        assert cache.jacobian is None
+
+    def test_next_solve_recovers_from_a_stranded_state(self, monkeypatch):
+        engine = NRChemicalEquilibriumEngine.from_reactions(_ad_reactions(), T_K=308.15)
+        uncapped = functools.partial(solver.solve_nr, max_newton_step=float("inf"))
+        monkeypatch.setattr(engine_module, "solve_nr", uncapped)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            stranded = engine.solve(totals=self.TOTALS, strong_ions=self.STRONG, **self.VOLUMES)
+        monkeypatch.setattr(engine_module, "solve_nr", solver.solve_nr)
+        out = engine.solve(totals=self.TOTALS, strong_ions=self.STRONG, **self.VOLUMES)
+        assert stranded.converged is False
+        assert out.converged is True
+        assert out.species_mol_L["OH-"] == pytest.approx(1.0, rel=1e-3)
+
+    def test_precipitation_does_not_use_the_cache(self):
+        engine = TestPrecipitationReportsOnce._engine()
+        engine.solve(totals={"CO2": 0.010, "NH3": 1e-3}, strong_ions={"CT_Ca": 0.002, "CT_Na": 0.005})
+        assert engine._cache.log_x is None
+
+
+class TestIsStranded:
+    """_is_stranded on a forged state."""
+
+    C = {"H+": 1e-7, "A": 1.0}
+
+    def test_ordinary_state_is_usable(self):
+        assert not _is_stranded(_forged_tableau(), np.array([-7.0, -1.0]), self.C, [], 50.0, 1e-10)
+
+    def test_low_values_are_usable(self):
+        """A trace species far below the limit does not stop Newton from working."""
+        assert not _is_stranded(_forged_tableau(), np.array([-7.0, -60.0]), self.C, [], 50.0, 1e-10)
+
+    def test_species_above_the_limit_strands_it(self):
+        assert _is_stranded(_forged_tableau(), np.array([-7.0, 60.0]), self.C, [], 50.0, 1e-10)
+
+    def test_secondary_above_the_limit_strands_it(self):
+        sec = SecondaryEntry("S", 0, {"A": 1.0}, 20.0)
+        c = {**self.C, "S": 1e50}
+        assert _is_stranded(_forged_tableau(sec), np.array([-7.0, 40.0]), c, [], 50.0, 1e-10)
+
+    @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+    def test_non_finite_value_strands_it(self, bad):
+        assert _is_stranded(_forged_tableau(), np.array([-7.0, bad]), self.C, [], 50.0, 1e-10)
