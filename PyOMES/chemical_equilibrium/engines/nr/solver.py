@@ -147,6 +147,74 @@ def _compute_concentrations(
     return c
 
 
+def _limit_effects(
+    tableau: NRTableau,
+    x: np.ndarray,
+    c: Dict[str, float],
+    pin_specs: List[Tuple[int, int, float]],
+    max_log_activity: float,
+    tol: float,
+) -> Tuple[Dict[str, float], Dict[str, float]]:
+    """Find where a final answer depends on the clamp or on the pin.
+
+    Called once, on the final evaluation of a solve; trial steps may clamp
+    harmlessly.
+
+    Parameters
+    ----------
+    x : ndarray, shape (m,)
+        Final log10-activities of masters in ``tableau.masters`` order.
+    c : dict
+        Final values from :func:`_compute_concentrations`.
+    pin_specs : list of (row_idx, x_col_idx, pin_val)
+        Pin constraints of the solve; see :func:`_residual_and_jacobian`.
+    tol : float
+        Value above which a species of an absent component can move the
+        balances, which converge to this tolerance.
+
+    Returns
+    -------
+    clamped : dict
+        ``{species key: raw log10-activity}`` for species beyond
+        ``±max_log_activity``, whose value in *c* is therefore the limit and
+        not the solved value. A pinned master and any secondary that a pinned
+        master pushes below ``-max_log_activity`` are left out: they stand for
+        an absent species, and being very small is their purpose.
+    absent : dict
+        ``{species key: value in c}`` for masters and secondaries of a pinned
+        component above *tol*: the pin replaces that component's mass balance,
+        so nothing else holds them to its zero total, and they still enter the
+        charge balance and ionic strength. The value is a partial pressure
+        (atm) for a gas-phase secondary.
+    """
+    limit = float(max_log_activity)
+    pinned = {tableau.masters[x_col] for _, x_col, _ in pin_specs}
+    clamped: Dict[str, float] = {}
+    absent: Dict[str, float] = {}
+    log_a_master = dict(zip(tableau.masters, x.tolist()))
+
+    for m_id, log_a in log_a_master.items():
+        if log_a > limit or (log_a < -limit and m_id not in pinned):
+            clamped[m_id] = log_a
+        if m_id in pinned and c[m_id] > tol:
+            absent[m_id] = c[m_id]
+
+    for sec in tableau.secondaries:
+        log_a = sec.log_K_prime + sum(
+            nu_k * log_a_master[k_id] for k_id, nu_k in sec.nu.items()
+        )
+        if log_a > limit:
+            clamped[sec.c_key] = log_a
+        elif log_a < -limit and not any(
+            nu_k > 0.0 and k_id in pinned for k_id, nu_k in sec.nu.items()
+        ):
+            clamped[sec.c_key] = log_a
+        if c[sec.c_key] > tol and not pinned.isdisjoint(sec.nu):
+            absent[sec.c_key] = c[sec.c_key]
+
+    return clamped, absent
+
+
 def _residual_and_jacobian(
     tableau: NRTableau,
     x: np.ndarray,
@@ -355,6 +423,7 @@ def solve_nr(
     max_log_activity: float = 50.0,
     min_component_total: float = 1e-20,
     retain_jacobian: bool = False,
+    report_limit_effects: bool = False,
     V_liq_L: Optional[float] = None,
     V_gas_L: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -397,6 +466,11 @@ def solve_nr(
         are treated as absent.  Their master log-activity is pinned to
         ``-max_log_activity`` throughout the NR solve, avoiding divergence
         toward ``−∞``.  Default ``1e-20``.
+    report_limit_effects : bool
+        Check the final answer with :func:`_limit_effects` and add any findings
+        to the output as ``"_clamped_log_activities"`` and
+        ``"_absent_component_species"``.  Each key is present only when it has
+        something to report.  Default ``False``.
     V_liq_L, V_gas_L : float, optional
         Liquid- and gas-phase volumes (litres). Required (both, > 0) when
         *tableau* carries any gas-phase secondary (a folded gas-liquid
@@ -605,6 +679,15 @@ def solve_nr(
         out["_jacobian_matrix"] = J_final.copy()
         out["_log_activities"] = x.copy()
         out["_ionic_strength_final"] = float(I)
+
+    if report_limit_effects:
+        clamped, absent = _limit_effects(
+            tableau, x, c, pin_specs, max_log_activity, tol,
+        )
+        if clamped:
+            out["_clamped_log_activities"] = clamped
+        if absent:
+            out["_absent_component_species"] = absent
 
     return out
 

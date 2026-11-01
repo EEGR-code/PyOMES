@@ -1062,12 +1062,13 @@ and `H3PO4`, and `CT_Na` of 1 mol/L (`V_liq_L=1`, `V_gas_L=0.1`; the same at
 25 °C):
 
 - **Ideal activity returns a wrong answer without raising:** pH 30 and a charge
-  residual of -9e50. The only notice is the `logger.warning` that the inner loop
-  did not converge.
-- **Davies raises `OverflowError`** from `DaviesLiquidModel.gamma`. From reading
-  the code: the non-converged state holds a species at the 1e50 clamp, so the
-  ionic strength becomes enormous and the Davies exponent overflows. That chain
-  was not traced step by step.
+  residual of -9e50. The `RuntimeWarning` and `EquilibriumResult.extra` report on
+  limit effects list the affected species, and a `logger.warning` says the inner
+  loop did not converge.
+- **Davies raises `OverflowError`** from `DaviesLiquidModel.gamma`, before the
+  report can be made. From reading the code: the non-converged state holds a
+  species at the 1e50 clamp, so the ionic strength becomes enormous and the Davies
+  exponent overflows. That chain was not traced step by step.
 
 Measured over random totals and strong ions from the same chemistry, Davies
 raised in 2 of 200 cold solves and in 25 of 60 warm-started ones. The warm-started
@@ -1085,9 +1086,11 @@ and ionic strength. A secondary with several protons removed rises with pH: at a
 limit of 20, in 1 mol/L Na+, `PO4---` reaches 0.108 mol/L from a zero `H3PO4`
 total and pH falls by 0.167. At the default limit of 50 the largest such amount
 measured on `AD_BASIC` is 2.8e-31 mol/L, but a species with more protons removed
-would leave less margin. Dropping an absent component's species from the charge
-balance and ionic strength would fix the cause, and would also let the pin value
-stop mattering, as separating it from the clamp limit would not.
+would leave less margin. The engine reports such species above 1e-10 mol/L in
+`extra["absent_component_species"]` with a `RuntimeWarning`, but does not correct
+them. Dropping an absent component's species from the charge balance and ionic
+strength would fix the cause, and would also let the pin value stop mattering, as
+separating it from the clamp limit would not.
 
 ## `equilibrate_to_pH` can fail on its own progress message
 
