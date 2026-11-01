@@ -34,16 +34,16 @@ changes `PyOMES/` or `tests/`.
       fails when it is removed, including `link.kLa["O2"]`.
 - [x] 5. **Robustness:** after a restart, stop at the macro-step end until the state stops changing; retry on failure, pickling, one solver across several CVs,
       monitor deltas. Check `tests/standalone/test_package_layering.py` still passes.
-- [ ] 6. **`env.t_h` continuous under this solver**, with a test. Log `Simulation`'s
+- [x] 6. **`env.t_h` continuous under this solver**, with a test. Log `Simulation`'s
       end-of-step `t_h` in `OPEN_WORK.md`.
-- [ ] 7. **Acceptance run:** every benchmark model meets the gate in the design note,
+- [x] 7. **Acceptance run:** every benchmark model meets the gate in the design note,
       all `solve_ivp` methods included. Stop here if one does not.
-- [ ] 8. **Flip the default** to `persistent=True`. Move the
+- [x] 8. **Flip the default** to `persistent=True`. Move the
       three `solve_ivp`-patching tests to the `_make_stepper` seam. Update docs, and state
       plainly in `docs/solvers.md` and the solver docstring that explicit methods,
       including the default `DOP853`, become faster and less accurate at the same `rtol`,
       with both remedies: a tighter `rtol`, or `persistent=False`.
-- [ ] 9. **Owner re-runs the listed notebooks**; review any changed outputs.
+- [ ] 9. **Owner re-runs the 4 notebooks that build this solver**; review any changed outputs.
 
 ## Implementation log
 
@@ -129,7 +129,7 @@ the owner's full suite run has passed; each entry gives that result.
 - Found by the new tests: scipy evaluates the right-hand side while building a stepper,
   so the time origin has to be set before that, or the first evaluation reads t = 0.
 - No benchmark case has a time-dependent rate law, so this rests on the new tests.
-- Full suite: result not reported at this commit; covered by the run for checkpoint 7.
+- Full suite: no result reported at this commit; the run at checkpoint 8 covers it.
 
 ### Checkpoint 7: acceptance (`bbd9dcd`)
 
@@ -167,9 +167,9 @@ the owner's full suite run has passed; each entry gives that result.
   `OPEN_WORK.md`.
 - Not covered: a real integrator failure; the stirred-tank template; a controller that
   changes a parameter (`DOAgitationController`) in a full run.
-- Full suite: result not reported at this commit; covered by the run for checkpoint 8.
+- Full suite: no result reported at this commit; the run at checkpoint 8 covers it.
 
-### Checkpoint 8: default flipped (commit and full suite pending)
+### Checkpoint 8: default flipped (`c27920e`)
 
 - `persistent=True` is the default. `persistent=False` stays as the way back.
 - The three `solve_ivp`-patching tests capture through `_make_stepper`, with the same
@@ -178,6 +178,31 @@ the owner's full suite run has passed; each entry gives that result.
   default `DOP853`, become faster and less accurate at the same `rtol`, with both remedies.
 - Benchmark: `persistent=False` is pinned as the yardstick, and persistent fingerprints are
   stored, so a later refactor can be checked bit for bit on the default path.
+- `freeze_speciation` logged in `OPEN_WORK.md` at the owner's request.
+- Full suite: 2292 passed, 87 skipped, 2 xfailed.
+
+### Checkpoint 9: notebooks (pending)
+
+- A scan of every notebook's code found 4 that build this solver: `07_iron_oxidation`,
+  `08_iron_oxidation_and_precipitation`, `10_engine_protocol_hierarchy` and
+  `ArXiv_preprint/02_kinetic_co2_equilibration_microplate_well`. `SolverProtocols/0_README`,
+  listed in the design note, only mentions it.
+- Ran their code cells in a scratch script, without changing the files, and compared
+  printed output with what is saved.
+- `07` and `08`: results unchanged, run time 14-15 s → 0.8 s, largest Fe drift 0.0003% →
+  0.0000%. The saved `'KOH'` wording in their pH line was already out of date.
+- `10`: cell 14 raised `KeyError: 'nfev'`, because it read counts by patching `solve_ivp`.
+  Fixed by passing `persistent=False` there. The suite does not run notebooks, so it could
+  not catch this. Its PHREEQC cells depend on `phreeqpython` being installed.
+- `ArXiv 02`: the saved sweep table was already out of date (it ends at kLa 500, and the
+  code sweeps to 1000), and cells 0 and 5 have no saved output. `t95` moves by up to 0.4%
+  against `persistent=False`. Against tight runs, which agree across both paths and BDF and
+  Radau, the error at kLa 96, 3.46 and 0.1 is 1.1e-4, 1.2e-4 and 1.7e-6 for persistent, and
+  4.2e-3, 4.3e-3 and 9.3e-4 for restarting. Final CO2(aq) goes the other way: 13.7790
+  against the tight 13.7788 at kLa 96 and 3.46, an error of 1e-5 where restarting matches.
+  This model holds about 1e-6 mol of CO2 against `atol=1e-9`.
+- Its comment calling the solver stateless was corrected, in the notebook and its generator.
+- Saved outputs not yet regenerated, so plots were not compared.
 
 ## Shipping
 

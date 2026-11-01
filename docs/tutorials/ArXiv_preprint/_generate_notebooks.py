@@ -1011,7 +1011,7 @@ def build_cv(kLa, label="pure_water"):
         label=label,
     )
 
-# Shared solver instance -- stateless (all state lives on the CV), so one
+# Shared solver instance -- it keeps one integrator per CV, so one
 # instance is reused across every Simulation.run() call in this notebook.
 bdf_solver = SimultaneousAdaptiveSolver(method="BDF")
 

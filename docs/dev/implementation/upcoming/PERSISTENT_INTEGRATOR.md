@@ -150,6 +150,5 @@ Every restart trigger has a test that fails if the trigger is removed.
 - **Docs:** `docs/solvers.md`, `docs/architecture.md`, and the `Simulation.run`
   docstring, which already calls `n_steps` an output grid.
 - **Notebooks to re-run by the owner:** `07_iron_oxidation`,
-  `08_iron_oxidation_and_precipitation`, `10_engine_protocol_hierarchy`,
-  `ArXiv_preprint/02_kinetic_co2_equilibration_microplate_well`, and
-  `SolverProtocols/0_README`.
+  `08_iron_oxidation_and_precipitation`, `10_engine_protocol_hierarchy` and
+  `ArXiv_preprint/02_kinetic_co2_equilibration_microplate_well`.
