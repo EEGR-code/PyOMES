@@ -56,6 +56,10 @@ rules on top of these; they do not need to repeat them.
   `<name>-shipped` tag). Small changes can use a plain branch without a design
   note or checklist. Older `*-shipped` tags cited in the docs predate GitHub and
   do not exist in git; do not flag them.
+- Pull requests target `EEGR-code/PyOMES` (`origin`), never `MGuo-Lab/PyOMES`
+  (`upstream`) unless the owner explicitly asks. Hand over PR commands with
+  `--repo EEGR-code/PyOMES`. GitHub's website can default a fork's PRs to the
+  parent, so check the base repository there.
 
 ## Line endings
 
