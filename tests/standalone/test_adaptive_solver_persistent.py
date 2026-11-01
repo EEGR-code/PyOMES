@@ -15,6 +15,7 @@ from PyOMES.chemistry import Species
 from PyOMES.control.actions import ControlAction, ProfileRecord
 from PyOMES.control.descriptors import MutableDict, MutableScalar, parameter_generation
 from PyOMES.core import ControlVolume, LiquidPhase, Simulation
+from PyOMES.core.links import AdvectiveLink
 from PyOMES.core import solvers as solvers_mod
 from PyOMES.core.solvers import SimultaneousAdaptiveSolver
 from PyOMES.databases.aqueous import H2O, H_plus, OH_minus
@@ -582,6 +583,61 @@ class TestParameterTriggers:
                                      t_h=0.0, dt_h=dt_h)
         self._run(controllers=[Idle()])
         assert len(builds) == 1
+
+
+class TestAgainstExactAnswers:
+    @pytest.mark.parametrize("method", ["BDF", "Radau", "LSODA", "RK45", "DOP853"])
+    def test_time_dependent_rate_law(self, method):
+        """dA/dt = -k t A has a closed form; Simulation's t_h leads by one step."""
+        k, tau_h, n_steps = 3.0, 1.0, 10
+        dt_h = tau_h / n_steps
+        cv = _make_cv({"Na+": 0.01})
+        species_a = Species(id="A", atoms={"C": 1}, charge=0)
+        species_b = Species(id="B", atoms={"C": 1}, charge=0)
+        cv.phases["liquid"].n_mol.update({"A": 1.0, "B": 0.0})
+        system = cv.reaction_system
+        system._kinetic_reactions[0] = KineticReaction(
+            stoichiometry=[_entry(species_a, -1), _entry(species_b, +1)],
+            rate_fn=lambda env: k * env.t_h * env.S("A") * env.V_L,
+            label="timed",
+        )
+        solver = _solver(method=method, rtol=1e-9, atol=1e-11)
+        Simulation(cvs={"main": cv}, solver=solver, label="t").run(tau_h=tau_h, n_steps=n_steps)
+        exact = np.exp(-k * ((tau_h + dt_h) ** 2 - dt_h ** 2) / 2.0)
+        assert cv.phases["liquid"].n_mol["A"] == pytest.approx(exact, rel=1e-6)
+
+    def test_linked_cvs_agree_with_restarting(self):
+        """Links change the state every macro step, so every step restarts."""
+        def run(**kwargs):
+            cvs = {"a": _make_cv(), "b": _make_cv({"AcOH": 0.01})}
+            links = [AdvectiveLink(
+                _source_cv_key=x, _source_phase_key="liquid",
+                _sink_cv_key=y, _sink_phase_key="liquid", Q_L_per_h=0.5,
+            ) for x, y in (("a", "b"), ("b", "a"))]
+            sim = Simulation(cvs=cvs, links=links, solver=_solver(**kwargs), label="t")
+            sim.run(tau_h=0.5, n_steps=10)
+            return cvs
+
+        persistent, restarting = run(), run(persistent=False)
+        for key in ("a", "b"):
+            for sp in ("P", "AcOH", "Ac-"):
+                assert persistent[key].phases["liquid"].n_mol[sp] == pytest.approx(
+                    restarting[key].phases["liquid"].n_mol[sp], rel=1e-5,
+                )
+
+    def test_resuming_with_a_pickled_solver_agrees_with_an_unbroken_run(self):
+        """A checkpoint pickles the solver, which restarts once when loaded."""
+        unbroken = _make_cv()
+        Simulation(cvs={"main": unbroken}, solver=_solver(), label="t").run(tau_h=1.0, n_steps=20)
+
+        cv = _make_cv()
+        sim = Simulation(cvs={"main": cv}, solver=_solver(), label="t")
+        sim.run(tau_h=0.5, n_steps=10)
+        sim.solver = pickle.loads(pickle.dumps(sim.solver))
+        sim.run(tau_h=0.5, n_steps=10, start_t_h=0.5)
+        assert cv.phases["liquid"].n_mol["P"] == pytest.approx(
+            unbroken.phases["liquid"].n_mol["P"], rel=1e-5,
+        )
 
 
 class TestScope:

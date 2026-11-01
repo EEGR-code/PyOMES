@@ -89,7 +89,9 @@ start. If that fails too, or a new run fails, keep today's behaviour: restore th
 emit `RuntimeWarning`, drop the stepper.
 
 **Checkpoints.** Pickling drops stepper state, because it holds closures. A resumed run
-restarts once, so it matches a continuous run within tolerance, not bit for bit.
+restarts once, so it matches a continuous run within tolerance, not bit for bit. Tested
+by pickling the solver alone: `save_checkpoint` cannot yet save a model with `Species`
+(`OPEN_WORK.md`), whichever solver it uses.
 
 **Accuracy monitor.** `check_scipy_rejections` receives per-macro-step deltas, and is
 skipped when the integrator took no step in that macro step.

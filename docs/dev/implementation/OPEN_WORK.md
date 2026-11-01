@@ -150,6 +150,17 @@ reactant allows), but the clamp sees only the net change per phase, not each
 reaction, so it changes the `clamp_fn` interface and the step solvers that call
 it.
 
+## `save_checkpoint` fails for a model with `Species`
+
+Found 2026-11-01 while building `persistent-integrator`, not fixed.
+`Species.__post_init__` stores `atoms` as a `types.MappingProxyType`
+(`chemistry/species.py:101-104`), which cannot be pickled, so
+`Simulation.save_checkpoint` raises `TypeError: cannot pickle 'mappingproxy' object`
+for any CV whose reactions hold a `Species`. Confirmed on the iron model and on BSM2,
+both with no step solver set. `tests/standalone/test_hpc_checkpointing.py` does not use
+one, so nothing catches it. `Species` would need `__getstate__`/`__setstate__` or
+`__reduce__`, or `atoms` held some other way.
+
 ## `env.t_h` means different things under different solvers
 
 Found 2026-11-01 while building `persistent-integrator`, not fixed. Measured over a 1 h

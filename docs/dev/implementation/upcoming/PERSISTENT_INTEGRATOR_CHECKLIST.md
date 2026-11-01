@@ -118,7 +118,7 @@ the owner's full suite run has passed; each entry gives that result.
 - Pickling and one solver across several CVs were already covered at checkpoint 3.
 - Full suite: 2278 passed, 87 skipped, 2 xfailed.
 
-### Checkpoint 6: continuous `env.t_h` (commit and full suite pending)
+### Checkpoint 6: continuous `env.t_h` (`e146295`)
 
 - Under `persistent=True`, rate laws read the `t_h` passed in plus the time since, across
   macro steps. `persistent=False` is unchanged, including its reset each step.
@@ -129,6 +129,44 @@ the owner's full suite run has passed; each entry gives that result.
 - Found by the new tests: scipy evaluates the right-hand side while building a stepper,
   so the time origin has to be set before that, or the first evaluation reads t = 0.
 - No benchmark case has a time-dependent rate law, so this rests on the new tests.
+- Full suite: result not reported at this commit; covered by the run for checkpoint 7.
+
+### Checkpoint 7: acceptance (commit and full suite pending)
+
+- Added to the benchmark: `iron_pulse_bdf`, a controller with quiet spells between doses,
+  and a `clamps` command. Added tests: a time-dependent rate law against its closed form
+  on 5 methods, linked CVs against restarting, and resuming with a pickled solver.
+- Persistent gate passes on all 14 cases; default path bit-identical on all 14.
+
+| Case | Solves, restarting → persistent | Error, restarting → persistent |
+|---|---|---|
+| Iron BDF | 5,770 → 396 | 6.6e-5 → 4.5e-6 |
+| Iron Davies | 4,968 → 537 | 1.6e-5 → 4.0e-6 |
+| Iron Radau | 14,544 → 765 | 9.1e-7 → 3.0e-7 |
+| Iron LSODA | 25,418 → 617 | 1.3e-5 → 2.2e-6 |
+| Feed and drain | 5,950 → 434 | 1.2e-4 → 6.0e-6 |
+| BSM2 BDF | 5,768 → 713 | 1.9e-5 → 1.4e-6 |
+| Dose every 20 steps | 5,796 → 998 | 6.4e-5 → 9.4e-6 |
+| Controller idle | 5,770 → 396 | 6.6e-5 → 4.5e-6 |
+| Controller, sampled | 6,843 → 6,224 | 4.6e-5 → 3.2e-5 |
+| Controller, every step | 5,880 → 5,880 | identical, 3.1e-5 |
+| Temperature ramp | 12,186 → 12,186 | identical, 7.1e-5 |
+| Weak acid RK45 | 973 → 213 | 2.6e-8 → 1.1e-6 |
+| Weak acid DOP853 | 1,501 → 474 | 7.2e-8 → 1.5e-6 |
+| Weak acid RK23 | 997 → 393 | 2.7e-6 → 7.7e-6 |
+
+- BSM2 over 48 h, 480 steps, outside the benchmark: 25,894 → 2,101 solves, 20.5 s → 1.6 s,
+  error 2.7e-6 → 1.6e-6 against persistent Radau at `rtol=1e-9`.
+- Clamps measured on 10 of the 14 cases, both paths: the Newton log-activity clamp, the
+  `apply_flux` floor, the `PHController` dose limit, the vent cap and BSM2's rate-law
+  guard changed no value. The state floor acted on `Fe2+` in the iron Davies, sampled
+  and pulse cases, and on `Fe(OH)2+` and `FeOH2+` only in restarted feed and drain. Two
+  bounds changed values only before or at the start of a run: `dt_h` in
+  `equilibrate_to_pH`, and the Newton initial guess.
+- Found: `save_checkpoint` fails for any model with `Species`, on any solver. Logged in
+  `OPEN_WORK.md`.
+- Not covered: a real integrator failure; the stirred-tank template; a controller that
+  changes a parameter (`DOAgitationController`) in a full run.
 
 ## Shipping
 

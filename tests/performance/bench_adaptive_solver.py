@@ -7,6 +7,7 @@ Run by hand from the repo root; pytest does not collect it::
     python tests/performance/bench_adaptive_solver.py check --exact
     python tests/performance/bench_adaptive_solver.py check --cases iron_bdf bsm2_bdf
     python tests/performance/bench_adaptive_solver.py check --solver-kwargs "{\\"rtol\\": 1e-7}"
+    python tests/performance/bench_adaptive_solver.py clamps --cases iron_bdf
     python tests/performance/bench_adaptive_solver.py baseline
     python tests/performance/bench_adaptive_solver.py reference
 
@@ -19,6 +20,11 @@ capping their steps, which is a cost and not a promise. CPU time is reported and
 gated. ``baseline`` and ``reference`` rewrite their parts of that
 file; use them only when a change to the stored numbers is intended.
 
+``clamps`` reports which bounds changed a value in a case, on both integration paths.
+It counts ``min`` and ``max`` calls with a literal bound in ``CLAMP_MODULES``, the state
+floor, the engine's fallback for a total that is not positive, and ``PHController``'s
+dose limit. It does not see ``if`` guards or ``np.clip``.
+
 The reference is Radau at ``REFERENCE_TOLERANCES``, on each case's own macro grid,
 with one integrator across macro steps. A restarting reference is not used: restarts
 do not conserve totals as well (total Fe drifted 1.6e-6 on iron and 9.8e-5 with a feed
@@ -30,7 +36,10 @@ run builds its model first and times only ``Simulation.run``.
 from __future__ import annotations
 
 import argparse
+import ast
+import builtins
 import hashlib
+import importlib
 import json
 import os
 import statistics
@@ -53,6 +62,7 @@ import numpy as np
 from PyOMES.chemical_equilibrium.engines.nr.engine import NRChemicalEquilibriumEngine
 from PyOMES.chemistry import Species
 from PyOMES.control import PHController
+from PyOMES.control.actions import ControlAction
 from PyOMES.control.cv_profiles import TemperatureRamp
 from PyOMES.core import ControlVolume, LiquidPhase, Simulation
 from PyOMES.core.boundaries import LiquidDrain, LiquidFeed
@@ -156,6 +166,22 @@ def _ph_controller(**kwargs):
     )
 
 
+class _PulseDoser:
+    """Doses for one macro step in every 20, and does nothing in between."""
+    label = "pulse"
+
+    def __init__(self):
+        self.calls = 0
+
+    def compute(self, state, dt_h):
+        self.calls += 1
+        flux = {"K+": 1e-3, "OH-": 1e-3} if self.calls % 20 == 0 else {}
+        return ControlAction(
+            controller_label=self.label, target_cv_key="main", t_h=0.0, dt_h=dt_h,
+            flux_applied={"liquid": flux} if flux else {},
+        )
+
+
 IRON_SPECIES = ("Fe2+", "O2", "Fe(OH)2+")
 
 CASES = {
@@ -183,6 +209,9 @@ CASES = {
                              n_steps=200, track=IRON_SPECIES,
                              controllers=lambda: [_ph_controller(
                                  sample_period_h=0.2, deadband=0.05)]),
+    # Quiet spells between doses: what periodic events cost.
+    "iron_pulse_bdf": dict(build=_iron_cv, method="BDF", jac=True, tau_h=2.0, n_steps=200,
+                           track=IRON_SPECIES, controllers=lambda: [_PulseDoser()]),
     # A parameter changes and no amount does.
     "iron_temperature_ramp_bdf": dict(build=_iron_cv, method="BDF", jac=True, tau_h=2.0,
                                       n_steps=200, track=IRON_SPECIES,
@@ -280,6 +309,127 @@ def _measure(name, solver_kwargs, repeats, reference):
     }
 
 
+# ---------------------------------------------------------------- clamps
+
+CLAMP_MODULES = (
+    "PyOMES.core.gas_liquid_link", "PyOMES.core.boundaries", "PyOMES.core.phases",
+    "PyOMES.core.control_volume", "PyOMES.control.cv_loops",
+    "PyOMES.chemical_equilibrium.engines.nr.engine",
+    "PyOMES.chemical_equilibrium.engines.nr.solver",
+    "PyOMES.chemical_equilibrium.engines.bisection.engine",
+    "PyOMES.chemical_equilibrium.engines.bisection.acid_base",
+    "PyOMES.chemical_equilibrium.engines.bisection.ionic_strength",
+    "PyOMES.reactions.kinetic.rate_laws", "PyOMES.thermo.liquid.davies",
+    "PyOMES.thermo.liquid.water_properties", "vlmodels.adm1.bsm2",
+)
+
+
+def _literal_bounds(path):
+    """``{(line, "min" or "max"): position of the literal argument}``."""
+    bounds = {}
+    for node in ast.walk(ast.parse(Path(path).read_text(encoding="utf-8"))):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in ("min", "max") and len(node.args) == 2):
+            for position, arg in enumerate(node.args):
+                if isinstance(arg, ast.UnaryOp):
+                    arg = arg.operand
+                if isinstance(arg, ast.Constant):
+                    bounds[(node.lineno, node.func.id)] = position
+                    break
+    return bounds
+
+
+def _count_clamps(name, solver_kwargs):
+    """Run one case with counters on; return ``{description: times it changed a value}``."""
+    from PyOMES.core import solvers
+    from PyOMES.control import cv_loops
+    from PyOMES.chemical_equilibrium.engines.nr import engine as nr_engine
+
+    counts = {}
+
+    def count(description):
+        counts[description] = counts.get(description, 0) + 1
+
+    def counting(function_name, real, module_file, bounds):
+        def wrapper(*args, **kwargs):
+            result = real(*args, **kwargs)
+            frame = sys._getframe(1)
+            if len(args) == 2 and frame.f_code.co_filename == module_file:
+                position = bounds.get((frame.f_lineno, function_name))
+                if position is not None and args[0] != args[1] and result == args[position]:
+                    source = Path(module_file).read_text(encoding="utf-8").splitlines()[frame.f_lineno - 1]
+                    count(f"{Path(module_file).name}:{frame.f_lineno} {source.strip()[:60]}")
+            return result
+        return wrapper
+
+    modules = [importlib.import_module(m) for m in CLAMP_MODULES]
+    for module in modules:
+        bounds = _literal_bounds(module.__file__)
+        module.min = counting("min", builtins.min, module.__file__, bounds)
+        module.max = counting("max", builtins.max, module.__file__, bounds)
+
+    real_floor = solvers.floor_nonnegative
+    real_build = solvers.SimultaneousAdaptiveSolver._build_integrand
+    real_read = nr_engine.NRChemicalEquilibriumEngine._read_from_phases
+    real_compute = cv_loops.PHController.compute
+    layout = {}
+
+    def build(self, cv, dt_h, sources, keep_totals=False):
+        integrand = real_build(self, cv, dt_h, sources, keep_totals=keep_totals)
+        resolved = getattr(integrand.engine, "algebraic_species", None)
+        exempt = resolved() if keep_totals and callable(resolved) else frozenset()
+        layout["names"] = [
+            (phase, species, phase == "liquid" and species in exempt)
+            for _, phase, species in integrand.sv._layout
+        ]
+        return integrand
+
+    def floor(y):
+        for i in np.nonzero(np.asarray(y) < 0.0)[0]:
+            phase, species, exempt = layout["names"][i]
+            count(f"state {'negative, exempt' if exempt else 'FLOORED'}: {phase}.{species}")
+        return real_floor(y)
+
+    def read(self, phases):
+        liquid = phases.get("liquid")
+        for component in self._tableau.components:
+            total = sum(float(liquid.n_mol.get(sp, 0.0)) for sp in component.species_ids)
+            if total < 0.0:
+                count("engine: negative total replaced by its master")
+        return real_read(self, phases)
+
+    def compute(self, state, dt_h):
+        action = real_compute(self, state, dt_h)
+        flux = (action.flux_applied or {}).get("liquid") if action is not None else None
+        if flux and builtins.max(abs(v) for v in flux.values()) / float(state.V_liq_L) >= 0.999 * self.max_add_molL_hr:
+            count("PHController at max_add_molL_hr")
+        return action
+
+    solvers.floor_nonnegative = floor
+    solvers.SimultaneousAdaptiveSolver._build_integrand = build
+    nr_engine.NRChemicalEquilibriumEngine._read_from_phases = read
+    cv_loops.PHController.compute = compute
+    try:
+        _run_once(CASES[name], solver_kwargs)
+    finally:
+        for module in modules:
+            del module.min, module.max
+        solvers.floor_nonnegative = real_floor
+        solvers.SimultaneousAdaptiveSolver._build_integrand = real_build
+        nr_engine.NRChemicalEquilibriumEngine._read_from_phases = real_read
+        cv_loops.PHController.compute = real_compute
+    return counts
+
+
+def _command_clamps(names, solver_kwargs):
+    for name in names:
+        for persistent in (False, True):
+            counts = _count_clamps(name, {**solver_kwargs, "persistent": persistent})
+            print(f"{name}  persistent={persistent}: {len(counts)} kinds", flush=True)
+            for description, n in sorted(counts.items(), key=lambda item: -item[1]):
+                print(f"    {n:7d}  {description}", flush=True)
+
+
 # ---------------------------------------------------------------- commands
 
 def _load():
@@ -346,7 +496,7 @@ def _command_check(names, data, repeats, solver_kwargs, exact):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=("check", "baseline", "reference"))
+    parser.add_argument("command", choices=("check", "baseline", "reference", "clamps"))
     parser.add_argument("--cases", nargs="+", choices=sorted(CASES), default=sorted(CASES))
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--exact", action="store_true",
@@ -361,6 +511,8 @@ def main():
         _command_reference(args.cases, data)
     elif args.command == "baseline":
         _command_baseline(args.cases, data, args.repeats)
+    elif args.command == "clamps":
+        _command_clamps(args.cases, args.solver_kwargs)
     else:
         failures = _command_check(
             args.cases, data, args.repeats, args.solver_kwargs, args.exact,
