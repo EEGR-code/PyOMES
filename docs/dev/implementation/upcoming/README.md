@@ -20,6 +20,11 @@ that still describe open work are "Open phases" and the pending stages in
 
 ## Design discussions (pre-phase, not yet a checklist)
 
+- **[NR_SOLVER_ROBUSTNESS.md](NR_SOLVER_ROBUSTNESS.md)** — 2026-11-01.
+  Where the Newton solver stands after the clamp, step-cap and failure-flag work,
+  and what comes next: a cold-start retry for failed warm starts, what a simulation
+  does with a failed solve, and four smaller issues. Paused by the owner. Includes
+  four owner decisions and the lessons from the measurements.
 - **[HPLC_CV_GRAPH_TEMPLATE.md](HPLC_CV_GRAPH_TEMPLATE.md)** — 2026-09-28.
   Draft plan for a `PyOMES/templates/hplc_column/` template that builds an HPLC
   column as a CV graph run by `Simulation`, replacing the standalone
