@@ -68,8 +68,8 @@ def _solver(**kwargs):
 
 
 @pytest.fixture
-def builds(monkeypatch):
-    """Records each new integrator."""
+def steppers(monkeypatch):
+    """Records each integrator made."""
     made = []
     real = solvers_mod._make_stepper
 
@@ -79,6 +79,21 @@ def builds(monkeypatch):
         return stepper
 
     monkeypatch.setattr(solvers_mod, "_make_stepper", counting)
+    return made
+
+
+@pytest.fixture
+def builds(monkeypatch):
+    """Records each restart: a new right-hand side built from the current state."""
+    made = []
+    real = SimultaneousAdaptiveSolver._build_integrand
+
+    def counting(self, *args, **kwargs):
+        integrand = real(self, *args, **kwargs)
+        made.append(integrand)
+        return integrand
+
+    monkeypatch.setattr(SimultaneousAdaptiveSolver, "_build_integrand", counting)
     return made
 
 
@@ -101,15 +116,15 @@ class TestKeepsOneIntegrator:
         _advance(cv, solver, n=5)
         assert len(builds) == 1
 
-    def test_not_persistent_builds_no_stepper(self, builds):
+    def test_not_persistent_builds_no_stepper(self, steppers):
         cv, solver = _make_cv(), _solver(persistent=False)
         _advance(cv, solver, n=3)
-        assert builds == []
+        assert steppers == []
 
-    def test_freeze_speciation_restarts_each_step(self, builds):
+    def test_freeze_speciation_restarts_each_step(self, steppers):
         cv, solver = _make_cv(), _solver(freeze_speciation=True)
         _advance(cv, solver, n=3)
-        assert builds == []
+        assert steppers == []
 
     @pytest.mark.parametrize("method", ["BDF", "Radau", "LSODA", "RK45", "RK23", "DOP853"])
     def test_agrees_with_restarting_within_tolerance(self, method):
@@ -275,6 +290,131 @@ class _Knob:
         self.table = {"O2": 1.0}
 
 
+class TestStopsAtTheStepEndAfterARestart:
+    """A stepper past the macro-step end has to interpolate back, and may have reached
+    trial states a floor acts on. Worth it only once the state has stopped changing."""
+
+    def test_a_new_run_lands_exactly_on_the_step_end(self, steppers):
+        cv, solver = _make_cv(), _solver()
+        _advance(cv, solver)
+        assert steppers[-1].t == DT_H
+
+    def test_it_runs_freely_after_a_step_with_no_change(self, steppers):
+        cv, solver = _make_cv(), _solver()
+        _advance(cv, solver)
+        _advance(cv, solver)
+        assert len(steppers) == 2
+        assert steppers[-1].t_bound > 1e6
+        _advance(cv, solver, n=3)
+        assert len(steppers) == 2
+
+    def test_a_change_goes_back_to_landing_on_the_step_end(self, steppers):
+        cv, solver = _make_cv(), _solver()
+        _advance(cv, solver, n=3)
+        cv.phases["liquid"].n_mol["Na+"] += 1e-3
+        _advance(cv, solver)
+        assert steppers[-1].t == DT_H
+        assert steppers[-1].t_bound == DT_H
+
+    def test_every_step_changing_never_runs_freely(self, steppers):
+        cv, solver = _make_cv(), _solver()
+        for _ in range(4):
+            _advance(cv, solver)
+            cv.phases["liquid"].n_mol["Na+"] += 1e-3
+        assert len(steppers) == 4
+        assert all(stepper.t_bound == DT_H for stepper in steppers)
+
+
+class TestFailure:
+    @staticmethod
+    def _failing(stepper):
+        def fail():
+            stepper.status = "failed"
+            return "forced"
+        stepper.step = fail
+
+    def _carbon(self, cv):
+        liquid = cv.phases["liquid"].n_mol
+        return sum(liquid[sp] for sp in ("AcOH", "Ac-", "P"))
+
+    def test_a_continuing_run_retries_from_a_new_integrator(self, builds, steppers):
+        cv, solver = _make_cv(), _solver()
+        _advance(cv, solver, n=3)
+        assert len(builds) == 1
+        total = self._carbon(cv)
+        run = solver._runs[cv]
+        self._failing(run.stepper)
+        run.t_end = run.stepper.t + 1.0  # the next macro step has to step
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            _advance(cv, solver)
+        assert len(builds) == 2
+        assert solver._runs[cv].stepper.t == DT_H
+        assert self._carbon(cv) == pytest.approx(total, rel=1e-6)
+
+    def test_a_second_failure_restores_the_state_and_warns(self, monkeypatch, steppers):
+        cv, solver = _make_cv(), _solver()
+        _advance(cv, solver, n=3)
+        total = self._carbon(cv)
+        made = solvers_mod._make_stepper
+
+        def failing(*args, **kwargs):
+            stepper = made(*args, **kwargs)
+            self._failing(stepper)
+            return stepper
+
+        monkeypatch.setattr(solvers_mod, "_make_stepper", failing)
+        run = solver._runs[cv]
+        self._failing(run.stepper)
+        run.t_end = run.stepper.t + 1.0
+        with pytest.warns(RuntimeWarning, match="forced"):
+            _advance(cv, solver)
+        assert self._carbon(cv) == pytest.approx(total, rel=1e-12)
+        assert cv not in solver._runs
+
+    def test_a_new_run_that_fails_does_not_retry(self, monkeypatch, builds):
+        cv, solver = _make_cv(), _solver()
+        made = solvers_mod._make_stepper
+
+        def failing(*args, **kwargs):
+            stepper = made(*args, **kwargs)
+            self._failing(stepper)
+            return stepper
+
+        monkeypatch.setattr(solvers_mod, "_make_stepper", failing)
+        with pytest.warns(RuntimeWarning, match="forced"):
+            _advance(cv, solver)
+        assert len(builds) == 1
+
+
+class TestAccuracyMonitor:
+    class _Spy:
+        def __init__(self):
+            self.calls = []
+
+        def check_scipy_rejections(self, n_accepted, n_attempted):
+            self.calls.append((n_accepted, n_attempted))
+
+        def check_pH_jump(self, pH):
+            pass
+
+    def test_it_sees_each_macro_steps_own_counts(self):
+        cv, solver = _make_cv(), _solver(method="RK45")
+        cv._accuracy_monitor = spy = self._Spy()
+        _advance(cv, solver, n=12)
+        assert spy.calls
+        assert all(n_accepted > 0 and n_attempted > 0 for n_accepted, n_attempted in spy.calls)
+        total = sum(n_attempted for _, n_attempted in spy.calls)
+        assert total <= solver._runs[cv].stepper.nfev + 100
+
+    def test_a_macro_step_with_no_integrator_step_is_not_judged(self):
+        cv, solver = _make_cv(), _solver(method="RK45")
+        cv._accuracy_monitor = spy = self._Spy()
+        for _ in range(30):
+            solver.solve_step(cv, dt_h=1e-4, t_h=0.0)
+        assert len(spy.calls) < 30
+
+
 class TestParameterGeneration:
     def _changes(self, write):
         before = parameter_generation()
@@ -399,22 +539,3 @@ class TestScope:
         assert loaded.persistent is True
         _advance(cv, loaded)
         assert len(builds) == 2
-
-    def test_failure_restores_the_state_and_warns(self, builds, monkeypatch):
-        cv, solver = _make_cv(), _solver()
-        _advance(cv, solver)
-        stepper = builds[0]
-
-        def fail():
-            stepper.status = "failed"
-            return "forced"
-
-        monkeypatch.setattr(stepper, "step", fail)
-        solver_run = solver._runs[cv]
-        solver_run.t_end = stepper.t + 1.0  # the next macro step has to step
-        total = sum(cv.phases["liquid"].n_mol[sp] for sp in ("AcOH", "Ac-", "P"))
-        with pytest.warns(RuntimeWarning, match="forced"):
-            _advance(cv, solver)
-        after = sum(cv.phases["liquid"].n_mol[sp] for sp in ("AcOH", "Ac-", "P"))
-        assert after == pytest.approx(total, rel=1e-12)
-        assert cv not in solver._runs

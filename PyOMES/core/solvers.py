@@ -528,8 +528,8 @@ class SimultaneousEulerSolver:
 _STEPPER_T_BOUND_H = 1e12
 
 
-def _make_stepper(method, f, y0, *, rtol, atol, max_step, jac):
-    """Build a scipy ``OdeSolver`` for *f* from ``t = 0``.
+def _make_stepper(method, f, y0, *, t_bound, rtol, atol, max_step, jac):
+    """Build a scipy ``OdeSolver`` for *f* from ``t = 0`` to *t_bound*.
 
     *method* takes the same values as ``solve_ivp``'s: a name or an
     ``OdeSolver`` subclass.
@@ -546,7 +546,7 @@ def _make_stepper(method, f, y0, *, rtol, atol, max_step, jac):
         )
     options = {} if jac is None else {"jac": jac}
     return stepper_class(
-        f, 0.0, y0, _STEPPER_T_BOUND_H,
+        f, 0.0, y0, t_bound,
         rtol=rtol, atol=atol, max_step=max_step, **options,
     )
 
@@ -572,10 +572,17 @@ def _species_sets(cv) -> Dict[str, frozenset]:
 
 class _PersistentRun:
     """One CV's integrator, kept between :meth:`SimultaneousAdaptiveSolver.solve_step`
-    calls, and what must be unchanged for it to carry on."""
+    calls, and what must be unchanged for it to carry on.
+
+    A new run has a stepper that stops exactly at the macro-step end, because the
+    next step may restart too and a stepper past that end has to interpolate back,
+    which can overshoot into trial states a floor then acts on. Once a macro step
+    passes with nothing changed, the stepper is replaced by one that runs freely.
+    """
 
     def __init__(self, stepper, integrand, cv, dt_h, external_source_terms):
         self.stepper = stepper
+        self.bounded = True
         self.integrand = integrand
         self.t_end = 0.0
         self.dt_h = dt_h
@@ -584,6 +591,12 @@ class _PersistentRun:
         self.species = _species_sets(cv)
         self.snapshot = None
         self.generation = None
+
+    def run_freely(self, stepper) -> None:
+        """Carry on from the current state with a stepper that has no end point."""
+        self.stepper = stepper
+        self.bounded = False
+        self.t_end = 0.0
 
     def can_continue(self, cv, dt_h, external_source_terms) -> bool:
         """Whether nothing the integrator depends on has changed.
@@ -706,6 +719,12 @@ class SimultaneousAdaptiveSolver:
     def restart(self) -> None:
         """Make every CV start a new integration at its next step."""
         self._runs = weakref.WeakKeyDictionary()
+
+    def _make_stepper_for(self, integrand, y0, t_bound):
+        return _make_stepper(
+            self.method, integrand.f, y0, t_bound=t_bound,
+            rtol=self.rtol, atol=self.atol, max_step=self.max_step, jac=integrand.jac,
+        )
 
     def __getstate__(self) -> Dict[str, Any]:
         # A run holds closures, which do not pickle. A loaded solver restarts.
@@ -1065,6 +1084,7 @@ class SimultaneousAdaptiveSolver:
         run = self._runs.get(cv) if persist else None
         if run is not None and not run.can_continue(cv, dt_h, external_source_terms):
             run = None
+        continuing = run is not None
         integrand = (
             run.integrand if run is not None
             else self._build_integrand(
@@ -1082,15 +1102,29 @@ class SimultaneousAdaptiveSolver:
         if persist:
             if run is None:
                 run = _PersistentRun(
-                    _make_stepper(
-                        self.method, integrand.f, integrand.y0,
-                        rtol=self.rtol, atol=self.atol, max_step=self.max_step,
-                        jac=integrand.jac,
-                    ),
+                    self._make_stepper_for(integrand, integrand.y0, dt_h),
                     integrand, cv, dt_h, external_source_terms,
                 )
                 self._runs[cv] = run
+            elif run.bounded:
+                run.run_freely(
+                    self._make_stepper_for(integrand, y0_copy, _STEPPER_T_BOUND_H)
+                )
             success, message, y_end, n_accepted, n_attempted = run.advance(dt_h)
+            if not success and continuing:
+                # The integrator's history may be what failed: try once more from
+                # the state at the start of this macro step.
+                sv.unpack(y0_copy, floor=True)
+                integrand = self._build_integrand(
+                    cv, dt_h, external_source_terms, keep_totals=True,
+                )
+                sv = integrand.sv
+                run = _PersistentRun(
+                    self._make_stepper_for(integrand, integrand.y0, dt_h),
+                    integrand, cv, dt_h, external_source_terms,
+                )
+                self._runs[cv] = run
+                success, message, y_end, n_accepted, n_attempted = run.advance(dt_h)
         else:
             # Run the adaptive solver
             result = solve_ivp(

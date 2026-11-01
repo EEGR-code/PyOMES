@@ -29,7 +29,7 @@ changes `PyOMES/` or `tests/`.
       `solver.restart()` (trigger 6), species and engine changes (trigger 7), totals
       not floored. With the option off, results stay bit-identical. Benchmark reference
       rebuilt on persistent Radau, because restarting does not conserve totals as well.
-- [ ] 4. **Parameter triggers:** the keyword renamed to `persistent`; generation counter in `control/descriptors.py`
+- [x] 4. **Parameter triggers:** the keyword renamed to `persistent`; generation counter in `control/descriptors.py`
       (trigger 2) and the `Simulation` signal (trigger 3). A test for each trigger that
       fails when it is removed, including `link.kLa["O2"]`.
 - [ ] 5. **Robustness:** after a restart, stop at the macro-step end until the state stops changing; retry on failure, pickling, one solver across several CVs,
@@ -91,7 +91,7 @@ the owner's full suite run has passed; each entry gives that result.
 - Logged the clamp findings in `OPEN_WORK.md`.
 - Full suite: 2256 passed, 87 skipped, 2 xfailed.
 
-### Checkpoint 4: parameter triggers (commit and full suite pending)
+### Checkpoint 4: parameter triggers (`c5e3dc9`)
 
 - Keyword renamed from `restart_each_step` to `persistent`, still default `False`.
 - Generation counter in `control/descriptors.py`, counting only changes to an existing
@@ -104,6 +104,18 @@ the owner's full suite run has passed; each entry gives that result.
   `freeze_speciation` test was not put through this check.
 - Default path: all 13 cases bit-identical. Persistent numbers unchanged from
   checkpoint 3.
+- Full suite: 2270 passed, 87 skipped, 2 xfailed.
+
+### Checkpoint 5: robustness (commit and full suite pending)
+
+- A new run stops exactly at the macro-step end; after a macro step with no change, the
+  stepper is replaced by one with no end point. Failure retries once from a new run.
+- Benchmark gate updated to the owner's decision: explicit methods may reach 10× `rtol`.
+- Persistent gate passes on all 13 cases. The dosing-controller and temperature-ramp
+  cases are now bit-identical to restarting (3.13e-5, 7.13e-5).
+- Cost of the extra restart: iron BDF 363 → 396 solves, ×12.5 → ×11.5, error 3.19e-6 →
+  4.52e-6; iron Radau ×17.9 → ×13.8; iron LSODA ×35 → ×26. BSM2 stayed at 713 solves.
+- Pickling and one solver across several CVs were already covered at checkpoint 3.
 
 ## Shipping
 

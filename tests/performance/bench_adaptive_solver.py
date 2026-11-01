@@ -12,8 +12,11 @@ Run by hand from the repo root; pytest does not collect it::
 
 ``check`` compares a run against ``baselines/adaptive_solver.json``. It gates on
 numbers that do not depend on the machine: engine solves and error against the stored
-reference, or, with ``--exact``, a fingerprint of every recorded value. CPU time is
-reported and never gated. ``baseline`` and ``reference`` rewrite their parts of that
+reference, or, with ``--exact``, a fingerprint of every recorded value. Error must be no
+worse than the baseline's, except that an explicit method may reach ``EXPLICIT_RTOL_FACTOR``
+times ``rtol``: restarting holds explicit methods well below the requested tolerance by
+capping their steps, which is a cost and not a promise. CPU time is reported and never
+gated. ``baseline`` and ``reference`` rewrite their parts of that
 file; use them only when a change to the stored numbers is intended.
 
 The reference is Radau at ``REFERENCE_TOLERANCES``, on each case's own macro grid,
@@ -65,6 +68,8 @@ REFERENCE_TOLERANCES = {
 }
 REFERENCE_POINTS = 50  # stored per trajectory, at most
 ERROR_FLOOR = 5e-7     # errors below this are not told apart from the reference's own
+EXPLICIT_METHODS = frozenset({"RK23", "RK45", "DOP853"})
+EXPLICIT_RTOL_FACTOR = 10.0
 
 
 # ---------------------------------------------------------------- models
@@ -330,7 +335,11 @@ def _command_check(names, data, repeats, solver_kwargs, exact):
         else:
             if row["engine_solves"] > base["engine_solves"]:
                 failures.append(f"{name}: more engine solves")
-            if worst > max(worst_base, ERROR_FLOOR):
+            allowed = max(worst_base, ERROR_FLOOR)
+            if solver_kwargs.get("method", CASES[name]["method"]) in EXPLICIT_METHODS:
+                rtol = solver_kwargs.get("rtol", SimultaneousAdaptiveSolver().rtol)
+                allowed = max(allowed, EXPLICIT_RTOL_FACTOR * rtol)
+            if worst > allowed:
                 failures.append(f"{name}: larger error")
     return failures
 

@@ -31,10 +31,15 @@ arrays, and the mineral bugs.
 
 ## Design
 
-**Stepping.** Each CV keeps one scipy `OdeSolver` object. `solve_step` advances it until
-it reaches or passes the macro-step end, then interpolates there. The object may step
-past that end; those values are never written back. `n_steps` becomes an output grid
-when nothing forces a restart.
+**Stepping.** Each CV keeps one scipy `OdeSolver` object. A new run's stepper stops
+exactly at the macro-step end, because the next step may restart too, and overshooting
+reaches trial states a floor can act on. Once a macro step passes with nothing changed,
+it is replaced by a stepper with no end point, which steps past each macro-step end and
+interpolates there; those values are never written back. `n_steps` becomes an output grid
+when nothing forces a restart. A model changing every step is therefore bit-identical to
+`persistent=False` when no floor differs, and a quiet spell costs one extra restart.
+Replacing the stepper uses only scipy's public behaviour; extending one in place does
+not, and LSODA keeps its old limit internally.
 
 **State is per CV.** One solver instance can serve several CVs, so stepper state is
 keyed by CV.
@@ -77,9 +82,9 @@ boundary, or state hidden in a `rate_fn` closure. They need `solver.restart()`, 
 the integrator's error control but may be stepped over if very short, unless `max_step`
 is set.
 
-**Failure.** If a continued stepper fails, retry once from a fresh stepper at the
-macro-step start. If that fails too, keep today's behaviour: restore the state, emit
-`RuntimeWarning`, drop the stepper.
+**Failure.** If a continuing run fails, retry once from a new run at the macro-step
+start. If that fails too, or a new run fails, keep today's behaviour: restore the state,
+emit `RuntimeWarning`, drop the stepper.
 
 **Checkpoints.** Pickling drops stepper state, because it holds closures. A resumed run
 restarts once, so it matches a continuous run within tolerance, not bit for bit.
