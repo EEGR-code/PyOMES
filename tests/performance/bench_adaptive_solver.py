@@ -16,10 +16,13 @@ reference, or, with ``--exact``, a fingerprint of every recorded value. CPU time
 reported and never gated. ``baseline`` and ``reference`` rewrite their parts of that
 file; use them only when a change to the stored numbers is intended.
 
-The reference is Radau at ``REFERENCE_TOLERANCES``, on each case's own macro grid.
-Each timed run builds its model first and times only ``Simulation.run``. The Newton
-engine converges to an absolute 1e-10 mol/L, which limits how exact a reference can
-be, so ``ERROR_FLOOR`` treats smaller errors as equal.
+The reference is Radau at ``REFERENCE_TOLERANCES``, on each case's own macro grid,
+with one integrator across macro steps. A restarting reference is not used: restarts
+do not conserve totals as well (total Fe drifted 1.6e-6 on iron and 9.8e-5 with a feed
+and drain, against about 1e-7), and that bias would be charged to whatever is compared
+with it. Persistent Radau, BDF and LSODA agreed to within ``ERROR_FLOOR`` on the
+feed-and-drain and weak-acid cases, so smaller errors are treated as equal. Each timed
+run builds its model first and times only ``Simulation.run``.
 """
 from __future__ import annotations
 
@@ -57,9 +60,11 @@ from PyOMES.reactions import (
 )
 
 BASELINE_FILE = Path(__file__).with_name("baselines") / "adaptive_solver.json"
-REFERENCE_TOLERANCES = {"method": "Radau", "rtol": 1e-10, "atol": 1e-12}
+REFERENCE_TOLERANCES = {
+    "method": "Radau", "rtol": 1e-9, "atol": 1e-11, "restart_each_step": False,
+}
 REFERENCE_POINTS = 50  # stored per trajectory, at most
-ERROR_FLOOR = 1e-8     # errors below this are not told apart from the reference's own
+ERROR_FLOOR = 5e-7     # errors below this are not told apart from the reference's own
 
 
 # ---------------------------------------------------------------- models

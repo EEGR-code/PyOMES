@@ -23,10 +23,12 @@ changes `PyOMES/` or `tests/`.
       3.19 s, worst error 6.65e-5. BSM2 BDF: 5,768 solves, 4.59 s, 1.93e-5.
 - [x] 2. **Refactor only:** build `f` and `jac` outside the integrator call. Results
       must be **bit-identical** on every benchmark model.
-- [ ] 3. **Persistent stepping behind an option, default off:** `_make_stepper`, per-CV stepper,
+- [x] 3. **Persistent stepping behind an option, default off:** `_make_stepper`, per-CV stepper,
       interpolation at macro-step ends, state-snapshot restart (trigger 1), `dt_h` and
       `external_source_terms` (trigger 4), `freeze_speciation` (trigger 5),
-      `solver.restart()` (trigger 6). With the option off, results stay bit-identical.
+      `solver.restart()` (trigger 6), species and engine changes (trigger 7), totals
+      not floored. With the option off, results stay bit-identical. Benchmark reference
+      rebuilt on persistent Radau, because restarting does not conserve totals as well.
 - [ ] 4. **Parameter triggers:** generation counter in `control/descriptors.py`
       (trigger 2) and the `Simulation` signal (trigger 3). A test for each trigger that
       fails when it is removed, including `link.kLa["O2"]`.

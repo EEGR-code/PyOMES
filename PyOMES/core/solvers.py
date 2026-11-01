@@ -23,6 +23,7 @@ Usage
 
 from __future__ import annotations
 
+import weakref
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Protocol, runtime_checkable
 
 from .phases import Phase
@@ -522,6 +523,102 @@ class SimultaneousEulerSolver:
 #  SimultaneousAdaptiveSolver
 # ════════════════════════════════════════════════════════════════════════
 
+# Far beyond any simulated time: a stepper is stopped by its caller, not by this.
+_STEPPER_T_BOUND_H = 1e12
+
+
+def _make_stepper(method, f, y0, *, rtol, atol, max_step, jac):
+    """Build a scipy ``OdeSolver`` for *f* from ``t = 0``.
+
+    *method* takes the same values as ``solve_ivp``'s: a name or an
+    ``OdeSolver`` subclass.
+    """
+    from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, Radau
+
+    methods = {"RK23": RK23, "RK45": RK45, "DOP853": DOP853,
+               "Radau": Radau, "BDF": BDF, "LSODA": LSODA}
+    stepper_class = methods.get(method, method) if isinstance(method, str) else method
+    if isinstance(stepper_class, str):
+        raise ValueError(
+            f"Unknown method {method!r}; expected one of {sorted(methods)} "
+            "or an OdeSolver subclass."
+        )
+    options = {} if jac is None else {"jac": jac}
+    return stepper_class(
+        f, 0.0, y0, _STEPPER_T_BOUND_H,
+        rtol=rtol, atol=atol, max_step=max_step, **options,
+    )
+
+
+def _phase_snapshot(cv) -> Dict[str, tuple]:
+    """Every amount, temperature and volume of *cv*, for exact comparison."""
+    return {
+        pk: (dict(phase.n_mol), phase.T_K, phase.V_L)
+        for pk, phase in cv.phases.items()
+    }
+
+
+def _source_copy(external_source_terms) -> Dict[str, Dict[str, float]]:
+    return {pk: dict(rates) for pk, rates in (external_source_terms or {}).items()}
+
+
+def _species_sets(cv) -> Dict[str, frozenset]:
+    """The species of each phase that a state vector built now would hold."""
+    return {
+        pk: frozenset(phase.n_mol) - {"H+"} for pk, phase in cv.phases.items()
+    }
+
+
+class _PersistentRun:
+    """One CV's integrator, kept between :meth:`SimultaneousAdaptiveSolver.solve_step`
+    calls, and what must be unchanged for it to carry on."""
+
+    def __init__(self, stepper, integrand, cv, dt_h, external_source_terms):
+        self.stepper = stepper
+        self.integrand = integrand
+        self.t_end = 0.0
+        self.dt_h = dt_h
+        self.sources = _source_copy(external_source_terms)
+        self.reaction_system = cv.reaction_system
+        self.species = _species_sets(cv)
+        self.snapshot = None
+
+    def can_continue(self, cv, dt_h, external_source_terms) -> bool:
+        """Whether nothing the integrator depends on has changed.
+
+        The snapshot is compared exactly, so a dose, a link flow or a direct
+        write is caught without having to list what can make one. The species
+        check covers a species added by the closing solve: the scratch phases
+        would hold it outside the state vector and count it in stale form.
+        """
+        return (
+            self.snapshot == _phase_snapshot(cv)
+            and self.dt_h == dt_h
+            and self.sources == _source_copy(external_source_terms)
+            and self.reaction_system is cv.reaction_system
+            and self.integrand.engine is getattr(cv.reaction_system, "engine", None)
+            and self.species == _species_sets(cv)
+        )
+
+    def advance(self, dt_h):
+        """Step to ``t_end + dt_h``; the stepper may pass it, and is interpolated.
+
+        Returns ``(success, message, y, n_accepted, n_attempted)``.
+        """
+        target = self.t_end + dt_h
+        stepper = self.stepper
+        nfev_before = stepper.nfev
+        n_accepted = 0
+        while stepper.t < target:
+            message = stepper.step()
+            if stepper.status == "failed":
+                return False, message, None, 0, 0
+            n_accepted += 1
+        y = stepper.y.copy() if stepper.t == target else stepper.dense_output()(target)
+        self.t_end = target
+        return True, "", y, n_accepted, stepper.nfev - nfev_before
+
+
 class _Integrand(NamedTuple):
     """What :meth:`SimultaneousAdaptiveSolver._build_integrand` builds for one CV."""
     sv: Any                  # StateVector for the CV
@@ -529,6 +626,7 @@ class _Integrand(NamedTuple):
     f: Callable              # right-hand side, f(t, y)
     jac: Optional[Callable]  # Jacobian for implicit methods, or None
     engine: Any              # speciation engine, or None
+    floor: Callable          # floors a raw state before it is used or written
 
 
 class SimultaneousAdaptiveSolver:
@@ -561,18 +659,32 @@ class SimultaneousAdaptiveSolver:
         the step.  Default False (solve speciation at every
         derivative evaluation — more physically correct but gives
         different gas transfer dynamics than BSM2).
+    use_engine_jacobian : bool
+        Build the Jacobian from the engine's sensitivities where it can.
+    restart_each_step : bool
+        If True (default), start a new integration at every macro step. If
+        False, keep one integrator per CV across macro steps, interpolate at
+        each step's end, and restart only when something it depends on has
+        changed: an amount, temperature or volume, the species set, ``dt_h``,
+        the external source terms, the reaction system or its engine. Changes
+        elsewhere, such as a plain attribute on a boundary or state held by a
+        rate function, need :meth:`restart`. ``freeze_speciation=True`` always
+        restarts each step.
     """
 
     def __init__(self, rtol: float = 1e-6, atol: float = 1e-9,
                  max_step: float = 1.0, method: str = "DOP853",
                  freeze_speciation: bool = False,
-                 use_engine_jacobian: bool = False):
+                 use_engine_jacobian: bool = False,
+                 restart_each_step: bool = True):
         self.rtol = rtol
         self.atol = atol
         self.max_step = max_step
         self.method = method
         self.freeze_speciation = freeze_speciation
         self.use_engine_jacobian = use_engine_jacobian
+        self.restart_each_step = restart_each_step
+        self._runs = weakref.WeakKeyDictionary()  # {cv: _PersistentRun}
         if freeze_speciation and use_engine_jacobian:
             raise ValueError(
                 "freeze_speciation=True and use_engine_jacobian=True are incompatible: "
@@ -587,16 +699,37 @@ class SimultaneousAdaptiveSolver:
                 UserWarning, stacklevel=2,
             )
 
+    def restart(self) -> None:
+        """Make every CV start a new integration at its next step."""
+        self._runs = weakref.WeakKeyDictionary()
+
+    def __getstate__(self) -> Dict[str, Any]:
+        # A run holds closures, which do not pickle. A loaded solver restarts.
+        state = dict(self.__dict__)
+        del state["_runs"]
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        self.__dict__.update(state)
+        self._runs = weakref.WeakKeyDictionary()
+
     def _build_integrand(
         self,
         cv: Any,
         dt_h: float,
         external_source_terms: Optional[Dict[str, Dict[str, float]]],
+        keep_totals: bool = False,
     ) -> _Integrand:
         """Build the ODE state vector, right-hand side and Jacobian for *cv*.
 
         The right-hand side and Jacobian write to scratch phases built here,
         and to the live phases of *cv*.
+
+        With *keep_totals*, liquid species the engine resolves are not floored.
+        Between re-speciations, their entries in the state are only parts of a
+        total: a flux leaving one in proportion to its speciated amount can take
+        its entry negative while the total is fine, and flooring that entry would
+        create material. The engine reads their sum and overwrites them.
         """
         import numpy as np
         from .state_vector import StateVector
@@ -634,6 +767,21 @@ class SimultaneousAdaptiveSolver:
         has_rxn = rxn_model is not None
         engine = getattr(rxn_model, "engine", None) if has_rxn else None
         has_speciation = engine is not None
+
+        floor_state = floor_nonnegative
+        resolved = getattr(engine, "algebraic_species", None)
+        if keep_totals and callable(resolved):
+            liq_offset_ = phase_offset["liquid"]
+            kept = [
+                liq_offset_ + i
+                for i, sp in enumerate(phase_layout["liquid"])
+                if sp in resolved()
+            ]
+
+            def floor_state(y):
+                floored = floor_nonnegative(y)
+                floored[kept] = y[kept]
+                return floored
 
         # Phase 5 — detect gray-box capability for analytical Jacobian
         import warnings as _warnings
@@ -694,7 +842,7 @@ class SimultaneousAdaptiveSolver:
             #      guards against adaptive-integrator overshoot on a
             #      trial state -- a distinct concern from clamp_fn
             #      (discrete-step solvers only; see clamping.py).
-            y_safe = floor_nonnegative(y)
+            y_safe = floor_state(y)
             for pk, species in phase_layout.items():
                 offset = phase_offset[pk]
                 temp_phase = _temp_phases[pk]
@@ -711,7 +859,7 @@ class SimultaneousAdaptiveSolver:
             #    RHS evaluation (including rejected trial steps) — safe
             #    because _temp_phases are scratch snapshots rebuilt each
             #    call and discarded except when the accepted final state
-            #    is persisted via sv.unpack(..., floor=True).
+            #    is persisted via sv.unpack.
             pH = None
             spec_result = None  # engine writes to n_mol directly; no result object
             if has_speciation:
@@ -873,7 +1021,9 @@ class SimultaneousAdaptiveSolver:
 
                 return J
 
-        return _Integrand(sv=sv, y0=y0, f=f, jac=jac_callable, engine=engine)
+        return _Integrand(
+            sv=sv, y0=y0, f=f, jac=jac_callable, engine=engine, floor=floor_state,
+        )
 
     def solve_step(
         self,
@@ -907,50 +1057,76 @@ class SimultaneousAdaptiveSolver:
                 f"{list(cv.phases.keys())}"
             )
 
-        integrand = self._build_integrand(cv, dt_h, external_source_terms)
+        persist = not (self.restart_each_step or self.freeze_speciation)
+        run = self._runs.get(cv) if persist else None
+        if run is not None and not run.can_continue(cv, dt_h, external_source_terms):
+            run = None
+        integrand = (
+            run.integrand if run is not None
+            else self._build_integrand(
+                cv, dt_h, external_source_terms, keep_totals=persist,
+            )
+        )
         sv = integrand.sv
-        y0 = integrand.y0
         engine = integrand.engine
         has_speciation = engine is not None
         liq_phase = cv.phases["liquid"]
 
         # Save original state for restoration on failure
-        y0_copy = y0.copy()
+        y0_copy = sv.pack()
 
-        # Run the adaptive solver
-        result = solve_ivp(
-            integrand.f, [0.0, dt_h], y0,
-            method=self.method,
-            rtol=self.rtol,
-            atol=self.atol,
-            max_step=self.max_step,
-            dense_output=False,
-            jac=integrand.jac,
-        )
+        if persist:
+            if run is None:
+                run = _PersistentRun(
+                    _make_stepper(
+                        self.method, integrand.f, integrand.y0,
+                        rtol=self.rtol, atol=self.atol, max_step=self.max_step,
+                        jac=integrand.jac,
+                    ),
+                    integrand, cv, dt_h, external_source_terms,
+                )
+                self._runs[cv] = run
+            success, message, y_end, n_accepted, n_attempted = run.advance(dt_h)
+        else:
+            # Run the adaptive solver
+            result = solve_ivp(
+                integrand.f, [0.0, dt_h], integrand.y0,
+                method=self.method,
+                rtol=self.rtol,
+                atol=self.atol,
+                max_step=self.max_step,
+                dense_output=False,
+                jac=integrand.jac,
+            )
+            success, message = result.success, result.message
+            y_end = result.y[:, -1]
+            # result.nfev is the function-evaluation count (proxy for
+            # attempted steps); len(result.t) is the accepted-step count.
+            n_accepted = int(getattr(result.t, "size", len(result.t)))
+            n_attempted = int(getattr(result, "nfev", n_accepted))
 
-        if not result.success:
+        if not success:
             # Restore original state and warn
             sv.unpack(y0_copy, floor=True)
+            self._runs.pop(cv, None)
+            run = None
             import warnings
             warnings.warn(
-                f"SimultaneousAdaptiveSolver ({self.method}) failed: {result.message}. "
+                f"SimultaneousAdaptiveSolver ({self.method}) failed: {message}. "
                 f"State restored to pre-step values.",
                 RuntimeWarning,
             )
         else:
             # Write final state back to CV
-            sv.unpack(result.y[:, -1], floor=True)
+            sv.unpack(integrand.floor(y_end))
 
-        # Accuracy monitor: scipy step-rejection rate. result.nfev is
-        # the function-evaluation count (proxy for attempted steps);
-        # len(result.t) is the accepted-step count. The ratio spikes
+        # Accuracy monitor: scipy step-rejection rate. The ratio spikes
         # when the integrator is fighting stiffness or a tight
-        # tolerance — a regime warning, not a solver-failure warning
-        # (which is handled separately above with RuntimeWarning).
+        # tolerance -- a regime warning, not a solver-failure warning
+        # (which is handled separately above with RuntimeWarning). A
+        # persistent run can take no step in a macro step: nothing to judge.
         monitor = getattr(cv, "_accuracy_monitor", None)
-        if monitor is not None and result.success:
-            n_accepted = int(getattr(result.t, "size", len(result.t)))
-            n_attempted = int(getattr(result, "nfev", n_accepted))
+        if monitor is not None and success and n_accepted > 0:
             monitor.check_scipy_rejections(
                 n_accepted=n_accepted,
                 n_attempted=n_attempted,
@@ -967,13 +1143,17 @@ class SimultaneousAdaptiveSolver:
         # speciation re-solve.
         _monitor_pH_post_step(cv)
 
+        if run is not None:
+            run.snapshot = _phase_snapshot(cv)
+
         # Build result (lightweight — no per-boundary records for adaptive solver)
         return AdvanceResult()
 
     def __repr__(self):
         return (f"SimultaneousAdaptiveSolver(method={self.method!r}, rtol={self.rtol}, "
                 f"atol={self.atol}, max_step={self.max_step}, "
-                f"use_engine_jacobian={self.use_engine_jacobian})")
+                f"use_engine_jacobian={self.use_engine_jacobian}, "
+                f"restart_each_step={self.restart_each_step})")
 
 
 def _write_temp_state(cv, gas_mol, liq_mol):

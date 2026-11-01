@@ -39,6 +39,14 @@ when nothing forces a restart.
 **State is per CV.** One solver instance can serve several CVs, so stepper state is
 keyed by CV.
 
+**Totals, not species, are floored.** The state holds every speciated species, but the
+engine reads only their sums and overwrites them. A flux in proportion to a speciated
+amount (a drain, a rate law on a resolved species) can take one entry negative while
+the total is fine. Flooring that entry creates material: without re-speciation at each
+restart this reached an error of 0.89 on the feed-and-drain case. So a persistent run
+does not floor liquid species in `engine.algebraic_species()`; everything else is
+floored as before.
+
 **Restart triggers.** The stepper is dropped and rebuilt from the current state when
 any of these holds:
 
@@ -56,6 +64,9 @@ any of these holds:
    over them.
 5. `freeze_speciation=True`, which keeps its per-macro-step meaning.
 6. The caller calls the new public `solver.restart()`.
+7. The species in a phase differ from those the state vector was built with, or the
+   reaction system or engine has been replaced. A species outside the state vector
+   would sit in the scratch phases in stale form and be counted in the totals.
 
 **Known gap.** Changes the framework cannot see are not detected: a plain attribute on a
 boundary, or state hidden in a `rate_fn` closure. They need `solver.restart()`, and
@@ -96,6 +107,20 @@ Before the default flips, each model in the benchmark must show persistent error
 worse than `restart_each_step=True` against a tight reference, and no more engine
 solves. This includes the two untested cases: a real controller and a feed-and-drain
 model. A model that fails this stops the work until it is understood.
+
+**Open, for the owner:** two kinds of case fail this as written, and the gate needs a
+decision before the default flips.
+
+- *Explicit methods.* Restarting holds them well below the requested tolerance by
+  forcing short steps: RK45 reaches 3e-8 at `rtol=1e-6` at about 3× the cost, where
+  persistent reaches 1.2e-6. At `rtol=1e-7` persistent passes for RK45, RK23 and DOP853,
+  with fewer solves than restarting (253 vs 973, 709 vs 997, 487 vs 1,501).
+- *A controller dosing every step.* Both restart every step, at the same cost, and
+  persistent's error is 16% larger (3.6e-5 vs 3.1e-5). Stepping past the macro-step end
+  takes `Fe2+` negative in 97 of 6,020 trial states, and the floor acts on it. Either
+  stopping at the macro-step end (3.13e-5) or removing the floor (3.16e-5) closes the
+  gap. A run that has just restarted could stop at the macro-step end until the state
+  stops changing.
 
 Every restart trigger has a test that fails if the trigger is removed.
 

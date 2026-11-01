@@ -150,6 +150,44 @@ reactant allows), but the clamp sees only the net change per phase, not each
 reaction, so it changes the `clamp_fn` interface and the step solvers that call
 it.
 
+## Flooring a resolved species creates material, and guards are not all inventoried
+
+Found 2026-11-01 while building `persistent-integrator`, not fixed. This adds to
+the clamp entries above and to `CONSERVATION_LEDGER_CHECKLIST.md`, which plan the
+no-clamp default; neither covers these points.
+
+- **`floor_nonnegative` does not only affect rates.** The adaptive solver's state
+  holds each speciated species, and the engine reads their sum as the total. A
+  flux in proportion to a speciated amount (a drain, a rate law) can take one entry
+  negative while the total is fine; flooring it raises the total. With a feed and
+  drain at the starting composition, total Fe must stay constant, and it drifts by
+  9.8e-5 with this floor and 1.2e-7 without. Checkpoint 2d of the ledger checklist
+  says the trial-state floor "does not add or remove material"; this contradicts
+  that. `restart_each_step=False` exempts resolved species;
+  `restart_each_step=True` keeps the floor.
+- **A floor on a strong ion can cost accuracy without creating much material.** In
+  the persistent run with a pH controller, trial states take `Fe2+` negative 97
+  times in 6,020 evaluations, and the floor raises the worst error from 3.16e-5 to
+  3.63e-5. Restarting at each macro step never reaches these states.
+- **Restarts lose material on their own.** Total Fe drifts 1.6e-6 on the iron run
+  with or without the floor, against 1e-7 for one integrator across the run. The
+  likely cause, not traced, is each re-speciation carrying its Newton residual
+  (up to 1e-10 mol/L) into the state over 200 restarts.
+- **No inventory of guards.** Bounds sit in the Newton solver, both engines, the
+  gas-liquid link, boundaries, controllers and rate laws, and differ in kind:
+
+  | Kind | Examples | Can it be turned off? |
+  |---|---|---|
+  | User parameter | `clamp_fn`, `max_add_molL_hr`, `CT_P_max`, `max_log_activity` (not fully: at most 150) | Yes, or tunable |
+  | Parameter no caller exposes | `Phase.apply_flux(clamp=)` from transfer and links; `solve_nr(max_newton_step=)` from the engine | No, in practice |
+  | Hard-coded | `floor_nonnegative`, `_clamp_flux`, vent cap, `max(S_IN, 1e-12)`, `max(g, 1e-30)`, zero-total fallback in `_read_from_phases` | No |
+
+  Most of the hard-coded ones guard against dividing by zero or overflow and fire
+  rarely or never; a counter over 7 benchmark cases saw only the state floor change
+  a value during a run. That counter covers `min` and `max` in 10 modules, not
+  `if` guards, `np.clip` or `rate_laws.py`, and only those cases. The open question
+  is which guards can change a result, and whether those should warn.
+
 ## `engine.solve()` takes totals or species, under one name
 
 Logged 2026-10-03 while settling the decisions for
