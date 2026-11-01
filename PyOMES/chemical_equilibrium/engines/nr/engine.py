@@ -84,6 +84,11 @@ _JACOBIAN_DISABLED_MSG = (
 
 _LN10 = float(np.log(10.0))
 
+# Largest accepted max_log_activity. Above about 154 the squared residual in
+# the line search overflows, and at 309 10.0 ** max_log_activity itself raises
+# OverflowError.
+_MAX_LOG_ACTIVITY_CEILING = 150.0
+
 # Strong-ion charge dictionary (mirrors the ones in solver.py)
 _STRONG_CHARGES: Dict[str, int] = {
     "CT_K": +1, "CT_Na": +1, "CT_cation": +1,
@@ -113,11 +118,21 @@ class NRChemicalEquilibriumEngine:
         Operating temperature (°C).  Default ``25.0``.
     use_warmstart : bool
         Reuse the last converged state as initial guess.  Default ``True``.
+    max_log_activity : float
+        Limit on the magnitude of each log10-activity before exponentiation,
+        and the value at which an absent component's master is pinned (as
+        ``-max_log_activity``).  Default ``50.0``.  Must be positive and at
+        most ``150``.
     retain_jacobian : bool
         Cache the converged NR Jacobian matrix after each ``solve()`` call,
         unlocking the white-box methods ``jacobian_dg_dz()``,
         ``jacobian_dg_dy()``, ``jacobian_dz_dy()``, and ``residual()``.
         When ``False`` (default) those methods raise ``RuntimeError``.
+
+    Raises
+    ------
+    ValueError
+        If ``max_log_activity`` is not a positive number of at most ``150``.
     """
 
     def __init__(
@@ -131,6 +146,13 @@ class NRChemicalEquilibriumEngine:
         min_component_total: float = 1e-20,
         retain_jacobian: bool = False,
     ):
+        if not 0.0 < float(max_log_activity) <= _MAX_LOG_ACTIVITY_CEILING:
+            raise ValueError(
+                f"NRChemicalEquilibriumEngine: max_log_activity must be positive "
+                f"and at most {_MAX_LOG_ACTIVITY_CEILING:g}, got {max_log_activity!r}. "
+                "Larger values overflow when a Newton step sends a log10-activity "
+                "to the limit."
+            )
         self._tableau = tableau
         if retain_jacobian and any(sec.phase == "gas" for sec in tableau.secondaries):
             raise NotImplementedError(
@@ -156,6 +178,9 @@ class NRChemicalEquilibriumEngine:
         self._cache = NRSolverCache() if use_warmstart else None
         self.n_solve_calls = 0
         self._precipitation_reactions: List = []  # set by from_reactions()
+        # Species already warned about. Kept across reset_cache(), which runs
+        # often enough that clearing it would defeat the limit on warnings.
+        self._warned_limit_effects: set = set()
 
         # White-box cached state (populated when retain_jacobian=True)
         self._cached_jacobian: Optional[np.ndarray] = None
@@ -332,6 +357,16 @@ class NRChemicalEquilibriumEngine:
             ``extra["minerals_xi_mol_L"]`` carries per-mineral ξ (mol/L
             precipitated).
 
+            ``extra`` also says when ``max_log_activity`` affects the answer,
+            with each key present only when it has something to report:
+            ``extra["clamped_log_activities"]`` maps each species held at the
+            limit to its raw log10-activity, and
+            ``extra["absent_component_species"]`` maps each species of an absent
+            component that is large enough to move the balances to its value.
+            Keys are species ids, with a ``":gas"`` suffix for a gas-phase
+            secondary. The first time a species appears in either, a
+            ``RuntimeWarning`` names it; each engine warns once per species.
+
         .. note::
             Mineral amounts are reported in the result only; this engine
             does not write ξ back to ``n_mol`` or create a ``SolidPhase``.
@@ -368,9 +403,14 @@ class NRChemicalEquilibriumEngine:
                 max_log_activity=self.max_log_activity,
                 min_component_total=self.min_component_total,
                 retain_jacobian=self.retain_jacobian,
+                report_limit_effects=True,
                 V_liq_L=V_liq_L,
                 V_gas_L=V_gas_L,
             )
+
+        clamped = out.pop("_clamped_log_activities", {})
+        absent = out.pop("_absent_component_species", {})
+        self._warn_limit_effects(clamped, absent)
 
         if self.retain_jacobian:
             self._cached_jacobian = out.pop("_jacobian_matrix", None)
@@ -427,6 +467,10 @@ class NRChemicalEquilibriumEngine:
             extra["minerals_xi_mol_L"] = {
                 label: float(info["xi_mol_L"]) for label, info in minerals.items()
             }
+        if clamped:
+            extra["clamped_log_activities"] = clamped
+        if absent:
+            extra["absent_component_species"] = absent
 
         pH_val = out.get("pH")
         result = EquilibriumResult(
@@ -508,6 +552,39 @@ class NRChemicalEquilibriumEngine:
         return self._tableau
 
     # ── Private helpers ───────────────────────────────────────────────
+
+    def _warn_limit_effects(
+        self, clamped: Dict[str, float], absent: Dict[str, float],
+    ) -> None:
+        """Warn about species not yet warned about by this engine.
+
+        The engine solves once per ODE right-hand-side evaluation, so this
+        warns once per species and leaves the per-solve detail to
+        ``EquilibriumResult.extra``.
+        """
+        new_clamped = sorted(set(clamped) - self._warned_limit_effects)
+        new_absent = sorted(set(absent) - self._warned_limit_effects)
+        if not new_clamped and not new_absent:
+            return
+        self._warned_limit_effects.update(new_clamped, new_absent)
+        parts = []
+        if new_clamped:
+            parts.append(
+                f"{new_clamped} are held at the limit, so their values are the "
+                "limit and not the solved values"
+            )
+        if new_absent:
+            parts.append(
+                f"{new_absent} belong to absent components but are large enough "
+                "to move the balances"
+            )
+        warnings.warn(
+            f"NR speciation: with max_log_activity={self.max_log_activity:g}, "
+            f"{'; '.join(parts)}. See clamped_log_activities and "
+            "absent_component_species in EquilibriumResult.extra.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
 
     def _read_from_phases(self, phases):
         """Extract totals, strong ions, and volumes from a phases dict.
@@ -683,7 +760,7 @@ class NRChemicalEquilibriumEngine:
                         )
             return eff_totals, eff_strong
 
-        def _run_inner(xi_arr, *, _retain_jac: bool = False):
+        def _run_inner(xi_arr, *, _retain_jac: bool = False, _report: bool = False):
             """Run solve_nr with adjusted inputs; return output dict."""
             et, es = _effective_inputs(xi_arr)
             return solve_nr(
@@ -696,6 +773,7 @@ class NRChemicalEquilibriumEngine:
                 max_log_activity=self.max_log_activity,
                 min_component_total=self.min_component_total,
                 retain_jacobian=_retain_jac,
+                report_limit_effects=_report,
                 V_liq_L=V_liq_L,
                 V_gas_L=V_gas_L,
             )
@@ -808,7 +886,7 @@ class NRChemicalEquilibriumEngine:
             prev_active = current_active
 
         # ── Final solve with converged xi ────────────────────────────
-        out = _run_inner(xi, _retain_jac=self.retain_jacobian)
+        out = _run_inner(xi, _retain_jac=self.retain_jacobian, _report=True)
 
         # ── Build "minerals" output dict ──────────────────────────────
         minerals: Dict[str, Dict[str, float]] = {}
