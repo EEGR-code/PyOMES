@@ -591,6 +591,7 @@ class _PersistentRun:
         self.species = _species_sets(cv)
         self.snapshot = None
         self.generation = None
+        self.t_next = None
 
     def run_freely(self, stepper) -> None:
         """Carry on from the current state with a stepper that has no end point."""
@@ -598,11 +599,12 @@ class _PersistentRun:
         self.bounded = False
         self.t_end = 0.0
 
-    def can_continue(self, cv, dt_h, external_source_terms) -> bool:
+    def can_continue(self, cv, dt_h, t_h, external_source_terms) -> bool:
         """Whether nothing the integrator depends on has changed.
 
         The snapshot is compared exactly, so a dose, a link flow or a direct
-        write is caught without having to list what can make one. The species
+        write is caught without having to list what can make one. A jump in
+        *t_h* would leave rate laws reading the wrong time. The species
         check covers a species added by the closing solve: the scratch phases
         would hold it outside the state vector and count it in stale form.
         """
@@ -610,6 +612,7 @@ class _PersistentRun:
             self.snapshot == _phase_snapshot(cv)
             and self.generation == parameter_generation()
             and self.dt_h == dt_h
+            and abs(t_h - self.t_next) <= max(1e-6 * dt_h, 1e-12 * abs(t_h))
             and self.sources == _source_copy(external_source_terms)
             and self.reaction_system is cv.reaction_system
             and self.integrand.engine is getattr(cv.reaction_system, "engine", None)
@@ -643,6 +646,7 @@ class _Integrand(NamedTuple):
     jac: Optional[Callable]  # Jacobian for implicit methods, or None
     engine: Any              # speciation engine, or None
     floor: Callable          # floors a raw state before it is used or written
+    t_origin: List[float]    # one item: simulation time at the integrator's t = 0
 
 
 class SimultaneousAdaptiveSolver:
@@ -680,13 +684,17 @@ class SimultaneousAdaptiveSolver:
     persistent : bool
         If True, keep one integrator per CV across macro steps, interpolate at
         each step's end, and restart only when something it depends on has
-        changed: an amount, temperature or volume, the species set, ``dt_h``,
-        the external source terms, the reaction system or its engine, or a
+        changed: an amount, temperature or volume, the species set, ``dt_h``, a
+        ``t_h`` that does not follow on from the last step, the external source
+        terms, the reaction system or its engine, or a
         parameter written through a descriptor, a controller action or a
         profile. A parameter change restarts every CV. Changes elsewhere, such
         as a plain attribute on a boundary or state held by a rate function,
-        need :meth:`restart`. If False (default), start a new integration at
-        every macro step. ``freeze_speciation=True`` always restarts each step.
+        need :meth:`restart`. Rate laws read ``env.t_h`` as the *t_h* passed to
+        :meth:`solve_step` plus the time since. If False (default), start a new
+        integration at every macro step, and ``env.t_h`` runs from 0 to ``dt_h``
+        each time, whatever *t_h* is. ``freeze_speciation=True`` always restarts
+        each step.
     """
 
     def __init__(self, rtol: float = 1e-6, atol: float = 1e-9,
@@ -720,7 +728,10 @@ class SimultaneousAdaptiveSolver:
         """Make every CV start a new integration at its next step."""
         self._runs = weakref.WeakKeyDictionary()
 
-    def _make_stepper_for(self, integrand, y0, t_bound):
+    def _make_stepper_for(self, integrand, y0, t_h, t_bound):
+        # scipy evaluates the right-hand side while building a stepper, so the
+        # origin has to be set first.
+        integrand.t_origin[0] = t_h
         return _make_stepper(
             self.method, integrand.f, y0, t_bound=t_bound,
             rtol=self.rtol, atol=self.atol, max_step=self.max_step, jac=integrand.jac,
@@ -846,6 +857,10 @@ class SimultaneousAdaptiveSolver:
         _temp_liq = _temp_phases["liquid"]
         _snap_cv = _SnapshotCV(**_temp_phases)
 
+        # Rate laws read the simulation time. A persistent run sets this to the
+        # time at its integrator's t = 0; otherwise it stays 0.0.
+        t_origin = [0.0]
+
         # Import ReactionEnvironment once
         if has_rxn:
             from PyOMES.reactions.environment import ReactionEnvironment
@@ -951,7 +966,7 @@ class SimultaneousAdaptiveSolver:
                 env = ReactionEnvironment(
                     T_K=liq_T_K, V_L=liq_V_L, pH=pH,
                     concentrations=conc, properties=properties,
-                    t_h=t,
+                    t_h=t + t_origin[0],
                 )
                 rxn_sources = rxn_model.compute_rates(env)
                 for phase_key, sp_rates in rxn_sources.items():
@@ -1046,6 +1061,7 @@ class SimultaneousAdaptiveSolver:
 
         return _Integrand(
             sv=sv, y0=y0, f=f, jac=jac_callable, engine=engine, floor=floor_state,
+            t_origin=t_origin,
         )
 
     def solve_step(
@@ -1082,7 +1098,7 @@ class SimultaneousAdaptiveSolver:
 
         persist = self.persistent and not self.freeze_speciation
         run = self._runs.get(cv) if persist else None
-        if run is not None and not run.can_continue(cv, dt_h, external_source_terms):
+        if run is not None and not run.can_continue(cv, dt_h, t_h, external_source_terms):
             run = None
         continuing = run is not None
         integrand = (
@@ -1102,13 +1118,13 @@ class SimultaneousAdaptiveSolver:
         if persist:
             if run is None:
                 run = _PersistentRun(
-                    self._make_stepper_for(integrand, integrand.y0, dt_h),
+                    self._make_stepper_for(integrand, integrand.y0, t_h, dt_h),
                     integrand, cv, dt_h, external_source_terms,
                 )
                 self._runs[cv] = run
             elif run.bounded:
                 run.run_freely(
-                    self._make_stepper_for(integrand, y0_copy, _STEPPER_T_BOUND_H)
+                    self._make_stepper_for(integrand, y0_copy, t_h, _STEPPER_T_BOUND_H)
                 )
             success, message, y_end, n_accepted, n_attempted = run.advance(dt_h)
             if not success and continuing:
@@ -1120,7 +1136,7 @@ class SimultaneousAdaptiveSolver:
                 )
                 sv = integrand.sv
                 run = _PersistentRun(
-                    self._make_stepper_for(integrand, integrand.y0, dt_h),
+                    self._make_stepper_for(integrand, integrand.y0, t_h, dt_h),
                     integrand, cv, dt_h, external_source_terms,
                 )
                 self._runs[cv] = run
@@ -1184,6 +1200,7 @@ class SimultaneousAdaptiveSolver:
         if run is not None:
             run.snapshot = _phase_snapshot(cv)
             run.generation = parameter_generation()
+            run.t_next = t_h + dt_h
 
         # Build result (lightweight — no per-boundary records for adaptive solver)
         return AdvanceResult()

@@ -105,9 +105,13 @@ def _quiet():
 
 
 def _advance(cv, solver, n=1, **kwargs):
+    """Step *cv*, keeping time running on from its last step."""
+    dt_h = kwargs.get("dt_h", DT_H)
     for _ in range(n):
-        solver.solve_step(cv, dt_h=kwargs.get("dt_h", DT_H), t_h=0.0,
+        t_h = cv.__dict__.setdefault("_test_t_h", 0.0)
+        solver.solve_step(cv, dt_h=dt_h, t_h=t_h,
                           external_source_terms=kwargs.get("sources"))
+        cv._test_t_h = t_h + dt_h
 
 
 class TestKeepsOneIntegrator:
@@ -146,7 +150,7 @@ class TestKeepsOneIntegrator:
         cv, solver = _make_cv(), _solver()
         values = []
         for _ in range(30):
-            solver.solve_step(cv, dt_h=1e-4, t_h=0.0)
+            _advance(cv, solver, dt_h=1e-4)
             values.append(cv.phases["liquid"].n_mol["P"])
         assert all(later > earlier for earlier, later in zip(values, values[1:]))
 
@@ -159,7 +163,7 @@ class TestTotalsAreKept:
     def test_rate_law_on_a_resolved_species_conserves_carbon(self, method):
         cv, solver = _make_cv(), _solver(method=method)
         liquid = cv.phases["liquid"].n_mol
-        solver.solve_step(cv, dt_h=DT_H, t_h=0.0)
+        _advance(cv, solver, dt_h=DT_H)
         total = sum(liquid[sp] for sp in ("AcOH", "Ac-", "P"))
         _advance(cv, solver, n=40)
         assert sum(liquid[sp] for sp in ("AcOH", "Ac-", "P")) == pytest.approx(total, rel=1e-5)
@@ -174,7 +178,7 @@ class TestTotalsAreKept:
         cv.boundaries.append(LiquidDrain(Q_L_per_h=2.0))
         solver = _solver()
         liquid = cv.phases["liquid"].n_mol
-        solver.solve_step(cv, dt_h=DT_H, t_h=0.0)
+        _advance(cv, solver, dt_h=DT_H)
         start = liquid["AcOH"] + liquid["Ac-"]
         _advance(cv, solver, n=20)
         assert liquid["AcOH"] + liquid["Ac-"] == pytest.approx(
@@ -267,6 +271,20 @@ class TestRestartTriggers:
             cv._set_reaction_system_unchecked(system)
         assert self._two_steps(swap, builds) == 2
 
+    def test_time_jump_restarts(self, builds):
+        cv, solver = _make_cv(), _solver()
+        _advance(cv, solver, n=2)
+        cv._test_t_h += 5.0
+        _advance(cv, solver)
+        assert len(builds) == 2
+
+    def test_time_following_on_does_not_restart(self, builds):
+        """Simulation's grid comes from linspace, so it differs by rounding."""
+        cv, solver = _make_cv(), _solver()
+        for t_h in np.linspace(0.0, 1.0, 21)[:-1]:
+            solver.solve_step(cv, dt_h=0.05, t_h=float(t_h))
+        assert len(builds) == 1
+
     def test_explicit_restart(self, builds):
         assert self._two_steps(lambda cv, solver: solver.restart(), builds) == 2
 
@@ -288,6 +306,55 @@ class _Knob:
     def __init__(self):
         self.k = 1.0
         self.table = {"O2": 1.0}
+
+
+class TestRateLawsReadSimulationTime:
+    @staticmethod
+    def _cv_recording_time(seen):
+        cv = _make_cv()
+        reaction = cv.reaction_system._kinetic_reactions[0]
+        rate = reaction.rate_fn
+
+        def timed(env):
+            seen.append(env.t_h)
+            return rate(env)
+
+        reaction.rate_fn = timed
+        return cv
+
+    def test_time_runs_across_macro_steps(self):
+        seen = []
+        cv = self._cv_recording_time(seen)
+        Simulation(cvs={"main": cv}, solver=_solver(), label="t").run(tau_h=1.0, n_steps=10)
+        # Simulation passes the end of each step as t_h, so time starts at 0.1.
+        assert min(seen) == pytest.approx(0.1)
+        assert max(seen) >= 1.0
+
+    def test_a_start_time_is_honoured(self):
+        seen = []
+        cv = self._cv_recording_time(seen)
+        Simulation(cvs={"main": cv}, solver=_solver(), label="t").run(
+            tau_h=1.0, n_steps=10, start_t_h=100.0,
+        )
+        assert min(seen) == pytest.approx(100.1)
+        assert max(seen) >= 101.0
+
+    def test_not_persistent_keeps_its_time_from_zero(self):
+        seen = []
+        cv = self._cv_recording_time(seen)
+        Simulation(cvs={"main": cv}, solver=_solver(persistent=False), label="t").run(
+            tau_h=1.0, n_steps=10,
+        )
+        assert min(seen) == 0.0
+        assert max(seen) <= 0.1 + 1e-12
+
+    def test_jacobian_columns_read_the_same_time(self):
+        seen = []
+        cv = self._cv_recording_time(seen)
+        Simulation(cvs={"main": cv}, solver=_solver(use_engine_jacobian=True), label="t").run(
+            tau_h=1.0, n_steps=10,
+        )
+        assert min(seen) >= 0.1 - 1e-12
 
 
 class TestStopsAtTheStepEndAfterARestart:
@@ -411,7 +478,7 @@ class TestAccuracyMonitor:
         cv, solver = _make_cv(), _solver(method="RK45")
         cv._accuracy_monitor = spy = self._Spy()
         for _ in range(30):
-            solver.solve_step(cv, dt_h=1e-4, t_h=0.0)
+            _advance(cv, solver, dt_h=1e-4)
         assert len(spy.calls) < 30
 
 

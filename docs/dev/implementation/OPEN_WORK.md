@@ -150,6 +150,24 @@ reactant allows), but the clamp sees only the net change per phase, not each
 reaction, so it changes the `clamp_fn` interface and the step solvers that call
 it.
 
+## `env.t_h` means different things under different solvers
+
+Found 2026-11-01 while building `persistent-integrator`, not fixed. Measured over a 1 h
+run with `dt_h = 0.1`, a rate law reads:
+
+| Solver | `env.t_h` |
+|---|---|
+| `SimultaneousAdaptiveSolver(persistent=True)` | 0.1 upward, continuous |
+| `SimultaneousAdaptiveSolver(persistent=False)` | 0 to 0.1, again at every step |
+| `SequentialAdvanceSolver`, `SimultaneousEulerSolver` | 0.1 to 1.0, one value per step |
+| `MonolithicODESolver` | 0.1 to 1.1 |
+
+`Simulation.run` passes the end of each step as `t_h`, so every solver that uses it leads
+true time by one step, and the first step of a run reads `dt_h`, not 0. A direct
+`cv.advance(dt_h, t_h)` passes the start of the step by convention. Under
+`persistent=False`, a rate law with a lag phase or a schedule gets the wrong time
+altogether. Correcting `Simulation` changes every time-dependent model on every solver.
+
 ## Flooring a resolved species creates material, and guards are not all inventoried
 
 Found 2026-11-01 while building `persistent-integrator`, not fixed. This adds to

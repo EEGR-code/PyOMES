@@ -75,6 +75,8 @@ any of these holds:
 7. The species in a phase differ from those the state vector was built with, or the
    reaction system or engine has been replaced. A species outside the state vector
    would sit in the scratch phases in stale form and be counted in the totals.
+8. `t_h` does not follow on from the previous call, because rate laws would read the
+   wrong time. A caller that keeps passing the same `t_h` therefore restarts every step.
 
 **Known gap.** Changes the framework cannot see are not detected: a plain attribute on a
 boundary, or state hidden in a `rate_fn` closure. They need `solver.restart()`, and

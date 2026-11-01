@@ -32,7 +32,7 @@ changes `PyOMES/` or `tests/`.
 - [x] 4. **Parameter triggers:** the keyword renamed to `persistent`; generation counter in `control/descriptors.py`
       (trigger 2) and the `Simulation` signal (trigger 3). A test for each trigger that
       fails when it is removed, including `link.kLa["O2"]`.
-- [ ] 5. **Robustness:** after a restart, stop at the macro-step end until the state stops changing; retry on failure, pickling, one solver across several CVs,
+- [x] 5. **Robustness:** after a restart, stop at the macro-step end until the state stops changing; retry on failure, pickling, one solver across several CVs,
       monitor deltas. Check `tests/standalone/test_package_layering.py` still passes.
 - [ ] 6. **`env.t_h` continuous under this solver**, with a test. Log `Simulation`'s
       end-of-step `t_h` in `OPEN_WORK.md`.
@@ -106,7 +106,7 @@ the owner's full suite run has passed; each entry gives that result.
   checkpoint 3.
 - Full suite: 2270 passed, 87 skipped, 2 xfailed.
 
-### Checkpoint 5: robustness (commit and full suite pending)
+### Checkpoint 5: robustness (`f3b00a7`)
 
 - A new run stops exactly at the macro-step end; after a macro step with no change, the
   stepper is replaced by one with no end point. Failure retries once from a new run.
@@ -116,6 +116,19 @@ the owner's full suite run has passed; each entry gives that result.
 - Cost of the extra restart: iron BDF 363 → 396 solves, ×12.5 → ×11.5, error 3.19e-6 →
   4.52e-6; iron Radau ×17.9 → ×13.8; iron LSODA ×35 → ×26. BSM2 stayed at 713 solves.
 - Pickling and one solver across several CVs were already covered at checkpoint 3.
+- Full suite: 2278 passed, 87 skipped, 2 xfailed.
+
+### Checkpoint 6: continuous `env.t_h` (commit and full suite pending)
+
+- Under `persistent=True`, rate laws read the `t_h` passed in plus the time since, across
+  macro steps. `persistent=False` is unchanged, including its reset each step.
+- New restart trigger: a `t_h` that does not follow on from the last step, with a
+  tolerance for rounding in `Simulation`'s `linspace` grid.
+- `env.t_h` still leads true time by one step under `Simulation`. Logged in
+  `OPEN_WORK.md`, with the differences between solvers.
+- Found by the new tests: scipy evaluates the right-hand side while building a stepper,
+  so the time origin has to be set before that, or the first evaluation reads t = 0.
+- No benchmark case has a time-dependent rate law, so this rests on the new tests.
 
 ## Shipping
 
