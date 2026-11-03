@@ -403,7 +403,18 @@ left out of it on purpose.
   do not fit, and give relief elements a shared reference in place of each
   one's own set point. Not started; first case would be a stirred tank with
   one gas and one liquid phase. Check `upcoming/RESERVOIR_TYPE.md` and
-  `upcoming/HPLC_CV_GRAPH_TEMPLATE.md` for overlap first.
+  `upcoming/HPLC_CV_GRAPH_TEMPLATE.md` for overlap first. Follows
+  `variable-liquid-volume` ([`upcoming/LIQUID_VOLUME_MODELS.md`](upcoming/LIQUID_VOLUME_MODELS.md)),
+  which makes the liquid volume vary; the gas volume belongs here, not with
+  the gas equation of state, since the equation of state gives the pressure
+  from a volume and does not set it.
+- **Evaporation into the headspace.** Added 2026-11-03.
+  `variable-liquid-volume` debits the liquid for the water vapour
+  `ProportionalGasOutlet` calculates leaving. Water evaporating into a
+  headspace also changes the gas: in a fixed-volume vessel it raises the
+  pressure, in a constant-pressure vessel it raises the gas volume. Which
+  applies depends on the vessel's behaviour above, so it is addressed with
+  the vessel type.
 - **No liquid overflow outlet.** `LiquidDrain` removes liquid at a fixed
   volumetric rate. A CSTR whose volume is derived from its contents can
   therefore drift in volume when feed and contents differ in density or a

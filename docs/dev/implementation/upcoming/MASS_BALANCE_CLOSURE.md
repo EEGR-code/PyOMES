@@ -9,8 +9,12 @@
 > - **Follows:** `explicit-species-resolution`, which gives every id in
 >   `n_mol` a `Species` with atoms; closure is checked element by element over
 >   those species.
-> - **Phases:** three, each with its own branch and checklist (see
->   [Phases](#phases)).
+> - **Phases:** three, each with its own branch and checklist, run in order
+>   (see [Phases](#phases)).
+> - **Revised 2026-11-03 with the repo owner:** phase 2 is owned and detailed
+>   by [LIQUID_VOLUME_MODELS.md](LIQUID_VOLUME_MODELS.md); the NR water reset
+>   (formerly phase 3 checkpoint 1) and the monitor's threshold under
+>   solvent water moved into phase 2.
 
 ## The standard
 
@@ -247,10 +251,14 @@ whatever the activity model".
 a clamp is something the user passes to the solver. The silent floors get the
 same treatment.
 
-**Tolerances.** Closure tests use 1e-12 relative. The monitor's threshold
-stays at 1e-8 of the element total per step until the engine phase ships, then
-is set from that phase's measurements, scaled on the inventory excluding
-water.
+**Tolerances.** Closure tests use 1e-12 relative. The monitor's threshold is
+1e-8 of the element total per step. Once the volume phase puts solvent water
+into liquids, a threshold scaled on the inventory would rise by orders of
+magnitude for H and O, so that phase trials a threshold scaled on the step's
+turnover, above a floating-point floor
+([LIQUID_VOLUME_MODELS.md](LIQUID_VOLUME_MODELS.md), checkpoint 10), with
+the solvent-excluded inventory as the fallback. The engine phase then sets
+the value from its measurements.
 
 **Models that do not close.** They warn and run. A reaction whose
 stoichiometry does not balance its elements warns when the control volume is
@@ -270,6 +278,13 @@ Three phases, each on its own branch with its own checklist and
 `<name>-shipped` tag. The checkpoints below are provisional; each phase's
 checklist is written when it starts, and the first phase's measurements inform
 the other two.
+
+They run in order, 1 → 2 → 3, not in parallel. Phase 2 needs the ledger to
+show that adding solvent water conserves. Phase 3 books water into the
+liquids phase 2 gives water, and refreshes their volume after its write-back.
+Phases 2 and 3 both change results and both edit the adaptive solver's
+right-hand side, so running them together would mix up which change moved
+which result.
 
 ### 1. `conservation-ledger`
 
@@ -301,47 +316,38 @@ under every step solver. Results unchanged except in the last checkpoint.
 
 ### 2. `variable-liquid-volume`
 
-Leaves liquids that dilute, concentrate and change volume with what enters
-and leaves, for the models that select it. Unblocks
-[DOSING_AGENTS.md](DOSING_AGENTS.md).
+Leaves liquids that hold their solvent water and dilute, concentrate and
+change volume with what enters and leaves, for the models that select it.
+Unblocks [DOSING_AGENTS.md](DOSING_AGENTS.md).
 
-1. A prototype measures how far results move under a derived volume on the
-   template tank and its tutorials. The owner sees the numbers before anything
-   is committed.
-2. The recorder keeps the liquid volume at each step.
-3. Every `LiquidPhase` has a volume model (ideal mixing first). A stated
-   volume holds `V_L` constant; otherwise `V_L` is the model's value for the
-   contents. `V_L` is read-only and the public setter goes.
-4. The make-up utility and the stream helper.
-5. The template tank and its tutorials carry their solvent water and derive
-   their volume; feeds and drains carry water. The comment in
-   `docs/tutorials/templates/fed_batch_fermenter.py` and the `OPEN_WORK.md`
-   entry "The liquid volume never changes" are updated here.
-6. The step and system solvers under a changing volume, with a guard on
-   `LiquidDrain` as the volume approaches zero. Checked against an inert
-   tracer, C0·V0/(V0 + Q·t).
-7. The warning for a net volumetric flow on a stated-volume liquid.
-8. Close-out.
+Scope, design and checkpoints are in
+[LIQUID_VOLUME_MODELS.md](LIQUID_VOLUME_MODELS.md), which owns this phase.
+The water and liquid-volume decisions above are the settled ground it builds
+on. Two items it takes from elsewhere in this note: NR stops overwriting
+liquid water (formerly phase 3 checkpoint 1; under a derived volume the reset
+feeds back into the volume on every solve), and the monitor's threshold once
+liquids hold solvent water (see [Decisions](#decisions), "Tolerances").
 
 ### 3. `engine-closure`
 
 Leaves the Bisection and NR engines conserving every element and the charge
 in a control volume, with pH unchanged within a stated tolerance for models
-that start neutral.
+that start neutral. Starts from phase 2: liquids hold their water, NR no
+longer resets it, and each liquid's volume is refreshed after the engine's
+write-back.
 
-1. NR stops overwriting liquid water.
-2. Water is booked from the oxygen balance at write-back.
-3. NR's write-back conserves component totals exactly.
-4. The conserving closure in both engines; the electroneutral closure as an
+1. Water is booked from the oxygen balance at write-back.
+2. NR's write-back conserves component totals exactly.
+3. The conserving closure in both engines; the electroneutral closure as an
    explicit setting, selected by the BSM2 and ADM1 builders. The adaptive step
    solver integrates H+ under the conserving closure.
-5. The charged-specification warning and the readable net charge; the repo's
+4. The charged-specification warning and the readable net charge; the repo's
    other models and tests specified neutral.
-6. The Bisection solver reports when no neutral pH exists (item 10).
-7. NR folded gas rows are written back to the gas phase.
-8. NR precipitation: audit, then stored.
-9. The monitor's threshold set from this phase's measurements.
-10. Close-out: the H and O markers removed from
+5. The Bisection solver reports when no neutral pH exists (item 10).
+6. NR folded gas rows are written back to the gas phase.
+7. NR precipitation: audit, then stored.
+8. The monitor's threshold value set from this phase's measurements.
+9. Close-out: the H and O markers removed from
     `test_user_defined_model.py`, engine docstrings, `OPEN_WORK.md` entries,
     the "engine fit" paragraph of `DOSING_AGENTS.md`.
 
@@ -361,6 +367,8 @@ that start neutral.
 
 - [EXPLICIT_SPECIES_RESOLUTION.md](../shipped/EXPLICIT_SPECIES_RESOLUTION.md): every id
   in `n_mol` resolves to a `Species` with atoms, which element closure needs.
+- [LIQUID_VOLUME_MODELS.md](LIQUID_VOLUME_MODELS.md): owns phase 2, the
+  volume models and `V_L` in the solvers.
 - [DOSING_AGENTS.md](DOSING_AGENTS.md): solution dosing needs the derived
   volume; its second open question (is a solution's water listed or implied)
   is answered here: listed, with the make-up calculation as the convenience.
