@@ -79,9 +79,27 @@ that still describe open work are "Open phases" and the pending stages in
   electroneutral closure that BSM2 and ADM1 select explicitly; a charged
   specification warns; liquids hold their solvent water and take their
   volume from a volume model, stated or derived; no clamp by default. Three
-  phases, each with its own branch and checklist: `conservation-ledger`,
-  `variable-liquid-volume`, `engine-closure`. Follows
+  phases, each with its own branch and checklist, run in that order:
+  `conservation-ledger`, `variable-liquid-volume` (owned by
+  `LIQUID_VOLUME_MODELS.md` since 2026-11-03), `engine-closure`. Follows
   `explicit-species-resolution`. No branch, no checklist, no code yet.
+- **[LIQUID_VOLUME_MODELS.md](LIQUID_VOLUME_MODELS.md)** — 2026-11-03.
+  Owns the `variable-liquid-volume` phase (phase 2) of
+  `MASS_BALANCE_CLOSURE.md`, run after `conservation-ledger` and before
+  `engine-closure`, and takes from that note the NR water reset and the
+  monitor's threshold once liquids hold solvent water. Treats volume as a thermodynamic property of a
+  liquid's contents (partial molar volumes, excess volume of mixing), in its
+  own modelling area `thermo/liquid/volume/` parallel to the gas equations of
+  state, with a `LiquidVolumeModel` protocol and models in order: ideal
+  mixing, apparent molar volume, Redlich–Kister, Pitzer. The volume model is
+  the single source of truth and density is derived from it. Decided: `V_L`
+  stays stored on the phase and is refreshed from the model after each change
+  to the contents, including in the adaptive solver's right-hand side. Ten
+  provisional checkpoints, including a trial of a turnover-scaled monitor
+  threshold. Also decided: the model on `ThermoFramework` with intrinsic
+  per-species data on `Species`; evaporation debited from the liquid; an
+  explicit make-up method rather than a `V_L` setter; a volume diagnostic
+  in the recorder. Four open questions. No branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
