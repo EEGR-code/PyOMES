@@ -82,6 +82,17 @@ that still describe open work are "Open phases" and the pending stages in
   phases, each with its own branch and checklist: `conservation-ledger`,
   `variable-liquid-volume`, `engine-closure`. Follows
   `explicit-species-resolution`. No branch, no checklist, no code yet.
+- **[LIQUID_VOLUME_MODELS.md](LIQUID_VOLUME_MODELS.md)** — 2026-11-03.
+  Refines the liquid-volume decision and the `variable-liquid-volume` phase of
+  `MASS_BALANCE_CLOSURE.md`. Treats volume as a thermodynamic property of a
+  liquid's contents (partial molar volumes, excess volume of mixing), in its
+  own modelling area `thermo/liquid/volume/` parallel to the gas equations of
+  state, with a `LiquidVolumeModel` protocol and models in order: ideal
+  mixing, apparent molar volume, Redlich–Kister, Pitzer. The volume model is
+  the single source of truth and density is derived from it. Decided: `V_L`
+  stays stored on the phase and is refreshed from the model after each change
+  to the contents, including in the adaptive solver's right-hand side. Five
+  open questions. No branch, no checklist, no code yet.
 - **[PHCONTROLLER_CORRECTOR_VALIDATION.md](PHCONTROLLER_CORRECTOR_VALIDATION.md)** —
   2026-09-17. Surfaced while fixing `tutorials-followups` checkpoint 3
   (`raw_construction.py`'s pH runaway): `PHController` should warn when its
