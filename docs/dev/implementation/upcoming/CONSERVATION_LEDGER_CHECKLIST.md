@@ -1,6 +1,7 @@
 # Phase Kickoff Checklist — conservation-ledger
 
-> **Status: draft for approval, revised 2026-10-07** with the decisions agreed
+> **Status: approved by the repo owner 2026-11-07; not started.** Revised
+> 2026-10-07 with the decisions agreed
 > that day (see "Agreed"), **and 2026-11-07** against `main` at `546c776`:
 > the persistent integrator (#7) and the NR solver fixes (#1, #3 to #5) since
 > the audit, what phase 2
