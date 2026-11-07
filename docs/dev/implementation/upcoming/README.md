@@ -841,31 +841,36 @@ shipping tags.  The convention is:
    start of a phase (e.g. `git checkout -b chemistry-unification`).
    All implementation, doc updates, and intermediate commits land on
    that branch.  Push it to `origin` so the work is backed up.
-2. **Merge with `--no-ff` when shipping.**  Once the checklist is
-   complete and tests are green, merge the branch into `main` with
-   an explicit merge commit:
+2. **Merge through a pull request when shipping.**  Once the
+   checklist is complete and tests are green, open a pull request
+   against `EEGR-code/PyOMES` and merge it with a merge commit, which
+   keeps the phase boundary visible in `git log` as a fork-and-rejoin
+   shape (what `--no-ff` did for local merges):
    ```
-   git checkout main
-   git merge --no-ff <phase-branch> -m "Merge <phase-branch>: <one-line summary>"
+   gh pr create --repo EEGR-code/PyOMES --base main --head <phase-branch> --title "..." --body "..."
+   gh pr merge <n> --repo EEGR-code/PyOMES --merge
    ```
-   The `--no-ff` flag keeps the phase boundary visible in `git log`
-   as a fork-and-rejoin shape, even when a fast-forward would
-   otherwise be possible.
-3. **Tag the shipping commit.**  Create an immovable named pointer
-   on the phase's final commit so it can be checked out later by
+3. **Confirm the merge before anything else.**
+   `gh pr view <n> --repo EEGR-code/PyOMES --json state` must print
+   `MERGED`. Deleting the branch while its pull request is still open
+   closes the request unmerged, and `git branch -d` does not prevent
+   it: it accepts a branch that matches its remote copy.
+4. **Tag the merge commit.**  Bring `main` up to date and create an
+   immovable named pointer so the phase can be checked out later by
    name:
    ```
-   git tag <phase-name>-shipped <commit-hash>
+   git switch main
+   git pull
+   git tag <phase-name>-shipped
+   git push origin <phase-name>-shipped
    ```
    Use names like `phase-7-shipped`, `chemistry-unification-shipped`,
    etc.  These appear on the GitHub "Tags" page and are addressable
-   via URLs like `https://github.com/.../tree/<tag-name>`.
-4. **Push the branch *and* the tags.**  `git push` ships the merge;
-   `git push --tags` ships the tag.  Both are needed — tags are not
-   pushed by default.
-5. **Delete the feature branch after merge.**  The work now lives on
-   `main` and is permanently addressable via the tag, so the branch
-   pointer is redundant:
+   via URLs like `https://github.com/.../tree/<tag-name>`. Tags are
+   not pushed by default, hence the explicit push.
+5. **Delete the feature branch after the merge is confirmed.**  The
+   work now lives on `main` and is permanently addressable via the
+   tag, so the branch pointer is redundant:
    ```
    git branch -d <phase-branch>
    git push origin --delete <phase-branch>

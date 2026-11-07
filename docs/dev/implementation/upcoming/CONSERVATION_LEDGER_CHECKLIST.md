@@ -1,8 +1,13 @@
 # Phase Kickoff Checklist — conservation-ledger
 
 > **Status: draft for approval, revised 2026-10-07** with the decisions agreed
-> that day (see "Agreed"). No branch, no code. Phase 1 of
-> [`MASS_BALANCE_CLOSURE.md`](MASS_BALANCE_CLOSURE.md).
+> that day (see "Agreed"), **and 2026-11-07** against `main` at `546c776`:
+> the persistent integrator (#7) and the NR solver fixes (#1, #3 to #5) since
+> the audit, what phase 2
+> ([`LIQUID_VOLUME_MODELS.md`](LIQUID_VOLUME_MODELS.md)) needs from the
+> record, and shipping through pull requests. No branch, no code. Phase 1 of
+> [`MASS_BALANCE_CLOSURE.md`](MASS_BALANCE_CLOSURE.md), followed by
+> `variable-liquid-volume` and then `engine-closure`.
 
 > Checklist for the `conservation-ledger` phase of
 > [`MASS_BALANCE_CLOSURE.md`](MASS_BALANCE_CLOSURE.md), the source of truth for
@@ -30,6 +35,10 @@ neutral; after this phase the monitor says so, by name and amount.
   exception, the adaptive solver in checkpoint 3c. What changes elsewhere is
   which warnings are raised; each checkpoint records the warnings before and
   after, per case. An unexplained shift stops the checkpoint.
+- **"Clamp" means the mass clamp.** In this checklist a clamp is a step
+  solver's `clamp_fn` (and `proportional_clamp`), which changes amounts. The
+  NR solver's limits on its log-activity iterates and Newton step (#1, #3,
+  #4) are a different thing, inside one solve, and are not touched.
 - **Measurement.** A scratchpad script (`ledger_fingerprint.py`, not committed)
   builds and runs fixed cases and records every phase's `n_mol` trajectory, pH,
   the warnings raised by category and, from checkpoint 3, the record's totals
@@ -63,10 +72,21 @@ neutral; after this phase the monitor says so, by name and amount.
       entry follows
 - [ ] `OPEN_WORK.md` gains the three items logged by the audit and the
       decisions: `ProportionalGasOutlet.last_water_loss_mol_per_h` is read by
-      nothing; the flux guards that conserve; whether `clamp_fn` should exist
+      nothing (fixed in `variable-liquid-volume` checkpoint 5, so the entry
+      says so); the flux guards that conserve; whether `clamp_fn` should exist
       at all (next to the open question on what an explicit clamp should do)
 - [ ] `git status -sb` clean
 - [ ] Baseline full suite recorded here (pass / fail / xfail counts)
+- [ ] The scratchpad scripts are written again: the 2026-10-07 copies of
+      `clamp_audit.py`, `balance_audit.py` and `ledger_fingerprint.py` were in
+      an earlier session's scratchpad and no longer exist. Each is described
+      in the Working rules and Notes below
+- [ ] The audit re-run on current `main`: the clamp table, the preview with
+      the clamp off and the balance table in Notes, and the closure note's
+      "Measurements" that checkpoint 1's markers carry. Every number that moved
+      since `99d7f7a` is recorded in Notes with its cause (the persistent
+      integrator, the NR fixes). Checkpoint 1 uses these numbers, not the
+      older ones
 - [ ] Baseline measurement captured, and a second capture compares identical
 
 ## Checkpoints
@@ -112,10 +132,21 @@ neutral; after this phase the monitor says so, by name and amount.
         `apply_external_flux`, inter-CV links); every caller is updated.
         `ControlVolume._integrate_reactions` is deleted.
   - [ ] **2d. The adaptive solver's final state.** The floor on the state
-        written back after `solve_ivp` goes; a negative end amount warns as in
+        written back after a step goes; a negative end amount warns as in
         2b. The trial state stays as it is: rates are evaluated at the
         non-negative part of each trial state, which does not add or remove
         material, and the solver's docstring says so.
+
+        Re-audited first against the persistent integrator (#7). The success
+        path now writes back `integrand.floor(y_end)` (`solve_step` in
+        `core/solvers.py`); `unpack(y0_copy, floor=True)` remains on the
+        retry and restore paths. A running integrator carries on from its own
+        unfloored state while the phases hold the floored one, so the floor's
+        material appears at write-back and is gone again in the next step
+        without passing through anything the record would see. The audit
+        lists every floor on these paths, which go and which stay (a restored
+        state that was never negative needs none), and checks that
+        `_PersistentRun.can_continue` still matches the written-back state.
   - [ ] **2e. The models that rested on the clamp.** The tutorials, as settled
         below with the 2a list in hand. BSM2's
         `test_concentrations_non_negative` exempts `H2O` until BSM2 carries its
@@ -136,7 +167,15 @@ neutral; after this phase the monitor says so, by name and amount.
       are derived from the entries with `cv.species`. Nothing is declared by
       the user. Every entry holds the change as computed; when a clamp was
       passed, one clamp entry holds the difference between what was applied
-      and what was computed. Four commits:
+      and what was computed.
+
+      Two properties `variable-liquid-volume` relies on, so they are built in
+      here: **entries are kept one per source and never netted** before they
+      are stored, because that phase's monitor threshold is scaled on each
+      step's gross turnover (the sum of the entries' magnitudes per element),
+      which netting would lose; and **the source kind is open**, not a closed
+      set, because that phase adds a make-up source (`make_up_to`) and an
+      evaporation debit on `ProportionalGasOutlet`. Four commits:
   - [ ] **3a. The record and the sequential solver.** The entry type and the
         per-CV record; `SequentialAdvanceSolver` writes an entry for
         `external_source_terms`, for each boundary, for the engine write-back
@@ -154,10 +193,16 @@ neutral; after this phase the monitor says so, by name and amount.
   - [ ] **3c. The `solve_ivp` solvers.** `SimultaneousAdaptiveSolver`
         integrates each state-dependent boundary's running total as an extra
         state (a vent, drain, membrane or gas outlet; constant-rate sources
-        are rate × time), so each boundary's entry is exact. The shift this
-        causes in adaptive runs that have such boundaries is measured and
-        shown to the owner before the commit; a control volume without one is
-        bit-identical. `MonolithicODESolver` gets no extra state: it has no
+        are rate × time), so each boundary's entry is exact. Under the
+        persistent integrator (#7) these states live in the running
+        integrator across macro steps: each step's entry is the change in the
+        running total over that step, and a restart (when `can_continue`
+        fails) starts the totals from the record, not from zero. The extra
+        states also enter the integrator's error control, so step sizes can
+        change. The shift this causes in adaptive runs that have such
+        boundaries is measured and shown to the owner before the commit, both
+        when the integrator persists and when it restarts every step; a
+        control volume without one is bit-identical. `MonolithicODESolver` gets no extra state: it has no
         boundaries, and its links cancel in the simulation-wide total that
         checkpoint 4 checks.
   - [ ] **3d. Cumulative totals.** Each boundary, link and dosing controller
@@ -189,7 +234,9 @@ neutral; after this phase the monitor says so, by name and amount.
       at the first `advance` of an unowned control volume.
       `equilibrate_to_pH` keeps resetting the baseline. The check on the
       liquid's absolute net charge stays as it is. Thresholds and the
-      `throttle` setting unchanged. The recorder stores each step's imbalance
+      `throttle` setting unchanged (`variable-liquid-volume` trials a
+      threshold on turnover once liquids hold their water; this phase does not
+      change it). The recorder stores each step's imbalance
       by source, so every step can be read after a run whatever was warned.
       `ConservationWarning` messages are rewritten; tests that match their
       text are found first. Sanity: `test_conservation_monitor.py` rewritten
@@ -220,7 +267,9 @@ neutral; after this phase the monitor says so, by name and amount.
       the check for unresolved species, every reaction is checked over every
       element its species carry and over charge, whatever `balance_elements`
       says, and one warning lists each reaction that does not close with its
-      residuals. Sanity: the warning names BSM2's three reactions, ADM1's
+      residuals. The warning is `UnbalancedReactionWarning`, a new
+      `UserWarning` subclass next to `ConservationWarning` (see "Agreed").
+      Sanity: the warning names BSM2's three reactions, ADM1's
       thirteen and the template's CHO growth, with the elements and residuals
       of the audit; every other reaction in the repo is silent, or listed with
       the reason; BSM2's and ADM1's docstrings say they implement the
@@ -232,7 +281,8 @@ neutral; after this phase the monitor says so, by name and amount.
 - [ ] **7. Close-out.** `docs/solvers.md`, `docs/architecture.md`, the
       `monitoring/` and `core/clamping.py` docstrings and the `SolverProtocols`
       notebooks describe the monitor, the record and the clamp as they now
-      are; `OPEN_WORK.md` entries this phase resolves are removed or cut down
+      are, keeping the mass clamp and the NR solver's iterate limits apart in
+      their wording; `OPEN_WORK.md` entries this phase resolves are removed or cut down
       ("The conservation monitor does not net out boundary flows", "Some
       inventory floors are silent", "Amounts are kept non-negative by
       default", keeping its open question on what an explicit clamp should
@@ -285,6 +335,18 @@ With the repo owner, 2026-10-07, while reviewing the first draft.
 - **BSM2's non-negativity test** exempts `H2O` until phase 2, unless seeding
   water now is shown to be free.
 
+With the repo owner, 2026-11-07.
+
+- **The warning category for checkpoint 6** is a new `UserWarning` subclass,
+  `UnbalancedReactionWarning`, next to `ConservationWarning`. The
+  definition-time warning is about how a model is written; the monitor's is a
+  run-time check of the books. Kept apart, a user can silence BSM2's and
+  ADM1's known benchmark imbalances without silencing the monitor.
+- **What phase 2 needs from the record** (checkpoint 3): entries kept one per
+  source and never netted, and an open source kind.
+- **Shipping goes through a pull request** to `EEGR-code/PyOMES`, and the
+  branch is deleted only once the merge is confirmed (see "Shipping").
+
 ## To settle
 
 **Before 2e: the tutorials whose results rest on the clamp** (numbers in the
@@ -292,12 +354,21 @@ audit below). For each tutorial on the 2a list: run as given and warn, give
 the model the missing limitation, or pass a clamp explicitly.
 
 **Before 3c is committed: the adaptive solver's shift.** The owner sees the
-measured shift in adaptive runs that have a state-dependent boundary.
-
-**Before checkpoint 6: the warning's category.** A new `UserWarning` subclass
-next to `ConservationWarning` (proposed), or `ConservationWarning` itself.
+measured shift in adaptive runs that have a state-dependent boundary, with
+the integrator persisting and restarting.
 
 ## Notes
+
+**Re-checked 2026-11-07, `main` at `546c776`.** Read from the code, not
+measured: the numbers below are re-measured at pre-flight. 33 commits since
+the audit; the code changes are in `core/solvers.py` (the persistent
+integrator, #7), the NR engine and solver (#1, #3 to #5),
+`control/descriptors.py` (a parameter-change counter the persistent
+integrator reads) and `core/simulation.py`. In the table below, "Adaptive
+solver's final floor" now reads `integrand.floor(y_end)` on success and
+`unpack(floor=True)` on retry and restore; the rest of the table and of the
+findings still hold. Phase 2 (`variable-liquid-volume`) fixes the gas
+outlet's water loss.
 
 **Audit before drafting (2026-10-07, `main` at `99d7f7a`).** Read from the
 code, then measured with two scratchpad scripts (`clamp_audit.py`,
@@ -404,11 +475,19 @@ clamps an inhibitor in the runs measured.
 ## Shipping
 
 - [ ] Full test suite green on the branch
-- [ ] `git switch main`
-- [ ] `git merge --no-ff conservation-ledger -m "Merge conservation-ledger: <summary>"`
-- [ ] `git tag conservation-ledger-shipped`
-- [ ] `git push origin main` and `git push origin conservation-ledger-shipped`
-- [ ] `git push origin --delete conservation-ledger`, then `git branch -d conservation-ledger`
+- [ ] Branch pushed: `git push`
+- [ ] Pull request opened against `EEGR-code/PyOMES` (`gh pr create --repo
+      EEGR-code/PyOMES --base main --head conservation-ledger ...`) and merged
+      with a merge commit (`gh pr merge <n> --repo EEGR-code/PyOMES --merge`)
+- [ ] Merge confirmed: `gh pr view <n> --repo EEGR-code/PyOMES --json state`
+      prints `MERGED`. Nothing below runs before this: deleting the branch
+      while its pull request is open closes the request unmerged
+- [ ] `git switch main`, then `git pull`; `git log --oneline -1` shows the
+      merge commit
+- [ ] `git tag conservation-ledger-shipped`, then
+      `git push origin conservation-ledger-shipped`
+- [ ] `git branch -d conservation-ledger`, then
+      `git push origin --delete conservation-ledger`
 - [ ] Move this checklist to `docs/dev/implementation/shipped/` with a
       "Shipped" banner; the design note stays in `upcoming/` until its third
       phase ships
