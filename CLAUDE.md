@@ -52,8 +52,9 @@ rules on top of these; they do not need to repeat them.
   Should I try again? (y/n)": answer `y`. Run no git command while a commit may be
   waiting.
 - Larger work follows the phase convention in
-  `docs/dev/implementation/upcoming/README.md` (feature branch, `--no-ff` merge,
-  `<name>-shipped` tag). Small changes can use a plain branch without a design
+  `docs/dev/implementation/upcoming/README.md` (feature branch, merged through a
+  pull request with a merge commit, `<name>-shipped` tag). A branch is deleted
+  only after `gh pr view` shows its pull request `MERGED`. Small changes can use a plain branch without a design
   note or checklist. Older `*-shipped` tags cited in the docs predate GitHub and
   do not exist in git; do not flag them.
 - Pull requests target `EEGR-code/PyOMES` (`origin`), never `MGuo-Lab/PyOMES`

@@ -34,10 +34,14 @@
 ## Shipping
 
 - [ ] Full test suite green on the branch
-- [ ] `git checkout main`
-- [ ] `git merge --no-ff <phase-branch> -m "Merge <phase-branch>: <summary>"`
-- [ ] `git tag <phase-name>-shipped <commit-hash>`
-- [ ] `git push && git push --tags` (both — tags are not pushed by default)
+- [ ] Branch pushed: `git push`
+- [ ] Pull request opened against `EEGR-code/PyOMES` and merged with a merge
+      commit: `gh pr merge <n> --repo EEGR-code/PyOMES --merge`
+- [ ] Merge confirmed: `gh pr view <n> --repo EEGR-code/PyOMES --json state`
+      prints `MERGED`. Nothing below runs before this: deleting the branch
+      while its pull request is open closes the request unmerged
+- [ ] `git switch main`, then `git pull`
+- [ ] `git tag <phase-name>-shipped`, then `git push origin <phase-name>-shipped`
 - [ ] `git branch -d <phase-branch>` and
       `git push origin --delete <phase-branch>`
 - [ ] Move the plan doc + this checklist to `docs/dev/implementation/shipped/`, add a
