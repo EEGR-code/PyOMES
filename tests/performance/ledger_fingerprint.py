@@ -386,6 +386,10 @@ def command_compare(path_a, path_b):
 
 
 def main():
+    # Library messages print arrows; a redirected Windows console is cp1252.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
     cap = sub.add_parser("capture")

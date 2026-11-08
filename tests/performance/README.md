@@ -21,6 +21,13 @@ like the benchmark:
 - `ledger_fingerprint.py`: runs the phase's fixed cases and writes every
   amount, pH and warning to a JSON file (`capture`), and compares two such
   files bit for bit (`compare`). Output files are not committed.
+- `clamp_audit.py`: records every clamp and floor that changes an amount (the
+  step solvers' `clamp_fn`, the phase floors, the adaptive solver's floors),
+  over the fingerprint's cases, Python scripts, notebooks, or the test suite
+  as a pytest plugin. `--no-clamp` and `--no-trial-floor` measure what
+  depends on them.
+- `balance_audit.py`: the element and charge residual of every reaction in the
+  repo's models, whatever each reaction's `balance_elements` says.
 
 `demos/usecases/04_compare_runtime_by_usecase.ipynb`, which used to hold
 engine-vs-engine comparisons, was deleted rather than migrated (see

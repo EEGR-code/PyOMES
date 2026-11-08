@@ -92,11 +92,18 @@ neutral; after this phase the monitor says so, by name and amount.
       2292 passed, 87 skipped, 2 xfailed, 420 warnings, 0 failed (owner's
       terminal, 101 s, 2026-11-07). Run with `py -m pytest`: in the owner's
       PowerShell, `python` is a Python 3.12 without pytest
-- [ ] The measurement scripts written again and committed in
+- [x] The measurement scripts written again and committed in
       `tests/performance/` (decided 2026-11-08): the 2026-10-07 copies of
       `clamp_audit.py`, `balance_audit.py` and `ledger_fingerprint.py` were in
       an earlier session's scratchpad and no longer exist. Each is described
-      in the Working rules and Notes below
+      in the Working rules and Notes below. Checked against the 2026-10-07
+      numbers where they overlap, all reproduced: BSM2 clamps `H2O` in 100 of
+      100 steps (2.0e-6 mol); the fed-batch configuration clamps O2 in 39
+      steps (0.870 mol); `raw_construction.py` clamps `AceticAcid` in 145
+      steps (1.1e-4 mol); the balance table, every row. On the iron
+      feed-and-drain case of `bench_adaptive_solver.py`, `persistent=False`
+      floors trial states 29 times (`Fe(OH)2+`, `FeOH2+`) and the final state
+      once, and `persistent=True` floors nothing
 - [ ] The audit re-run on current `main`: the clamp table, the preview with
       the clamp off and the balance table in Notes, and the closure note's
       "Measurements" that checkpoint 1's markers carry. Every number that moved
