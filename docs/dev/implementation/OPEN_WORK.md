@@ -93,6 +93,15 @@ and working its checkpoints, not fixed.
   anaerobic-digestion database has no Ethanol partition model, so the
   factory raises `ValueError: No partition model for 'Ethanol'`. No test
   or notebook passes `ethanol=True`.
+- **ADM1's pH sees only the strong ions.** Found 2026-11-08 while writing
+  `tests/performance/ledger_fingerprint.py`. `build_adm1_reactions` declares
+  the water equilibrium and the CO2 and H2S gas partitions, and no acid–base
+  equilibrium for acetate, the other acids, CO2 or ammonia (a comment in
+  `build_adm1_cv` defers them to a later chemistry phase). So the engine finds
+  pH from Na+ and Cl- alone: with `seed_adm1_strong_ions(CT_Na=0.100,
+  CT_Cl=0.030)` and 1e-2 mol/L acetate, 2e-2 CO2 and 2e-2 NH3 in the liquid,
+  pH is 12.635 and does not move over 0.2 h. ADM1's pH-inhibition terms read
+  that value. BSM2, which is separate, declares its acid–base equilibria.
 - **The stirred-tank template's pH controller never doses.** A tank built by
   `StirredTankBuilder` carries no acid-base equilibria: the database is used
   only for partition models, and the reaction system is the growth reaction

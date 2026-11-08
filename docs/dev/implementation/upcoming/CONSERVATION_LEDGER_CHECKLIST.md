@@ -40,8 +40,13 @@ neutral; after this phase the monitor says so, by name and amount.
   solver's `clamp_fn` (and `proportional_clamp`), which changes amounts. The
   NR solver's limits on its log-activity iterates and Newton step (#1, #3,
   #4) are a different thing, inside one solve, and are not touched.
-- **Measurement.** A scratchpad script (`ledger_fingerprint.py`, not committed)
-  builds and runs fixed cases and records every phase's `n_mol` trajectory, pH,
+- **Measurement scripts are committed** in `tests/performance/` (run by hand,
+  not collected by pytest, like `bench_adaptive_solver.py`), so they survive
+  between sessions and the owner can re-run them. Their output is not
+  committed; the numbers that matter are recorded in Notes. Run with `py`
+  from the repo root.
+- **Measurement.** `tests/performance/ledger_fingerprint.py` builds and runs
+  fixed cases and records every phase's `n_mol` trajectory, pH,
   the warnings raised by category and, from checkpoint 3, the record's totals
   by source. Cases: the user-defined model of
   `tests/standalone/test_user_defined_model.py` under the Bisection and NR
@@ -53,9 +58,13 @@ neutral; after this phase the monitor says so, by name and amount.
   (2 h in 100 steps); and two control volumes joined by an advective link, under
   the default system solver and each of the others. The six BSM2 sentinel tests
   are the regression check for BSM2.
-- **Clamp recorder.** The scratchpad module `clamp_audit.py` (written for the
-  audit below; a pytest plugin and a script runner) records every clamp and
-  floor that fires. It is used throughout checkpoint 2.
+- **Clamp recorder.** `tests/performance/clamp_audit.py` (a pytest plugin and
+  a script runner) records every clamp and floor that fires. It is used
+  throughout checkpoint 2. It reuses the guard counting of
+  `bench_adaptive_solver.py clamps` where that fits.
+- **Balance audit.** `tests/performance/balance_audit.py` checks every
+  reaction of the repo's models over every element its species carry and over
+  charge, for the Notes' balance table and checkpoint 6.
 - One checkpoint at a time: full suite first (owner), edit, sanity checks and
   measurement, report as it is, record notes here, stop, hand over the commit
   commands. The next checkpoint starts when told to. Edits are shown one per
@@ -83,7 +92,8 @@ neutral; after this phase the monitor says so, by name and amount.
       2292 passed, 87 skipped, 2 xfailed, 420 warnings, 0 failed (owner's
       terminal, 101 s, 2026-11-07). Run with `py -m pytest`: in the owner's
       PowerShell, `python` is a Python 3.12 without pytest
-- [ ] The scratchpad scripts are written again: the 2026-10-07 copies of
+- [ ] The measurement scripts written again and committed in
+      `tests/performance/` (decided 2026-11-08): the 2026-10-07 copies of
       `clamp_audit.py`, `balance_audit.py` and `ledger_fingerprint.py` were in
       an earlier session's scratchpad and no longer exist. Each is described
       in the Working rules and Notes below
@@ -93,7 +103,22 @@ neutral; after this phase the monitor says so, by name and amount.
       since `99d7f7a` is recorded in Notes with its cause (the persistent
       integrator, the NR fixes). Checkpoint 1 uses these numbers, not the
       older ones
-- [ ] Baseline measurement captured, and a second capture compares identical
+- [x] Baseline measurement captured, and a second capture compares identical
+      (2026-11-08, code at `e561a2a`): all 27 cases of `ledger_fingerprint.py`
+      run without error, and the two captures are bit-identical. `compare`
+      was checked to catch a one-ulp change and one extra warning. The capture
+      files are not committed; the code they measure is unchanged until
+      checkpoint 1, so the baseline is re-captured from that commit when a
+      later session needs it. Two cases differ from the checklist's
+      description, by necessity: the ADM1 case seeds its own starting state
+      (`ADM1_INITIAL_MOL_L`; the repo has none, and the smoke test it came from
+      seeds only strong ions), and the batch tank is the fed-batch tank
+      without its feed (`batch_fermenter.py` seeds nothing, so nothing grows).
+      Both tanks report pH as NaN: the template's liquid declares no pH
+      equilibria (`OPEN_WORK.md`, "The stirred-tank template's pH controller
+      never doses"). ADM1's pH stays at 12.635 because it sees only the strong
+      ions (`OPEN_WORK.md`, "ADM1's pH sees only the strong ions", logged
+      today)
 
 ## Checkpoints
 
@@ -309,7 +334,10 @@ neutral; after this phase the monitor says so, by name and amount.
       default", keeping its open question on what an explicit clamp should
       do); `MASS_BALANCE_CLOSURE.md` gains this phase's measurements and what
       they change for phases 2 and 3; `RESERVOIR_TYPE.md` §3.1 notes that the
-      per-boundary total exists. Sanity: relative links resolve; suite green.
+      per-boundary total exists. The three measurement scripts in
+      `tests/performance/` are reviewed: kept, with docstrings that describe
+      them as they now are, or removed if nothing later needs them. Sanity:
+      relative links resolve; suite green.
 
 ## Agreed
 
