@@ -150,6 +150,35 @@ neutral; after this phase the monitor says so, by name and amount.
       marker's number reproduced by the measurement; suite green; measurement
       unchanged.
 
+      *Done 2026-11-08.* 35 tests: 11 pass, 24 strict expected failures.
+      Pass: C and charge in every case and Na with the dose under Bisection;
+      Na with the dose under NR; one check that the feed, vent and dose cases
+      move material. Expected failures: H and O under Bisection (water not
+      booked: +4.7e-6 mol H, +4.3e-8 relative; with the dose, the forced
+      neutrality: 5.0e-3 mol OH- dosed, −9.9e-3 mol H and −4.95e-3 mol O);
+      C, H and O under NR (water reset to 55.509 mol/L and the residual
+      tolerance: H and O +1.5e-4 relative, +6.4e-5 with the dose; C +1.5e-8
+      to +2.4e-8); charge under NR (−4e-14 mol, −4e-13 with the dose).
+      Decisions taken in writing them:
+      - The baseline is taken before the first solve, as the monitor's will
+        be (checkpoint 4), so the first solve is checked too. That is why the
+        numbers differ from the closure note's "Measurements", which start
+        after it: Bisection's H is +4.3e-8 here against +2.5e-8 there (the
+        first solve also forms HCO3-), and NR's is +1.5e-4 against −2.1e-5
+        (its first solve resets the 55.5 mol of water given to 55.509 mol).
+      - The tolerance is 1e-12 of the larger of the total before and after;
+        for charge, which starts at zero, of the ionic inventory
+        (sum of |z|·n).
+      - All four cases run through `Simulation` (the dose needs a
+        controller); the dose is recorded where it reaches
+        `ControlVolume.apply_external_flux`.
+      - The user-defined model is loaded from `test_user_defined_model.py`
+        by path: the suite does not make test modules importable by name.
+      Sanity: every marker's number from a scratch measurement of the same
+      cases; `ledger_fingerprint.py` bit-identical to the baseline in all 27
+      cases; this file and `test_user_defined_model.py` 45 passed, 26 xfailed.
+      Full suite: (owner)
+
 ### Non-negativity
 
 - [ ] **2. No clamp by default; no silent floor.** Results change here. A
