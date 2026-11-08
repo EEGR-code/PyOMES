@@ -82,7 +82,10 @@ that still describe open work are "Open phases" and the pending stages in
   phases, each with its own branch and checklist, run in that order:
   `conservation-ledger`, `variable-liquid-volume` (owned by
   `LIQUID_VOLUME_MODELS.md` since 2026-11-03), `engine-closure`. Follows
-  `explicit-species-resolution`. No branch, no checklist, no code yet.
+  `explicit-species-resolution`. Phase 1 started 2026-11-07 on the
+  `conservation-ledger` branch, with its checklist
+  [CONSERVATION_LEDGER_CHECKLIST.md](CONSERVATION_LEDGER_CHECKLIST.md);
+  phases 2 and 3 not started.
 - **[LIQUID_VOLUME_MODELS.md](LIQUID_VOLUME_MODELS.md)** — 2026-11-03.
   Owns the `variable-liquid-volume` phase (phase 2) of
   `MASS_BALANCE_CLOSURE.md`, run after `conservation-ledger` and before

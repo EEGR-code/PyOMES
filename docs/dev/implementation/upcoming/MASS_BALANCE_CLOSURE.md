@@ -1,7 +1,9 @@
 # Mass Balance Closure — Design Note
 
-> **Status:** design settled, not yet started. No branch, no checklist, no
-> code.
+> **Status:** design settled. Phase 1 (`conservation-ledger`) started
+> 2026-11-07 on its branch, with its checklist
+> [CONSERVATION_LEDGER_CHECKLIST.md](CONSERVATION_LEDGER_CHECKLIST.md);
+> phases 2 and 3 not started.
 >
 > - **Written:** 2026-10-01.
 > - **Audited against the code and measured:** 2026-10-02, main at `cf1c572`.
@@ -289,29 +291,33 @@ which result.
 ### 1. `conservation-ledger`
 
 Leaves a monitor that reports only genuine imbalances, with their source,
-under every step solver. Results unchanged except in the last checkpoint.
+under every step and system solver. Results change only in checkpoint 2.
+In progress; the checklist
+[CONSERVATION_LEDGER_CHECKLIST.md](CONSERVATION_LEDGER_CHECKLIST.md) holds
+the detail and wins where the two differ. In its order:
 
 1. Closure tests per engine (plain, with a feed, a vent, a dose) as strict
    expected failures carrying today's numbers.
-2. The control volume records the element and charge flux of every external
-   change, after any clamp: boundaries, source terms, controller doses,
-   inter-CV links. The engine write-back and the clamp are recorded as named
-   sources. The record is kept automatically: the user declares no source or
-   sink objects for accounting's sake. Each boundary also keeps a cumulative
-   total of what it applied, for auditing (how much left through a vent). This
-   is the accounting that [RESERVOIR_TYPE.md](RESERVOIR_TYPE.md) §3.1 asks
-   for, without its `Reservoir` type or `FlowBoundary` protocol; the
-   per-boundary total is kept as its own small record so a later `Reservoir`
-   can adopt it. The existing `ExternalFluxRecord` and `LinkFlowRecord` are
-   reused where they fit.
-3. The monitor compares the change in totals with the recorded flux; its
-   baseline is taken before the first solve.
-4. The monitor is active for every control volume and every step solver.
-5. A reaction that does not balance its elements warns at definition. How
-   BSM2's reactions pass the existing balance check is looked at first.
-6. No clamp by default, and the silent floors off or warned. Which runs clamp
+2. No clamp by default, and the silent floors off or warned. Which runs clamp
    today and what each rate law does with a negative concentration are checked
    first; results are measured before and after.
+3. The control volume records every change to its contents, after any clamp:
+   boundaries, source terms, controller doses, inter-CV links, reactions,
+   internal transfer, the engine write-back and a passed clamp, one entry per
+   source. The record is kept automatically: the user declares no source or
+   sink objects for accounting's sake. Each boundary, link and dosing
+   controller also keeps a cumulative total of what it moved, for auditing
+   (how much left through a vent). This is the accounting that
+   [RESERVOIR_TYPE.md](RESERVOIR_TYPE.md) §3.1 asks for, without its
+   `Reservoir` type or `FlowBoundary` protocol; the per-boundary total is kept
+   as its own small record so a later `Reservoir` can adopt it. The existing
+   `ExternalFluxRecord` and `LinkFlowRecord` are reused where they fit.
+4. The monitor compares the change in totals with the record; its baseline is
+   taken before the first solve.
+5. The monitor is active for every control volume and every step and system
+   solver.
+6. A reaction that does not balance its elements warns, once, when a control
+   volume first advances.
 7. Close-out.
 
 ### 2. `variable-liquid-volume`

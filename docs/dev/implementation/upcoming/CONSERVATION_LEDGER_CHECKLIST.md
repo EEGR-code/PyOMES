@@ -66,18 +66,23 @@ neutral; after this phase the monitor says so, by name and amount.
 
 ## Pre-flight
 
-- [ ] Branch created off current `main`: `conservation-ledger`
-- [ ] This checklist committed on the branch
-- [ ] `MASS_BALANCE_CLOSURE.md`: status line updated (phase 1 started), its
+- [x] Branch created off current `main`: `conservation-ledger` (at `6bbe1e6`,
+      2026-11-07)
+- [x] This checklist committed on the branch (it came with `main`, approved
+      in #11)
+- [x] `MASS_BALANCE_CLOSURE.md`: status line updated (phase 1 started), its
       phase 1 list follows this checklist's order, and its `upcoming/README.md`
       entry follows
-- [ ] `OPEN_WORK.md` gains the three items logged by the audit and the
+- [x] `OPEN_WORK.md` gains the three items logged by the audit and the
       decisions: `ProportionalGasOutlet.last_water_loss_mol_per_h` is read by
       nothing (fixed in `variable-liquid-volume` checkpoint 5, so the entry
       says so); the flux guards that conserve; whether `clamp_fn` should exist
       at all (next to the open question on what an explicit clamp should do)
 - [ ] `git status -sb` clean
-- [ ] Baseline full suite recorded here (pass / fail / xfail counts)
+- [x] Baseline full suite recorded here (pass / fail / xfail counts):
+      2292 passed, 87 skipped, 2 xfailed, 420 warnings, 0 failed (owner's
+      terminal, 101 s, 2026-11-07). Run with `py -m pytest`: in the owner's
+      PowerShell, `python` is a Python 3.12 without pytest
 - [ ] The scratchpad scripts are written again: the 2026-10-07 copies of
       `clamp_audit.py`, `balance_audit.py` and `ledger_fingerprint.py` were in
       an earlier session's scratchpad and no longer exist. Each is described
@@ -121,7 +126,11 @@ neutral; after this phase the monitor says so, by name and amount.
         every test, tutorial and notebook where a clamp or floor fires, every
         test that asserts a non-negative amount, what each rate law in the
         tutorials and notebooks does with a negative concentration, and what
-        the two engines do with a negative total. No code.
+        the two engines do with a negative total. With the adaptive solver's
+        trial floor patched off in a scratch run (as the 2026-10-07 preview
+        did for the clamp), the notes also list every run that then produces a
+        `NaN`, a failed solve, a step failure or a negative accepted amount,
+        and the rate law or engine path responsible. No code.
   - [ ] **2b. The step solvers' default.** `SequentialAdvanceSolver` and
         `SimultaneousEulerSolver` take `clamp_fn=None` by default; a clamp is
         something the user passes. A negative amount warns, naming the
@@ -132,11 +141,20 @@ neutral; after this phase the monitor says so, by name and amount.
         parameter and no longer floors (internal transfer,
         `apply_external_flux`, inter-CV links); every caller is updated.
         `ControlVolume._integrate_reactions` is deleted.
-  - [ ] **2d. The adaptive solver's final state.** The floor on the state
-        written back after a step goes; a negative end amount warns as in
-        2b. The trial state stays as it is: rates are evaluated at the
-        non-negative part of each trial state, which does not add or remove
-        material, and the solver's docstring says so.
+  - [ ] **2d. The adaptive solver's floors.** Both go (see "Agreed",
+        2026-11-08). The floor on the state written back after a step goes;
+        a negative end amount warns as in 2b. The floor on each trial state
+        (`floor_nonnegative` in `_build_integrand`, with its exemption of
+        engine-resolved species under `persistent=True`) goes too: rates,
+        boundary fluxes and the engine see the integrator's own trial state.
+        Each engine gets a defined response to a negative total in place of
+        whatever it does today (2a records that): a total negative only at
+        roundoff is read as zero, and a larger one raises or warns naming the
+        component, never silently; the threshold is settled before this
+        commit. The solver's docstring says that keeping amounts in range is
+        the rate laws' and the tolerances' job, and that a rate law guards its
+        own domain explicitly where it must (as the built-in ones do for a
+        substrate at or below zero).
 
         Re-audited first against the persistent integrator (#7). The success
         path now writes back `integrand.floor(y_end)` (`solve_step` in
@@ -145,9 +163,11 @@ neutral; after this phase the monitor says so, by name and amount.
         unfloored state while the phases hold the floored one, so the floor's
         material appears at write-back and is gone again in the next step
         without passing through anything the record would see. The audit
-        lists every floor on these paths, which go and which stay (a restored
-        state that was never negative needs none), and checks that
+        lists every floor on these paths (all go; a restored state that was
+        never negative needs none), and checks that
         `_PersistentRun.can_continue` still matches the written-back state.
+        Results move for adaptive runs; measured before and after, both with
+        the integrator persisting and restarting.
   - [ ] **2e. The models that rested on the clamp.** The tutorials, as settled
         below with the 2a list in hand. BSM2's
         `test_concentrations_non_negative` exempts `H2O` until BSM2 carries its
@@ -312,11 +332,12 @@ With the repo owner, 2026-10-07, while reviewing the first draft.
   left.
 - **`Phase.apply_flux(clamp=...)`** goes; clamping exists only as a step
   solver's `clamp_fn`.
-- **The adaptive solver's two floors are different in kind.** The floor on
+- ~~**The adaptive solver's two floors are different in kind.** The floor on
   the final state adds material and goes. Evaluating rates at the non-negative
   part of a trial state conserves and stays: without it the hydrogen
   inhibition terms of BSM2 and ADM1 would be evaluated at slightly negative
-  concentrations, near their pole.
+  concentrations, near their pole.~~ Superseded 2026-11-08 (below): the trial
+  floor does not conserve in general, and goes too.
 - **Flux guards that conserve are left in place** and logged: the links' caps
   at what the source holds, `KineticGasLiquidLink._clamp_flux` and the floor
   in `_equilibrium_flux`, and the drain, links and vents skipping or flooring
@@ -348,11 +369,40 @@ With the repo owner, 2026-11-07.
 - **Shipping goes through a pull request** to `EEGR-code/PyOMES`, and the
   branch is deleted only once the merge is confirmed (see "Shipping").
 
+With the repo owner, 2026-11-08.
+
+- **Decisions are general, not shaped to one model.** BSM2 and ADM1 are test
+  cases for a decision, not its reason.
+- **The adaptive solver's trial floor goes** (checkpoint 2d), replacing the
+  2026-10-07 entry above. Runge–Kutta and BDF methods preserve every linear
+  conservation law (element totals, charge) to roundoff, but only when every
+  rate is evaluated at the method's own trial state; a floor, clip or
+  transform applied first removes that guarantee. It also creates material
+  wherever the engine sums several of the state's species into one total:
+  flooring a negative form raises the total the engine sees (measured in
+  `OPEN_WORK.md`, "Flooring a resolved species creates material": total Fe
+  drifts 9.8e-5 with the floor, 1.2e-7 without). Keeping amounts in range is
+  done where it is visible: rate laws guard their own domain explicitly, each
+  engine has a defined response to a negative total, tolerances keep trial
+  negatives small, and a negative accepted amount warns. Checkpoint 2a
+  measures which runs depend on the floor before anything is committed.
+- **Enforced positivity, if a model needs it, is a later opt-in** that
+  conserves: rejecting a step whose accepted state breaks a sign constraint
+  and retrying with a smaller step, as SUNDIALS' CVODE and IDA do, not
+  editing the state. Logged in `OPEN_WORK.md`; 2a's evidence decides whether
+  it is needed and in what form.
+
 ## To settle
 
 **Before 2e: the tutorials whose results rest on the clamp** (numbers in the
 audit below). For each tutorial on the 2a list: run as given and warn, give
 the model the missing limitation, or pass a clamp explicitly.
+
+**Before 2d: what the engines do with a negative total, and the runs that
+need the trial floor.** The roundoff threshold below which a negative total
+reads as zero, and whether a larger one raises or warns. For each run 2a finds
+failing without the floor: the rate law guards its own domain, the run's
+tolerances change, or it is listed as needing the opt-in positivity mechanism.
 
 **Before 3c is committed: the adaptive solver's shift.** The owner sees the
 measured shift in adaptive runs that have a state-dependent boundary, with
@@ -370,6 +420,13 @@ solver's final floor" now reads `integrand.floor(y_end)` on success and
 `unpack(floor=True)` on retry and restore; the rest of the table and of the
 findings still hold. Phase 2 (`variable-liquid-volume`) fixes the gas
 outlet's water loss.
+
+**2026-11-08.** The table row "Adaptive solver's trial state" says "rates
+only; conserves". That is wrong in general: the integrator's state holds
+species the engine sums into totals, and flooring one raises the total
+(`OPEN_WORK.md`, "Flooring a resolved species creates material", found
+2026-11-01). Since #7, `persistent=True` exempts the engine-resolved species;
+`persistent=False` does not. Checkpoint 2d now removes the floor.
 
 **Audit before drafting (2026-10-07, `main` at `99d7f7a`).** Read from the
 code, then measured with two scratchpad scripts (`clamp_audit.py`,

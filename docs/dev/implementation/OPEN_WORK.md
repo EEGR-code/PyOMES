@@ -148,7 +148,10 @@ Still open: what an explicit clamp should do. Scaling a whole reaction by its
 limiting species conserves mass (a reaction cannot run faster than its scarcest
 reactant allows), but the clamp sees only the net change per phase, not each
 reaction, so it changes the `clamp_fn` interface and the step solvers that call
-it.
+it. Also open (2026-10-07, from the `conservation-ledger` decisions): whether
+`clamp_fn` should exist at all. That phase keeps it as an option a user passes
+and records what it creates, but a step solver that changes the step to keep
+amounts physical may be the wrong tool whatever the clamp does.
 
 ## Minerals that cannot precipitate
 
@@ -327,7 +330,19 @@ no-clamp default; neither covers these points.
   9.8e-5 with this floor and 1.2e-7 without. Checkpoint 2d of the ledger checklist
   says the trial-state floor "does not add or remove material"; this contradicts
   that. `persistent=True` exempts resolved species;
-  `persistent=False` keeps the floor.
+  `persistent=False` keeps the floor. **Decided 2026-11-08 (owner):** the trial
+  floor goes in `conservation-ledger` checkpoint 2d, for every species and both
+  modes, and the checklist's claim is corrected.
+- **Enforced positivity as an opt-in, if a model needs it.** Logged 2026-11-08.
+  With the trial floor gone, keeping amounts in range is the rate laws' and the
+  tolerances' job. If `conservation-ledger` checkpoint 2a shows a model that
+  cannot run that way, the conserving form is step rejection on a sign
+  constraint, as SUNDIALS' CVODE and IDA do: a step whose accepted state breaks
+  a constraint is redone with a smaller step, and no state is edited. Scipy's
+  integrators cannot undo a step, so in PyOMES this means rebuilding the
+  integrator from the last accepted state (which loses BDF's history and order)
+  or a SUNDIALS backend for the adaptive solver (a new dependency and solver
+  path). Not started; 2a's evidence decides whether it is needed.
 - **A floor on a strong ion can cost accuracy without creating much material.** In
   the persistent run with a pH controller, trial states take `Fe2+` negative 97
   times in 6,020 evaluations, and the floor raises the worst error from 3.16e-5 to
@@ -350,6 +365,13 @@ no-clamp default; neither covers these points.
   a value during a run. That counter covers `min` and `max` in 10 modules, not
   `if` guards, `np.clip` or `rate_laws.py`, and only those cases. The open question
   is which guards can change a result, and whether those should warn.
+- **Flux guards that conserve, left in place by `conservation-ledger`.** Agreed
+  2026-10-07: each limits a flux that is then applied equally to both sides,
+  so it moves less material but creates none. The links' caps at what the
+  source holds; `KineticGasLiquidLink._clamp_flux` and the floor in
+  `_equilibrium_flux`; the drain, links and vents skipping or flooring a
+  negative amount when computing a flux. They can still change a result, so
+  they belong in the inventory above.
 
 ## `engine.solve()` takes totals or species, under one name
 
@@ -408,6 +430,12 @@ left out of it on purpose.
   which makes the liquid volume vary; the gas volume belongs here, not with
   the gas equation of state, since the equation of state gives the pressure
   from a volume and does not set it.
+- **`ProportionalGasOutlet`'s water loss is never applied.** Found 2026-10-07
+  by the `conservation-ledger` audit. `last_water_loss_mol_per_h` is set and
+  read by nothing, so the water its docstring says the liquid loses is not
+  removed. Harmless while liquids hold no water; fixed in
+  `variable-liquid-volume` checkpoint 5
+  ([`upcoming/LIQUID_VOLUME_MODELS.md`](upcoming/LIQUID_VOLUME_MODELS.md)).
 - **Evaporation into the headspace.** Added 2026-11-03.
   `variable-liquid-volume` debits the liquid for the water vapour
   `ProportionalGasOutlet` calculates leaving. Water evaporating into a
