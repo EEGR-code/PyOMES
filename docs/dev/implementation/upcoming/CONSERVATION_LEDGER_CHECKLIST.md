@@ -87,7 +87,8 @@ neutral; after this phase the monitor says so, by name and amount.
       nothing (fixed in `variable-liquid-volume` checkpoint 5, so the entry
       says so); the flux guards that conserve; whether `clamp_fn` should exist
       at all (next to the open question on what an explicit clamp should do)
-- [ ] `git status -sb` clean
+- [x] `git status -sb` clean (after the pre-flight's last commit, "Finish
+      conservation-ledger pre-flight")
 - [x] Baseline full suite recorded here (pass / fail / xfail counts):
       2292 passed, 87 skipped, 2 xfailed, 420 warnings, 0 failed (owner's
       terminal, 101 s, 2026-11-07). Run with `py -m pytest`: in the owner's
@@ -104,7 +105,9 @@ neutral; after this phase the monitor says so, by name and amount.
       feed-and-drain case of `bench_adaptive_solver.py`, `persistent=False`
       floors trial states 29 times (`Fe(OH)2+`, `FeOH2+`) and the final state
       once, and `persistent=True` floors nothing
-- [ ] The audit re-run on current `main`: the clamp table, the preview with
+- [x] The audit re-run on current `main` (2026-11-08; see Notes, "Re-measured
+      2026-11-08"): everything reproduced, with two corrections to the
+      preview table. The clamp table, the preview with
       the clamp off and the balance table in Notes, and the closure note's
       "Measurements" that checkpoint 1's markers carry. Every number that moved
       since `99d7f7a` is recorded in Notes with its cause (the persistent
@@ -462,6 +465,34 @@ species the engine sums into totals, and flooring one raises the total
 (`OPEN_WORK.md`, "Flooring a resolved species creates material", found
 2026-11-01). Since #7, `persistent=True` exempts the engine-resolved species;
 `persistent=False` does not. Checkpoint 2d now removes the floor.
+
+**Re-measured 2026-11-08, code at `396176b`** (pre-flight). The closure
+note's "Measurements" for the user-defined model, which checkpoint 1's
+markers carry, are unchanged by the NR fixes and the persistent integrator
+(both cases run the sequential solver). Drift over 1 h in 20 steps, relative:
+Bisection C −1.65e-16, H +2.46e-8, O +2.46e-8; NR C +1.63e-8, H −2.14e-5,
+O −2.14e-5. A dose of 1e-3 mol followed by one solve, under either engine:
+Na+ with OH- moves pH from 3.3885 to 3.8664 and loses 2.00e-3 mol H and
+1.00e-3 mol O; OH- alone leaves pH at 3.3885 and loses 1.00e-3 mol H and
+1.00e-3 mol O (the note gives only the H); H+ alone leaves pH at 3.3885 and
+loses 1.00e-3 mol H. The clamp and balance numbers reproduced are listed
+under Pre-flight.
+
+The owner re-ran the tutorials (`clamp_audit.py scripts`, with and without
+`--no-clamp`, outputs compared line by line). The clamp table below
+reproduces in every row: `cstr_fermenter.py` 14,782 clamps of `AceticAcid`
+(0.303 mol); `fed_batch_fermenter.py` 611 of `AceticAcid` (28.3 mol) and 108
+of O2 (3.95 mol); `microplate_fermenter.py` O2 (1.39e-5 mol) and `Glucose`
+(6.7e-9 mol); `raw_construction.py` 145 (1.1e-4 mol); `batch_fermenter.py`
+none. With the clamp off, no floor fires in any of them. The preview
+reproduces, with two corrections to the 2026-10-07 table: the biomass
+1.8004 → 1.7998 g/L is `cstr_fermenter.py`'s, whose output therefore is not
+identical (`microplate_fermenter.py`'s biomass is 5.0130 g/L in both runs;
+its DO, p(O2) and glucose lines are as the table gives them); and
+`raw_construction.py` prints pH 5.100 in both runs, not 5.099 without the
+clamp (its yeast moves 3.7782e-2 → 3.7675e-2 mol, as the table gives).
+Whether the table misattributed the biomass line or the CSTR changed since
+cannot be told from the old run.
 
 **Audit before drafting (2026-10-07, `main` at `99d7f7a`).** Read from the
 code, then measured with two scratchpad scripts (`clamp_audit.py`,

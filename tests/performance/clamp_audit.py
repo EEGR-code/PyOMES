@@ -6,9 +6,14 @@ Run by hand from the repo root; pytest does not collect it.
 As a script runner, on the cases of ``ledger_fingerprint.py`` or on Python scripts::
 
     py tests/performance/clamp_audit.py cases
-    py tests/performance/clamp_audit.py cases --only d2c bsm2 --out audit.json
+    py tests/performance/clamp_audit.py --out audit.json cases --only d2c bsm2
     py tests/performance/clamp_audit.py scripts docs/tutorials/templates/fed_batch_fermenter.py
-    py tests/performance/clamp_audit.py cases --no-clamp --no-trial-floor
+    py tests/performance/clamp_audit.py --no-clamp --no-trial-floor cases
+    py tests/performance/clamp_audit.py --no-clamp scripts docs/tutorials/templates/cstr_fermenter.py --log-dir out
+
+(The options before the subcommand apply to the whole run; ``--log-dir`` writes each
+script's printed output to a file, so a run with and one without ``--no-clamp`` can be
+compared.)
 
 On notebooks (each runs in its own kernel; a first cell installs the recorder and a
 last cell writes its report)::
@@ -268,18 +273,29 @@ def run_cases(names):
         _run(name, body)
 
 
-def run_scripts(paths):
+def run_scripts(paths, log_dir=None, suffix=""):
+    import contextlib
     for name in paths:
         path = Path(name).resolve()
         print(f"{name} ...", flush=True)
         cwd = os.getcwd()
 
         def body(path=path):
+            log = None
+            if log_dir:
+                Path(log_dir).mkdir(parents=True, exist_ok=True)
+                log = open(Path(log_dir) / f"{path.stem}{suffix}.txt", "w", encoding="utf-8")
             os.chdir(path.parent)
             try:
-                runpy.run_path(str(path), run_name="__main__")
+                with contextlib.ExitStack() as stack:
+                    if log is not None:
+                        stack.enter_context(contextlib.redirect_stdout(log))
+                        stack.enter_context(contextlib.redirect_stderr(log))
+                    runpy.run_path(str(path), run_name="__main__")
             finally:
                 os.chdir(cwd)
+                if log is not None:
+                    log.close()
 
         _run(str(name), body)
 
@@ -348,6 +364,8 @@ def main():
     c.add_argument("--only", nargs="+")
     s = sub.add_parser("scripts")
     s.add_argument("paths", nargs="+")
+    s.add_argument("--log-dir", help="write each script's printed output to "
+                   "<log-dir>/<name>.txt (with .no-clamp / .no-trial-floor added)")
     n = sub.add_parser("notebooks")
     n.add_argument("paths", nargs="+")
     n.add_argument("--report-dir", default=os.environ.get("TEMP", "."))
@@ -363,7 +381,9 @@ def main():
             import ledger_fingerprint as lf
             run_cases(args.only or list(lf.CASES))
         else:
-            run_scripts(args.paths)
+            suffix = (".no-clamp" if args.no_clamp else "") + (
+                ".no-trial-floor" if args.no_trial_floor else "")
+            run_scripts(args.paths, args.log_dir, suffix)
         reports = RECORDER.as_json()
     for run, error in RECORDER.errors.items():
         reports.setdefault(run, {})["error"] = error
