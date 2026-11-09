@@ -177,7 +177,10 @@ neutral; after this phase the monitor says so, by name and amount.
       Sanity: every marker's number from a scratch measurement of the same
       cases; `ledger_fingerprint.py` bit-identical to the baseline in all 27
       cases; this file and `test_user_defined_model.py` 45 passed, 26 xfailed.
-      Full suite: (owner)
+      Full suite: the owner's plain run after the commit is not recorded;
+      the suite run with the clamp recorder (2a, trial floor off) gives
+      2301 passed and 2 failed (both floor unit tests, see 2a) of 2303, 87
+      skipped, 26 xfailed, consistent with 11 new passes and 24 new xfails
 
 ### Non-negativity
 
@@ -185,7 +188,7 @@ neutral; after this phase the monitor says so, by name and amount.
       model's definer chooses a step and a solver that keep its amounts
       physical; the package warns when an amount goes negative and runs what
       it was given. Five commits:
-  - [ ] **2a. What relies on it.** The owner runs the clamp recorder over the
+  - [x] **2a. What relies on it.** The owner runs the clamp recorder over the
         full suite and the notebooks (commands handed over); the notes list
         every test, tutorial and notebook where a clamp or floor fires, every
         test that asserts a non-negative amount, what each rate law in the
@@ -195,6 +198,78 @@ neutral; after this phase the monitor says so, by name and amount.
         did for the clamp), the notes also list every run that then produces a
         `NaN`, a failed solve, a step failure or a negative accepted amount,
         and the rate law or engine path responsible. No code.
+
+        *Done 2026-11-09* (code at `4481154`). The owner ran `clamp_audit.py`
+        over the full suite and the 32 notebooks, each with and without
+        `--no-trial-floor`; the tutorial scripts were run at pre-flight.
+
+        *Where a clamp or floor fires, default settings.*
+
+        | Run | Guard | Fires | Amount |
+        |---|---|---|---|
+        | `test_bsm2_reference.py` (module fixture) | `clamp_fn` | 100 | `H2O` 2.0e-6 mol |
+        | `test_clamping.py`, 7 tests | `clamp_fn`, `floor_nonnegative` | 1-2 each | they test the clamp and floor |
+        | `test_core.py`: `test_apply_flux_floors_at_zero`, `test_floor_at_zero_breaks_conservation` | phase floor | 1 each | they test the floor |
+        | `test_state_vector.py`: `test_unpack_with_floor_clamps_at_zero` | unpack floor | 1 | tests the floor |
+        | `test_adaptive_solver_persistent.py`: `test_a_species_the_engine_does_not_resolve_is_still_floored` | trial floor | 1 | tests the floor |
+        | `test_adaptive_solver_persistent.py`: `test_species_added` | trial floor | 6 | `Na+x` 2e-25 mol |
+        | `ArXiv_preprint/03_cstr_dilution_rate_sweep.ipynb` | `clamp_fn` | 3,635 | `NH3` 0.033 mol |
+        | `D2C_workshop/Example1_mtp_well.ipynb` | `clamp_fn` | 12,822 | O2, `NH3`, `Glucose`; 1.1e-4 mol |
+        | `D2C_workshop/Example2_batch_fermenter.ipynb` | `clamp_fn`; phase floor | 4,053; 2,625 | O2, `NH3`, `Glucose`, 14.7 mol; `NH3` 7.4e-14 mol |
+        | `D2C_workshop/Example3_CSTR.ipynb` | `clamp_fn` | 263 | O2, `Glucose`; 0.029 mol |
+        | `reactions/fba/fba_ecoli_core.ipynb`, `fba_toy.ipynb` | `clamp_fn` | 70; 2 | O2 2.7e-3 mol each |
+        | Tutorial scripts (pre-flight) | `clamp_fn` | | `cstr_fermenter.py`, `fed_batch_fermenter.py`, `microplate_fermenter.py`, `raw_construction.py` |
+
+        Every other test, and 22 of the 28 notebooks that ran, fire nothing.
+        Four notebooks did not run, for want of optional packages, not
+        because of the code: `03_phreeqc_engine_basics.ipynb` and
+        `06_phreeqc_benchmark.ipynb` (phreeqpython),
+        `aerobic_fermentation_stoichiometry.ipynb` and
+        `01_exporting_results.ipynb` (pandas). The only phase floor outside
+        the floor's own tests is in `Example2_batch_fermenter.ipynb`, and its
+        total is 7.4e-14 mol.
+
+        *With the trial floor off.* Nothing depends on it in the repo. No
+        notebook and no model test changes outcome; no run records a
+        non-finite state, and no final or unpack floor fires that did not
+        before. The suite gives 2 failures, both tests of the floor itself
+        (`test_clamping.py::TestFloorNonnegative::test_floors_negative_elements`
+        calls `floor_nonnegative` directly, which the recorder treats as a
+        trial floor; `test_a_species_the_engine_does_not_resolve_is_still_floored`
+        tests the floor's exemption), and both go with the floor in 2d. The
+        one run known to depend on the floor is outside the suite: the iron
+        feed-and-drain case of `bench_adaptive_solver.py` under
+        `persistent=False` (29 trial floors, one final floor; Pre-flight).
+
+        *Tests that assert a non-negative amount.* Of the floor or clamp:
+        `test_clamping.py` (lines 90, 135, 164, 177). Of a model's state:
+        `test_bsm2_reference.py::test_concentrations_non_negative` (≥ −1e-12,
+        decided: exempts `H2O` until phase 2); `test_adaptive_solver_persistent.py`
+        line 177; `test_implicit_transport_solver.py` lines 241, 406
+        (≥ −1e-12, −1e-10); `test_system_solver.py` lines 452-453, 475,
+        605-606; `test_nr_speciation_engine.py` lines 657, 699 (dissolved Ca
+        from precipitation). Each is re-run in 2b to 2e.
+
+        *Rate laws in the tutorials and notebooks with a negative
+        concentration.* The template, the builders and `rate_laws.py` return
+        0 for a substrate or biomass at or below zero (audit below). The D2C
+        growth law (`raw_construction.py`) and the one in
+        `reaction_system.ipynb` do the same; D2C's sums `AceticAcid` and
+        `Acetate-`, so one form may be negative. The Singer–Stumm law of
+        `07_iron_oxidation.ipynb` and `08_iron_oxidation_and_precipitation.ipynb`
+        (k·[Fe2+]·[O2]·[OH-]²·V) and the user-defined model's 50·[AcOH]·[O2]·V
+        are products of two concentrations that can both be negative, which
+        gives a positive rate.
+
+        *The engines with a negative total* (the user-defined model, one solve,
+        a total of −1e-18 and −1e-6 mol for `AceticAcid` or `CO2`). The
+        Bisection engine accepts it without a word and distributes it over
+        the forms, writing negative amounts back (−1e-6 total: `AceticAcid`
+        −5.5e-7, `Acetate-` −4.5e-7); the total is kept. The NR engine
+        replaces it, without a word and with `converged=True`, by about zero:
+        every form is written back as 1e-50 mol, which creates the missing
+        amount (+1e-6 mol). The two differ, and NR's creates material; 2d
+        replaces both with the defined response.
   - [ ] **2b. The step solvers' default.** `SequentialAdvanceSolver` and
         `SimultaneousEulerSolver` take `clamp_fn=None` by default; a clamp is
         something the user passes. A negative amount warns, naming the

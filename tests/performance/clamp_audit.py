@@ -41,6 +41,9 @@ What is recorded, per run (a case, a script, a notebook or a test), per guard:
     evaluated at; the final and unpack floors change the amounts.
 ``integrate_reactions``
     Any call of ``ControlVolume._integrate_reactions`` (it has no caller in the repo).
+``nonfinite_state``
+    Not a guard: a NaN or infinite value in a state the adaptive solver hands to a
+    floor (a trial state, a written-back state). Records the number of such values.
 
 Each guard's entry holds the number of calls that changed something, the number of
 values changed, the total amount (mol, positive) and the species most affected.
@@ -80,7 +83,7 @@ for _path in (REPO, REPO / "models", REPO / "tests" / "standalone", HERE):
 import numpy as np  # noqa: E402
 
 GUARDS = ("clamp_fn", "phase_floor", "trial_floor", "final_floor", "jacobian_floor",
-          "unpack_floor", "integrate_reactions")
+          "unpack_floor", "integrate_reactions", "nonfinite_state")
 
 
 class _Recorder:
@@ -224,6 +227,10 @@ def install(*, no_clamp=False, no_trial_floor=False):
     def floor_nonnegative(y):
         label = _label()
         y_arr = np.asarray(y, dtype=float)
+        nonfinite = ~np.isfinite(y_arr)
+        if nonfinite.any():
+            RECORDER.add("nonfinite_state", {label: float(nonfinite.sum())},
+                         n_values=int(nonfinite.sum()))
         negative = y_arr < 0.0
         if negative.any():
             kept, names = _context()
