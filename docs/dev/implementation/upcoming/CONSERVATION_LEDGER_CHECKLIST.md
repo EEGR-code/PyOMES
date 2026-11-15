@@ -321,10 +321,37 @@ neutral; after this phase the monitor says so, by name and amount.
         close C, H, O, N). The suite was at 420 warnings at the baseline and
         451 after checkpoint 1, whose closure tests add 31, mostly the
         `ConservationWarning`s of the NR cases' drift.
-  - [ ] **2c. The floors in the phases.** `Phase.apply_flux` loses its `clamp`
+  - [x] **2c. The floors in the phases.** `Phase.apply_flux` loses its `clamp`
         parameter and no longer floors (internal transfer,
         `apply_external_flux`, inter-CV links); every caller is updated.
         `ControlVolume._integrate_reactions` is deleted.
+
+        *Done 2026-11-15.* `core/phases.py`: the `Phase` protocol and the
+        gas, liquid and solid phases' `apply_flux` lose `clamp` and add
+        exactly `flux × dt`; the protocol's docstring says so.
+        `core/solvers.py`: the three `clamp=False` calls and their comments
+        go. `core/control_volume.py`: internal transfer, `apply_external_flux`
+        and (in `core/simulation.py`) links never passed `clamp`, so they
+        change only in no longer being floored; `apply_external_flux`'s
+        docstring says a removal larger than the phase holds leaves a
+        negative amount. `_integrate_reactions` is deleted (searched `.py`,
+        `.ipynb`, `.md`: no caller and no dynamic lookup; named only in
+        `shipped/` history, `OPEN_WORK.md`, this checklist and the clamp
+        recorder). Tests: `test_core.py`'s two tests of the floor become
+        tests that there is none (`test_apply_flux_does_not_floor`;
+        `test_overdrawing_transfer_conserves_and_goes_negative`, where the
+        transfer now conserves). `tests/performance/clamp_audit.py` patches
+        the phase floor and `_integrate_reactions` only where they still
+        exist, so it runs on this code and on older commits.
+
+        Measurement: all 27 cases bit-identical to 2b (no phase floor fired
+        in any, as 2a found). The one run 2a saw it fire in,
+        `Example2_batch_fermenter.ipynb` (7.4e-14 mol of `NH3`), is not in
+        the suite. Affected test files (`test_core.py`, `test_clamping.py`,
+        the closure tests, the system-solver, implicit-transport and
+        gas-liquid-link tests): 205 passed, 24 xfailed. Full suite (owner,
+        2026-11-15): 2306 passed, 87 skipped, 26 xfailed, 0 failed; 453
+        warnings, unchanged from 2b
   - [ ] **2d. The adaptive solver's floors.** Both go (see "Agreed",
         2026-11-08). The floor on the state written back after a step goes;
         a negative end amount warns as in 2b. The floor on each trial state

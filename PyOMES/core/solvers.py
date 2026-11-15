@@ -156,11 +156,9 @@ class SequentialAdvanceSolver:
             cv._run_property_calculators()
 
         # 2. External source terms (feeds, dosing, inter-CV transport).
-        # clamp_fn applied per phase_key's delta dict as it is computed
-        # (this solver is sequential, not simultaneous — there is no
-        # single combined dict to clamp once). clamp=False on apply_flux:
-        # clamping (or its deliberate absence, clamp_fn=None) already
-        # happened above; apply_flux's own floor must not override it.
+        # A passed clamp_fn is applied per phase_key's delta dict as it is
+        # computed (this solver is sequential, not simultaneous — there is
+        # no single combined dict to clamp once).
         if external_source_terms:
             for phase_key, species_rates in external_source_terms.items():
                 if phase_key in cv.phases:
@@ -170,7 +168,7 @@ class SequentialAdvanceSolver:
                             rates, cv.phases[phase_key].n_mol, dt_h
                         )
                         _monitor_clamp_invoked(cv, species_rates, rates, dt_h)
-                    cv.phases[phase_key].apply_flux(rates, dt_h, clamp=False)
+                    cv.phases[phase_key].apply_flux(rates, dt_h)
 
         # 2b. Apply state-dependent boundary fluxes.
         for boundary in cv.boundaries:
@@ -181,7 +179,7 @@ class SequentialAdvanceSolver:
                     clamped_flux = self.clamp_fn(flux, cv.phases[phase_key].n_mol, dt_h)
                     _monitor_clamp_invoked(cv, flux, clamped_flux, dt_h)
                     flux = clamped_flux
-                cv.phases[phase_key].apply_flux(flux, dt_h, clamp=False)
+                cv.phases[phase_key].apply_flux(flux, dt_h)
 
         # 3. Reactions (post-feed state). compute_reaction_rates() reads the
         #    speciation state pinned by step 1 (operator-splitting contract:
@@ -442,12 +440,10 @@ class SimultaneousEulerSolver:
                 for sp, rate in species_rates.items():
                     target[sp] = target.get(sp, 0.0) + rate
 
-        # ── 4. CLAMP (per phase) ───────────────────────────────────────
-        # clamp_fn=None deliberately skips this step so raw (possibly
-        # negative-inducing) deltas reach APPLY below with clamp=False
-        # — apply_flux's own floor must not silently re-clamp them, or
-        # clamp_fn=None's diagnostic purpose (see AccuracyMonitor's
-        # negative_mole check) would be defeated.
+        # ── 4. CLAMP (per phase), only when a clamp_fn was passed ─────
+        # With none (the default), the deltas reach APPLY as computed, and
+        # a negative result is reported by AccuracyMonitor's negative_mole
+        # check.
         if self.clamp_fn is not None:
             for phase_key in list(deltas):
                 clamped = self.clamp_fn(
@@ -457,12 +453,10 @@ class SimultaneousEulerSolver:
                 deltas[phase_key] = clamped
 
         # ── 5. APPLY to live state ───────────────────────────────────
-        # clamp=False: clamping (if any) already happened in step 4
-        # over the *combined* multi-source delta dict; apply_flux's
-        # own per-call floor would be redundant when clamp_fn ran, and
-        # would wrongly mask clamp_fn=None's negative values otherwise.
+        # A passed clamp_fn has already acted on the combined delta dict
+        # (step 4); the deltas are applied as they stand.
         for phase_key, phase_deltas in deltas.items():
-            cv.phases[phase_key].apply_flux(phase_deltas, dt_h, clamp=False)
+            cv.phases[phase_key].apply_flux(phase_deltas, dt_h)
 
         # Nothing above keeps amounts non-negative: say so when one is not.
         for phase_key in deltas:

@@ -50,10 +50,11 @@ class TestGasPhase:
         g.apply_flux({"O2": -10.0}, dt_h=0.1)  # -1 mol
         assert g.n_mol["O2"] == pytest.approx(1.0)
 
-    def test_apply_flux_floors_at_zero(self):
+    def test_apply_flux_does_not_floor(self):
+        """A removal larger than the phase holds is applied as given."""
         g = GasPhase({"O2": 0.5}, V_L=100.0, T_K=300.0)
-        g.apply_flux({"O2": -100.0}, dt_h=1.0)  # would go to -99.5
-        assert g.n_mol["O2"] == 0.0
+        g.apply_flux({"O2": -100.0}, dt_h=1.0)
+        assert g.n_mol["O2"] == pytest.approx(-99.5)
 
     def test_apply_flux_new_species(self):
         g = GasPhase({"O2": 1.0}, V_L=100.0, T_K=300.0)
@@ -368,9 +369,9 @@ class TestControlVolumeInternalTransfer:
         assert diag.total_residual == 0.0
         assert len(diag.fluxes) == 0
 
-    def test_floor_at_zero_breaks_conservation(self):
-        """When a flux would drive a phase negative, the floor at 0
-        means total moles decrease.  This is expected and detectable."""
+    def test_overdrawing_transfer_conserves_and_goes_negative(self):
+        """A transfer that takes more than the source holds is applied as
+        computed: the source goes negative and the total is conserved."""
         gas = GasPhase({"CO2": 0.01}, V_L=100.0, T_K=300.0)
         liq = LiquidPhase({"CO2": 0.0}, V_L=800.0, T_K=300.0)
         iface = MockGLInterface(rate_mol_per_h=100.0)  # huge rate
@@ -379,10 +380,10 @@ class TestControlVolumeInternalTransfer:
             internal_interfaces=[iface],
         )
         diag = cv.step_internal_transfer(dt_h=1.0)
-        # Gas wanted to lose 100 mol but only had 0.01 → floored to 0
-        # Liquid gained 100 mol
-        # Total CO2 before: 0.01, after: 0 + 100 = 100 → NOT conserved
-        assert not diag.is_conserved()
+        # Gas loses 100 mol of the 0.01 it holds; liquid gains 100 mol.
+        assert gas.n_mol["CO2"] == pytest.approx(0.01 - 100.0)
+        assert liq.n_mol["CO2"] == pytest.approx(100.0)
+        assert diag.is_conserved()
 
     def test_summary_string(self):
         cv = _make_gl_cv(rate=1.0)

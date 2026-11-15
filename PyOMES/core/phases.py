@@ -134,25 +134,15 @@ class Phase(Protocol):
         self,
         flux_mol_per_h: Dict[str, float],
         dt_h: float,
-        *,
-        clamp: bool = True,
     ) -> None:
         """Add ``flux × dt`` moles to this phase.
 
         Positive flux = material entering this phase.
         Negative flux = material leaving this phase.
 
-        Parameters
-        ----------
-        clamp : bool
-            If True (default), the result is floored at 0.0 per
-            species — the long-standing behavior every caller outside
-            the clamp-aware ``StepSolver``s relies on. Pass ``False``
-            only when the caller has already run its own
-            ``clamp_fn`` (including a deliberate ``clamp_fn=None``)
-            over the combined delta dict upstream — floor-clamping
-            again here would silently defeat ``clamp_fn=None``'s
-            purpose of exposing negative inventory for diagnosis.
+        The amounts are changed by exactly ``flux × dt``: a flux that takes
+        more than the phase holds leaves a negative amount, and nothing here
+        floors it. The step solvers warn when a step ends with one.
         """
         ...
 
@@ -273,14 +263,10 @@ class GasPhase:
         self,
         flux_mol_per_h: Dict[str, float],
         dt_h: float,
-        *,
-        clamp: bool = True,
     ) -> None:
         dt = float(dt_h)
         for species, rate in flux_mol_per_h.items():
-            current = self._n_mol.get(species, 0.0)
-            new_value = current + float(rate) * dt
-            self._n_mol[species] = max(0.0, new_value) if clamp else new_value
+            self._n_mol[species] = self._n_mol.get(species, 0.0) + float(rate) * dt
 
     def snapshot(self) -> "GasPhase":
         return GasPhase(
@@ -437,14 +423,10 @@ class LiquidPhase:
         self,
         flux_mol_per_h: Dict[str, float],
         dt_h: float,
-        *,
-        clamp: bool = True,
     ) -> None:
         dt = float(dt_h)
         for species, rate in flux_mol_per_h.items():
-            current = self._n_mol.get(species, 0.0)
-            new_value = current + float(rate) * dt
-            self._n_mol[species] = max(0.0, new_value) if clamp else new_value
+            self._n_mol[species] = self._n_mol.get(species, 0.0) + float(rate) * dt
 
     def snapshot(self) -> "LiquidPhase":
         return LiquidPhase(
@@ -542,14 +524,10 @@ class SolidPhase:
         self,
         flux_mol_per_h: Dict[str, float],
         dt_h: float,
-        *,
-        clamp: bool = True,
     ) -> None:
         dt = float(dt_h)
         for species, rate in flux_mol_per_h.items():
-            current = self._n_mol.get(species, 0.0)
-            new_value = current + float(rate) * dt
-            self._n_mol[species] = max(0.0, new_value) if clamp else new_value
+            self._n_mol[species] = self._n_mol.get(species, 0.0) + float(rate) * dt
 
     def snapshot(self) -> "SolidPhase":
         return SolidPhase(

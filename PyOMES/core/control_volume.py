@@ -545,7 +545,8 @@ class ControlVolume:
         This is used by the orchestrator for feeds, vents, and inter-CV
         transport.  It is *not* tracked by ``step_internal_transfer``
         diagnostics (because external fluxes intentionally change the
-        CV's total inventory). Each species id is applied as given.
+        CV's total inventory). Each species id is applied as given, and a
+        removal larger than the phase holds leaves a negative amount.
 
         Parameters
         ----------
@@ -1034,28 +1035,6 @@ class ControlVolume:
             properties=properties,
             t_h=float(t_h),
         )
-
-    def _integrate_reactions(
-        self,
-        dt_h: float,
-        t_h: float = 0.0,
-    ) -> Dict[str, Dict[str, float]]:
-        """Thin wrapper around compute_reaction_rates + Euler apply.
-
-        Kept for backward compatibility; advance() now inlines this
-        logic directly.  Returns the net source terms (mol/h) applied.
-        """
-        rhs = self.compute_reaction_rates(t_h)
-        sources: Dict[str, Dict[str, float]] = {}
-        for pk, sp_rates in rhs.items():
-            sources[pk] = {}
-            for sp, rate in sp_rates.items():
-                phase = self.phases[pk]
-                phase.n_mol[sp] = max(
-                    0.0, phase.n_mol.get(sp, 0.0) + rate * dt_h
-                )
-                sources[pk][sp] = rate
-        return sources
 
     def _build_species_vector_map(self):
         """Identify all species the reaction model touches.

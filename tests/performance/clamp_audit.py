@@ -30,7 +30,7 @@ What is recorded, per run (a case, a script, a notebook or a test), per guard:
 ``clamp_fn``
     A step solver's clamp (``SequentialAdvanceSolver``, ``SimultaneousEulerSolver``),
     whatever function was passed. Records the removal it cut, in mol.
-``phase_floor``
+``phase_floor`` (before checkpoint 2c)
     ``apply_flux(..., clamp=True)`` on a gas, liquid or solid phase setting a negative
     result to zero. Records the material it added.
 ``trial_floor``, ``final_floor``, ``jacobian_floor``, ``unpack_floor``
@@ -39,7 +39,7 @@ What is recorded, per run (a case, a script, a notebook or a test), per guard:
     ``StateVector.unpack(floor=True)`` on the retry and restore paths. Records what a
     floored vector gained. The trial and Jacobian floors change only what rates are
     evaluated at; the final and unpack floors change the amounts.
-``integrate_reactions``
+``integrate_reactions`` (before checkpoint 2c)
     Any call of ``ControlVolume._integrate_reactions`` (it has no caller in the repo).
 ``nonfinite_state``
     Not a guard: a NaN or infinite value in a state the adaptive solver hands to a
@@ -159,9 +159,13 @@ def install(*, no_clamp=False, no_trial_floor=False):
 
         cls.__init__ = init
 
-    # Phase floors.
+    # Phase floors, where apply_flux still has its clamp parameter (it was
+    # removed in conservation-ledger checkpoint 2c).
+    import inspect
     for cls in (phases.GasPhase, phases.LiquidPhase, phases.SolidPhase):
         original_apply = cls.apply_flux
+        if "clamp" not in inspect.signature(original_apply).parameters:
+            continue
 
         def apply_flux(self, flux_mol_per_h, dt_h, *, clamp=True, _original=original_apply):
             if clamp:
@@ -244,14 +248,15 @@ def install(*, no_clamp=False, no_trial_floor=False):
     clamping.floor_nonnegative = floor_nonnegative
     solvers.floor_nonnegative = floor_nonnegative
 
-    # ControlVolume._integrate_reactions (no caller expected).
-    original_integrate = control_volume.ControlVolume._integrate_reactions
+    # ControlVolume._integrate_reactions (no caller expected; deleted in
+    # conservation-ledger checkpoint 2c).
+    original_integrate = getattr(control_volume.ControlVolume, "_integrate_reactions", None)
+    if original_integrate is not None:
+        def integrate_reactions(self, *args, **kwargs):
+            RECORDER.add("integrate_reactions", {"(call)": 1.0})
+            return original_integrate(self, *args, **kwargs)
 
-    def integrate_reactions(self, *args, **kwargs):
-        RECORDER.add("integrate_reactions", {"(call)": 1.0})
-        return original_integrate(self, *args, **kwargs)
-
-    control_volume.ControlVolume._integrate_reactions = integrate_reactions
+        control_volume.ControlVolume._integrate_reactions = integrate_reactions
 
 
 # ---------------------------------------------------------------- runners
