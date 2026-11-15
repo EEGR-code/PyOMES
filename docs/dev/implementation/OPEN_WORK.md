@@ -110,6 +110,39 @@ and working its checkpoints, not fixed.
   (`docs/tutorials/templates/fed_batch_fermenter.py`, 2 h): no Na+ ever
   appears. The batch, CSTR and microplate tutorials configure the same
   controller on the same kind of tank.
+- **The stirred-tank template's growth has no O2 limit.** Logged 2026-11-15
+  (`conservation-ledger` checkpoint 2e). The template builds growth at the
+  rate the substrate allows whatever the dissolved O2, so where transfer
+  cannot keep up the model itself takes O2 below zero. In
+  `docs/tutorials/templates/microplate_fermenter.py` it does, under any
+  solver (adaptive BDF: p(O2) ends at −0.31 atm), and the tutorial passes
+  `proportional_clamp` explicitly, which creates O2. The reaction builder
+  already has the term: `ReactionBuilder.monod_aerobic_growth(...,
+  Ko2_gL=...)`, used by the D2C notebooks. The fix is an optional O2
+  half-saturation on `StirredTankBuilder.organism` (or `.substrate`),
+  default off so other models are unchanged; the microplate tutorial then
+  sets it and drops the clamp.
+- **The FBA notebooks' O2 uptake does not depend on the dissolved O2.**
+  Logged 2026-11-15 (`conservation-ledger` checkpoint 2e). In
+  `docs/tutorials/reactions/fba/fba_toy.ipynb` and `fba_ecoli_core.ipynb`
+  the uptake bound is fixed, so once transfer limits O2 the model holds it
+  just below zero (about −2e-9 to −3e-9 mol under adaptive BDF, unchanged
+  with `atol=1e-12`). Both pass `proportional_clamp` explicitly. The fix is
+  an O2 uptake bound tied to the dissolved O2 (for example Michaelis–Menten
+  on O2) in the external FBA model; the notebooks then drop the clamp.
+- **Two D2C notebook claims their own results contradict.** Found
+  2026-11-15 while regenerating the notebooks for `conservation-ledger`
+  checkpoint 2e; both were already so under the old default clamp.
+  `Example2_batch_fermenter.ipynb` says OTR exceeds OUR throughout, and its
+  check prints "OTR >= OUR throughout: FAIL" with a minimum ratio of −0.00,
+  old and new: the check runs over the whole run, including the end, where
+  growth has stopped and OUR is about zero. (Under the clamp the main run's
+  peak OTR was 111 mmol/h against a peak OUR of 292 while DO stayed at 89 %,
+  the clamp supplying the difference; now peak OTR is 348 mmol/h and DO dips
+  to 48.6 %.) `Example1_mtp_well.ipynb`'s summary gives an endpoint biomass
+  of ~0.053 g/L; the run gives 0.058 (0.062 under the clamp) against the
+  0.052 it predicts. The check should look only while growth runs, and the
+  summary should quote the run.
 
 ## Amounts are kept non-negative by default, without the model asking for it
 
@@ -371,7 +404,15 @@ no-clamp default; neither covers these points.
   the solver's `atol` is, so it is loose for very small volumes (1e-9 mol is
   about 1e-3 g/L of glucose in a 200 µL well) and tight for very large ones;
   a tolerance scaled by volume, or taken from the solver in use, may suit
-  better.
+  better. **2026-11-15, 2e:** a negative total on a trial state no longer
+  stops a `SimultaneousAdaptiveSolver` run: the step is integrated again from
+  its start with a quarter of the maximum and first step, up to 4 times, each
+  with an `AccuracyWarning`, and the error is raised if the total stays
+  negative. Kept simple on purpose. Limits: a retry restarts the integrator
+  (the persistent run loses its history there, and costs time); the retries
+  are a fixed count, not an error control; the trial is not rejected inside
+  scipy because a NaN right-hand side makes `BDF` raise and `LSODA` return
+  NaN as a success. `MonolithicODESolver` has no retry and still raises.
 - **A floor on a strong ion can cost accuracy without creating much material.** In
   the persistent run with a pH controller, trial states take `Fe2+` negative 97
   times in 6,020 evaluations, and the floor raises the worst error from 3.16e-5 to

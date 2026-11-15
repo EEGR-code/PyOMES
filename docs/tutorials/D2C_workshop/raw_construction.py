@@ -49,6 +49,7 @@ from PyOMES.core import (
     KineticTransferModel,
     LiquidPhase,
     Simulation,
+    SimultaneousAdaptiveSolver,
 )
 from PyOMES.core.boundaries import GasFeed, PressureReliefVent
 from PyOMES.units import R_L_ATM_PER_MOL_K
@@ -376,7 +377,9 @@ def build() -> Simulation:
         liquid_phase_key="liquid",
         label="air_sparge",
     ))
-    cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="instant"))
+    # mode='smooth': a vent rate the adaptive solver can integrate (holds the
+    # headspace just above P_set); mode='instant' is for fixed-step solvers.
+    cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="smooth"))
 
     # PI pH controller — CV-native (Pattern 1). H3PO4 / NaOH dosing.
     controllers = [
@@ -387,10 +390,14 @@ def build() -> Simulation:
         ),
     ]
 
+    # The adaptive solver controls its own step, so growth takes the acetic
+    # acid down to zero without overdrawing it; with the default fixed-step
+    # solver, a step overdraws it and the amount goes negative.
     return Simulation(
         cvs={"main": cv},
         controllers=controllers,
         label="raw_construction_demo",
+        solver=SimultaneousAdaptiveSolver(method="BDF"),
     )
 
 

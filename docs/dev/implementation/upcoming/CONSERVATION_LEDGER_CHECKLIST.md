@@ -184,7 +184,7 @@ neutral; after this phase the monitor says so, by name and amount.
 
 ### Non-negativity
 
-- [ ] **2. No clamp by default; no silent floor.** Results change here. A
+- [x] **2. No clamp by default; no silent floor.** Results change here. A
       model's definer chooses a step and a solver that keep its amounts
       physical; the package warns when an amount goes negative and runs what
       it was given. Five commits:
@@ -438,11 +438,91 @@ neutral; after this phase the monitor says so, by name and amount.
         negative amount. Affected test files: 466 passed, 24 skipped, 24
         xfailed. Full suite (owner, 2026-11-15): 2318 passed, 87 skipped, 26
         xfailed, 0 failed (15 new tests, 3 removed); 453 warnings, unchanged
-  - [ ] **2e. The models that rested on the clamp.** The tutorials, as settled
+  - [x] **2e. The models that rested on the clamp.** The tutorials, as settled
         below with the 2a list in hand. BSM2's
         `test_concentrations_non_negative` exempts `H2O` until BSM2 carries its
         solvent water (the volume phase), unless a sentinel check shows that
         seeding water now is free.
+
+        *Done 2026-11-15* (settled with the owner; see "Agreed", 2026-11-15).
+        BSM2's exemption landed in 2b. Each run that rested on the clamp was
+        run without it under `SimultaneousAdaptiveSolver(method="BDF")`, and
+        sorted by the cause of its negative amounts:
+
+        | Run | Cause | Now |
+        |---|---|---|
+        | `raw_construction.py`, `fed_batch_fermenter.py`, `cstr_fermenter.py`, `03_cstr_dilution_rate_sweep.ipynb`, `Example3_CSTR.ipynb` | Step size: a fixed step overdraws a species its rate law takes to zero | Adaptive solver |
+        | `Example1_mtp_well.ipynb`, `Example2_batch_fermenter.ipynb` | Step size, plus amounts within the default `atol` (1e-9 mol) of zero dipping below it (O2 −2.7e-9, glucose −1.5e-9 mol) | Adaptive solver, `atol=1e-11` |
+        | `microplate_fermenter.py` | The model: the template's growth has no O2 term, so the exact solution takes O2 negative (adaptive: p(O2) −0.31 atm) | Explicit `proportional_clamp`, with a comment |
+        | `fba_toy.ipynb`, `fba_ecoli_core.ipynb` | The model: the FBA O2 uptake does not depend on the dissolved O2 (O2 −2e-9 to −3e-9 mol, unchanged at `atol=1e-12`) | Explicit `proportional_clamp`, with a comment |
+
+        Under the adaptive solver every run takes the same values as the
+        unclamped fixed-step run where that one was sound (D2C yeast
+        3.7675e-2 mol; fed-batch biomass 1.022 g/L, not the clamped 1.404;
+        CSTR biomass 1.7996 g/L), which shows how much the clamp's created
+        material had moved them.
+
+        Two package changes this needed, found while verifying:
+        - **`PressureReliefVent` ignored `instantaneous=True`.** Under the
+          adaptive solver both modes vented "over `dt_h`", so the headspace
+          settled above the set point by about the gas inflow times `dt_h`
+          (D2C: 2.3 atm for a 1.1 atm set point; the fed-batch's DO rose
+          from 9.9e-5 to 5.7e-4 mol/L with it). Smooth mode now returns its
+          instantaneous rate `k·(s(x) − s(0))/w·n_gas` above the set point
+          (continuous there, independent of the step); instant mode, which
+          has no rate form, warns once under a continuous integrator. The six
+          vented runs use `mode="smooth"` and hold 1.1067 atm (1.0072 for
+          the 1.0 atm set point). Four tests in `test_boundaries.py`.
+        - **`NegativeTotalError` on a trial state stopped a run.** In one of
+          `Example2`'s sweep runs an engine met a CO2 total of −1.18e-7 mol
+          in a state the integrator had not accepted. The adaptive solver now
+          integrates such a step again from its start with a quarter of the
+          maximum and first step, up to `NEGATIVE_TOTAL_RETRIES` (4) times,
+          each with an `AccuracyWarning`, and raises with a note if the total
+          stays negative. `first_step` matters: without it every attempt
+          evaluated the same trial state, scipy's own first guess
+          `y0 + h0·f(y0)`, which does not depend on `max_step`. Rejecting the
+          trial inside scipy instead was tested and refused: a NaN
+          right-hand side makes `BDF` raise and `LSODA` return NaN as a
+          success. Two tests in `test_engine_negative_totals.py` (the retry
+          under BDF, Radau, LSODA and RK45; a total that stays negative
+          raises after the retries with the state restored). `Example2`'s 25
+          sweep runs, run singly, needed no retry; in the notebook it now
+          completes.
+
+        Verification (the owner ran the notebooks with a scratch runner that
+        reports negative amounts and headspace pressure): every switched run
+        has no negative amount and holds its set point; the microplate gives
+        its old values exactly. `ledger_fingerprint.py`: only the `d2c` case
+        moves, its model being the tutorial's (adaptive, smooth vent,
+        1.1067 atm); the other 26 are bit-identical. The real fixes for the
+        three clamped runs are logged in `OPEN_WORK.md` ("The stirred-tank
+        template's growth has no O2 limit"; "The FBA notebooks' O2 uptake
+        does not depend on the dissolved O2").
+
+        The six notebooks were executed again (`nbconvert --execute`, with
+        `PYTHONPATH` set to the repo and `models`, since PyOMES is not
+        installed in the owner's Python 3.14). `Example2`'s 23 cell ids held
+        dots (`md-2.2.1`), which the notebook format forbids and nbconvert
+        now refuses; they become hyphens. Each notebook is kept as the repo
+        stores it: `Example1` and the two FBA notebooks carry their new
+        outputs; `03_cstr_dilution_rate_sweep`, `Example2` and `Example3` were
+        committed without outputs, so they were rebuilt from `HEAD` with the
+        same edits rather than committed in nbconvert's layout. Against
+        their text: every result agrees with it, or agrees better than under
+        the clamp (`Example2` biomass 7.300 g/L, exactly the yield prediction,
+        against 7.360; `Example3` substrate 3.96 mg/L against the predicted
+        3.33, where the clamp held it at 0.00 and failed the check; `Example1`
+        biomass 0.058 g/L against the predicted 0.052, 0.062 under the
+        clamp). Two claims were already contradicted under the clamp, logged
+        in `OPEN_WORK.md` ("Two D2C notebook claims their own results
+        contradict"). Full suite (owner,
+        2026-11-15): 2329 passed, 87 skipped, 26 xfailed, 0 failed (9 new:
+        4 vent tests, 5 retry tests counting the four methods); warnings
+        461, the 8 new all from the new tests (two `UnresolvedSpeciesWarning`s
+        from the vent test's undeclared N2 and H2O, and six of the scipy
+        step-rejection check, whose false positive for implicit methods is
+        `upcoming/SCIPY_REJECTION_CHECK_SOLVER_AWARENESS.md`)
 
       Sanity, each commit: measurement before and after, per case, with what
       moved, by how much and why; the clamp recorder shows no clamp or floor
@@ -693,12 +773,19 @@ With the repo owner, 2026-11-15.
   tolerance. Reading such a total as zero changes it by no more than the
   tolerance, and checkpoint 3 records the engine write-back as its own
   source, so it is seen. A negative total beyond both still raises.
+- **The runs that rested on the clamp** (checkpoint 2e; settled from "To
+  settle"). A general rule, not one shaped to a model: a run whose negative
+  amounts come from the step size uses the adaptive solver (with a tighter
+  `atol` where amounts near zero dip below the default); a run whose model
+  has no limit of its own passes a clamp explicitly, with a comment saying
+  what it holds and that it creates material, until the model gets the
+  limit (logged in `OPEN_WORK.md`). Where the adaptive solver needed it,
+  the vent honours `instantaneous=True` and a negative total on a trial
+  state makes the step integrate again with smaller steps (warned each
+  time) instead of stopping the run; the owner asked for the retry to stay
+  simple and its limits to be written down rather than engineered around.
 
 ## To settle
-
-**Before 2e: the tutorials whose results rest on the clamp** (numbers in the
-audit below). For each tutorial on the 2a list: run as given and warn, give
-the model the missing limitation, or pass a clamp explicitly.
 
 **Before 3c is committed: the adaptive solver's shift.** The owner sees the
 measured shift in adaptive runs that have a state-dependent boundary, with

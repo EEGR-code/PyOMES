@@ -31,7 +31,8 @@ import numpy as np
 
 from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
-from PyOMES.core import Simulation
+from PyOMES.core import Simulation, SequentialAdvanceSolver
+from PyOMES.core.clamping import proportional_clamp
 from PyOMES.core.boundaries import MembraneGasBoundary
 from PyOMES.units import R_L_ATM_PER_MOL_K
 from PyOMES.control.cv_loops import PHController
@@ -148,8 +149,17 @@ cv.phases["liquid"].n_mol["E_coli"]  = C_ecoli_0 * V_liquid_L
 tau_h = 12.0
 n_steps = 2000
 
+# The template's growth law has no O2 term: growth runs at the rate glucose
+# allows whatever the dissolved O2, and the membrane cannot supply O2 that
+# fast, so the model itself takes dissolved O2 below zero. No step solver
+# clamps by default, and an adaptive solver follows the model there too. A
+# clamp is passed here to hold O2 at zero; it does so by cutting the O2
+# consumed while growth, CO2 and water carry on in full, which creates O2
+# and does not conserve mass. The fix is an O2 limit on growth, which the
+# template does not offer yet (docs/dev/implementation/OPEN_WORK.md).
 sim = Simulation(
     cvs={"main": cv}, controllers=controllers, label="microplate_demo",
+    solver=SequentialAdvanceSolver(clamp_fn=proportional_clamp),
 )
 result = sim.run(tau_h=tau_h, n_steps=n_steps)
 

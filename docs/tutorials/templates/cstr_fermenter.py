@@ -24,7 +24,7 @@ import numpy as np
 from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.databases.bioprocess_basic import AIR
-from PyOMES.core import Simulation
+from PyOMES.core import Simulation, SimultaneousAdaptiveSolver
 from PyOMES.core.boundaries import PressureReliefVent, LiquidFeed, LiquidDrain
 from PyOMES.control.cv_loops import PHController, DOAgitationController
 
@@ -62,16 +62,13 @@ tau_residence = 1.0 / D_per_h            # mean residence time (h)
 
 # Run for five residence times so transients die out.
 #
-# n_steps is set by stability, not just accuracy: at steady state the
-# Monod-limited substrate sits at S_ss = Ks*D/(mu_max-D) -- with
-# Ks=5e-3 g/L that's a near-zero concentration for the whole run, and
-# the reaction sub-step is explicit Euler. At dt_h=0.025 (tau_sim/2000)
-# each step overshoots the tiny available substrate, gets clamped to
-# avoid negative inventory, but the paired biomass yield isn't rescaled
-# to match -- biomass then compounds without bound (reaches tens of
-# thousands of g/L, an AccuracyWarning fires but doesn't flag *this* as
-# wrong). dt_h=0.0025 (n_steps=20000) is small enough to stay stable and
-# reproduce the analytical Monod S_ss/X_ss below to ~1-2%.
+# At steady state the Monod-limited substrate sits at
+# S_ss = Ks*D/(mu_max-D) -- with Ks=5e-3 g/L a near-zero concentration for
+# the whole run. A fixed-step solver overdraws it whenever a step is long
+# next to its turnover, so the run uses the adaptive solver (Step 6), which
+# controls its own step. n_steps sets the output grid and how often the
+# pH and DO controllers act (once per step); it reproduces the analytical
+# Monod S_ss/X_ss below to ~1-2%.
 tau_sim = 5.0 * tau_residence
 n_steps = 20000
 
@@ -103,7 +100,9 @@ cv = (
 # matching LiquidDrain removes broth at the same Q so V_liq stays
 # constant — this is the canonical chemostat setup.
 
-cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="instant"))
+# mode='smooth': a vent rate the adaptive solver can integrate (holds the
+# headspace just above P_set); mode='instant' is for fixed-step solvers.
+cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="smooth"))
 cv.boundaries.append(LiquidFeed(
     Q_L_per_h=Q_L_per_h,
     feed_conc_mol_L={"AceticAcid": C_AcOH_feed},
@@ -152,7 +151,11 @@ cv.phases["liquid"].n_mol["Yeast"] = (0.01 / MW_yeast) * V_liq
 # Step 6 — Wrap in a Simulation and run
 # ─────────────────────────────────────────────────────────────────────
 
-sim = Simulation(cvs={"main": cv}, controllers=controllers, label="cstr_demo")
+# The adaptive solver controls its own step, so growth takes the substrate
+# down to zero without overdrawing it; with the default fixed-step solver, a
+# step overdraws it and the amount goes negative.
+sim = Simulation(cvs={"main": cv}, controllers=controllers, label="cstr_demo",
+                 solver=SimultaneousAdaptiveSolver(method="BDF"))
 result = sim.run(tau_h=tau_sim, n_steps=n_steps)
 
 

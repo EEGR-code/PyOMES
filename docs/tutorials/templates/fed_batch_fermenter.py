@@ -29,7 +29,7 @@ import numpy as np
 from PyOMES.templates.stirred_tank import StirredTankBuilder
 from PyOMES.databases.anaerobic_digestion import AD_BASIC
 from PyOMES.databases.bioprocess_basic import AIR
-from PyOMES.core import Simulation
+from PyOMES.core import Simulation, SimultaneousAdaptiveSolver
 from PyOMES.core.boundaries import PressureReliefVent, LiquidFeed
 from PyOMES.control.cv_loops import PHController, DOAgitationController
 
@@ -95,7 +95,9 @@ cv = (
 # the starting volume. See "The liquid volume never changes" in
 # docs/dev/implementation/OPEN_WORK.md.
 
-cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="instant"))
+# mode='smooth': a vent rate the adaptive solver can integrate (holds the
+# headspace just above P_set); mode='instant' is for fixed-step solvers.
+cv.boundaries.append(PressureReliefVent(P_set_atm=1.10, mode="smooth"))
 cv.boundaries.append(LiquidFeed(
     Q_L_per_h=Q_feed,
     feed_conc_mol_L={"AceticAcid": C_AcOH_feed},
@@ -137,8 +139,12 @@ cv.phases["liquid"].n_mol["Yeast"]      = (0.1 / MW_yeast) * V_liq  # 0.1 g/L
 # phases["liquid"].n_mol at each solve, and pH derives from
 # n_mol["H+"] populated by the engine writeback.
 
+# The adaptive solver controls its own step, so growth takes the substrate
+# and dissolved O2 down to zero without overdrawing them; with the default
+# fixed-step solver, a step overdraws them and the amounts go negative.
 sim = Simulation(
     cvs={"main": cv}, controllers=controllers, label="fed_batch_demo",
+    solver=SimultaneousAdaptiveSolver(method="BDF"),
 )
 result = sim.run(tau_h=tau_h, n_steps=n_steps)
 
