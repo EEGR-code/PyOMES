@@ -680,6 +680,19 @@ With the repo owner, 2026-11-15.
   second half of the "To settle" item has nothing to settle. Chosen for now;
   logged in `OPEN_WORK.md` to revisit (raising stops a run that the opt-in
   positivity mechanism might instead let continue).
+- **Revisited the same day, before 2e** (owner): the roundoff threshold alone
+  is too strict for the adaptive solver. Run without a clamp under
+  `SimultaneousAdaptiveSolver(method="BDF")`, `raw_construction.py` takes
+  acetic acid to zero and a trial state's total reaches −4.0e-18 mol, summed
+  from forms of 1.5e-17 mol: integration noise, far below the solver's
+  `atol` of 1e-9 mol, but beyond 1e-12 of the forms, so the engine raised.
+  The tolerance is now the larger of an absolute one and the relative one:
+  a new `PyOMES.config.negative_total_tolerance_mol` (on `Config`, not
+  `WarningConfig`, since it changes what is computed), default 1e-9 mol, the
+  adaptive solver's default `atol` and the negative-amount warning's
+  tolerance. Reading such a total as zero changes it by no more than the
+  tolerance, and checkpoint 3 records the engine write-back as its own
+  source, so it is seen. A negative total beyond both still raises.
 
 ## To settle
 

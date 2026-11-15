@@ -1,7 +1,8 @@
 """Package-level configuration surface.
 
 Holds the global ``config`` singleton with accuracy-warning
-thresholds and throttle behaviour. Initialised from the
+thresholds and throttle behaviour, and the tolerance an equilibrium
+engine allows a negative component total. Warnings are initialised from the
 ``PYOMES_WARNINGS`` environment variable at import time (flat
 presets only — ``silent`` / ``verbose`` / ``production``).
 
@@ -80,7 +81,20 @@ class WarningConfig:
 
 @dataclass
 class Config:
+    """Package configuration: warning settings, and the tolerances that change
+    what a computation does.
+
+    ``negative_total_tolerance_mol`` is the amount (mol) by which a component
+    total an equilibrium engine reads may be below zero and still be read as
+    zero; a larger negative total raises
+    :class:`~PyOMES.chemical_equilibrium.NegativeTotalError`. The default,
+    1e-9 mol, is the adaptive solver's default ``atol``: an integrator that
+    takes a species to zero leaves trial totals within its tolerance of zero
+    on either side.
+    """
+
     warnings: WarningConfig = field(default_factory=WarningConfig)
+    negative_total_tolerance_mol: float = 1e-9
 
 
 def _warning_config_from_env() -> WarningConfig:

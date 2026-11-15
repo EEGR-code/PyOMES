@@ -363,7 +363,15 @@ no-clamp default; neither covers these points.
   Raising stops the run. To revisit when a model meets it: whether the opt-in
   positivity mechanism above should let such a run continue instead (it would
   reject the step that made the total negative), and whether the threshold is
-  right for models with large inert inventories.
+  right for models with large inert inventories. **Revisited 2026-11-15
+  (owner):** the adaptive solver met it at once (a trial total of −4e-18 mol
+  in `raw_construction.py`), so a negative total within an absolute tolerance,
+  `PyOMES.config.negative_total_tolerance_mol` (default 1e-9 mol, the solver's
+  default `atol`), also reads as zero. Still open: the tolerance is in mol, as
+  the solver's `atol` is, so it is loose for very small volumes (1e-9 mol is
+  about 1e-3 g/L of glucose in a 200 µL well) and tight for very large ones;
+  a tolerance scaled by volume, or taken from the solver in use, may suit
+  better.
 - **A floor on a strong ion can cost accuracy without creating much material.** In
   the persistent run with a pH controller, trial states take `Fe2+` negative 97
   times in 6,020 evaluations, and the floor raises the worst error from 3.16e-5 to

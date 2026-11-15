@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """What each engine does with a negative component total.
 
-A total within roundoff of zero (at most ``ROUNDOFF_RTOL`` of the sum of the
-magnitudes it was summed from) reads as zero. A larger negative total, or any
-negative amount of a strong ion, raises ``NegativeTotalError`` naming the
-component; nothing is changed to make it fit. Run on the user-defined model of
+A total negative within tolerance of zero (the larger of
+``PyOMES.config.negative_total_tolerance_mol`` and ``ROUNDOFF_RTOL`` of the sum of
+the magnitudes it was summed from) reads as zero. A larger negative total raises
+``NegativeTotalError`` naming the component; nothing is changed to make it fit. Run on the user-defined model of
 ``test_user_defined_model.py`` under the Bisection and NR engines.
 """
 import importlib.util
@@ -55,16 +55,37 @@ class TestCheckedTotal:
         assert checked_total("X", [1.0, 2.0], engine="E") == 3.0
         assert checked_total("X", [], engine="E") == 0.0
 
-    def test_a_negative_total_within_roundoff_reads_as_zero(self):
-        assert checked_total("X", [1.0, -1.0 - 0.5 * ROUNDOFF_RTOL], engine="E") == 0.0
+    def test_a_negative_total_within_roundoff_of_large_amounts_reads_as_zero(self):
+        """Beyond the absolute tolerance but within ROUNDOFF_RTOL of the forms."""
+        big = 1e6
+        assert checked_total("X", [big, -big * (1.0 + 0.5 * ROUNDOFF_RTOL)], engine="E") == 0.0
 
-    def test_a_negative_total_beyond_roundoff_raises(self):
+    def test_a_negative_total_beyond_roundoff_of_large_amounts_raises(self):
+        big = 1e6
         with pytest.raises(NegativeTotalError, match="'X'"):
-            checked_total("X", [1.0, -1.0 - 10.0 * ROUNDOFF_RTOL], engine="E")
+            checked_total("X", [big, -big * (1.0 + 10.0 * ROUNDOFF_RTOL)], engine="E")
 
-    def test_a_single_negative_amount_raises_however_small(self):
-        with pytest.raises(NegativeTotalError):
-            checked_total("Na+", [-1e-30], engine="E")
+    def test_a_negative_total_within_the_absolute_tolerance_reads_as_zero(self):
+        """An integrator taking a species to zero leaves trial totals within its
+        tolerance of zero: -4e-18 mol of a total whose forms are 1.5e-17 mol."""
+        assert checked_total("X", [5.7e-18, -9.7e-18], engine="E") == 0.0
+        assert checked_total("Na+", [-0.5e-9], engine="E") == 0.0
+
+    def test_a_negative_total_beyond_the_absolute_tolerance_raises(self):
+        with pytest.raises(NegativeTotalError, match="negative_total_tolerance_mol"):
+            checked_total("Na+", [-2e-9], engine="E")
+
+    def test_the_absolute_tolerance_is_configurable(self):
+        import PyOMES
+        saved = PyOMES.config.negative_total_tolerance_mol
+        try:
+            PyOMES.config.negative_total_tolerance_mol = 1e-6
+            assert checked_total("Na+", [-5e-7], engine="E") == 0.0
+            PyOMES.config.negative_total_tolerance_mol = 0.0
+            with pytest.raises(NegativeTotalError):
+                checked_total("Na+", [-1e-30], engine="E")
+        finally:
+            PyOMES.config.negative_total_tolerance_mol = saved
 
     def test_it_is_not_a_value_error(self):
         """Code that recovers from a ValueError in a solve must not swallow it."""
@@ -91,7 +112,7 @@ class TestEngines:
 
     def test_a_negative_strong_ion_raises(self, engine):
         cv = _cv(engine)
-        cv.phases["liquid"].n_mol["Na+"] = -1e-9
+        cv.phases["liquid"].n_mol["Na+"] = -1e-6
         with pytest.raises(NegativeTotalError, match="Na\\+"):
             _solve(cv)
 
