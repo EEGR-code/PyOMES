@@ -78,26 +78,6 @@ class TestFloorClamp:
         assert n_after == pytest.approx(1e-9, abs=1e-12)
 
 
-class TestFloorNonnegative:
-    """floor_nonnegative(y) -- a distinct concern from clamp_fn: raw
-    ODE state-array flooring for SimultaneousAdaptiveSolver (checkpoint
-    7b), not a (deltas, current_mol, dt_h) triple."""
-
-    def test_floors_negative_elements(self):
-        import numpy as np
-        from PyOMES.core.clamping import floor_nonnegative
-        y = np.array([-5.0, 0.0, 3.0, -1e-12])
-        out = floor_nonnegative(y)
-        assert (out >= 0.0).all()
-        assert out[2] == pytest.approx(3.0)
-
-    def test_no_op_on_already_nonnegative(self):
-        import numpy as np
-        from PyOMES.core.clamping import floor_nonnegative
-        y = np.array([0.0, 1.0, 2.5])
-        out = floor_nonnegative(y)
-        assert list(out) == list(y)
-
 
 # ═══════════════════════════════════════════════════════════════════════
 #  clamp_fn wired into the two discrete-step solvers

@@ -23,8 +23,8 @@ gated. ``baseline`` and ``reference`` rewrite their parts of that
 file; use them only when a change to the stored numbers is intended.
 
 ``clamps`` reports which bounds changed a value in a case, on both integration paths.
-It counts ``min`` and ``max`` calls with a literal bound in ``CLAMP_MODULES``, the state
-floor, the engine's fallback for a total that is not positive, and ``PHController``'s
+It counts ``min`` and ``max`` calls with a literal bound in ``CLAMP_MODULES``, negative
+amounts in a state written back to a CV, negative NR totals, and ``PHController``'s
 dose limit. It does not see ``if`` guards or ``np.clip``.
 
 The reference is Radau at ``REFERENCE_TOLERANCES``, on each case's own macro grid,
@@ -343,7 +343,6 @@ def _literal_bounds(path):
 
 def _count_clamps(name, solver_kwargs):
     """Run one case with counters on; return ``{description: times it changed a value}``."""
-    from PyOMES.core import solvers
     from PyOMES.control import cv_loops
     from PyOMES.chemical_equilibrium.engines.nr import engine as nr_engine
 
@@ -370,34 +369,24 @@ def _count_clamps(name, solver_kwargs):
         module.min = counting("min", builtins.min, module.__file__, bounds)
         module.max = counting("max", builtins.max, module.__file__, bounds)
 
-    real_floor = solvers.floor_nonnegative
-    real_build = solvers.SimultaneousAdaptiveSolver._build_integrand
+    from PyOMES.core import state_vector
+    real_unpack = state_vector.StateVector.unpack
     real_read = nr_engine.NRChemicalEquilibriumEngine._read_from_phases
     real_compute = cv_loops.PHController.compute
-    layout = {}
 
-    def build(self, cv, dt_h, sources, keep_totals=False):
-        integrand = real_build(self, cv, dt_h, sources, keep_totals=keep_totals)
-        resolved = getattr(integrand.engine, "algebraic_species", None)
-        exempt = resolved() if keep_totals and callable(resolved) else frozenset()
-        layout["names"] = [
-            (phase, species, phase == "liquid" and species in exempt)
-            for _, phase, species in integrand.sv._layout
-        ]
-        return integrand
-
-    def floor(y):
+    def unpack(self, y, *args, **kwargs):
+        # Nothing floors the state: count the negative amounts written back.
         for i in np.nonzero(np.asarray(y) < 0.0)[0]:
-            phase, species, exempt = layout["names"][i]
-            count(f"state {'negative, exempt' if exempt else 'FLOORED'}: {phase}.{species}")
-        return real_floor(y)
+            _, phase, species = self._layout[i]
+            count(f"state written back negative: {phase}.{species}")
+        return real_unpack(self, y, *args, **kwargs)
 
     def read(self, phases):
         liquid = phases.get("liquid")
         for component in self._tableau.components:
             total = sum(float(liquid.n_mol.get(sp, 0.0)) for sp in component.species_ids)
             if total < 0.0:
-                count("engine: negative total replaced by its master")
+                count("engine: negative total (raises beyond roundoff)")
         return real_read(self, phases)
 
     def compute(self, state, dt_h):
@@ -407,8 +396,7 @@ def _count_clamps(name, solver_kwargs):
             count("PHController at max_add_molL_hr")
         return action
 
-    solvers.floor_nonnegative = floor
-    solvers.SimultaneousAdaptiveSolver._build_integrand = build
+    state_vector.StateVector.unpack = unpack
     nr_engine.NRChemicalEquilibriumEngine._read_from_phases = read
     cv_loops.PHController.compute = compute
     try:
@@ -416,8 +404,7 @@ def _count_clamps(name, solver_kwargs):
     finally:
         for module in modules:
             del module.min, module.max
-        solvers.floor_nonnegative = real_floor
-        solvers.SimultaneousAdaptiveSolver._build_integrand = real_build
+        state_vector.StateVector.unpack = real_unpack
         nr_engine.NRChemicalEquilibriumEngine._read_from_phases = real_read
         cv_loops.PHController.compute = real_compute
     return counts

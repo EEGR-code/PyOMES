@@ -29,6 +29,7 @@ from .lifecycle import RunContext, _LockableList, raise_if_running
 from .links import CVLink, LinkFlowRecord
 from .recorder import BatchRecorder
 from .snapshot import CVSnapshot, build_cv_snapshot, build_simulation_snapshot
+from PyOMES.chemical_equilibrium.totals import NegativeTotalError
 from PyOMES.control.actions import ControlAction, ProfileRecord
 from PyOMES.control.descriptors import note_parameter_change
 from PyOMES.monitoring.conservation import warn_unresolved
@@ -1279,6 +1280,9 @@ class Simulation:
         try:
             result = engine.solve(phases=cv.phases, T_K=float(liq.T_K))
             result.apply_to_phases(cv.phases)
+        except NegativeTotalError as exc:
+            exc.add_note(f"In control volume {cv.label!r}, in the first solve of the run.")
+            raise
         except (TypeError, ValueError, AttributeError, KeyError) as exc:
             import warnings
             from PyOMES.monitoring.accuracy import AccuracyWarning

@@ -30,7 +30,6 @@ from .phases import Phase
 from .interfaces import AdvanceResult
 from .links import LinkFlowRecord
 from .boundaries import ExternalFluxRecord
-from .clamping import floor_nonnegative
 from PyOMES.control.descriptors import parameter_generation
 
 
@@ -569,7 +568,7 @@ class _PersistentRun:
 
     A new run has a stepper that stops exactly at the macro-step end, because the
     next step may restart too and a stepper past that end has to interpolate back,
-    which can overshoot into trial states a floor then acts on. Once a macro step
+    which can overshoot into negative amounts. Once a macro step
     passes with nothing changed, the stepper is replaced by one that runs freely.
     """
 
@@ -638,7 +637,6 @@ class _Integrand(NamedTuple):
     f: Callable              # right-hand side, f(t, y)
     jac: Optional[Callable]  # Jacobian for implicit methods, or None
     engine: Any              # speciation engine, or None
-    floor: Callable          # floors a raw state before it is used or written
     t_origin: List[float]    # one item: simulation time at the integrator's t = 0
 
 
@@ -651,6 +649,17 @@ class SimultaneousAdaptiveSolver:
     with adaptive step control instead of a single Euler batch. Speciation
     is solved algebraically at every internal sub-step (DAE approach,
     matching BSM2).
+
+    Rates, boundary fluxes and the engine are evaluated at the integrator's
+    own state, trial states included, and the accepted state is written back
+    as it is: nothing is floored at zero. That keeps every linear
+    conservation law (element totals, charge) that the method preserves. A
+    trial state can hold slightly negative amounts; a rate law that cannot
+    take a negative input guards its own domain (as the built-in rate laws do
+    for a substrate at or below zero), the tolerances keep such values small,
+    an engine raises :class:`~PyOMES.chemical_equilibrium.NegativeTotalError`
+    for a negative total beyond roundoff, and a step that ends with a
+    negative amount warns.
 
     Parameters
     ----------
@@ -751,18 +760,12 @@ class SimultaneousAdaptiveSolver:
         cv: Any,
         dt_h: float,
         external_source_terms: Optional[Dict[str, Dict[str, float]]],
-        keep_totals: bool = False,
     ) -> _Integrand:
         """Build the ODE state vector, right-hand side and Jacobian for *cv*.
 
         The right-hand side and Jacobian write to scratch phases built here,
-        and to the live phases of *cv*.
-
-        With *keep_totals*, liquid species the engine resolves are not floored.
-        Between re-speciations, their entries in the state are only parts of a
-        total: a flux leaving one in proportion to its speciated amount can take
-        its entry negative while the total is fine, and flooring that entry would
-        create material. The engine reads their sum and overwrites them.
+        and to the live phases of *cv*. They use the state they are given as
+        it is, with no floor.
         """
         import numpy as np
         from .state_vector import StateVector
@@ -800,21 +803,6 @@ class SimultaneousAdaptiveSolver:
         has_rxn = rxn_model is not None
         engine = getattr(rxn_model, "engine", None) if has_rxn else None
         has_speciation = engine is not None
-
-        floor_state = floor_nonnegative
-        resolved = getattr(engine, "algebraic_species", None)
-        if keep_totals and callable(resolved):
-            liq_offset_ = phase_offset["liquid"]
-            kept = [
-                liq_offset_ + i
-                for i, sp in enumerate(phase_layout["liquid"])
-                if sp in resolved()
-            ]
-
-            def floor_state(y):
-                floored = floor_nonnegative(y)
-                floored[kept] = y[kept]
-                return floored
 
         # Phase 5 — detect gray-box capability for analytical Jacobian
         import warnings as _warnings
@@ -875,17 +863,15 @@ class SimultaneousAdaptiveSolver:
             # 1+2. Unpack into reusable phase objects (in-place mutation)
             #      and write to live CV (kept for any side-effects;
             #      chem_env_fn no longer reads from this since strong
-            #      ions live in phase.n_mol post-C4). floor_nonnegative
-            #      guards against adaptive-integrator overshoot on a
-            #      trial state -- a distinct concern from clamp_fn
-            #      (discrete-step solvers only; see clamping.py).
-            y_safe = floor_state(y)
+            #      ions live in phase.n_mol post-C4). The trial state is
+            #      used as it is: flooring it would break the method's
+            #      conservation of linear invariants.
             for pk, species in phase_layout.items():
                 offset = phase_offset[pk]
                 temp_phase = _temp_phases[pk]
                 live_phase = cv.phases[pk]
                 for i, sp in enumerate(species):
-                    val = float(y_safe[offset + i])
+                    val = float(y[offset + i])
                     temp_phase.n_mol[sp] = val
                     live_phase.n_mol[sp] = val
 
@@ -1010,9 +996,8 @@ class SimultaneousAdaptiveSolver:
                 f0 = f(t, y)
 
                 # Component totals (mol/L) for dz_dy lookup
-                y_safe = floor_nonnegative(y)
                 totals = {
-                    sp: float(y_safe[liq_offset + i]) / liq_V_L
+                    sp: float(y[liq_offset + i]) / liq_V_L
                     for i, sp in enumerate(liq_species)
                 }
                 try:
@@ -1059,7 +1044,7 @@ class SimultaneousAdaptiveSolver:
                 return J
 
         return _Integrand(
-            sv=sv, y0=y0, f=f, jac=jac_callable, engine=engine, floor=floor_state,
+            sv=sv, y0=y0, f=f, jac=jac_callable, engine=engine,
             t_origin=t_origin,
         )
 
@@ -1102,9 +1087,7 @@ class SimultaneousAdaptiveSolver:
         continuing = run is not None
         integrand = (
             run.integrand if run is not None
-            else self._build_integrand(
-                cv, dt_h, external_source_terms, keep_totals=persist,
-            )
+            else self._build_integrand(cv, dt_h, external_source_terms)
         )
         sv = integrand.sv
         engine = integrand.engine
@@ -1129,10 +1112,8 @@ class SimultaneousAdaptiveSolver:
             if not success and continuing:
                 # The integrator's history may be what failed: try once more from
                 # the state at the start of this macro step.
-                sv.unpack(y0_copy, floor=True)
-                integrand = self._build_integrand(
-                    cv, dt_h, external_source_terms, keep_totals=True,
-                )
+                sv.unpack(y0_copy)
+                integrand = self._build_integrand(cv, dt_h, external_source_terms)
                 sv = integrand.sv
                 run = _PersistentRun(
                     self._make_stepper_for(integrand, integrand.y0, t_h, dt_h),
@@ -1160,7 +1141,7 @@ class SimultaneousAdaptiveSolver:
 
         if not success:
             # Restore original state and warn
-            sv.unpack(y0_copy, floor=True)
+            sv.unpack(y0_copy)
             self._runs.pop(cv, None)
             run = None
             import warnings
@@ -1171,7 +1152,7 @@ class SimultaneousAdaptiveSolver:
             )
         else:
             # Write final state back to CV
-            sv.unpack(integrand.floor(y_end))
+            sv.unpack(y_end)
 
         # Accuracy monitor: scipy step-rejection rate. The ratio spikes
         # when the integrator is fighting stiffness or a tight
@@ -1195,6 +1176,12 @@ class SimultaneousAdaptiveSolver:
         # Accuracy monitor: pH-jump check across the step-closing
         # speciation re-solve.
         _monitor_pH_post_step(cv)
+
+        # The accepted state is written back as it is: say so when an amount
+        # in it is negative.
+        for phase_key, phase in cv.phases.items():
+            _monitor_negative_mole(cv, phase.n_mol, phase_key=phase_key,
+                                   t_h=t_h, dt_h=dt_h)
 
         if run is not None:
             run.snapshot = _phase_snapshot(cv)

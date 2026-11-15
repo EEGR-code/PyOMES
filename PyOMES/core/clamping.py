@@ -111,19 +111,3 @@ def floor_clamp(
                 scale = max(0.0, min(1.0, scale))
                 clamped[species] = rate * scale
     return clamped
-
-
-def floor_nonnegative(y):
-    """Floor every element of a raw ODE state array at 0.0.
-
-    A distinct concern from the ``clamp_fn`` functions above: this
-    guards against adaptive-integrator overshoot on a continuous-RHS
-    solver's raw absolute-value state vector (e.g.
-    :class:`~PyOMES.core.solvers.SimultaneousAdaptiveSolver`'s
-    ``scipy.integrate.solve_ivp`` state), not a large discrete ``dt_h``
-    overdrawing inventory for an otherwise well-posed rate law —
-    ``clamp_fn`` operates on a ``(deltas, current_mol, dt_h)`` triple,
-    which doesn't exist here; there is only the state itself.
-    """
-    import numpy as np
-    return np.maximum(y, 0.0)

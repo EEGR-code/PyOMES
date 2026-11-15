@@ -46,6 +46,7 @@ from .solver import (
 from PyOMES.thermo import ActivityModel, make_activity_model
 from PyOMES.thermo.temperature_correction import vant_hoff_log_K
 from PyOMES.chemical_equilibrium.protocols import EquilibriumResult, SparseJacobian, SpeciationJacobian
+from PyOMES.chemical_equilibrium.totals import checked_total
 
 logger = logging.getLogger(__name__)
 
@@ -645,23 +646,20 @@ class NRChemicalEquilibriumEngine:
 
         totals: Dict[str, float] = {}
         for comp in self._tableau.components:
-            # Sum n_mol for all liquid-phase species in the component
-            CT_mol = sum(float(n_mol.get(sp_id, 0.0))
-                         for sp_id in comp.species_ids)
+            # The component's liquid species (and folded gas species) present;
+            # a negative sum is roundoff (read as zero) or an error.
+            amounts = [n_mol[sp_id] for sp_id in comp.species_ids if sp_id in n_mol]
             if comp.gas_species_ids:
-                CT_mol += sum(float(gas_n_mol.get(sp_id, 0.0))
-                              for sp_id in comp.gas_species_ids)
-            if CT_mol <= 0.0:
-                # Fallback: the master might be the only species in n_mol
-                # (first solve, before derived species have been written back)
-                CT_mol = float(n_mol.get(comp.master_id, 0.0))
+                amounts += [gas_n_mol[sp_id] for sp_id in comp.gas_species_ids
+                            if sp_id in gas_n_mol]
+            CT_mol = checked_total(comp.master_id, amounts, engine="NR")
             totals[comp.master_id] = CT_mol / V_L
 
         # Strong ions
         strong_ions: Dict[str, float] = {}
         for sp_id, ct_key in _STRONG_ION_SPECIES_TO_KEY.items():
             if sp_id in n_mol:
-                val = float(n_mol[sp_id]) / V_L
+                val = checked_total(sp_id, [n_mol[sp_id]], engine="NR") / V_L
                 if val > 0.0:
                     strong_ions[ct_key] = val
 

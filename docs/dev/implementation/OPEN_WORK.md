@@ -341,7 +341,9 @@ no-clamp default; neither covers these points.
   that. `persistent=True` exempts resolved species;
   `persistent=False` keeps the floor. **Decided 2026-11-08 (owner):** the trial
   floor goes in `conservation-ledger` checkpoint 2d, for every species and both
-  modes, and the checklist's claim is corrected.
+  modes, and the checklist's claim is corrected. **Done 2026-11-15** (2d): on
+  the same case, total Fe now drifts 1.6e-7 under `persistent=False`, the
+  restart drift of the bullet below.
 - **Enforced positivity as an opt-in, if a model needs it.** Logged 2026-11-08.
   With the trial floor gone, keeping amounts in range is the rate laws' and the
   tolerances' job. If `conservation-ledger` checkpoint 2a shows a model that
@@ -351,7 +353,17 @@ no-clamp default; neither covers these points.
   integrators cannot undo a step, so in PyOMES this means rebuilding the
   integrator from the last accepted state (which loses BDF's history and order)
   or a SUNDIALS backend for the adaptive solver (a new dependency and solver
-  path). Not started; 2a's evidence decides whether it is needed.
+  path). Not started. 2a (2026-11-09) found no run in the repo that needs it.
+- **Revisit: an engine raises on a negative total.** Decided 2026-11-15 (owner)
+  for `conservation-ledger` checkpoint 2d, chosen for now. A component total
+  within 1e-12 of the sum of its forms' magnitudes reads as zero; a larger
+  negative total raises, naming the component, the total and the step. That
+  replaced the Bisection engine writing negative forms back without a word and
+  the NR engine replacing the total by zero (creating material) without a word.
+  Raising stops the run. To revisit when a model meets it: whether the opt-in
+  positivity mechanism above should let such a run continue instead (it would
+  reject the step that made the total negative), and whether the threshold is
+  right for models with large inert inventories.
 - **A floor on a strong ion can cost accuracy without creating much material.** In
   the persistent run with a pH controller, trial states take `Fe2+` negative 97
   times in 6,020 evaluations, and the floor raises the worst error from 3.16e-5 to

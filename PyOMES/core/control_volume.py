@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 
+from PyOMES.chemical_equilibrium.totals import NegativeTotalError
 from PyOMES.chemistry.dose import Dose, check_dose
 from PyOMES.chemistry.species import Species
 from PyOMES.chemistry.species_check import check_species_consistency, merge_species
@@ -689,10 +690,17 @@ class ControlVolume:
         # dict like any other StepSolver.
         solver = solver if solver is not None else SequentialAdvanceSolver()
         self._check_unresolved(t_h)
-        result = solver.solve_step(
-            self, dt_h, t_h,
-            external_source_terms=external_source_terms,
-        )
+        try:
+            result = solver.solve_step(
+                self, dt_h, t_h,
+                external_source_terms=external_source_terms,
+            )
+        except NegativeTotalError as exc:
+            exc.add_note(
+                f"In control volume {self.label!r}, in the step of {float(dt_h):.4g} h "
+                f"given t_h = {float(t_h):.6g} ({type(solver).__name__})."
+            )
+            raise
         self._check_unresolved(t_h + dt_h)
         return result
 

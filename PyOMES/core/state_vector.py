@@ -97,27 +97,15 @@ class StateVector:
                 offset += 1
         return y
 
-    def unpack(self, y: np.ndarray, *, floor: bool = False) -> None:
+    def unpack(self, y: np.ndarray) -> None:
         """Write a packed array back into CV phases (+ controllers), in place.
 
         Inverse of :meth:`pack`. ``y`` must have the same length and
         ordering as an array produced by :meth:`pack` on this same
         instance (i.e. the species set must not have changed since
-        construction).
-
-        Parameters
-        ----------
-        floor : bool
-            If True, floor each unpacked value at 0.0 before writing
-            (guards against adaptive-integrator overshoot on the final
-            accepted solution). Default False, matching
-            ``_unpack_state``'s original behavior — callers that need
-            the floor (e.g. writing a final ``solve_ivp`` result back
-            to the CV) opt in explicitly.
+        construction). Values are written as they are, negative ones
+        included.
         """
-        if floor:
-            from .clamping import floor_nonnegative
-            y = floor_nonnegative(y)
         for i, (cv_key, pk, sk) in enumerate(self._layout):
             self.cvs[cv_key].phases[pk].n_mol[sk] = float(y[i])
         offset = self.n_cv

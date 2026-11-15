@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 from .acid_base import solve_acid_base, solve_from_equilibrium_set
 from PyOMES.thermo import ActivityModel, make_activity_model
 from PyOMES.chemical_equilibrium.protocols import EquilibriumResult
+from PyOMES.chemical_equilibrium.totals import checked_total
 
 
 # Special-case total_key mapping for species whose tracking key deviates
@@ -787,7 +788,8 @@ def _populate_strong_ions_from_phases(phases, kwargs, *, liquid_key: str = "liqu
         if ct_key in strong:
             continue
         if species_id in n_mol:
-            strong[ct_key] = float(n_mol[species_id]) / V_L
+            amount = checked_total(species_id, [n_mol[species_id]], engine="Bisection")
+            strong[ct_key] = amount / V_L
     if strong:
         kwargs["strong_kwargs"] = strong
 
@@ -812,16 +814,16 @@ def _populate_totals_from_phases(phases, kwargs, eq_set, *, liquid_key: str = "l
         if key in kwargs:
             continue
 
-        if eq_def.species_refs:
-            CT_mol = sum(float(n_mol.get(sp.id, 0.0))
-                         for sp in eq_def.species_refs)
-            if CT_mol <= 0.0:
-                acid_id = eq_def.species_refs[0].id
-                CT_mol = float(n_mol.get(acid_id, 0.0))
-                if CT_mol <= 0.0:
-                    CT_mol = float(n_mol.get(eq_def.name, 0.0))
+        # The total is the sum of the ladder's species present in n_mol; a
+        # negative sum is roundoff (read as zero) or an error (checked_total).
+        # With none of them present, the total may be held under the
+        # equilibrium's name.
+        present = [n_mol[sp.id] for sp in (eq_def.species_refs or ()) if sp.id in n_mol]
+        if present:
+            CT_mol = checked_total(eq_def.name, present, engine="Bisection")
         else:
-            CT_mol = float(n_mol.get(eq_def.name, 0.0))
+            CT_mol = checked_total(eq_def.name, [n_mol.get(eq_def.name, 0.0)],
+                                   engine="Bisection")
         CT = CT_mol / V_L
 
         if eq_def.category == "acid" and eq_def.name not in _TOTAL_KEY_OVERRIDES:

@@ -192,16 +192,16 @@ class TestTotalsAreKept:
             start * np.exp(-2.0 * 20 * DT_H), rel=1e-4,
         )
 
-    def test_a_species_the_engine_does_not_resolve_is_still_floored(self):
-        """Na+ is a strong ion: its state entry is the amount itself."""
+    def test_the_right_hand_side_uses_the_trial_state_as_given(self):
+        """Nothing floors a trial state: a negative entry of a species the
+        engine does not resolve reaches the rate evaluation as it is."""
         cv, solver = _make_cv(), _solver()
-        integrand = solver._build_integrand(cv, DT_H, None, keep_totals=True)
-        y = -np.ones_like(integrand.y0)
-        floored = integrand.floor(y)
-        by_name = dict(zip((key[2] for key in integrand.sv._layout), floored))
-        assert by_name["Na+"] == 0.0
-        assert by_name["P"] == 0.0
-        assert by_name["AcOH"] == -1.0
+        integrand = solver._build_integrand(cv, DT_H, None)
+        names = [key[2] for key in integrand.sv._layout]
+        y = np.array(integrand.y0, dtype=float)
+        y[names.index("P")] = -1e-9
+        integrand.f(0.0, y)
+        assert cv.phases["liquid"].n_mol["P"] == -1e-9
 
 
 class TestRestartTriggers:
@@ -470,6 +470,9 @@ class TestAccuracyMonitor:
             self.calls.append((n_accepted, n_attempted))
 
         def check_pH_jump(self, pH):
+            pass
+
+        def check_negative_mole(self, n_mol, **kwargs):
             pass
 
     def test_it_sees_each_macro_steps_own_counts(self):

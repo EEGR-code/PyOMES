@@ -70,19 +70,12 @@ class TestStateVectorPackUnpack:
         assert sv.n_cv == 1
         assert ("A", "liquid", "H+") not in sv.index_map
 
-    def test_unpack_without_floor_allows_negative(self):
+    def test_unpack_writes_negative_values_as_given(self):
         from PyOMES.core.state_vector import StateVector
         sim = _make_sim({"A": {"liquid": {"S": 1.0}}})
         sv = StateVector(sim.cvs)
-        sv.unpack(np.array([-5.0]), floor=False)
+        sv.unpack(np.array([-5.0]))
         assert sim.cvs["A"].phases["liquid"].n_mol["S"] == pytest.approx(-5.0)
-
-    def test_unpack_with_floor_clamps_at_zero(self):
-        from PyOMES.core.state_vector import StateVector
-        sim = _make_sim({"A": {"liquid": {"S": 1.0}}})
-        sv = StateVector(sim.cvs)
-        sv.unpack(np.array([-5.0]), floor=True)
-        assert sim.cvs["A"].phases["liquid"].n_mol["S"] == 0.0
 
 
 class TestStateVectorControllerExtension:

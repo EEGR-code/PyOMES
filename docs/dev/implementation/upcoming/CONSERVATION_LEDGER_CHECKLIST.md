@@ -352,7 +352,7 @@ neutral; after this phase the monitor says so, by name and amount.
         gas-liquid-link tests): 205 passed, 24 xfailed. Full suite (owner,
         2026-11-15): 2306 passed, 87 skipped, 26 xfailed, 0 failed; 453
         warnings, unchanged from 2b
-  - [ ] **2d. The adaptive solver's floors.** Both go (see "Agreed",
+  - [x] **2d. The adaptive solver's floors.** Both go (see "Agreed",
         2026-11-08). The floor on the state written back after a step goes;
         a negative end amount warns as in 2b. The floor on each trial state
         (`floor_nonnegative` in `_build_integrand`, with its exemption of
@@ -379,6 +379,65 @@ neutral; after this phase the monitor says so, by name and amount.
         `_PersistentRun.can_continue` still matches the written-back state.
         Results move for adaptive runs; measured before and after, both with
         the integrator persisting and restarting.
+
+        *Done 2026-11-15.* The engines' response (settled; see "Agreed",
+        2026-11-15): new `chemical_equilibrium/totals.py` with
+        `ROUNDOFF_RTOL = 1e-12`, `NegativeTotalError` (a `RuntimeError`, so
+        that `Simulation._initial_solve`, which turns a `ValueError` into a
+        warning, does not swallow it) and `checked_total`, exported as
+        `PyOMES.chemical_equilibrium.NegativeTotalError`. The Bisection
+        engine's acid totals and strong ions, and the NR engine's component
+        totals (folded gas species included) and strong ions, go through it.
+        It replaces the Bisection fallback that read a non-positive sum as the
+        acid's own amount and the NR fallback to the master species (each
+        could turn a near-zero total into a positive one), and NR's silent
+        dropping of a negative strong ion. A strong ion has a single form, so
+        any negative amount of it raises. `ControlVolume.advance` adds the
+        control volume, `dt_h`, `t_h` and solver to the error as a note, and
+        `Simulation._initial_solve` adds "the first solve of the run".
+
+        The floors (audit as required: on the success path
+        `integrand.floor(y_end)`, on the retry and restore paths
+        `unpack(y0_copy, floor=True)`, in the right-hand side and the
+        Jacobian `floor_state` / `floor_nonnegative`; all go):
+        `core/solvers.py` evaluates rates, boundaries and the engine at the
+        integrator's own state, writes the accepted state back as it is, and
+        then checks every phase for a negative amount as 2b does;
+        `_Integrand.floor`, `_build_integrand(keep_totals=)` and the resolved
+        species' exemption go; the class docstring says how amounts are kept
+        in range instead; `_PersistentRun`'s docstring gives the reason for
+        its bounded first step as overshoot into negative amounts.
+        `_PersistentRun.can_continue` compares the phases with the snapshot
+        taken after the write-back, so it still matches.
+        `StateVector.unpack` loses `floor`; `clamping.floor_nonnegative` is
+        deleted (searched: its only users were these paths, their tests,
+        `bench_adaptive_solver.py clamps`, the clamp recorder, and the text of
+        `docs/solvers.md` and `SolverProtocols/0_README.ipynb`, which
+        checkpoint 7 rewrites). `bench_adaptive_solver.py clamps` now counts
+        negative amounts written back and negative NR totals; the clamp
+        recorder records negative write-backs once the floor is gone.
+
+        Tests: `test_engine_negative_totals.py` (15: `checked_total`'s
+        three outcomes and that it is not a `ValueError`; per engine, a
+        negative acid total raises naming it, a roundoff-negative total
+        solves as zero, a negative strong ion raises, `cv.advance` names the
+        step, and a run's first solve raises instead of warning).
+        `test_clamping.py`'s two tests of `floor_nonnegative` go;
+        `test_state_vector.py`'s two floor tests become one (negative values
+        are written as given); `test_adaptive_solver_persistent.py`'s test
+        of the exemption becomes a test that the right-hand side uses the
+        trial state as given, and its spy monitor gains
+        `check_negative_mole`.
+
+        Measurement: all 27 cases bit-identical to 2c, the adaptive ones
+        included, persisting and restarting (no floor fired in any; 2a). The
+        run that depended on the floor, the iron feed-and-drain case of
+        `bench_adaptive_solver.py` (BDF, 2 h): total Fe drift under
+        `persistent=False` 1.6e-7 (9.8e-5 with the floor, `OPEN_WORK.md`
+        2026-11-01), under `persistent=True` 6.1e-8; no step ends with a
+        negative amount. Affected test files: 466 passed, 24 skipped, 24
+        xfailed. Full suite (owner, 2026-11-15): 2318 passed, 87 skipped, 26
+        xfailed, 0 failed (15 new tests, 3 removed); 453 warnings, unchanged
   - [ ] **2e. The models that rested on the clamp.** The tutorials, as settled
         below with the 2a list in hand. BSM2's
         `test_concentrations_non_negative` exempts `H2O` until BSM2 carries its
@@ -606,17 +665,27 @@ With the repo owner, 2026-11-08.
   editing the state. Logged in `OPEN_WORK.md`; 2a's evidence decides whether
   it is needed and in what form.
 
+With the repo owner, 2026-11-15.
+
+- **What an engine does with a negative total** (checkpoint 2d; settled
+  from "To settle"). A component total whose magnitude is at most 1e-12 of
+  the sum of the magnitudes of its forms is roundoff, and is read as zero:
+  that changes the total by no more than roundoff. A larger negative total
+  raises an error naming the component, its total and the step, and saying
+  that a smaller step or a rate law that limits itself is the fix. The same
+  in both engines, replacing the Bisection engine's silent negative forms and
+  the NR engine's silent replacement by zero, which created material. 2a
+  found no run in the repo that hands an engine a negative total, so nothing
+  depends on the old behaviour; and no run needs the trial floor, so the
+  second half of the "To settle" item has nothing to settle. Chosen for now;
+  logged in `OPEN_WORK.md` to revisit (raising stops a run that the opt-in
+  positivity mechanism might instead let continue).
+
 ## To settle
 
 **Before 2e: the tutorials whose results rest on the clamp** (numbers in the
 audit below). For each tutorial on the 2a list: run as given and warn, give
 the model the missing limitation, or pass a clamp explicitly.
-
-**Before 2d: what the engines do with a negative total, and the runs that
-need the trial floor.** The roundoff threshold below which a negative total
-reads as zero, and whether a larger one raises or warns. For each run 2a finds
-failing without the floor: the rate law guards its own domain, the run's
-tolerances change, or it is listed as needing the opt-in positivity mechanism.
 
 **Before 3c is committed: the adaptive solver's shift.** The owner sees the
 measured shift in adaptive runs that have a state-dependent boundary, with
