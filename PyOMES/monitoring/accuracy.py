@@ -368,27 +368,43 @@ class AccuracyMonitor:
             )
         self._emit(f"ionic_strength_{model_key}", msg)
 
-    def check_negative_mole(self, n_mol: "dict[str, float]") -> None:
+    def check_negative_mole(
+        self,
+        n_mol: "dict[str, float]",
+        *,
+        phase_key: "str | None" = None,
+        t_h: "float | None" = None,
+        dt_h: "float | None" = None,
+    ) -> None:
         """Flag any species below zero beyond a small tolerance.
 
-        Only meaningful when ``clamp_fn=None`` was configured on the
-        active discrete-step ``StepSolver`` — with clamping enabled
-        this should never fire. Disabling clamping is a real way to
-        silently feed unphysical (negative) state into downstream
-        chemistry with nothing watching for it; this check is that
-        watcher.
+        The discrete-step solvers call this after every step. They do not
+        keep amounts non-negative: a step or rate law that takes more than
+        a phase holds leaves a negative amount, which is run as it is and
+        reported here. ``phase_key``, ``t_h`` and ``dt_h``, when given,
+        name the phase and the step in the message.
         """
         tol = _get_warning_config().negative_mole_tolerance
         offenders = {sp: n for sp, n in n_mol.items() if n < -tol}
         if not offenders:
             return
         worst_sp = min(offenders, key=lambda sp: offenders[sp])
+        where = f" in phase {phase_key!r}" if phase_key is not None else ""
+        # t_h is the time the solver was given: the start of the step for a
+        # direct cv.advance, the end of it under Simulation.
+        parts = []
+        if dt_h is not None:
+            parts.append(f"step of {float(dt_h):.4g} h")
+        if t_h is not None:
+            parts.append(f"t_h = {float(t_h):.6g}")
+        when = f" (in the {', '.join(parts)})" if parts else ""
         self._emit(
             "negative_mole",
             f"Species {worst_sp!r} went negative ({offenders[worst_sp]:.3e} "
-            f"mol, tolerance {tol:.1e}) after a step with clamping "
-            f"disabled (clamp_fn=None). {len(offenders)} species "
-            f"affected: {sorted(offenders)}.",
+            f"mol, tolerance {tol:.1e}){where}{when}. {len(offenders)} "
+            f"species affected: {sorted(offenders)}. The run continues with "
+            f"the negative amount; a smaller step, or a rate law that limits "
+            f"itself, keeps amounts physical.",
         )
 
     def check_clamp_invoked(

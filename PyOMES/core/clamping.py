@@ -27,6 +27,10 @@ being stuck with an all-or-nothing choice::
         return result
 
     SimultaneousEulerSolver(clamp_fn=bsm2_style_clamp)
+
+No solver clamps by default: a ``clamp_fn`` is applied only when it is
+passed to a step solver. The functions here scale removals species by
+species, so they do not conserve mass.
 """
 
 from __future__ import annotations
@@ -39,13 +43,16 @@ def proportional_clamp(
     current_mol: Dict[str, float],
     dt_h: float,
 ) -> Dict[str, float]:
-    """Proportionally scale removal fluxes to prevent negative moles.
+    """Scale each overdrawn species' removal so its amount lands at zero.
 
     For each species where the net delta would overdraw the available
-    inventory, the removal rate is scaled down so that the result is
-    exactly zero (never negative) — preserving the *relative*
-    stoichiometry of whatever combination of fluxes produced that
-    delta, rather than flooring each species independently.
+    inventory, that species' removal rate is scaled down so that the
+    result is exactly zero (never negative). Each species is scaled on its
+    own: the other species of the reaction or flux that overdrew it are
+    applied in full, so the step's proportions are broken and material is
+    created (for a reaction that consumes the scaled species, its products
+    are made as if it had been consumed in full). The result is the same as
+    :func:`floor_clamp` with ``eps=0``.
 
     Parameters
     ----------

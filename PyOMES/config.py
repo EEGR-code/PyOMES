@@ -49,7 +49,7 @@ class WarningConfig:
     ionic_strength_davies_threshold: float = 0.50  # mol/L
 
     # Clamping (STEP_SOLVER_INTERFACE_REFINEMENT.md item 8)
-    negative_mole_tolerance: float = 1e-9    # mol; only checked when clamp_fn=None
+    negative_mole_tolerance: float = 1e-9    # mol; checked after every discrete step
     clamp_invoked_tolerance: float = 1e-9    # mol/h; rate change from clamp_fn
 
     # Conservation (state-unification C6) — relative-plus-max-clamp

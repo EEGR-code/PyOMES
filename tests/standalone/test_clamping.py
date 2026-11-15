@@ -7,8 +7,9 @@ Covers:
 - proportional_clamp / floor_clamp as standalone pure functions,
   including "arbitrary subset of species" (not whole-dict ownership)
 - clamp_fn wired into SequentialAdvanceSolver and SimultaneousEulerSolver
-  as a swappable constructor parameter
-- clamp_fn=None genuinely disables clamping (negative n_mol reachable)
+  as a swappable constructor parameter, None (no clamp) by default
+- with no clamp, negative n_mol is reachable and warns, naming the species,
+  the amount and the step
 - a bespoke per-species composite clamp_fn (the design note's own
   bsm2_style_clamp example) built out of proportional_clamp as an
   ingredient
@@ -128,10 +129,19 @@ def _liquid_cv_with_fast_removal(k_removal=1000.0):
 
 class TestClampFnOnSequentialAdvanceSolver:
 
-    def test_default_clamp_prevents_negative_inventory(self):
+    def test_default_does_not_clamp(self):
+        """No clamp unless one is passed: the overdraw is applied as computed."""
         from PyOMES.core import SequentialAdvanceSolver
+        assert SequentialAdvanceSolver().clamp_fn is None
         cv = _liquid_cv_with_fast_removal()
         cv.advance(dt_h=0.1, solver=SequentialAdvanceSolver())
+        assert cv.phases["liquid"].n_mol["S"] == pytest.approx(1.0 - 1000.0 * 0.1)
+
+    def test_passed_clamp_prevents_negative_inventory(self):
+        from PyOMES.core import SequentialAdvanceSolver
+        from PyOMES.core.clamping import proportional_clamp
+        cv = _liquid_cv_with_fast_removal()
+        cv.advance(dt_h=0.1, solver=SequentialAdvanceSolver(clamp_fn=proportional_clamp))
         assert cv.phases["liquid"].n_mol["S"] >= 0.0
 
     def test_clamp_fn_none_allows_negative_inventory(self):
@@ -140,27 +150,31 @@ class TestClampFnOnSequentialAdvanceSolver:
         cv.advance(dt_h=0.1, solver=SequentialAdvanceSolver(clamp_fn=None))
         assert cv.phases["liquid"].n_mol["S"] < 0.0
 
-    def test_default_solver_none_matches_explicit_default_clamp_fn(self):
-        """solver=None (SequentialAdvanceSolver's own default clamp_fn)
-        must be numerically identical to the pre-checkpoint-5 hardcoded
-        floor -- proportional_clamp reduces to an exact floor for a
-        single independently-clamped species."""
+    def test_solver_none_matches_the_default_solver(self):
+        """solver=None is SequentialAdvanceSolver() with its default
+        clamp_fn, which is no clamp."""
         cv_default = _liquid_cv_with_fast_removal()
         cv_explicit = _liquid_cv_with_fast_removal()
         from PyOMES.core import SequentialAdvanceSolver
         cv_default.advance(dt_h=0.1)
         cv_explicit.advance(dt_h=0.1, solver=SequentialAdvanceSolver())
-        assert cv_default.phases["liquid"].n_mol["S"] == pytest.approx(
-            cv_explicit.phases["liquid"].n_mol["S"]
-        )
+        assert cv_default.phases["liquid"].n_mol["S"] == cv_explicit.phases["liquid"].n_mol["S"]
 
 
 class TestClampFnOnSimultaneousEulerSolver:
 
-    def test_default_clamp_prevents_negative_inventory(self):
+    def test_default_does_not_clamp(self):
         from PyOMES.core import SimultaneousEulerSolver
+        assert SimultaneousEulerSolver().clamp_fn is None
         cv = _liquid_cv_with_fast_removal()
         cv.advance(dt_h=0.1, solver=SimultaneousEulerSolver())
+        assert cv.phases["liquid"].n_mol["S"] < 0.0
+
+    def test_passed_clamp_prevents_negative_inventory(self):
+        from PyOMES.core import SimultaneousEulerSolver
+        from PyOMES.core.clamping import proportional_clamp
+        cv = _liquid_cv_with_fast_removal()
+        cv.advance(dt_h=0.1, solver=SimultaneousEulerSolver(clamp_fn=proportional_clamp))
         assert cv.phases["liquid"].n_mol["S"] >= 0.0
 
     def test_clamp_fn_none_allows_negative_inventory(self):
@@ -263,14 +277,32 @@ class TestNegativeMoleDiagnostic:
         categories = [w.category for w in caught]
         assert any(issubclass(c, AccuracyWarning) for c in categories)
 
-    def test_default_clamp_emits_no_negative_mole_warning(self):
+    def test_default_warns_naming_the_species_amount_and_step(self):
         import warnings
         from PyOMES import AccuracyWarning
-        from PyOMES.core import SequentialAdvanceSolver
         cv = _liquid_cv_with_fast_removal()
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
-            cv.advance(dt_h=0.1, solver=SequentialAdvanceSolver())
+            cv.advance(dt_h=0.1, t_h=2.0)
+        neg_mole = [
+            str(w.message) for w in caught
+            if issubclass(w.category, AccuracyWarning) and "went negative" in str(w.message)
+        ]
+        assert len(neg_mole) == 1
+        message = neg_mole[0]
+        assert "'S'" in message and "-9.900e+01" in message
+        assert "'liquid'" in message and "step of 0.1 h" in message and "t_h = 2" in message
+        assert "clamp_fn=None" not in message
+
+    def test_passed_clamp_emits_no_negative_mole_warning(self):
+        import warnings
+        from PyOMES import AccuracyWarning
+        from PyOMES.core import SequentialAdvanceSolver
+        from PyOMES.core.clamping import proportional_clamp
+        cv = _liquid_cv_with_fast_removal()
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            cv.advance(dt_h=0.1, solver=SequentialAdvanceSolver(clamp_fn=proportional_clamp))
         neg_mole = [
             w for w in caught
             if issubclass(w.category, AccuracyWarning)
@@ -281,14 +313,15 @@ class TestNegativeMoleDiagnostic:
 
 class TestClampInvokedDiagnostic:
 
-    def test_default_clamp_emits_clamp_invoked_on_aggressive_kinetics(self):
+    def test_passed_clamp_emits_clamp_invoked_on_aggressive_kinetics(self):
         import warnings
         from PyOMES import AccuracyWarning
         from PyOMES.core import SimultaneousEulerSolver
+        from PyOMES.core.clamping import proportional_clamp
         cv = _liquid_cv_with_fast_removal()
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
-            cv.advance(dt_h=0.1, solver=SimultaneousEulerSolver())
+            cv.advance(dt_h=0.1, solver=SimultaneousEulerSolver(clamp_fn=proportional_clamp))
         clamp_invoked = [
             w for w in caught
             if issubclass(w.category, AccuracyWarning)

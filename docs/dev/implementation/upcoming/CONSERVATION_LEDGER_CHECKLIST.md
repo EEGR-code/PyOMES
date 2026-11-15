@@ -270,12 +270,57 @@ neutral; after this phase the monitor says so, by name and amount.
         every form is written back as 1e-50 mol, which creates the missing
         amount (+1e-6 mol). The two differ, and NR's creates material; 2d
         replaces both with the defined response.
-  - [ ] **2b. The step solvers' default.** `SequentialAdvanceSolver` and
+  - [x] **2b. The step solvers' default.** `SequentialAdvanceSolver` and
         `SimultaneousEulerSolver` take `clamp_fn=None` by default; a clamp is
         something the user passes. A negative amount warns, naming the
         species, the amount and the step; the warning no longer speaks of
         clamping being disabled. `proportional_clamp`'s docstring stops
         claiming it preserves stoichiometry.
+
+        *Done 2026-11-15.* `core/solvers.py`: both solvers default to
+        `clamp_fn=None`, and check every phase for a negative amount after
+        every step, clamp or not (it was checked only with `clamp_fn=None`);
+        the unused `proportional_clamp` and `floor_clamp` imports go.
+        `monitoring/accuracy.py`: `check_negative_mole` takes `phase_key`,
+        `t_h` and `dt_h` and names them, says the run continues with the
+        negative amount, and no longer mentions `clamp_fn=None`. `t_h` is
+        quoted as given, not called the start or end of the step, since it
+        means one under `cv.advance` and the other under `Simulation`
+        (`OPEN_WORK.md`, "`env.t_h` means different things"). `config.py`:
+        the tolerance's comment. `core/clamping.py`: `proportional_clamp`
+        says it scales each species on its own, creating material, and is
+        the same as `floor_clamp(eps=0)`; the module says no solver clamps by
+        default. Tests: `test_clamping.py`'s four tests of the default clamp
+        pass `proportional_clamp` explicitly and are renamed; new tests that
+        the default does not clamp (both solvers) and that its warning names
+        the species, amount, phase and step. BSM2's
+        `test_concentrations_non_negative` exempts `H2O`, as decided for 2e,
+        moved here because this commit is where it fails (water −2.0e-6 mol).
+
+        Measurement (`ledger_fingerprint.py` against the baseline): 24 of 27
+        cases bit-identical. `bsm2`: only `H2O` moves (0 → −2.0e-6 mol), every
+        other species bit-identical; one `AccuracyWarning` as before, now the
+        negative amount instead of the clamp. `tank_batch` and
+        `tank_fed_batch`: growth, `AceticAcid` and `Yeast` bit-identical (the
+        template's growth law has no O2 term); the clamp only cut O2
+        consumption, so without it liquid O2 ends 6.3 % lower (0.1485 →
+        0.1390 mol) and liquid CO2 7.4 % lower, with the gas exchange
+        following; no step ends with a negative amount (transfer refills O2
+        within the step), so the `AccuracyWarning` goes (1 → 0). The clamp
+        recorder finds nothing firing in any case or in
+        `raw_construction.py`, whose yeast now ends at the preview's
+        3.7675e-2 mol. Affected test files: 125 passed, 26 xfailed. Full
+        suite (owner, 2026-11-15): 2306 passed, 87 skipped, 26 xfailed, 0
+        failed (3 tests more than checkpoint 1: four default-clamp tests
+        became seven). Warnings 451 → 453, both in `test_clamping.py`
+        (8, was 6): five tests that overdraw with no clamp now raise the
+        negative-amount warning (two did before), and three that pass a clamp
+        raise "clamp_fn scaled" (four did, through the default). BSM2 still
+        raises one `AccuracyWarning`, now the negative `H2O`, and its eight
+        `ConservationWarning`s, which predate this phase (its kinetics do not
+        close C, H, O, N). The suite was at 420 warnings at the baseline and
+        451 after checkpoint 1, whose closure tests add 31, mostly the
+        `ConservationWarning`s of the NR cases' drift.
   - [ ] **2c. The floors in the phases.** `Phase.apply_flux` loses its `clamp`
         parameter and no longer floors (internal transfer,
         `apply_external_flux`, inter-CV links); every caller is updated.

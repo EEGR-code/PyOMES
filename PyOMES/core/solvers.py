@@ -30,7 +30,7 @@ from .phases import Phase
 from .interfaces import AdvanceResult
 from .links import LinkFlowRecord
 from .boundaries import ExternalFluxRecord
-from .clamping import proportional_clamp, floor_clamp, floor_nonnegative
+from .clamping import floor_nonnegative
 from PyOMES.control.descriptors import parameter_generation
 
 
@@ -107,16 +107,18 @@ class SequentialAdvanceSolver:
         boundary, reactions) as it is computed — this solver is
         sequential/Lie-Trotter, not simultaneous, so there is no single
         combined delta dict to clamp once the way
-        :class:`SimultaneousEulerSolver` does. Default
-        :func:`~PyOMES.core.clamping.proportional_clamp`. ``None``
-        disables clamping — every sub-step is applied with
-        ``clamp=False``, so a large enough ``dt_h``/rate combination
-        can genuinely drive a species negative (see
+        :class:`SimultaneousEulerSolver` does. Default ``None``: no
+        clamp, so a large enough ``dt_h``/rate combination can drive a
+        species negative, and
         :class:`~PyOMES.monitoring.accuracy.AccuracyMonitor`'s
-        ``negative_mole`` check).
+        ``negative_mole`` check warns when one does. Keeping amounts
+        physical is the model's job (its step, its rate laws); a clamp
+        is something the user passes, such as
+        :func:`~PyOMES.core.clamping.proportional_clamp`, and it changes
+        the step, which does not conserve mass.
     """
 
-    def __init__(self, clamp_fn: Optional[Any] = proportional_clamp):
+    def __init__(self, clamp_fn: Optional[Any] = None):
         self.clamp_fn = clamp_fn
 
     def solve_step(
@@ -210,11 +212,10 @@ class SequentialAdvanceSolver:
         if cv._conservation_monitor is not None:
             cv._conservation_monitor.check_step(cv.phases)
 
-        # clamp_fn=None: nothing above guaranteed non-negativity: check
-        # whether that actually produced negative inventory anywhere.
-        if self.clamp_fn is None:
-            for phase in cv.phases.values():
-                _monitor_negative_mole(cv, phase.n_mol)
+        # Nothing above keeps amounts non-negative: say so when one is not.
+        for phase_key, phase in cv.phases.items():
+            _monitor_negative_mole(cv, phase.n_mol, phase_key=phase_key,
+                                   t_h=t_h, dt_h=dt_h)
 
         return AdvanceResult(
             transfer=transfer_diag,
@@ -278,14 +279,14 @@ def _monitor_clamp_invoked(
     monitor.check_clamp_invoked(deltas_before, deltas_after, dt_h)
 
 
-def _monitor_negative_mole(cv, n_mol: Dict[str, float]) -> None:
-    """Feed a post-step n_mol dict to ``cv._accuracy_monitor`` — only
-    meaningful when clamp_fn=None (STEP_SOLVER_INTERFACE_REFINEMENT.md
-    item 8a). No-op if the CV has no monitor attached."""
+def _monitor_negative_mole(cv, n_mol: Dict[str, float], *, phase_key=None,
+                           t_h=None, dt_h=None) -> None:
+    """Feed a post-step n_mol dict to ``cv._accuracy_monitor``, which warns
+    when an amount is negative. No-op if the CV has no monitor attached."""
     monitor = getattr(cv, "_accuracy_monitor", None)
     if monitor is None:
         return
-    monitor.check_negative_mole(n_mol)
+    monitor.check_negative_mole(n_mol, phase_key=phase_key, t_h=t_h, dt_h=dt_h)
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -306,20 +307,19 @@ class SimultaneousEulerSolver:
     Parameters
     ----------
     clamp_fn : callable or None
-        ``clamp_fn(deltas, current_mol, dt_h) -> deltas`` — restores
-        non-negativity on the combined delta dict before it's applied.
-        Default :func:`~PyOMES.core.clamping.proportional_clamp`
-        (preserves relative stoichiometry). Pass
-        :func:`~PyOMES.core.clamping.floor_clamp` for a per-species
-        floor, a bespoke composite (see ``PyOMES/core/clamping.py``'s
-        module docstring), or ``None`` to disable clamping entirely —
-        useful for diagnosing whether a given ``dt_h``/kinetics
-        combination is aggressive enough to need it (see
-        :class:`~PyOMES.monitoring.accuracy.AccuracyMonitor`'s
-        ``negative_mole`` check).
+        ``clamp_fn(deltas, current_mol, dt_h) -> deltas``, applied to the
+        combined delta dict before it is applied. Default ``None``: no
+        clamp, and :class:`~PyOMES.monitoring.accuracy.AccuracyMonitor`'s
+        ``negative_mole`` check warns when an amount goes negative. A
+        clamp is something the user passes:
+        :func:`~PyOMES.core.clamping.proportional_clamp`,
+        :func:`~PyOMES.core.clamping.floor_clamp`, or a bespoke composite
+        (see ``PyOMES/core/clamping.py``'s module docstring). Each scales
+        overdrawn removals species by species, which changes the step and
+        does not conserve mass.
     """
 
-    def __init__(self, clamp_fn: Optional[Any] = proportional_clamp):
+    def __init__(self, clamp_fn: Optional[Any] = None):
         self.clamp_fn = clamp_fn
 
     def solve_step(
@@ -464,11 +464,10 @@ class SimultaneousEulerSolver:
         for phase_key, phase_deltas in deltas.items():
             cv.phases[phase_key].apply_flux(phase_deltas, dt_h, clamp=False)
 
-        # clamp_fn=None: nothing above guaranteed non-negativity; check
-        # whether that actually produced negative inventory anywhere.
-        if self.clamp_fn is None:
-            for phase_key in deltas:
-                _monitor_negative_mole(cv, cv.phases[phase_key].n_mol)
+        # Nothing above keeps amounts non-negative: say so when one is not.
+        for phase_key in deltas:
+            _monitor_negative_mole(cv, cv.phases[phase_key].n_mol,
+                                   phase_key=phase_key, t_h=t_h, dt_h=dt_h)
 
         # ── 6. FINAL SPECIATION on live state ────────────────────────
         # state-unification C4d: re-solve on the post-step phase so
