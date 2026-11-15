@@ -361,6 +361,17 @@ class PressureReliefVent:
         (rate constant) and ``smooth_width_atm`` (activation sharpness).
         More physical and better-conditioned for stiff integrators.
 
+    Under a continuous integrator (``compute_flux(..., instantaneous=True)``,
+    as :class:`~PyOMES.core.solvers.SimultaneousAdaptiveSolver` calls it),
+    smooth mode returns the instantaneous rate
+    ``k_vent_per_h · (s(x) − s(0)) / smooth_width_atm · n_gas`` for
+    ``x = P − P_set > 0`` (zero otherwise), where
+    ``s(x) = ½(x + √(x² + w²))`` is the smooth activation: continuous at the
+    set point and independent of the solver's step. Instant mode has no rate
+    form: under a continuous integrator it acts as a relaxation over ``dt_h``,
+    so the pressure settles above the set point by about the gas inflow times
+    ``dt_h``; it warns once, and smooth mode is the one to use there.
+
     Flux convention: returns *negative* fluxes (material leaving the CV).
 
     Parameters
@@ -397,6 +408,7 @@ class PressureReliefVent:
         self.mode = str(mode)
         self.k_vent_per_h = float(k_vent_per_h)
         self.smooth_width_atm = float(smooth_width_atm)
+        self._warned_instant = False
 
     # ── Protocol properties ─────────────────────────────────────────
 
@@ -419,6 +431,11 @@ class PressureReliefVent:
         cv : ControlVolume
         dt_h : float
             Timestep (hours).
+        instantaneous : bool
+            ``True`` from a continuous integrator, which needs the rate at
+            the current state: smooth mode then returns its instantaneous
+            rate (see the class docstring). ``False`` (the discrete-step
+            solvers) returns the amount vented over ``dt_h``, as a rate.
 
         Returns
         -------
@@ -436,6 +453,25 @@ class PressureReliefVent:
         P = gas.P_atm
         if P <= self.P_set_atm:
             return {k: 0.0 for k in n_mol}
+
+        if instantaneous and self.mode == "smooth":
+            # The rate itself (mol/h), not an amount over a step: continuous at
+            # the set point and independent of dt_h.
+            rate_mol_per_h = self._smooth_rate_per_h(P) * n_total
+            y = {k: max(0.0, float(v)) / n_total for k, v in n_mol.items()}
+            return {sp: -yi * rate_mol_per_h for sp, yi in y.items() if yi > 0.0}
+
+        if instantaneous and self.mode == "instant" and not self._warned_instant:
+            self._warned_instant = True
+            import warnings
+            warnings.warn(
+                f"PressureReliefVent {self._label!r} (mode='instant') under a "
+                f"continuous integrator: an instant vent has no rate form, so it "
+                f"vents the excess over dt_h ({dt_h:.4g} h) and the pressure "
+                f"settles above P_set by about the gas inflow times dt_h. Use "
+                f"mode='smooth' with an adaptive solver.",
+                UserWarning, stacklevel=2,
+            )
 
         if self.mode == "instant":
             vent_mol = self._instant_vent_mol(gas, n_total)
@@ -460,6 +496,15 @@ class PressureReliefVent:
         V_L = max(float(gas.V_L), 1e-30)
         n_target = (self.P_set_atm * V_L) / (R_L_ATM_PER_MOL_K * T_K)
         return max(0.0, n_total - max(0.0, n_target))
+
+    def _smooth_rate_per_h(self, P_atm: float) -> float:
+        """Instantaneous smooth venting rate (1/h, fraction of n_gas per hour)."""
+        w = max(1e-12, self.smooth_width_atm)
+        x = float(P_atm) - self.P_set_atm
+        if x <= 0.0:
+            return 0.0
+        s = 0.5 * (x + math.sqrt(x * x + w * w)) - 0.5 * w   # s(x) - s(0)
+        return max(0.0, self.k_vent_per_h) * s / w
 
     def _smooth_vent_mol(self, P_atm: float, n_total: float, dt_h: float) -> float:
         """Moles to vent for smooth (C¹) pressure relief."""

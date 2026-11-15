@@ -44,6 +44,10 @@ What is recorded, per run (a case, a script, a notebook or a test), per guard:
 ``negative_writeback`` (from checkpoint 2d)
     Not a guard: once nothing floors the adaptive solver's state, the negative
     amounts in a state written back to a control volume (``StateVector.unpack``).
+    For a species the engine resolves (an acid and its conjugate base), the entry
+    is one form of a total: it can be negative while the total is not, and the
+    step's closing speciation redistributes the total. The negative-amount warning,
+    raised after that speciation, is the check on the step's end state.
 ``nonfinite_state``
     Not a guard: a NaN or infinite value in a state the adaptive solver hands to a
     floor (a trial state, a written-back state). Records the number of such values.

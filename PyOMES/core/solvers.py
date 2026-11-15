@@ -30,6 +30,7 @@ from .phases import Phase
 from .interfaces import AdvanceResult
 from .links import LinkFlowRecord
 from .boundaries import ExternalFluxRecord
+from PyOMES.chemical_equilibrium.totals import NegativeTotalError
 from PyOMES.control.descriptors import parameter_generation
 
 
@@ -659,7 +660,14 @@ class SimultaneousAdaptiveSolver:
     for a substrate at or below zero), the tolerances keep such values small,
     an engine raises :class:`~PyOMES.chemical_equilibrium.NegativeTotalError`
     for a negative total beyond roundoff, and a step that ends with a
-    negative amount warns.
+    negative amount warns. When an engine raises during a step (usually on a
+    trial state the integrator would have rejected), the step is integrated
+    again from its start with a quarter of the maximum (and first) step size, up to
+    :attr:`NEGATIVE_TOTAL_RETRIES` times, each with an ``AccuracyWarning``;
+    the error is raised if the total is still negative at the smallest step.
+    The step is restarted rather than the trial rejected inside scipy, whose
+    methods do not all handle a failed evaluation (a NaN right-hand side makes
+    ``BDF`` raise and ``LSODA`` return NaN as a success).
 
     Parameters
     ----------
@@ -735,6 +743,72 @@ class SimultaneousAdaptiveSolver:
     def restart(self) -> None:
         """Make every CV start a new integration at its next step."""
         self._runs = weakref.WeakKeyDictionary()
+
+    #: Times a step is integrated again, each with a quarter of the previous
+    #: maximum step size, after an engine meets a negative total.
+    NEGATIVE_TOTAL_RETRIES = 4
+
+    def _retry_with_smaller_steps(self, cv, dt_h, t_h, external_source_terms,
+                                  y0_copy, sv, error, persist):
+        """Integrate one step again from its start, with smaller maximum steps.
+
+        Called when an engine raised :class:`NegativeTotalError` during the step.
+        That usually happens on a trial state the integrator would have rejected:
+        the method does not keep amounts non-negative between accepted steps. The
+        step is restarted rather than the trial rejected inside the integrator,
+        because scipy's methods do not all handle a failed evaluation (a NaN
+        right-hand side makes ``BDF`` raise and ``LSODA`` return NaN as a success),
+        whereas a restart works the same for every method. Each attempt warns.
+        If the total is still negative at the smallest step, the error is raised:
+        the model itself takes the total below zero.
+
+        Returns ``(success, message, y_end, n_accepted, n_attempted, integrand)``.
+        """
+        import warnings
+        from scipy.integrate import solve_ivp
+        from PyOMES.monitoring.accuracy import AccuracyWarning
+
+        self._runs.pop(cv, None)
+        max_step = min(float(self.max_step), float(dt_h))
+        for attempt in range(1, self.NEGATIVE_TOTAL_RETRIES + 1):
+            max_step /= 4.0
+            warnings.warn(
+                f"SimultaneousAdaptiveSolver ({self.method}): "
+                f"{str(error).splitlines()[0][:200]} Integrating the step of "
+                f"{float(dt_h):.4g} h (t_h = {float(t_h):.6g}) again from its start "
+                f"with max_step {max_step:.3g} h (attempt {attempt} of "
+                f"{self.NEGATIVE_TOTAL_RETRIES}).",
+                AccuracyWarning, stacklevel=3,
+            )
+            sv.unpack(y0_copy)
+            integrand = self._build_integrand(cv, dt_h, external_source_terms)
+            if persist:
+                integrand.t_origin[0] = t_h
+            try:
+                # first_step as well as max_step: scipy otherwise picks its
+                # first step from the state and its rate, not from max_step,
+                # and evaluates a trial state y0 + h0*f(y0) first, which is
+                # the same on every attempt.
+                result = solve_ivp(
+                    integrand.f, [0.0, dt_h], integrand.y0,
+                    method=self.method, rtol=self.rtol, atol=self.atol,
+                    max_step=max_step, first_step=max_step,
+                    dense_output=False, jac=integrand.jac,
+                )
+            except NegativeTotalError as again:
+                error = again
+                continue
+            n_accepted = int(getattr(result.t, "size", len(result.t)))
+            n_attempted = int(getattr(result, "nfev", n_accepted))
+            return (result.success, result.message, result.y[:, -1],
+                    n_accepted, n_attempted, integrand)
+        sv.unpack(y0_copy)
+        error.add_note(
+            f"The step was integrated again {self.NEGATIVE_TOTAL_RETRIES} times from "
+            f"its start, down to max_step {max_step:.3g} h, and the total was still "
+            f"negative: the model, not the step size, takes it below zero."
+        )
+        raise error
 
     def _make_stepper_for(self, integrand, y0, t_h, t_bound):
         # scipy evaluates the right-hand side while building a stepper, so the
@@ -1097,47 +1171,59 @@ class SimultaneousAdaptiveSolver:
         # Save original state for restoration on failure
         y0_copy = sv.pack()
 
-        if persist:
-            if run is None:
-                run = _PersistentRun(
-                    self._make_stepper_for(integrand, integrand.y0, t_h, dt_h),
-                    integrand, cv, dt_h, external_source_terms,
-                )
-                self._runs[cv] = run
-            elif run.bounded:
-                run.run_freely(
-                    self._make_stepper_for(integrand, y0_copy, t_h, _STEPPER_T_BOUND_H)
-                )
-            success, message, y_end, n_accepted, n_attempted = run.advance(dt_h)
-            if not success and continuing:
-                # The integrator's history may be what failed: try once more from
-                # the state at the start of this macro step.
-                sv.unpack(y0_copy)
-                integrand = self._build_integrand(cv, dt_h, external_source_terms)
-                sv = integrand.sv
-                run = _PersistentRun(
-                    self._make_stepper_for(integrand, integrand.y0, t_h, dt_h),
-                    integrand, cv, dt_h, external_source_terms,
-                )
-                self._runs[cv] = run
+        try:
+            if persist:
+                if run is None:
+                    run = _PersistentRun(
+                        self._make_stepper_for(integrand, integrand.y0, t_h, dt_h),
+                        integrand, cv, dt_h, external_source_terms,
+                    )
+                    self._runs[cv] = run
+                elif run.bounded:
+                    run.run_freely(
+                        self._make_stepper_for(integrand, y0_copy, t_h, _STEPPER_T_BOUND_H)
+                    )
                 success, message, y_end, n_accepted, n_attempted = run.advance(dt_h)
-        else:
-            # Run the adaptive solver
-            result = solve_ivp(
-                integrand.f, [0.0, dt_h], integrand.y0,
-                method=self.method,
-                rtol=self.rtol,
-                atol=self.atol,
-                max_step=self.max_step,
-                dense_output=False,
-                jac=integrand.jac,
+                if not success and continuing:
+                    # The integrator's history may be what failed: try once more from
+                    # the state at the start of this macro step.
+                    sv.unpack(y0_copy)
+                    integrand = self._build_integrand(cv, dt_h, external_source_terms)
+                    sv = integrand.sv
+                    run = _PersistentRun(
+                        self._make_stepper_for(integrand, integrand.y0, t_h, dt_h),
+                        integrand, cv, dt_h, external_source_terms,
+                    )
+                    self._runs[cv] = run
+                    success, message, y_end, n_accepted, n_attempted = run.advance(dt_h)
+            else:
+                # Run the adaptive solver
+                result = solve_ivp(
+                    integrand.f, [0.0, dt_h], integrand.y0,
+                    method=self.method,
+                    rtol=self.rtol,
+                    atol=self.atol,
+                    max_step=self.max_step,
+                    dense_output=False,
+                    jac=integrand.jac,
+                )
+                success, message = result.success, result.message
+                y_end = result.y[:, -1]
+                # result.nfev is the function-evaluation count (proxy for
+                # attempted steps); len(result.t) is the accepted-step count.
+                n_accepted = int(getattr(result.t, "size", len(result.t)))
+                n_attempted = int(getattr(result, "nfev", n_accepted))
+
+        except NegativeTotalError as error:
+            # A trial state's total went negative: integrate this step again from
+            # its start with smaller steps, rather than stop the run.
+            run = None
+            success, message, y_end, n_accepted, n_attempted, integrand = (
+                self._retry_with_smaller_steps(
+                    cv, dt_h, t_h, external_source_terms, y0_copy, sv, error, persist,
+                )
             )
-            success, message = result.success, result.message
-            y_end = result.y[:, -1]
-            # result.nfev is the function-evaluation count (proxy for
-            # attempted steps); len(result.t) is the accepted-step count.
-            n_accepted = int(getattr(result.t, "size", len(result.t)))
-            n_attempted = int(getattr(result, "nfev", n_accepted))
+            sv = integrand.sv
 
         if not success:
             # Restore original state and warn

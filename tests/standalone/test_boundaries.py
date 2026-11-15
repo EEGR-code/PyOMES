@@ -419,6 +419,64 @@ class TestPressureReliefVent:
                 assert 0.0 <= frac < 1.0
 
 
+class TestPressureReliefVentUnderAContinuousIntegrator:
+    """compute_flux(..., instantaneous=True): the rate at the current state."""
+
+    @staticmethod
+    def _cv(excess_atm, V_gas=200.0, T_K=305.15, P_set=1.0):
+        n = (P_set + excess_atm) * V_gas / (R_L_ATM_PER_MOL_K * T_K)
+        gas = GasPhase({"O2": 0.2 * n, "N2": 0.8 * n}, V_L=V_gas, T_K=T_K)
+        liq = LiquidPhase({}, V_L=800.0, T_K=T_K)
+        return ControlVolume(phases={"gas": gas, "liquid": liq})
+
+    def test_smooth_rate_does_not_depend_on_dt(self):
+        cv = self._cv(0.05)
+        vent = PressureReliefVent(P_set_atm=1.0, mode="smooth")
+        a = vent.compute_flux(cv, dt_h=0.001, instantaneous=True)
+        b = vent.compute_flux(cv, dt_h=1.0, instantaneous=True)
+        assert a == pytest.approx(b, rel=1e-14)
+        assert -sum(a.values()) > 0.0
+
+    def test_smooth_rate_is_continuous_at_the_set_point(self):
+        vent = PressureReliefVent(P_set_atm=1.0, mode="smooth", k_vent_per_h=500.0)
+        just_above = -sum(vent.compute_flux(self._cv(1e-9), 0.01, instantaneous=True).values())
+        n_gas = sum(self._cv(1e-9).phases["gas"].n_mol.values())
+        assert just_above / n_gas < 1e-3   # 1/h, far below k/2 = 250/h
+
+    def test_a_sparged_headspace_holds_near_the_set_point_whatever_the_step(self):
+        from PyOMES.core import Simulation, SimultaneousAdaptiveSolver
+        from PyOMES.core.boundaries import GasFeed
+
+        def final_pressure(n_steps):
+            T_K, V_gas, P_set = 305.15, 0.4, 1.1
+            n = 1.0 * V_gas / (R_L_ATM_PER_MOL_K * T_K)
+            gas = GasPhase({"O2": 0.21 * n, "N2": 0.79 * n}, V_L=V_gas, T_K=T_K)
+            liq = LiquidPhase({"H2O": 88.0}, V_L=1.6, T_K=T_K)
+            cv = ControlVolume(phases={"gas": gas, "liquid": liq})
+            cv.boundaries.append(GasFeed(vvm_min=1.0, y={"O2": 0.21, "N2": 0.79}))
+            cv.boundaries.append(PressureReliefVent(P_set_atm=P_set, mode="smooth"))
+            Simulation(cvs={"main": cv}, label="t",
+                       solver=SimultaneousAdaptiveSolver(method="BDF")).run(
+                tau_h=0.2, n_steps=n_steps)
+            return cv.phases["gas"].P_atm
+
+        coarse, fine = final_pressure(4), final_pressure(40)
+        assert 1.1 < coarse < 1.11
+        assert coarse == pytest.approx(fine, abs=1e-4)
+
+    def test_instant_mode_warns_once_under_a_continuous_integrator(self):
+        import warnings
+        cv = self._cv(0.05)
+        vent = PressureReliefVent(P_set_atm=1.0, mode="instant")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            vent.compute_flux(cv, dt_h=0.01, instantaneous=True)
+            vent.compute_flux(cv, dt_h=0.01, instantaneous=True)
+            vent.compute_flux(cv, dt_h=0.01)
+        messages = [str(w.message) for w in caught if "mode='instant'" in str(w.message)]
+        assert len(messages) == 1 and "mode='smooth'" in messages[0]
+
+
 # ════════════════════════════════════════════════════════════════════════
 #  apply_boundary tests
 # ════════════════════════════════════════════════════════════════════════
